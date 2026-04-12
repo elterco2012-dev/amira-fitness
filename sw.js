@@ -67,8 +67,8 @@ self.addEventListener('push', e => {
   e.waitUntil(
     self.registration.showNotification(data.title || 'Amira Fitness', {
       body: data.body || '¡Es hora de entrenar! 💪',
-      icon: '/api/icon-192.png',
-      badge: '/api/icon-192.png',
+      icon: '/api/icon-192.svg',
+      badge: '/api/icon-192.svg',
       vibrate: [200, 100, 200],
       data: { url: data.url || '/' },
       actions: [

@@ -261,7 +261,7 @@ async function enviarCom(aId){
     await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
     DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
     // WhatsApp a Amira
-    const amPh=localStorage.getItem('af-amira-ph')||'';
+    const amPh=localStorage.getItem('af-amira-phone')||'';
     if(amPh){
       const msg=encodeURIComponent(`💪 ${a?.nombre||slug} dejó una nota (Sem ${selSem}, Día ${selDia}):\n\n"${texto}"`);
       window.open(`https://wa.me/${amPh}?text=${msg}`,'_blank');
@@ -519,7 +519,7 @@ async function envComTab(aId){
   try{
     await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
     DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
-    const amPh=localStorage.getItem('af-amira-ph')||'';
+    const amPh=localStorage.getItem('af-amira-phone')||'';
     if(amPh){const a=getAlumna();const msg=encodeURIComponent('💪 '+(a?.nombre||slug)+' (Sem '+selSem+', Día '+selDia+'):\n\n"'+texto+'"');window.open('https://wa.me/'+amPh+'?text='+msg,'_blank');}
   }catch(e){DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});}
   renderNotasTab();
