@@ -375,19 +375,44 @@ async function handleSem(sem){
 
 // ── Alumnas CRUD ──────────────────────────────────────────────
 async function addAlumna(){
-  if(!S.newA.nombre.trim())return;
-  const id=Date.now();
-  const slug=S.newA.slug||slugify(S.newA.nombre.split(' ')[0]);
-  const a={id,slug,nombre:S.newA.nombre,tipo:S.newA.tipo,dias:S.newA.dias,notas:S.newA.notas,foto:S.newA.foto,tel:S.newA.tel,color:COLORS[DB.alumnas.length%COLORS.length]};
-  S.msg='Guardando...';render();
-  try{
-    await sbUpsert('alumnas',a);
-    DB.alumnas.push(a);
-    if(!S.selA)S.selA=id;
-    S.newA={nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:'',tel:''};
-    S.addA=false;S.msg='Alumna creada ✓';S.err='';
-    render();setTimeout(()=>{S.msg='';render();},2000);
-  }catch(e){S.err='Error al guardar';S.msg='';render();}
+  if(!S.newA.nombre.trim()) return;
+
+  const slug = S.newA.slug || slugify(S.newA.nombre.split(' ')[0]);
+
+  const a = {
+    slug,
+    nombre: S.newA.nombre,
+    tipo: S.newA.tipo,
+    dias: S.newA.dias,
+    notas: S.newA.notas,
+    foto: S.newA.foto,
+    tel: S.newA.tel,
+    color: COLORS[DB.alumnas.length % COLORS.length]
+  };
+
+  S.msg = 'Guardando...';
+  render();
+
+  try {
+    const saved = await sbUpsert('alumnas', a);
+    const nueva = Array.isArray(saved) ? saved[0] : saved;
+
+    DB.alumnas.push(nueva);
+    if (!S.selA) S.selA = nueva.id;
+
+    S.newA = { nombre:'', slug:'', tipo:'gym', dias:3, notas:'', foto:'', tel:'' };
+    S.addA = false;
+    S.msg = 'Alumna creada ✓';
+    S.err = '';
+    render();
+
+    setTimeout(() => { S.msg=''; render(); }, 2000);
+  } catch(e) {
+    console.error(e);
+    S.err = 'Error al guardar';
+    S.msg = '';
+    render();
+  }
 }
 
 async function deleteAlumna(id){
@@ -461,24 +486,60 @@ function delEx(i){
 
 // ── Registros ─────────────────────────────────────────────────
 async function aprobar(id){
-  const reg=DB.registros.find(r=>r.id===id); if(!reg)return;
-  await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});
-  reg.estado='aprobado';
-  S.newA={
-    nombre:reg.nombre,slug:slugify(reg.nombre.split(' ')[0]),
-    tipo:reg.ubicacion?.includes('Buenos Aires')?'gym':'distancia',
-    dias:reg.dias?.includes('3')?3:2,
-    notas:`Objetivos: ${reg.objetivos||''} | Lesiones: ${reg.lesiones||''}`,
-    foto:'',tel:reg.tel||''
-  };
-  S.addA=true; go('alumnas');
-}
-async function rechazar(id){
-  if(!confirm('¿Rechazás?'))return;
-  await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});
-  DB.registros.find(r=>r.id===id).estado='rechazado'; render();
-}
+  const reg = DB.registros.find(r => r.id === id);
+  if (!reg) return;
 
+  const slugBase = slugify((reg.nombre || '').split(' ')[0] || 'alumna');
+
+  // Evitar slug duplicado
+  let slug = slugBase;
+  let n = 2;
+  while (DB.alumnas.some(a => a.slug === slug)) {
+    slug = `${slugBase}-${n++}`;
+  }
+
+  const nuevaAlumna = {
+    nombre: reg.nombre,
+    slug,
+    tipo: reg.ubicacion?.includes('Buenos Aires') ? 'gym' : 'distancia',
+    dias: reg.dias?.includes('3') ? 3 : 2,
+    notas: `Objetivos: ${reg.objetivos || ''} | Lesiones: ${reg.lesiones || ''}`,
+    foto: '',
+    tel: reg.tel || '',
+    color: COLORS[DB.alumnas.length % COLORS.length]
+  };
+
+  try {
+    // 1) Crear alumna en Supabase
+    const saved = await sbUpsert('alumnas', nuevaAlumna);
+    const alumnaCreada = Array.isArray(saved) ? saved[0] : saved;
+
+    // 2) Marcar registro como aprobado
+    await sbPatch('registros', `id=eq.${id}`, { estado: 'aprobado' });
+
+    // 3) Reflejar cambios en memoria
+    reg.estado = 'aprobado';
+    DB.alumnas.push(alumnaCreada);
+    S.selA = alumnaCreada.id;
+    S.addA = false;
+    S.msg = 'Alumna creada y registro aprobado ✓';
+    S.err = '';
+
+    // 4) Ir a alumnas
+    go('alumnas');
+
+    setTimeout(() => {
+      S.msg = '';
+      render();
+    }, 2500);
+
+  } catch (e) {
+    console.error(e);
+    S.err = 'Error al aprobar y crear alumna';
+    render();
+    alert('No se pudo aprobar y crear la alumna. Revisá la consola.');
+  }
+}
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){
   const a=getA(aId); if(!a)return;
