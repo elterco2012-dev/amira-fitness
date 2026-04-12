@@ -222,13 +222,24 @@ const BASE = location.origin;
 const COLORS = ['teal','purple','amber','coral'];
 let DB = { alumnas:[], rutinas:{}, comentarios:[], registros:[] };
 let S = {
-  view:'inicio', selA:null, selSem:1, selDia:1,
-  addA:false, addEx:false, selHistEx:null, editId:null,
+  view:'inicio',
+  selA:null,
+  selSem:1,
+  selDia:1,
+
+  addA:false,
+  addEx:false,
+  selHistEx:null,
+  editId:null,
+  editExIndex:null, // 👈 AGREGAR ESTA LÍNEA
+
   newA:{nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:'',tel:''},
   newEx:{nombre:'',series:'3',reps:'10',tip:'',video:''},
-  msg:'', err:'', sbOk:false
-};
-let dark = localStorage.getItem('af-dark')==='1';
+
+  msg:'',
+  err:'',
+  sbOk:false
+};let dark = localStorage.getItem('af-dark')==='1';
 let charts={}, pollT=null;
 let prevCom=0, prevReg=0;
 
@@ -494,13 +505,23 @@ async function handleFoto(aId,input){
 }
 
 function addEx(){
-  if(!S.newEx.nombre.trim())return;
-  ensureLocal(S.selA,S.selSem);
-  const day=DB.rutinas[S.selA][S.selSem].find(d=>d.dia===S.selDia);
-  day.ejercicios.push({...S.newEx});
-  S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};
-  S.addEx=false; render();
+  if(!S.newEx.nombre.trim()) return;
+
+  ensureLocal(S.selA, S.selSem);
+  const day = DB.rutinas[S.selA][S.selSem].find(d => d.dia === S.selDia);
+
+  if (S.editExIndex !== null && S.editExIndex !== undefined) {
+    day.ejercicios[S.editExIndex] = { ...S.newEx };
+  } else {
+    day.ejercicios.push({ ...S.newEx });
+  }
+
+  S.newEx = { nombre:'', series:'3', reps:'10', tip:'', video:'' };
+  S.editExIndex = null;
+  S.addEx = false;
+  render();
 }
+
 function delEx(i){
   const day=DB.rutinas[S.selA]?.[S.selSem]?.find(d=>d.dia===S.selDia);
   if(day)day.ejercicios.splice(i,1); render();
@@ -716,7 +737,7 @@ function rRutinas(){
     <div class="dtabs">${[1,2,3].slice(0,a.dias).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
     <div class="shd">
       <div class="shdt">Ejercicios (${exs.length})</div>
-      <button class="btn btn-p btn-s" onclick="S.addEx=!S.addEx;render()">+ Agregar</button>
+      <button class="btn btn-p btn-s" onclick="S.addEx=false;S.editExIndex=null;S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};render()">+ Agregar</button>
     </div>
     ${S.addEx?`<div class="card" style="background:var(--s2);margin-bottom:.75rem;">
       <label>Nombre</label><input type="text" placeholder="Ej: Sentadilla" value="${S.newEx.nombre}" oninput="S.newEx.nombre=this.value">
@@ -727,15 +748,20 @@ function rRutinas(){
     </div>`:''}
     ${exs.length===0?'<div class="empty">Sin ejercicios en este día.</div>':''}
     ${exs.map((ex,i)=>`<div class="ex-item">
-      <div class="exn">${i+1}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:500;color:var(--t);">${ex.nombre}</div>
-        <div style="font-size:11px;color:var(--tm);">${ex.series} × ${ex.reps}</div>
-        ${ex.tip?`<div style="font-size:11px;color:var(--vd);margin-top:3px;">${ex.tip}</div>`:''}
-        ${ex.video?`<div style="font-size:11px;color:#185FA5;margin-top:2px;">✓ Video</div>`:''}
-      </div>
-      <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
-    </div>`).join('')}
+  <div class="exn">${i+1}</div>
+  <div style="flex:1">
+    <div style="font-size:13px;font-weight:500;color:var(--t);">${ex.nombre}</div>
+    <div style="font-size:11px;color:var(--tm);">${ex.series} × ${ex.reps}</div>
+    ${ex.tip ? `<div style="font-size:11px;color:var(--vd);margin-top:3px;">${ex.tip}</div>` : ''}
+    ${ex.video ? `<div style="font-size:11px;margin-top:4px;">
+      <a href="${ex.video}" target="_blank" style="color:#185FA5;text-decoration:none;">▶ Ver video</a>
+    </div>` : ''}
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button class="btn btn-s" onclick="editEx(${i})">Editar</button>
+    <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
+  </div>
+</div>`).join('')}
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <button class="btn btn-p" onclick="saveDay()">Guardar en la nube</button>
