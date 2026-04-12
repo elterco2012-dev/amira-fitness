@@ -337,20 +337,37 @@ function ensureLocal(aId,sem){
 }
 
 async function saveDay(){
-  const day=DB.rutinas[S.selA]?.[S.selSem]?.find(d=>d.dia===S.selDia);
-  if(!day)return;
-  S.msg='Guardando...';render();
-  try{
-    await sbUpsert('rutinas',{
-  alumna_id: S.selA,
-  semana: S.selSem,
-  dia: S.selDia,
-  ejercicios: day.ejercicios
-});
-    S.msg='Guardado en la nube ✓';S.err='';
-  }catch(e){S.err='Error al guardar';S.msg='';}
+  const day = DB.rutinas[S.selA]?.[S.selSem]?.find(d => d.dia === S.selDia);
+  if (!day) return;
+
+  S.msg = 'Guardando...';
+  S.err = '';
   render();
-  setTimeout(()=>{S.msg='';render();},2500);
+
+  try {
+    await sbUpsert(
+  'rutinas',
+  {
+    alumna_id: S.selA,
+    semana: S.selSem,
+    dia: S.selDia,
+    ejercicios: day.ejercicios
+  },
+  'alumna_id,semana,dia'
+);
+    S.msg = 'Guardado en la nube ✓';
+    S.err = '';
+  } catch (e) {
+    console.error(e);
+    S.err = 'Error al guardar';
+    S.msg = '';
+  }
+
+  render();
+  setTimeout(() => {
+    S.msg = '';
+    render();
+  }, 2500);
 }
 
 function copiarSem(aId,sem){
