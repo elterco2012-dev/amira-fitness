@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel — Amira Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="/api/supabase.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --verde:#1D9E75;--verde-l:#E1F5EE;--verde-m:#5DCAA5;--verde-d:#0F6E56;
+      --purp:#EEEDFE;--purp-d:#3C3489;
+      --amber:#FAEEDA;--amber-d:#633806;
+      --rojo-l:#FCEBEB;--rojo-d:#A32D2D;
+      --bg:#f8f8f6;--surf:#fff;--surf2:#f3f4f2;
+      --txt:#1a1a1a;--txt-m:#6b7280;--txt-h:#9ca3af;
+      --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.13);
+      --r:14px;--rs:9px;--rp:30px;
+    }
+    [data-theme="dark"]{
+      --bg:#111110;--surf:#1c1c1a;--surf2:#242422;
+      --txt:#f0ede8;--txt-m:#9ca3af;--txt-h:#6b7280;
+      --border:rgba(255,255,255,0.07);--border-m:rgba(255,255,255,0.12);
+      --verde-l:#0a2e20;--verde-m:#1a6b50;
+      --purp:#1e1c3a;--purp-d:#a5a0e8;
+      --amber:#2a200a;--amber-d:#d4a854;
+      --rojo-l:#2a1010;--rojo-d:#f09595;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);transition:background .3s,color .3s;}
+
+    .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+    .login-box{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:2rem;width:100%;max-width:340px;text-align:center;}
+    .login-logo{width:60px;height:60px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:24px;color:var(--verde-d);margin:0 auto 1rem;}
+    .login-box h2{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
+    .login-box p{font-size:13px;color:var(--txt-m);margin-bottom:1.5rem;}
+    .login-input{width:100%;padding:10px 14px;border:1px solid var(--border-m);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--surf2);color:var(--txt);margin-bottom:10px;text-align:center;letter-spacing:.15em;}
+    .login-input:focus{outline:none;border-color:var(--verde);}
+    .login-btn{width:100%;padding:10px;background:var(--verde);color:white;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .login-err{font-size:12px;color:var(--rojo-d);margin-top:8px;display:none;}
+
+    .layout{display:flex;min-height:100vh;}
+    .sidebar{width:220px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:3px;transition:background .3s;}
+    .brand{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;padding:0 .5rem;}
+    .logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
+    .brand strong{font-size:14px;font-weight:500;display:block;color:var(--txt);}
+    .brand span{font-size:11px;color:var(--txt-m);}
+    .nav{display:flex;align-items:center;gap:8px;padding:.6rem .75rem;border-radius:var(--rs);font-size:13px;color:var(--txt-m);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+    .nav:hover{background:var(--surf2);color:var(--txt);}
+    .nav.active{background:var(--verde-l);color:var(--verde-d);font-weight:500;}
+    .nav-ic{width:18px;text-align:center;font-size:14px;}
+    .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:4px;}
+    .sb-status{display:flex;align-items:center;gap:6px;padding:.5rem .75rem;font-size:11px;color:var(--txt-m);}
+    .sb-dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0;}
+    .sb-dot.ok{background:var(--verde);}
+    .sb-dot.err{background:var(--rojo-d);}
+
+    .main{flex:1;padding:2rem;overflow-y:auto;}
+    .page-title{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:1.5rem;color:var(--txt);}
+
+    .card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem;transition:background .3s;}
+    .card-title{font-size:11px;font-weight:500;color:var(--txt-m);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;}
+
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
+    .metric{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:1rem 1.25rem;}
+    .metric-label{font-size:11px;color:var(--txt-m);margin-bottom:4px;}
+    .metric-val{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--txt);}
+    .metric-val.green{color:var(--verde-d);}
+
+    .arow{display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);}
+    .arow:last-child{border-bottom:none;}
+    .av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:16px;flex-shrink:0;overflow:hidden;}
+    .av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+    .av-teal{background:var(--verde-l);color:var(--verde-d);}
+    .av-purple{background:var(--purp);color:var(--purp-d);}
+    .av-amber{background:var(--amber);color:var(--amber-d);}
+    .av-coral{background:#FAECE7;color:#712B13;}
+    .aname{font-size:14px;font-weight:500;color:var(--txt);}
+    .asub{font-size:11px;color:var(--txt-m);margin-top:2px;}
+    .badge{font-size:10px;padding:2px 9px;border-radius:var(--rp);font-weight:500;}
+    .bg-gym{background:var(--verde-l);color:var(--verde-d);}
+    .bg-dist{background:var(--purp);color:var(--purp-d);}
+    .row-acts{margin-left:auto;display:flex;gap:6px;}
+
+    .btn{padding:7px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--border-m);background:var(--surf);color:var(--txt);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .btn:hover{background:var(--surf2);}
+    .btn-p{background:var(--verde);color:white;border-color:var(--verde);}
+    .btn-p:hover{background:var(--verde-d);}
+    .btn-d{color:var(--rojo-d);border-color:#F09595;}
+    .btn-d:hover{background:var(--rojo-l);}
+    .btn-s{padding:4px 11px;font-size:11px;}
+
+    label{font-size:12px;color:var(--txt-m);display:block;margin-bottom:4px;}
+    input,select,textarea{width:100%;padding:8px 12px;border:1px solid var(--border-m);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surf2);color:var(--txt);margin-bottom:12px;transition:border-color .15s;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde);}
+    textarea{height:70px;resize:vertical;}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+    .ex-item{background:var(--surf2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.4rem;display:flex;align-items:flex-start;gap:10px;}
+    .ex-num-s{width:24px;height:24px;border-radius:50%;background:var(--surf);border:1px solid var(--border-m);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--txt-m);flex-shrink:0;margin-top:1px;}
+
+    .day-tab-row{display:flex;gap:6px;margin-bottom:1rem;}
+    .dtab{padding:6px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--border-m);background:var(--surf);color:var(--txt-m);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .dtab.active{background:var(--verde);color:white;border-color:var(--verde);}
+    .sem-tab-row{display:flex;gap:5px;margin-bottom:.75rem;flex-wrap:wrap;}
+    .semtab{padding:4px 12px;border-radius:var(--rp);font-size:11px;border:1px solid var(--border-m);background:var(--surf);color:var(--txt-m);cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .semtab.active{background:var(--purp);color:var(--purp-d);border-color:transparent;font-weight:500;}
+
+    .comment-box{background:var(--surf2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;}
+    .comment-meta{font-size:10px;color:var(--txt-h);margin-bottom:3px;}
+    .comment-txt{font-size:12px;color:var(--txt);line-height:1.5;}
+
+    .chart-wrap{position:relative;height:220px;margin-top:1rem;}
+    .hist-table{width:100%;font-size:12px;border-collapse:collapse;margin-top:1rem;}
+    .hist-table th{font-size:10px;font-weight:500;color:var(--txt-m);text-transform:uppercase;letter-spacing:.04em;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);}
+    .hist-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--txt);}
+    .hist-table tr:last-child td{border-bottom:none;}
+
+    .link-box{background:var(--surf2);border:1px solid var(--border-m);border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:var(--verde-d);font-family:monospace;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;}
+    .copy-btn{background:none;border:none;font-size:11px;color:var(--txt-m);cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .copy-btn:hover{color:var(--verde);}
+
+    .foto-wrap{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .foto-preview{width:56px;height:56px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:20px;flex-shrink:0;}
+    .nota-badge{background:var(--amber);border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:var(--amber-d);margin-bottom:.75rem;}
+    .prog-badge{display:inline-flex;align-items:center;gap:4px;background:var(--purp);border-radius:var(--rp);padding:3px 10px;font-size:11px;color:var(--purp-d);margin-bottom:.75rem;}
+    .save-msg{font-size:12px;color:var(--verde-d);margin-left:8px;}
+    .err-msg{font-size:12px;color:var(--rojo-d);margin-left:8px;}
+    .empty{font-size:13px;color:var(--txt-m);padding:.5rem 0;}
+    .section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;}
+    .section-hd-t{font-size:14px;font-weight:500;color:var(--txt);}
+    .loading-spin{text-align:center;padding:2rem;color:var(--txt-m);font-size:13px;}
+
+    @media(max-width:700px){.sidebar{display:none;}.main{padding:1rem;}.metrics{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none;">
+  <div class="login-box">
+    <div class="login-logo">A</div>
+    <h2>Panel privado</h2>
+    <p>Ingresá tu contraseña para continuar</p>
+    <input class="login-input" type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">Entrar</button>
+    <div class="login-err" id="login-err">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<div id="panel-screen" style="display:none;">
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">A</div>
+      <div><strong>Amira Fitness</strong><span>Panel</span></div>
+    </div>
+    <button class="nav active" onclick="setView('inicio')"><span class="nav-ic">🏠</span>Inicio</button>
+    <button class="nav" onclick="setView('alumnas')"><span class="nav-ic">👤</span>Alumnas</button>
+    <button class="nav" onclick="setView('rutinas')"><span class="nav-ic">📋</span>Rutinas</button>
+    <button class="nav" onclick="setView('historial')"><span class="nav-ic">📈</span>Historial</button>
+    <button class="nav" onclick="setView('comentarios')"><span class="nav-ic">💬</span>Comentarios <span id="notif-badge" style="display:none;background:var(--rojo-d);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;"></span></button>
+    <button class="nav" onclick="setView('registros')"><span class="nav-ic">📥</span>Registros <span id="reg-badge" style="display:none;background:var(--rojo-d);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;"></span></button>
+    <button class="nav" onclick="setView('recordatorios')"><span class="nav-ic">⏰</span>Recordatorios</button>
+    <button class="nav" onclick="setView('links')"><span class="nav-ic">🔗</span>Links</button>
+    <button class="nav" onclick="setView('config')"><span class="nav-ic">⚙️</span>Config</button>
+    <div class="sidebar-bottom">
+      <div class="sb-status"><div class="sb-dot" id="sb-dot"></div><span id="sb-label">Conectando...</span></div>
+      <button class="nav" onclick="toggleTheme()"><span class="nav-ic" id="theme-ic">🌙</span>Modo oscuro</button>
+      <button class="nav" onclick="logout()"><span class="nav-ic">🚪</span>Salir</button>
+    </div>
+  </aside>
+  <main class="main" id="main"><div class="loading-spin">Cargando datos...</div></main>
+</div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+const COLORS = ['teal','purple','amber','coral'];
+const PASSWORD = localStorage.getItem('af-panel-pwd') || 'amira2025';
+
+let DB = { alumnas: [], rutinas: {}, comentarios: [], registros: [], pesos: {} };
+let S = {
+  view: 'inicio', selA: null, selSem: 1, selDia: 1,
+  addA: false, addEx: false, selHistEx: null,
+  newA: { nombre:'', slug:'', tipo:'gym', dias:3, notas:'', foto:'', tel:'' },
+  newEx: { nombre:'', series:'3', reps:'10', tip:'', video:'' },
+  saveMsg:'', saveErr:'', sbOk: false
+};
+let darkMode = localStorage.getItem('af-dark') === '1';
+let charts = {};
+let pollTimer = null;
+let lastCommentCount = 0;
+let lastRegCount = 0;
+
+if (darkMode) document.documentElement.setAttribute('data-theme','dark');
+
+// ─── Auth ───────────────────────────────────────────────
+function checkLogin() {
+  const v = document.getElementById('pwd-input').value;
+  if (v === (localStorage.getItem('af-panel-pwd') || 'amira2025')) {
+    localStorage.setItem('af-authed','1');
+    showPanel();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function showPanel() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('panel-screen').style.display = 'block';
+  loadAll();
+}
+function logout() {
+  localStorage.removeItem('af-authed');
+  document.getElementById('panel-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+function initAuth() {
+  if (localStorage.getItem('af-authed') === '1') showPanel();
+  else document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ─── Theme ──────────────────────────────────────────────
+function toggleTheme() {
+  darkMode = !darkMode;
+  document.documentElement.setAttribute('data-theme', darkMode?'dark':'light');
+  localStorage.setItem('af-dark', darkMode?'1':'0');
+  document.getElementById('theme-ic').textContent = darkMode ? '☀️' : '🌙';
+}
+document.getElementById('theme-ic').textContent = darkMode ? '☀️' : '🌙';
+
+// ─── Helpers ────────────────────────────────────────────
+function slugify(n) { return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''); }
+function initials(n) { return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function getA(id) { return DB.alumnas.find(a => a.id === id); }
+function avHtml(a) {
+  const foto = a.foto || '';
+  return foto ? `<img src="${foto}" alt="${a.nombre}">` : initials(a.nombre);
+}
+
+// ─── Supabase ───────────────────────────────────────────
+function sbStatus(ok, msg) {
+  S.sbOk = ok;
+  const dot = document.getElementById('sb-dot');
+  const lbl = document.getElementById('sb-label');
+  if (dot) { dot.className = 'sb-dot ' + (ok ? 'ok' : 'err'); }
+  if (lbl) lbl.textContent = msg;
+}
+
+async function loadAll() {
+  try {
+    const [alumnas, rutinas, comentarios, registros] = await Promise.all([
+      sbGet('alumnas', 'order=created_at.asc'),
+      sbGet('rutinas', 'order=alumna_id.asc,semana.asc,dia.asc'),
+      sbGet('comentarios', 'order=created_at.desc'),
+      sbGet('registros', 'order=created_at.desc')
+    ]);
+    DB.alumnas = alumnas;
+    // Estructurar rutinas como {alumna_id: {semana: [{dia, ejercicios}]}}
+    DB.rutinas = {};
+    rutinas.forEach(r => {
+      if (!DB.rutinas[r.alumna_id]) DB.rutinas[r.alumna_id] = {};
+      if (!DB.rutinas[r.alumna_id][r.semana]) DB.rutinas[r.alumna_id][r.semana] = [];
+      DB.rutinas[r.alumna_id][r.semana].push({ dia: r.dia, ejercicios: r.ejercicios || [] });
+    });
+    DB.comentarios = comentarios;
+    DB.registros = registros;
+    if (DB.alumnas.length > 0 && !S.selA) S.selA = DB.alumnas[0].id;
+    lastCommentCount = comentarios.length;
+    lastRegCount = registros.filter(r=>r.estado==='pendiente').length;
+    sbStatus(true, 'Conectado ✓');
+    render();
+    startPolling();
+  } catch(e) {
+    sbStatus(false, 'Error de conexión');
+    // Fallback a data.json
+    try {
+      const res = await fetch('/api/data.json');
+      if (res.ok) {
+        const data = await res.json();
+        DB.alumnas = data.alumnas || [];
+        const rawRutinas = data.rutinas || {};
+        Object.entries(rawRutinas).forEach(([aId, sems]) => {
+          DB.rutinas[aId] = {};
+          Object.entries(sems).forEach(([sem, days]) => {
+            DB.rutinas[aId][sem] = days;
+          });
+        });
+        if (DB.alumnas.length > 0) S.selA = DB.alumnas[0].id;
+      }
+    } catch(e2) {}
+    render();
+  }
+}
+
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const [coms, regs] = await Promise.all([
+        sbGet('comentarios', 'order=created_at.desc&limit=50'),
+        sbGet('registros', 'estado=eq.pendiente')
+      ]);
+      if (coms.length > lastCommentCount) {
+        const diff = coms.length - lastCommentCount;
+        const badge = document.getElementById('notif-badge');
+        if (badge) { badge.style.display = 'inline'; badge.textContent = diff; }
+        DB.comentarios = coms;
+        lastCommentCount = coms.length;
+      }
+      const pendientes = regs.length;
+      if (pendientes > lastRegCount) {
+        const badge = document.getElementById('reg-badge');
+        if (badge) { badge.style.display = 'inline'; badge.textContent = pendientes; }
+      }
+      lastRegCount = pendientes;
+    } catch(e) {}
+  }, 8000);
+}
+
+// ─── Rutinas helpers ────────────────────────────────────
+function getEx(aId, sem, dia) {
+  try { return DB.rutinas[aId]?.[sem]?.find(d => d.dia === dia)?.ejercicios || []; } catch(e) { return []; }
+}
+
+function ensureRutinaLocal(aId, sem) {
+  if (!DB.rutinas[aId]) DB.rutinas[aId] = {};
+  if (!DB.rutinas[aId][sem]) DB.rutinas[aId][sem] = [1,2,3].map(d => ({ dia:d, ejercicios:[] }));
+}
+
+async function saveRutinaDay(aId, sem, dia, ejercicios) {
+  try {
+    await sbUpsert('rutinas', { alumna_id: aId, semana: sem, dia, ejercicios, updated_at: new Date().toISOString() });
+  } catch(e) { console.error('Error guardando rutina:', e); }
+}
+
+function copiarSemAnterior(aId, sem) {
+  if (sem <= 1) return false;
+  const prev = DB.rutinas[aId]?.[sem-1];
+  if (!prev) return false;
+  ensureRutinaLocal(aId, sem);
+  let copiado = false;
+  DB.rutinas[aId][sem].forEach((dayObj, i) => {
+    if (dayObj.ejercicios.length === 0 && prev[i]) {
+      dayObj.ejercicios = JSON.parse(JSON.stringify(prev[i].ejercicios));
+      copiado = true;
+    }
+  });
+  return copiado;
+}
+
+// ─── CRUD Alumnas ────────────────────────────────────────
+async function addAlumna() {
+  if (!S.newA.nombre.trim()) return;
+  const id = Date.now();
+  const slug = S.newA.slug || slugify(S.newA.nombre.split(' ')[0]);
+  const alumna = { id, slug, nombre: S.newA.nombre, tipo: S.newA.tipo, dias: S.newA.dias, notas: S.newA.notas, foto: S.newA.foto, tel: S.newA.tel, color: COLORS[DB.alumnas.length % COLORS.length] };
+  try {
+    await sbUpsert('alumnas', alumna);
+    DB.alumnas.push(alumna);
+    if (!S.selA) S.selA = id;
+    S.newA = { nombre:'', slug:'', tipo:'gym', dias:3, notas:'', foto:'', tel:'' };
+    S.addA = false;
+    S.saveMsg = 'Alumna guardada ✓';
+    render();
+    setTimeout(() => { S.saveMsg = ''; render(); }, 2000);
+  } catch(e) { S.saveErr = 'Error al guardar'; render(); }
+}
+
+async function deleteAlumna(id) {
+  if (!confirm('¿Eliminás esta alumna y su rutina?')) return;
+  try {
+    await sbDelete('alumnas', `id=eq.${id}`);
+    DB.alumnas = DB.alumnas.filter(a => a.id !== id);
+    delete DB.rutinas[id];
+    if (S.selA === id) S.selA = DB.alumnas[0]?.id || null;
+    render();
+  } catch(e) { alert('Error al eliminar'); }
+}
+
+async function handleFoto(aId, input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const foto = e.target.result;
+    const a = getA(aId); if (a) a.foto = foto;
+    try { await sbPatch('alumnas', `id=eq.${aId}`, { foto }); } catch(e) {}
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function addEjercicio() {
+  if (!S.newEx.nombre.trim()) return;
+  ensureRutinaLocal(S.selA, S.selSem);
+  const day = DB.rutinas[S.selA][S.selSem].find(d => d.dia === S.selDia);
+  day.ejercicios.push({ ...S.newEx });
+  S.newEx = { nombre:'', series:'3', reps:'10', tip:'', video:'' };
+  S.addEx = false;
+  render();
+}
+
+async function deleteEjercicio(i) {
+  const day = DB.rutinas[S.selA][S.selSem].find(d => d.dia === S.selDia);
+  day.ejercicios.splice(i, 1);
+  render();
+}
+
+async function saveCurrentDay() {
+  const day = DB.rutinas[S.selA]?.[S.selSem]?.find(d => d.dia === S.selDia);
+  if (!day) return;
+  S.saveMsg = 'Guardando...'; render();
+  try {
+    await saveRutinaDay(S.selA, S.selSem, S.selDia, day.ejercicios);
+    S.saveMsg = 'Guardado ✓'; S.saveErr = '';
+  } catch(e) { S.saveErr = 'Error al guardar'; S.saveMsg = ''; }
+  render();
+  setTimeout(() => { S.saveMsg = ''; render(); }, 2000);
+}
+
+async function handleSemana(sem) {
+  S.selSem = sem; S.selDia = 1;
+  const a = getA(S.selA);
+  if (a) {
+    ensureRutinaLocal(a.id, sem);
+    const copiado = copiarSemAnterior(a.id, sem);
+    if (copiado) {
+      S.saveMsg = 'Semana copiada de la anterior — editá lo que cambie';
+      render();
+      setTimeout(() => { S.saveMsg = ''; render(); }, 3000);
+      return;
+    }
+  }
+  render();
+}
+
+// ─── Registros ───────────────────────────────────────────
+async function aprobarRegistro(id) {
+  const reg = DB.registros.find(r => r.id === id);
+  if (!reg) return;
+  await sbPatch('registros', `id=eq.${id}`, { estado: 'aprobado' });
+  reg.estado = 'aprobado';
+  S.newA = {
+    nombre: reg.nombre, slug: slugify(reg.nombre.split(' ')[0]),
+    tipo: reg.ubicacion?.includes('Buenos Aires') ? 'gym' : 'distancia',
+    dias: reg.dias?.includes('3') ? 3 : 2,
+    notas: `Objetivos: ${reg.objetivos} | Lesiones: ${reg.lesiones}`,
+    foto: '', tel: reg.tel
+  };
+  S.addA = true;
+  setView('alumnas');
+}
+
+async function rechazarRegistro(id) {
+  if (!confirm('¿Rechazás este registro?')) return;
+  await sbPatch('registros', `id=eq.${id}`, { estado: 'rechazado' });
+  const reg = DB.registros.find(r => r.id === id);
+  if (reg) reg.estado = 'rechazado';
+  render();
+}
+
+// ─── Recordatorios ───────────────────────────────────────
+function enviarRecordatorio(aId) {
+  const a = getA(aId); if (!a) return;
+  const phone = (a.tel||'').replace(/\D/g,'');
+  if (!phone) { alert('Cargá el WhatsApp de esta alumna en su perfil.'); return; }
+  const msg = encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos que podés! — Amira`);
+  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+}
+
+function enviarResumenSemanal(aId) {
+  const a = getA(aId); if (!a) return;
+  const phone = (a.tel||'').replace(/\D/g,'');
+  if (!phone) { alert('Cargá el WhatsApp de esta alumna.'); return; }
+  const comsAlumna = DB.comentarios.filter(c => c.alumna_id === aId).length;
+  const msg = encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen de tu semana en Amira Fitness:\n\n💬 Dejaste ${comsAlumna} nota${comsAlumna!==1?'s':''} esta semana\n📈 Tu progreso está registrado en la app\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Seguís creciendo! — Amira 💚`);
+  window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+}
+
+function enviarResumenTodas() {
+  const amiraPhone = localStorage.getItem('af-amira-phone') || '';
+  if (!amiraPhone) { alert('Configurá tu número de WhatsApp en Configuración.'); return; }
+  const resumen = DB.alumnas.map(a => `• ${a.nombre}: ${DB.comentarios.filter(c=>c.alumna_id===a.id).length} notas`).join('\n');
+  const msg = encodeURIComponent(`📊 Resumen semanal — Amira Fitness\n\n${resumen}\n\nPanel: ${BASE}/panel`);
+  window.open(`https://wa.me/${amiraPhone}?text=${msg}`, '_blank');
+}
+
+function copyLink(slug) {
+  navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(() => {
+    S.saveMsg = 'Link copiado ✓'; render();
+    setTimeout(() => { S.saveMsg = ''; render(); }, 1500);
+  });
+}
+
+// ─── Historial ───────────────────────────────────────────
+function getPesosAlumna(aId) {
+  // Los pesos viven en localStorage de la alumna; acá los leemos del mismo browser
+  const all = JSON.parse(localStorage.getItem('af-pesos') || '{}');
+  const res = {};
+  Object.entries(all).forEach(([k, v]) => {
+    if (k.startsWith(`p-${aId}-`)) res[k] = v;
+  });
+  return res;
+}
+
+// ─── Render ──────────────────────────────────────────────
+function setView(v) {
+  S.view = v;
+  if (v === 'comentarios') { const b = document.getElementById('notif-badge'); if (b) b.style.display = 'none'; }
+  if (v === 'registros') { const b = document.getElementById('reg-badge'); if (b) b.style.display = 'none'; }
+  document.querySelectorAll('.nav').forEach((el, i) => {
+    el.classList.toggle('active', ['inicio','alumnas','rutinas','historial','comentarios','registros','recordatorios','links','config'][i] === v);
+  });
+  render();
+}
+
+function render() {
+  const m = document.getElementById('main');
+  const views = { inicio: renderInicio, alumnas: renderAlumnas, rutinas: renderRutinas, historial: renderHistorial, comentarios: renderComentarios, registros: renderRegistros, recordatorios: renderRecordatorios, links: renderLinks, config: renderConfig };
+  m.innerHTML = (views[S.view] || renderInicio)();
+  if (S.view === 'historial') drawChart();
+}
+
+function renderInicio() {
+  const gym = DB.alumnas.filter(a => a.tipo === 'gym').length;
+  const dist = DB.alumnas.filter(a => a.tipo === 'distancia').length;
+  const totalC = DB.comentarios.length;
+  const pendientes = DB.registros.filter(r => r.estado === 'pendiente').length;
+  return `
+    <div class="page-title">Bienvenida, Amira</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Alumnas</div><div class="metric-val">${DB.alumnas.length}</div></div>
+      <div class="metric"><div class="metric-label">Gimnasio</div><div class="metric-val">${gym}</div></div>
+      <div class="metric"><div class="metric-label">A distancia</div><div class="metric-val">${dist}</div></div>
+      <div class="metric"><div class="metric-label">Comentarios</div><div class="metric-val green">${totalC}</div></div>
+    </div>
+    ${pendientes > 0 ? `<div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;cursor:pointer;" onclick="setView('registros')"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:13px;color:var(--verde-d);font-weight:500;">📥 ${pendientes} registro${pendientes!==1?'s':''} pendiente${pendientes!==1?'s':''} de aprobación</div><span style="font-size:12px;color:var(--verde-d);">Ver →</span></div></div>` : ''}
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Link de registro para nuevas alumnas</div>
+      <div class="link-box"><span>${BASE}/registro</span><button class="copy-btn" onclick="navigator.clipboard.writeText('${BASE}/registro').then(()=>{S.saveMsg='Copiado';render();setTimeout(()=>{S.saveMsg='';render();},1200)})">Copiar</button></div>
+      <div style="font-size:12px;color:var(--txt-m);margin-top:8px;">Compartí este link. Las alumnas completan el formulario y te llega un WhatsApp.</div>
+      ${S.saveMsg ? `<div class="save-msg">${S.saveMsg}</div>` : ''}
+    </div>
+    <div class="card">
+      <div class="card-title">Alumnas activas</div>
+      ${DB.alumnas.length === 0 ? '<div class="empty">Sin alumnas todavía.</div>' : ''}
+      ${DB.alumnas.map(a => `
+        <div class="arow">
+          <div class="av av-${a.color}">${avHtml(a)}</div>
+          <div><div class="aname">${a.nombre}</div><div class="asub"><span class="badge bg-${a.tipo==='gym'?'gym':'dist'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem</div></div>
+          <div class="row-acts"><button class="btn btn-s" onclick="S.selA=${a.id};S.selDia=1;S.selSem=1;setView('rutinas')">Rutina</button></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderAlumnas() {
+  return `
+    <div class="page-title">Alumnas</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+      <button class="btn btn-p btn-s" onclick="S.addA=!S.addA;render()">+ Nueva alumna</button>
+    </div>
+    ${S.addA ? `
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Nueva alumna</div>
+      <label>Nombre completo</label>
+      <input type="text" placeholder="Ej: Laura Gómez" value="${S.newA.nombre}"
+        oninput="S.newA.nombre=this.value;const el=document.getElementById('sp');if(el)el.textContent=slugify(this.value.split(' ')[0])||'nombre'">
+      <label>Link personalizado</label>
+      <div style="font-size:12px;color:var(--verde-d);margin-bottom:12px;font-family:monospace;">${BASE}/alumna/<span id="sp">${slugify(S.newA.nombre.split(' ')[0])||'nombre'}</span></div>
+      <div class="frow">
+        <div><label>Tipo</label><select onchange="S.newA.tipo=this.value"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
+        <div><label>Días/semana</label><select onchange="S.newA.dias=parseInt(this.value)"><option value="2">2 días</option><option value="3" selected>3 días</option></select></div>
+      </div>
+      <label>WhatsApp (para recordatorios)</label>
+      <input type="tel" placeholder="Ej: 1123456789" value="${S.newA.tel}" oninput="S.newA.tel=this.value">
+      <label>Notas personales</label>
+      <textarea placeholder="Lesiones, objetivos..." oninput="S.newA.notas=this.value">${S.newA.notas}</textarea>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-p btn-s" onclick="addAlumna()">Guardar</button>
+        <button class="btn btn-s" onclick="S.addA=false;render()">Cancelar</button>
+        ${S.saveMsg ? `<span class="save-msg">${S.saveMsg}</span>` : ''}
+        ${S.saveErr ? `<span class="err-msg">${S.saveErr}</span>` : ''}
+      </div>
+    </div>` : ''}
+    ${DB.alumnas.map(a => `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:.75rem;">
+        <div class="av av-${a.color}">${avHtml(a)}</div>
+        <div style="flex:1"><div class="aname">${a.nombre}</div><div class="asub"><span class="badge bg-${a.tipo==='gym'?'gym':'dist'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem${a.tel?` · ${a.tel}`:''}</div></div>
+        <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
+      </div>
+      ${a.notas ? `<div class="nota-badge">${a.notas}</div>` : ''}
+      <label>Foto de perfil</label>
+      <div class="foto-wrap">
+        <div class="foto-preview av-${a.color}">${avHtml(a)}</div>
+        <input type="file" accept="image/*" style="width:auto;margin-bottom:0;" onchange="handleFoto(${a.id},this)">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selDia=1;S.selSem=1;setView('rutinas')">Gestionar rutina</button>
+        <button class="btn btn-s" onclick="copyLink('${a.slug}')">Copiar link</button>
+      </div>
+    </div>`).join('')}`;
+}
+
+function renderRutinas() {
+  const a = getA(S.selA);
+  if (!a) return `<div class="page-title">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
+  ensureRutinaLocal(a.id, S.selSem);
+  const ejercicios = getEx(a.id, S.selSem, S.selDia);
+  return `
+    <div class="page-title">Rutinas</div>
+    <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      ${DB.alumnas.map(al => `<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+        <div class="av av-${a.color}">${avHtml(a)}</div>
+        <div><div class="aname">${a.nombre}</div><div class="asub">${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/sem</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--txt-m);margin-bottom:4px;">Semana</div>
+      <div class="sem-tab-row">
+        ${[1,2,3,4].map(s => `<button class="semtab${S.selSem===s?' active':''}" onclick="handleSemana(${s})">Semana ${s}${s>1?' ↗':''}</button>`).join('')}
+      </div>
+      <div class="prog-badge">Semana ${S.selSem}${S.selSem>1?' — copiada automáticamente':' — rutina base'}</div>
+      <div style="font-size:11px;color:var(--txt-m);margin-bottom:4px;">Día</div>
+      <div class="day-tab-row">
+        ${[1,2,3].slice(0,a.dias).map(d => `<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}
+      </div>
+      <div class="section-hd">
+        <div class="section-hd-t">Ejercicios (${ejercicios.length})</div>
+        <button class="btn btn-p btn-s" onclick="S.addEx=!S.addEx;render()">+ Agregar</button>
+      </div>
+      ${S.addEx ? `
+      <div class="card" style="background:var(--surf2);margin-bottom:.75rem;">
+        <label>Nombre</label><input type="text" placeholder="Ej: Sentadilla al cajón" value="${S.newEx.nombre}" oninput="S.newEx.nombre=this.value">
+        <div class="frow">
+          <div><label>Series</label><input type="text" value="${S.newEx.series}" oninput="S.newEx.series=this.value"></div>
+          <div><label>Reps</label><input type="text" value="${S.newEx.reps}" oninput="S.newEx.reps=this.value"></div>
+        </div>
+        <label>Nota de técnica</label><textarea oninput="S.newEx.tip=this.value">${S.newEx.tip}</textarea>
+        <label>Link de video</label><input type="text" value="${S.newEx.video}" oninput="S.newEx.video=this.value" placeholder="https://youtube.com/shorts/...">
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-p btn-s" onclick="addEjercicio()">Guardar ejercicio</button>
+          <button class="btn btn-s" onclick="S.addEx=false;render()">Cancelar</button>
+        </div>
+      </div>` : ''}
+      ${ejercicios.length === 0 ? '<div class="empty">Sin ejercicios en este día.</div>' : ''}
+      ${ejercicios.map((ex, i) => `
+      <div class="ex-item">
+        <div class="ex-num-s">${i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--txt);">${ex.nombre}</div>
+          <div style="font-size:11px;color:var(--txt-m);">${ex.series} × ${ex.reps}</div>
+          ${ex.tip ? `<div style="font-size:11px;color:var(--verde-d);margin-top:3px;">${ex.tip}</div>` : ''}
+          ${ex.video ? `<div style="font-size:11px;color:#185FA5;margin-top:2px;">✓ Video vinculado</div>` : ''}
+        </div>
+        <button class="btn btn-s btn-d" onclick="deleteEjercicio(${i})">×</button>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="btn btn-p" onclick="saveCurrentDay()">Guardar cambios</button>
+      ${S.saveMsg ? `<span class="save-msg">${S.saveMsg}</span>` : ''}
+      ${S.saveErr ? `<span class="err-msg">${S.saveErr}</span>` : ''}
+    </div>`;
+}
+
+function renderHistorial() {
+  const a = getA(S.selA);
+  const pesos = a ? getPesosAlumna(a.id) : {};
+  const histData = {};
+  Object.entries(pesos).forEach(([k, v]) => {
+    const parts = k.split('-');
+    const sem = parts[2], dia = parts[3], idx = parts[4];
+    const ex = a ? getEx(a.id, parseInt(sem), parseInt(dia))[parseInt(idx)] : null;
+    if (!ex) return;
+    if (!histData[ex.nombre]) histData[ex.nombre] = [];
+    histData[ex.nombre].push({ sem: parseInt(sem), dia: parseInt(dia), kg: parseFloat(v)||0, label: `S${sem}D${dia}` });
+  });
+  const exNames = Object.keys(histData);
+  if (!S.selHistEx && exNames.length > 0) S.selHistEx = exNames[0];
+  return `
+    <div class="page-title">Historial de progreso</div>
+    <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      ${DB.alumnas.map(al => `<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistEx=null;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    </div>
+    ${exNames.length === 0 ? `<div class="card"><div class="empty">Todavía no hay pesos registrados. Aparecen acá cuando la alumna los carga en su app.</div></div>` : `
+    <div class="card">
+      <div class="card-title">Evolución por ejercicio</div>
+      <label>Ejercicio</label>
+      <select onchange="S.selHistEx=this.value;render()" style="margin-bottom:1rem;">
+        ${exNames.map(n => `<option value="${n}" ${n===S.selHistEx?'selected':''}>${n}</option>`).join('')}
+      </select>
+      <div class="chart-wrap"><canvas id="hist-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tabla completa</div>
+      <table class="hist-table">
+        <thead><tr><th>Ejercicio</th><th>Semana</th><th>Día</th><th>Peso</th></tr></thead>
+        <tbody>
+          ${Object.entries(histData).flatMap(([name, entries]) =>
+            entries.sort((a,b) => a.sem-b.sem || a.dia-b.dia).map(e =>
+              `<tr><td>${name}</td><td>Sem ${e.sem}</td><td>Día ${e.dia}</td><td><strong>${e.kg} kg</strong></td></tr>`)
+          ).join('')}
+        </tbody>
+      </table>
+    </div>`}`;
+}
+
+function drawChart() {
+  const a = getA(S.selA); if (!a) return;
+  const pesos = getPesosAlumna(a.id);
+  const histData = {};
+  Object.entries(pesos).forEach(([k, v]) => {
+    const parts = k.split('-');
+    const sem = parts[2], dia = parts[3], idx = parts[4];
+    const ex = getEx(a.id, parseInt(sem), parseInt(dia))[parseInt(idx)];
+    if (!ex) return;
+    if (!histData[ex.nombre]) histData[ex.nombre] = [];
+    histData[ex.nombre].push({ sem: parseInt(sem), dia: parseInt(dia), kg: parseFloat(v)||0, label: `S${sem}D${dia}` });
+  });
+  const data = (histData[S.selHistEx] || []).sort((a,b) => a.sem-b.sem || a.dia-b.dia);
+  const canvas = document.getElementById('hist-chart'); if (!canvas) return;
+  if (charts.hist) charts.hist.destroy();
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gc = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+  const tc = isDark ? '#9ca3af' : '#6b7280';
+  charts.hist = new Chart(canvas, {
+    type: 'line',
+    data: { labels: data.map(d => d.label), datasets: [{ label: `${S.selHistEx} (kg)`, data: data.map(d => d.kg), borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.1)', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#1D9E75', tension: .3, fill: true }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Sans', size: 11 } } }, y: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Sans', size: 11 } }, beginAtZero: true } } }
+  });
+}
+
+function renderComentarios() {
+  const byAlumna = {};
+  DB.comentarios.forEach(c => {
+    if (!byAlumna[c.alumna_id]) byAlumna[c.alumna_id] = [];
+    byAlumna[c.alumna_id].push(c);
+  });
+  return `
+    <div class="page-title">Comentarios de alumnas</div>
+    ${DB.comentarios.length === 0 ? `<div class="card"><div class="empty">Todavía no hay comentarios. Aparecen cuando las alumnas dejan notas en la app.</div></div>` : ''}
+    ${DB.alumnas.map(a => {
+      const coms = byAlumna[a.id] || [];
+      if (coms.length === 0) return '';
+      return `
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+          <div class="av av-${a.color}">${avHtml(a)}</div>
+          <div><div class="aname">${a.nombre}</div><div class="asub">${coms.length} comentario${coms.length!==1?'s':''}</div></div>
+        </div>
+        ${coms.map(c => `<div class="comment-box"><div class="comment-meta">Sem ${c.semana} · Día ${c.dia} · ${c.fecha||''}</div><div class="comment-txt">${c.texto}</div></div>`).join('')}
+      </div>`;
+    }).join('')}`;
+}
+
+function renderRegistros() {
+  const pendientes = DB.registros.filter(r => r.estado === 'pendiente');
+  const otros = DB.registros.filter(r => r.estado !== 'pendiente');
+  return `
+    <div class="page-title">Registros de alumnas</div>
+    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;">
+      <div style="font-size:13px;color:var(--verde-d);line-height:1.6;">Cuando alguien completa el formulario en <strong>${BASE}/registro</strong>, aparece acá. Aprobá y el perfil se crea automáticamente.</div>
+    </div>
+    ${pendientes.length === 0 && otros.length === 0 ? `<div class="card"><div class="empty">Sin registros todavía. Compartí el link en tus redes.</div></div>` : ''}
+    ${pendientes.map(r => `
+    <div class="card" style="border-left:3px solid var(--verde);border-radius:0 var(--r) var(--r) 0;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+        <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div></div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-p btn-s" onclick="aprobarRegistro(${r.id})">✓ Aprobar</button>
+          <button class="btn btn-s btn-d" onclick="rechazarRegistro(${r.id})">Rechazar</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+        <div><span style="color:var(--txt-m);">WhatsApp:</span> ${r.tel||'—'}</div>
+        <div><span style="color:var(--txt-m);">Mail:</span> ${r.mail||'—'}</div>
+        <div><span style="color:var(--txt-m);">Objetivos:</span> ${r.objetivos||'—'}</div>
+        <div><span style="color:var(--txt-m);">Modalidad:</span> ${r.modalidad||'—'}</div>
+        <div><span style="color:var(--txt-m);">Días/sem:</span> ${r.dias||'—'}</div>
+        <div><span style="color:var(--txt-m);">Experiencia:</span> ${r.exp||'—'}</div>
+      </div>
+      ${r.lesiones&&r.lesiones!=='—'?`<div class="nota-badge" style="margin-top:.75rem;margin-bottom:0;">⚠️ ${r.lesiones}</div>`:''}
+    </div>`).join('')}
+    ${otros.length > 0 ? `
+    <div class="card-title" style="margin:.75rem 0 .5rem;">Historial</div>
+    ${otros.map(r => `<div class="card" style="opacity:.7;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''}</div></div><span class="badge" style="background:${r.estado==='aprobado'?'var(--verde-l)':'var(--rojo-l)'};color:${r.estado==='aprobado'?'var(--verde-d)':'var(--rojo-d)'};">${r.estado}</span></div></div>`).join('')}` : ''}`;
+}
+
+function renderRecordatorios() {
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const hoy = dias[new Date().getDay()];
+  return `
+    <div class="page-title">Recordatorios y resúmenes</div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Resumen semanal</div>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:1rem;line-height:1.6;">Mandá un mensaje personalizado a cada alumna con su progreso de la semana, o a todas juntas de una vez.</p>
+      <button class="btn btn-p btn-s" onclick="enviarResumenTodas()" style="margin-bottom:1rem;">📊 Enviar resumen a todas</button>
+      ${DB.alumnas.map(a => `
+        <div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avHtml(a)}</div>
+          <div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div>
+          <button class="btn btn-s" onclick="enviarResumenSemanal(${a.id})">Enviar resumen</button>
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">Recordatorios de entrenamiento</div>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:1rem;line-height:1.6;">Hoy es <strong>${hoy}</strong>. Mandá un recordatorio a las alumnas que entrenan hoy.</p>
+      ${DB.alumnas.map(a => `
+        <div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avHtml(a)}</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${a.nombre}</div><div style="font-size:11px;color:var(--txt-m);">${a.dias} días/sem</div></div>
+          <button class="btn btn-s" onclick="enviarRecordatorio(${a.id})">💬 Recordar</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderLinks() {
+  return `
+    <div class="page-title">Links por alumna</div>
+    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;">
+      <div style="font-size:13px;color:var(--verde-d);line-height:1.6;">Copiá el link y mandáselo por WhatsApp. La alumna lo abre desde el celu y ve su rutina.</div>
+    </div>
+    ${DB.alumnas.map(a => `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;">
+        <div class="av av-${a.color}">${avHtml(a)}</div>
+        <div><div class="aname">${a.nombre}</div></div>
+      </div>
+      <div class="link-box"><span>${BASE}/alumna/${a.slug}</span><button class="copy-btn" onclick="copyLink('${a.slug}')">Copiar</button></div>
+    </div>`).join('')}
+    ${S.saveMsg ? `<div class="save-msg" style="margin-top:.5rem;">${S.saveMsg}</div>` : ''}`;
+}
+
+function renderConfig() {
+  const pwd = localStorage.getItem('af-panel-pwd') || 'amira2025';
+  const waPhone = localStorage.getItem('af-amira-phone') || '';
+  return `
+    <div class="page-title">Configuración</div>
+    <div class="card">
+      <div class="card-title">Supabase</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--verde-d);margin-bottom:.5rem;">
+        <div style="width:8px;height:8px;border-radius:50%;background:${S.sbOk?'var(--verde)':'var(--rojo-d)'};"></div>
+        ${S.sbOk ? 'Conectado y sincronizando en tiempo real' : 'Sin conexión — datos en modo local'}
+      </div>
+      <div style="font-size:12px;color:var(--txt-m);">URL: https://aywkeoxwybzcexaichtv.supabase.co</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Contraseña del panel</div>
+      <label>Contraseña actual: <strong>${pwd}</strong></label>
+      <input type="password" id="new-pwd" placeholder="Nueva contraseña" style="margin-top:8px;">
+      <button class="btn btn-p btn-s" onclick="const v=document.getElementById('new-pwd').value;if(v.length>=4){localStorage.setItem('af-panel-pwd',v);alert('Contraseña actualizada');}else{alert('Mínimo 4 caracteres');}">Cambiar contraseña</button>
+    </div>
+    <div class="card">
+      <div class="card-title">WhatsApp para notificaciones</div>
+      <p style="font-size:12px;color:var(--txt-m);margin-bottom:12px;line-height:1.6;">Número de Amira para recibir notificaciones cuando una alumna se registra o deja un comentario. Formato: código país + número, sin + ni espacios.<br>Ej Argentina: <code>5491123456789</code></p>
+      <label>Tu número de WhatsApp</label>
+      <input type="tel" id="wa-input" placeholder="5491123456789" value="${waPhone}">
+      <button class="btn btn-p btn-s" onclick="const v=document.getElementById('wa-input').value;if(v){localStorage.setItem('af-amira-phone',v);S.saveMsg='Guardado ✓';render();}">Guardar número</button>
+      ${S.saveMsg ? `<span class="save-msg">${S.saveMsg}</span>` : ''}
+    </div>`;
+}
+
+initAuth();
+</script>
+</body>
+</html>
