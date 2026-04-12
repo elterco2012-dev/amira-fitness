@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amira Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --verde: #1D9E75;
+      --verde-light: #E1F5EE;
+      --verde-dark: #0F6E56;
+      --purpura: #EEEDFE;
+      --purpura-dark: #3C3489;
+      --amber: #FAEEDA;
+      --amber-dark: #633806;
+      --coral: #FAECE7;
+      --coral-dark: #712B13;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+      --border: rgba(0,0,0,0.08);
+      --surface: #f8f8f6;
+      --white: #ffffff;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .home {
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+    .logo-big {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--verde-light);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px; color: var(--verde-dark);
+      margin: 0 auto 1.5rem;
+    }
+    h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text); margin-bottom: 0.4rem; }
+    .sub { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 2.5rem; }
+    .btn-panel {
+      display: inline-block;
+      padding: 0.75rem 2rem;
+      background: var(--verde);
+      color: white;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-panel:hover { background: var(--verde-dark); }
+    .note { font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="home">
+    <div class="logo-big">A</div>
+    <h1>Amira Fitness</h1>
+    <p class="sub">Entrenamiento personalizado</p>
+    <a href="/panel" class="btn-panel">Acceder al panel</a>
+    <p class="note">¿Sos alumna? Tu entrenadora te enviará tu link personal.</p>
+  </div>
+</body>
+</html>
