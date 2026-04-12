@@ -80,6 +80,7 @@
 
     @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   </style>
+<script src="/api/supabase.js"></script>
 </head>
 <body>
 
@@ -275,7 +276,7 @@ function buildResumen(){
     <div class="resumen-row"><span class="resumen-lbl">${l}</span><span class="resumen-val">${v}</span></div>`).join('');
 }
 
-function enviarRegistro(){
+async function enviarRegistro(){
   const nombre=document.getElementById('f-nombre').value.trim();
   const apellido=document.getElementById('f-apellido').value.trim();
   const tel=document.getElementById('f-tel').value.trim();
@@ -326,6 +327,11 @@ Revisá su perfil en el panel para aprobar y asignarle una rutina.`);
   document.getElementById('wizard').style.display='none';
   document.getElementById('success').style.display='block';
   document.getElementById('wa-link').href=waLink;
+
+  // Guardar en Supabase
+  try {
+    await sbUpsert('registros', nuevo);
+  } catch(e) { console.log('Supabase no disponible, guardado local'); }
 
   // Auto-abrir WhatsApp si hay número configurado
   if(amiraPhone)setTimeout(()=>window.open(waLink,'_blank'),1000);

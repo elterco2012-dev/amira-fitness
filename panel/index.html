@@ -7,915 +7,833 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="/api/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
-      --verde:#1D9E75;--verde-l:#E1F5EE;--verde-m:#5DCAA5;--verde-d:#0F6E56;
-      --purp:#EEEDFE;--purp-d:#3C3489;
-      --amber:#FAEEDA;--amber-d:#633806;
-      --rojo-l:#FCEBEB;--rojo-d:#A32D2D;
-      --bg:#f8f8f6;--surf:#fff;--surf2:#f3f4f2;
-      --txt:#1a1a1a;--txt-m:#6b7280;--txt-h:#9ca3af;
-      --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.13);
+      --v:#1D9E75;--vl:#E1F5EE;--vm:#5DCAA5;--vd:#0F6E56;
+      --p:#EEEDFE;--pd:#3C3489;
+      --a:#FAEEDA;--ad:#633806;
+      --rl:#FCEBEB;--rd:#A32D2D;
+      --bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;
+      --t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
+      --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.13);
       --r:14px;--rs:9px;--rp:30px;
     }
-    [data-theme="dark"]{
-      --bg:#111110;--surf:#1c1c1a;--surf2:#242422;
-      --txt:#f0ede8;--txt-m:#9ca3af;--txt-h:#6b7280;
-      --border:rgba(255,255,255,0.07);--border-m:rgba(255,255,255,0.12);
-      --verde-l:#0a2e20;--verde-m:#1a6b50;
-      --purp:#1e1c3a;--purp-d:#a5a0e8;
-      --amber:#2a200a;--amber-d:#d4a854;
-      --rojo-l:#2a1010;--rojo-d:#f09595;
+    [data-theme=dark]{
+      --bg:#111110;--s:#1c1c1a;--s2:#242422;
+      --t:#f0ede8;--tm:#9ca3af;--th:#6b7280;
+      --b:rgba(255,255,255,0.07);--bm:rgba(255,255,255,0.12);
+      --vl:#0a2e20;--vm:#1a6b50;--p:#1e1c3a;--pd:#a5a0e8;
+      --a:#2a200a;--ad:#d4a854;--rl:#2a1010;--rd:#f09595;
     }
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);transition:background .3s,color .3s;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);transition:background .3s,color .3s;}
 
     /* Login */
-    .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
-    .login-box{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:2rem;width:100%;max-width:340px;text-align:center;}
-    .login-logo{width:60px;height:60px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:24px;color:var(--verde-d);margin:0 auto 1rem;}
-    .login-box h2{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
-    .login-box p{font-size:13px;color:var(--txt-m);margin-bottom:1.5rem;}
-    .login-input{width:100%;padding:10px 14px;border:1px solid var(--border-m);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--surf2);color:var(--txt);margin-bottom:10px;text-align:center;letter-spacing:.15em;}
-    .login-input:focus{outline:none;border-color:var(--verde);}
-    .login-btn{width:100%;padding:10px;background:var(--verde);color:white;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
-    .login-err{font-size:12px;color:var(--rojo-d);margin-top:8px;display:none;}
+    .ls{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+    .lb{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:2rem;width:100%;max-width:340px;text-align:center;}
+    .ll{width:60px;height:60px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:24px;color:var(--vd);margin:0 auto 1rem;}
+    .lb h2{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
+    .lb p{font-size:13px;color:var(--tm);margin-bottom:1.5rem;}
+    .li{width:100%;padding:10px 14px;border:1px solid var(--bm);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);margin-bottom:10px;text-align:center;letter-spacing:.1em;}
+    .li:focus{outline:none;border-color:var(--v);}
+    .lbtn{width:100%;padding:10px;background:var(--v);color:white;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .lerr{font-size:12px;color:var(--rd);margin-top:8px;display:none;}
 
     /* Layout */
     .layout{display:flex;min-height:100vh;}
-    .sidebar{width:220px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:3px;transition:background .3s;}
+    .sidebar{width:220px;flex-shrink:0;background:var(--s);border-right:1px solid var(--b);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:3px;}
     .brand{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;padding:0 .5rem;}
-    .logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
-    .brand strong{font-size:14px;font-weight:500;display:block;color:var(--txt);}
-    .brand span{font-size:11px;color:var(--txt-m);}
-    .nav{display:flex;align-items:center;gap:8px;padding:.6rem .75rem;border-radius:var(--rs);font-size:13px;color:var(--txt-m);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
-    .nav:hover{background:var(--surf2);color:var(--txt);}
-    .nav.active{background:var(--verde-l);color:var(--verde-d);font-weight:500;}
-    .nav-ic{width:18px;text-align:center;font-size:14px;}
-    .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:4px;}
+    .logo{width:34px;height:34px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--vd);}
+    .brand strong{font-size:14px;font-weight:500;display:block;color:var(--t);}
+    .brand span{font-size:11px;color:var(--tm);}
+    .nav{display:flex;align-items:center;gap:8px;padding:.6rem .75rem;border-radius:var(--rs);font-size:13px;color:var(--tm);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+    .nav:hover{background:var(--s2);color:var(--t);}
+    .nav.active{background:var(--vl);color:var(--vd);font-weight:500;}
+    .ni{width:18px;text-align:center;font-size:14px;}
+    .sb-bot{margin-top:auto;display:flex;flex-direction:column;gap:4px;}
+    .sb-conn{display:flex;align-items:center;gap:6px;padding:.4rem .75rem;font-size:11px;color:var(--tm);}
+    .dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0;}
+    .dot.ok{background:var(--v);}
+    .dot.err{background:var(--rd);}
 
-    .main{flex:1;padding:2rem;overflow-y:auto;}
-    .page-title{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:1.5rem;color:var(--txt);}
+    .main{flex:1;padding:2rem;overflow-y:auto;max-width:960px;}
+    .ptitle{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:1.5rem;color:var(--t);}
 
     /* Cards */
-    .card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem;transition:background .3s;}
-    .card-title{font-size:11px;font-weight:500;color:var(--txt-m);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;}
+    .card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem;}
+    .ctitle{font-size:11px;font-weight:500;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;}
 
     /* Metrics */
     .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
-    .metric{background:var(--surf);border:1px solid var(--border);border-radius:var(--rs);padding:1rem 1.25rem;}
-    .metric-label{font-size:11px;color:var(--txt-m);margin-bottom:4px;}
-    .metric-val{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--txt);}
-    .metric-val.green{color:var(--verde-d);}
-    .metric-val.purple{color:var(--purp-d);}
+    .metric{background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:1rem 1.25rem;}
+    .mlabel{font-size:11px;color:var(--tm);margin-bottom:4px;}
+    .mval{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--t);}
+    .mval.g{color:var(--vd);}
 
-    /* Alumna rows */
-    .arow{display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);}
+    /* Rows */
+    .arow{display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--b);}
     .arow:last-child{border-bottom:none;}
     .av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:16px;flex-shrink:0;overflow:hidden;}
     .av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-    .av-teal{background:var(--verde-l);color:var(--verde-d);}
-    .av-purple{background:var(--purp);color:var(--purp-d);}
-    .av-amber{background:var(--amber);color:var(--amber-d);}
+    .av-teal{background:var(--vl);color:var(--vd);}
+    .av-purple{background:var(--p);color:var(--pd);}
+    .av-amber{background:var(--a);color:var(--ad);}
     .av-coral{background:#FAECE7;color:#712B13;}
-    .aname{font-size:14px;font-weight:500;color:var(--txt);}
-    .asub{font-size:11px;color:var(--txt-m);margin-top:2px;}
+    .aname{font-size:14px;font-weight:500;color:var(--t);}
+    .asub{font-size:11px;color:var(--tm);margin-top:2px;}
     .badge{font-size:10px;padding:2px 9px;border-radius:var(--rp);font-weight:500;}
-    .bg-gym{background:var(--verde-l);color:var(--verde-d);}
-    .bg-dist{background:var(--purp);color:var(--purp-d);}
-    .row-acts{margin-left:auto;display:flex;gap:6px;}
+    .bg{background:var(--vl);color:var(--vd);}
+    .bd{background:var(--p);color:var(--pd);}
+    .ra{margin-left:auto;display:flex;gap:6px;}
 
     /* Buttons */
-    .btn{padding:7px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--border-m);background:var(--surf);color:var(--txt);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-    .btn:hover{background:var(--surf2);}
-    .btn-p{background:var(--verde);color:white;border-color:var(--verde);}
-    .btn-p:hover{background:var(--verde-d);}
-    .btn-d{color:var(--rojo-d);border-color:#F09595;}
-    .btn-d:hover{background:var(--rojo-l);}
+    .btn{padding:7px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .btn:hover{background:var(--s2);}
+    .btn-p{background:var(--v);color:white;border-color:var(--v);}
+    .btn-p:hover{background:var(--vd);}
+    .btn-d{color:var(--rd);border-color:#F09595;}
+    .btn-d:hover{background:var(--rl);}
     .btn-s{padding:4px 11px;font-size:11px;}
+    .btn-warn{background:var(--a);color:var(--ad);border-color:transparent;}
 
-    /* Form */
-    label{font-size:12px;color:var(--txt-m);display:block;margin-bottom:4px;}
-    input,select,textarea{width:100%;padding:8px 12px;border:1px solid var(--border-m);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surf2);color:var(--txt);margin-bottom:12px;transition:border-color .15s;}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde);}
+    /* Forms */
+    label{font-size:12px;color:var(--tm);display:block;margin-bottom:4px;}
+    input,select,textarea{width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);margin-bottom:12px;transition:border-color .15s;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--v);}
     textarea{height:70px;resize:vertical;}
     .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
     /* Ejercicios */
-    .ex-item{background:var(--surf2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.4rem;display:flex;align-items:flex-start;gap:10px;}
-    .ex-num-s{width:24px;height:24px;border-radius:50%;background:var(--surf);border:1px solid var(--border-m);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--txt-m);flex-shrink:0;margin-top:1px;}
-    .ex-name-p{font-size:13px;font-weight:500;color:var(--txt);}
-    .ex-det-p{font-size:11px;color:var(--txt-m);margin-top:2px;}
-    .ex-tip-p{font-size:11px;color:var(--verde-d);margin-top:4px;}
-    .ex-vid-p{font-size:11px;color:#185FA5;margin-top:2px;}
+    .ex-item{background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.4rem;display:flex;align-items:flex-start;gap:10px;}
+    .exn{width:24px;height:24px;border-radius:50%;background:var(--s);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--tm);flex-shrink:0;margin-top:1px;}
 
     /* Tabs */
-    .day-tab-row{display:flex;gap:6px;margin-bottom:1rem;}
-    .dtab{padding:6px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--border-m);background:var(--surf);color:var(--txt-m);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-    .dtab.active{background:var(--verde);color:white;border-color:var(--verde);}
-    .sem-tab-row{display:flex;gap:5px;margin-bottom:.75rem;flex-wrap:wrap;}
-    .semtab{padding:4px 12px;border-radius:var(--rp);font-size:11px;border:1px solid var(--border-m);background:var(--surf);color:var(--txt-m);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-    .semtab.active{background:var(--purp);color:var(--purp-d);border-color:transparent;font-weight:500;}
+    .dtabs{display:flex;gap:6px;margin-bottom:1rem;}
+    .dtab{padding:6px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .dtab.active{background:var(--v);color:white;border-color:var(--v);}
+    .stabs{display:flex;gap:5px;margin-bottom:.75rem;flex-wrap:wrap;}
+    .stab{padding:4px 12px;border-radius:var(--rp);font-size:11px;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .stab.active{background:var(--p);color:var(--pd);border-color:transparent;font-weight:500;}
 
     /* Comentarios */
-    .comment-box{background:var(--surf2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;}
-    .comment-meta{font-size:10px;color:var(--txt-h);margin-bottom:3px;}
-    .comment-txt{font-size:12px;color:var(--txt);line-height:1.5;}
-    .new-badge{display:inline-flex;align-items:center;gap:4px;background:#FCEBEB;border-radius:var(--rp);padding:2px 8px;font-size:10px;color:var(--rojo-d);font-weight:500;margin-left:6px;}
+    .cbox{background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;}
+    .cmeta{font-size:10px;color:var(--th);margin-bottom:3px;}
+    .ctxt{font-size:12px;color:var(--t);line-height:1.5;}
 
-    /* Historial / Chart */
-    .chart-wrap{position:relative;height:200px;margin-top:1rem;}
-    .hist-table{width:100%;font-size:12px;border-collapse:collapse;margin-top:1rem;}
-    .hist-table th{font-size:10px;font-weight:500;color:var(--txt-m);text-transform:uppercase;letter-spacing:.04em;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);}
-    .hist-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--txt);}
-    .hist-table tr:last-child td{border-bottom:none;}
+    /* Chart */
+    .chart-wrap{position:relative;height:220px;margin-top:1rem;}
 
     /* Link box */
-    .link-box{background:var(--surf2);border:1px solid var(--border-m);border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:var(--verde-d);font-family:monospace;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;}
-    .copy-btn{background:none;border:none;font-size:11px;color:var(--txt-m);cursor:pointer;font-family:'DM Sans',sans-serif;}
-    .copy-btn:hover{color:var(--verde);}
+    .lbox{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:var(--vd);font-family:monospace;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;}
+    .cbtn{background:none;border:none;font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .cbtn:hover{color:var(--v);}
 
-    /* Foto */
-    .foto-wrap{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
-    .foto-preview{width:56px;height:56px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:20px;flex-shrink:0;}
+    .nota{background:var(--a);border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:var(--ad);margin-bottom:.75rem;}
+    .pbadge{display:inline-flex;align-items:center;gap:4px;background:var(--p);border-radius:var(--rp);padding:3px 10px;font-size:11px;color:var(--pd);margin-bottom:.75rem;}
+    .sm{font-size:12px;color:var(--vd);margin-left:8px;}
+    .em{font-size:12px;color:var(--rd);margin-left:8px;}
+    .empty{font-size:13px;color:var(--tm);padding:.5rem 0;}
+    .shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;}
+    .shdt{font-size:14px;font-weight:500;color:var(--t);}
+    .spin{text-align:center;padding:3rem;color:var(--tm);font-size:13px;}
 
-    .nota-badge{background:var(--amber);border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:var(--amber-d);margin-bottom:.75rem;}
-    .prog-badge{display:inline-flex;align-items:center;gap:4px;background:var(--purp);border-radius:var(--rp);padding:3px 10px;font-size:11px;color:var(--purp-d);margin-bottom:.75rem;}
-    .save-msg{font-size:12px;color:var(--verde-d);margin-left:8px;}
-    .err-msg{font-size:12px;color:var(--rojo-d);margin-left:8px;}
-    .empty{font-size:13px;color:var(--txt-m);padding:.5rem 0;}
-    .section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;}
-    .section-hd-t{font-size:14px;font-weight:500;color:var(--txt);}
+    /* Notif badges */
+    .nbadge{background:var(--rd);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;display:none;}
 
-    /* WA config */
-    .wa-box{background:var(--verde-l);border:1px solid var(--verde-m);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:1rem;font-size:12px;color:var(--verde-d);}
+    /* Modal overlay para editar alumna */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;}
+    .modal{background:var(--s);border-radius:var(--r);padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:1rem;color:var(--t);}
 
     @media(max-width:700px){.sidebar{display:none;}.main{padding:1rem;}.metrics{grid-template-columns:1fr 1fr;}}
   </style>
 </head>
 <body>
 
-<!-- Login -->
-<div id="login-screen" class="login-screen" style="display:none;">
-  <div class="login-box">
-    <div class="login-logo">A</div>
+<div id="LS" class="ls" style="display:none;">
+  <div class="lb">
+    <div class="ll">A</div>
     <h2>Panel privado</h2>
-    <p>Ingresá tu contraseña para continuar</p>
-    <input class="login-input" type="password" id="pwd-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkLogin()">
-    <button class="login-btn" onclick="checkLogin()">Entrar</button>
-    <div class="login-err" id="login-err">Contraseña incorrecta</div>
+    <p>Ingresá tu contraseña</p>
+    <input class="li" type="password" id="pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    <button class="lbtn" onclick="login()">Entrar</button>
+    <div class="lerr" id="lerr">Contraseña incorrecta</div>
   </div>
 </div>
 
-<!-- Panel -->
-<div id="panel-screen" style="display:none;">
+<div id="PS" style="display:none;">
 <div class="layout">
   <aside class="sidebar">
-    <div class="brand">
-      <div class="logo">A</div>
-      <div><strong>Amira Fitness</strong><span>Panel</span></div>
-    </div>
-    <button class="nav active" onclick="setView('inicio')"><span class="nav-ic">🏠</span>Inicio</button>
-    <button class="nav" onclick="setView('alumnas')"><span class="nav-ic">👤</span>Alumnas</button>
-    <button class="nav" onclick="setView('rutinas')"><span class="nav-ic">📋</span>Rutinas</button>
-    <button class="nav" onclick="setView('historial')"><span class="nav-ic">📈</span>Historial</button>
-    <button class="nav" onclick="setView('comentarios')"><span class="nav-ic">💬</span>Comentarios <span id="notif-badge" style="display:none;background:var(--rojo-d);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;">0</span></button>
-    <button class="nav" onclick="setView('registros')"><span class="nav-ic">📥</span>Registros <span id="reg-badge" style="display:none;background:var(--rojo-d);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;">0</span></button>
-    <button class="nav" onclick="setView('recordatorios')"><span class="nav-ic">⏰</span>Recordatorios</button>
-    <button class="nav" onclick="setView('links')"><span class="nav-ic">🔗</span>Links</button>
-    <button class="nav" onclick="setView('config')"><span class="nav-ic">⚙️</span>Configuración</button>
-    <div class="sidebar-bottom">
-      <button class="nav" onclick="toggleTheme()"><span class="nav-ic" id="theme-ic">🌙</span>Modo oscuro</button>
-      <button class="nav" onclick="logout()"><span class="nav-ic">🚪</span>Salir</button>
+    <div class="brand"><div class="logo">A</div><div><strong>Amira Fitness</strong><span>Panel</span></div></div>
+    <button class="nav active" onclick="go('inicio')"><span class="ni">🏠</span>Inicio</button>
+    <button class="nav" onclick="go('alumnas')"><span class="ni">👤</span>Alumnas</button>
+    <button class="nav" onclick="go('rutinas')"><span class="ni">📋</span>Rutinas</button>
+    <button class="nav" onclick="go('historial')"><span class="ni">📈</span>Historial</button>
+    <button class="nav" onclick="go('comentarios')"><span class="ni">💬</span>Comentarios<span class="nbadge" id="nb-com"></span></button>
+    <button class="nav" onclick="go('registros')"><span class="ni">📥</span>Registros<span class="nbadge" id="nb-reg"></span></button>
+    <button class="nav" onclick="go('recordatorios')"><span class="ni">⏰</span>Recordatorios</button>
+    <button class="nav" onclick="go('links')"><span class="ni">🔗</span>Links</button>
+    <button class="nav" onclick="go('config')"><span class="ni">⚙️</span>Config</button>
+    <div class="sb-bot">
+      <div class="sb-conn"><div class="dot" id="sbd"></div><span id="sbl">Conectando...</span></div>
+      <button class="nav" onclick="toggleDark()"><span class="ni" id="tic">🌙</span>Modo oscuro</button>
+      <button class="nav" onclick="doLogout()"><span class="ni">🚪</span>Salir</button>
     </div>
   </aside>
-  <main class="main" id="main"><div class="empty">Cargando...</div></main>
+  <main class="main" id="main"><div class="spin">Cargando...</div></main>
 </div>
+</div>
+
+<!-- Modal editar alumna -->
+<div class="modal-bg" id="modal-edit" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>Editar alumna</h3>
+    <label>Nombre completo</label>
+    <input type="text" id="e-nombre" placeholder="Nombre y apellido">
+    <label>WhatsApp (con código de país sin +)</label>
+    <input type="tel" id="e-tel" placeholder="Ej: 5491123456789">
+    <div class="frow">
+      <div><label>Tipo</label>
+        <select id="e-tipo">
+          <option value="gym">Gimnasio</option>
+          <option value="distancia">A distancia</option>
+        </select>
+      </div>
+      <div><label>Días/semana</label>
+        <select id="e-dias">
+          <option value="2">2 días</option>
+          <option value="3">3 días</option>
+        </select>
+      </div>
+    </div>
+    <label>Notas personales</label>
+    <textarea id="e-notas" placeholder="Objetivos, lesiones, consideraciones..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:.5rem;">
+      <button class="btn btn-p" onclick="saveEdit()">Guardar cambios</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>
+    <div id="edit-msg" style="font-size:12px;margin-top:8px;"></div>
+  </div>
 </div>
 
 <script>
-const BASE=window.location.origin;
-const COLORS=['teal','purple','amber','coral'];
-const PASSWORD=localStorage.getItem('af-panel-pwd')||'amira2025';
-
-// Supabase — reemplazar con credenciales reales
-let SUPABASE_URL=localStorage.getItem('af-sb-url')||'';
-let SUPABASE_KEY=localStorage.getItem('af-sb-key')||'';
-let useSupabase=SUPABASE_URL&&SUPABASE_KEY;
-
-let DB={alumnas:[],rutinas:{},comentarios:{},fotos:{}};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,addA:false,addEx:false,
-  newA:{nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:''},
+const BASE = location.origin;
+const COLORS = ['teal','purple','amber','coral'];
+let DB = { alumnas:[], rutinas:{}, comentarios:[], registros:[] };
+let S = {
+  view:'inicio', selA:null, selSem:1, selDia:1,
+  addA:false, addEx:false, selHistEx:null, editId:null,
+  newA:{nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:'',tel:''},
   newEx:{nombre:'',series:'3',reps:'10',tip:'',video:''},
-  saveMsg:'',saveErr:'',newComments:0,newRegs:0,selHistEx:null};
-let darkMode=localStorage.getItem('af-dark')==='1';
-let charts={};
+  msg:'', err:'', sbOk:false
+};
+let dark = localStorage.getItem('af-dark')==='1';
+let charts={}, pollT=null;
+let prevCom=0, prevReg=0;
 
-// Auth
-function checkLogin(){
-  const val=document.getElementById('pwd-input').value;
-  if(val===PASSWORD){
-    localStorage.setItem('af-authed','1');
-    showPanel();
-  } else {
-    document.getElementById('login-err').style.display='block';
+if(dark) document.documentElement.setAttribute('data-theme','dark');
+
+// ── Auth ──────────────────────────────────────────────────────
+function login(){
+  const v = document.getElementById('pwd').value;
+  const pwd = localStorage.getItem('af-pwd')||'amira2025';
+  if(v===pwd){ localStorage.setItem('af-ok','1'); showPanel(); }
+  else document.getElementById('lerr').style.display='block';
+}
+function showPanel(){ document.getElementById('LS').style.display='none'; document.getElementById('PS').style.display='block'; loadAll(); }
+function doLogout(){ localStorage.removeItem('af-ok'); document.getElementById('PS').style.display='none'; document.getElementById('LS').style.display='flex'; }
+function initAuth(){ if(localStorage.getItem('af-ok')==='1') showPanel(); else document.getElementById('LS').style.display='flex'; }
+
+// ── Theme ─────────────────────────────────────────────────────
+function toggleDark(){
+  dark=!dark;
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  localStorage.setItem('af-dark',dark?'1':'0');
+  document.getElementById('tic').textContent=dark?'☀️':'🌙';
+}
+document.getElementById('tic').textContent=dark?'☀️':'🌙';
+
+// ── Helpers ───────────────────────────────────────────────────
+function slugify(n){ return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''); }
+function ini(n){ return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function getA(id){ return DB.alumnas.find(a=>a.id===id); }
+function avH(a){ return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`; }
+function getEx(aId,sem,dia){ try{return DB.rutinas[aId]?.[sem]?.find(d=>d.dia===dia)?.ejercicios||[];}catch(e){return[];} }
+function copyL(slug){ navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{S.msg='Copiado ✓';render();setTimeout(()=>{S.msg='';render();},1200);}); }
+
+function sbSt(ok,msg){
+  S.sbOk=ok;
+  const d=document.getElementById('sbd'),l=document.getElementById('sbl');
+  if(d)d.className='dot '+(ok?'ok':'err');
+  if(l)l.textContent=msg;
+}
+
+// ── Load ──────────────────────────────────────────────────────
+async function loadAll(){
+  try{
+    const [alumnas,rutinas,coms,regs]=await Promise.all([
+      sbGet('alumnas','order=created_at.asc'),
+      sbGet('rutinas','order=alumna_id.asc,semana.asc,dia.asc'),
+      sbGet('comentarios','order=created_at.desc'),
+      sbGet('registros','order=created_at.desc')
+    ]);
+    DB.alumnas=alumnas;
+    DB.rutinas={};
+    rutinas.forEach(r=>{
+      if(!DB.rutinas[r.alumna_id])DB.rutinas[r.alumna_id]={};
+      if(!DB.rutinas[r.alumna_id][r.semana])DB.rutinas[r.alumna_id][r.semana]=[];
+      DB.rutinas[r.alumna_id][r.semana].push({dia:r.dia,ejercicios:r.ejercicios||[]});
+    });
+    DB.comentarios=coms;
+    DB.registros=regs;
+    prevCom=coms.length;
+    prevReg=regs.filter(r=>r.estado==='pendiente').length;
+    if(DB.alumnas.length===0) await seedMaria();
+    if(!S.selA&&DB.alumnas.length>0) S.selA=DB.alumnas[0].id;
+    sbSt(true,'Conectado ✓');
+    render();
+    startPoll();
+  }catch(e){
+    sbSt(false,'Sin conexión');
+    console.error(e);
+    render();
   }
 }
-function showPanel(){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('panel-screen').style.display='block';
-  loadAndRender();
-}
-function logout(){
-  localStorage.removeItem('af-authed');
-  document.getElementById('panel-screen').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-}
-function initAuth(){
-  if(localStorage.getItem('af-authed')==='1')showPanel();
-  else document.getElementById('login-screen').style.display='flex';
+
+async function seedMaria(){
+  try{
+    const res=await fetch('/api/seed.json');
+    const data=await res.json();
+    for(const a of data.alumnas) await sbUpsert('alumnas',a);
+    for(const r of data.rutinas) await sbUpsert('rutinas',r);
+    await loadAll();
+  }catch(e){ console.error('Seed failed',e); }
 }
 
-// Theme
-if(darkMode)document.documentElement.setAttribute('data-theme','dark');
-function toggleTheme(){
-  darkMode=!darkMode;
-  document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');
-  localStorage.setItem('af-dark',darkMode?'1':'0');
-  document.getElementById('theme-ic').textContent=darkMode?'☀️':'🌙';
+function startPoll(){
+  if(pollT)clearInterval(pollT);
+  pollT=setInterval(async()=>{
+    try{
+      const [coms,regs]=await Promise.all([
+        sbGet('comentarios','select=id&order=created_at.desc&limit=1'),
+        sbGet('registros','estado=eq.pendiente&select=id')
+      ]);
+      const nc=parseInt(coms[0]?.id||0);
+      const nr=regs.length;
+      const bnc=document.getElementById('nb-com');
+      const bnr=document.getElementById('nb-reg');
+      if(nc>prevCom&&bnc){bnc.style.display='inline';bnc.textContent='●';}
+      if(nr>prevReg&&bnr){bnr.style.display='inline';bnr.textContent=nr;}
+      prevReg=nr;
+    }catch(e){}
+  },8000);
 }
-document.getElementById('theme-ic').textContent=darkMode?'☀️':'🌙';
 
-function slugify(n){return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');}
-function initials(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
-function getA(id){return DB.alumnas.find(a=>a.id===id);}
-function getEx(aId,sem,dia){try{return DB.rutinas[aId]?.[sem]?.find(d=>d.dia===dia)?.ejercicios||[];}catch(e){return[];}}
-
-function ensureRutina(aId,sem){
+// ── Rutinas ───────────────────────────────────────────────────
+function ensureLocal(aId,sem){
   if(!DB.rutinas[aId])DB.rutinas[aId]={};
   if(!DB.rutinas[aId][sem])DB.rutinas[aId][sem]=[1,2,3].map(d=>({dia:d,ejercicios:[]}));
 }
 
-function copiarSemAnterior(aId,sem){
+async function saveDay(){
+  const day=DB.rutinas[S.selA]?.[S.selSem]?.find(d=>d.dia===S.selDia);
+  if(!day)return;
+  S.msg='Guardando...';render();
+  try{
+    await sbUpsert('rutinas',{alumna_id:S.selA,semana:S.selSem,dia:S.selDia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
+    S.msg='Guardado en la nube ✓';S.err='';
+  }catch(e){S.err='Error al guardar';S.msg='';}
+  render();
+  setTimeout(()=>{S.msg='';render();},2500);
+}
+
+function copiarSem(aId,sem){
   if(sem<=1)return false;
   const prev=DB.rutinas[aId]?.[sem-1];
   if(!prev)return false;
-  ensureRutina(aId,sem);
-  let copiado=false;
-  DB.rutinas[aId][sem].forEach((dayObj,i)=>{
-    if(dayObj.ejercicios.length===0&&prev[i]){
-      dayObj.ejercicios=JSON.parse(JSON.stringify(prev[i].ejercicios));
-      copiado=true;
-    }
+  ensureLocal(aId,sem);
+  let ok=false;
+  DB.rutinas[aId][sem].forEach((d,i)=>{
+    if(d.ejercicios.length===0&&prev[i]){d.ejercicios=JSON.parse(JSON.stringify(prev[i].ejercicios));ok=true;}
   });
-  return copiado;
+  return ok;
 }
 
-function setView(v){
+async function handleSem(sem){
+  S.selSem=sem;S.selDia=1;
+  const a=getA(S.selA);
+  if(a){
+    ensureLocal(a.id,sem);
+    if(copiarSem(a.id,sem)){
+      S.msg='Semana copiada de la anterior — editá lo que cambie';render();
+      setTimeout(()=>{S.msg='';render();},3000);return;
+    }
+  }
+  render();
+}
+
+// ── Alumnas CRUD ──────────────────────────────────────────────
+async function addAlumna(){
+  if(!S.newA.nombre.trim())return;
+  const id=Date.now();
+  const slug=S.newA.slug||slugify(S.newA.nombre.split(' ')[0]);
+  const a={id,slug,nombre:S.newA.nombre,tipo:S.newA.tipo,dias:S.newA.dias,notas:S.newA.notas,foto:S.newA.foto,tel:S.newA.tel,color:COLORS[DB.alumnas.length%COLORS.length]};
+  S.msg='Guardando...';render();
+  try{
+    await sbUpsert('alumnas',a);
+    DB.alumnas.push(a);
+    if(!S.selA)S.selA=id;
+    S.newA={nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:'',tel:''};
+    S.addA=false;S.msg='Alumna creada ✓';S.err='';
+    render();setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){S.err='Error al guardar';S.msg='';render();}
+}
+
+async function deleteAlumna(id){
+  if(!confirm('¿Eliminás esta alumna y su rutina?'))return;
+  try{
+    await sbDelete('alumnas',`id=eq.${id}`);
+    DB.alumnas=DB.alumnas.filter(a=>a.id!==id);
+    delete DB.rutinas[id];
+    if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;
+    render();
+  }catch(e){alert('Error al eliminar');}
+}
+
+// ── Editar alumna ─────────────────────────────────────────────
+function openEdit(id){
+  const a=getA(id); if(!a)return;
+  S.editId=id;
+  document.getElementById('e-nombre').value=a.nombre;
+  document.getElementById('e-tel').value=a.tel||'';
+  document.getElementById('e-tipo').value=a.tipo;
+  document.getElementById('e-dias').value=a.dias;
+  document.getElementById('e-notas').value=a.notas||'';
+  document.getElementById('edit-msg').textContent='';
+  document.getElementById('modal-edit').style.display='flex';
+}
+function closeModal(){ document.getElementById('modal-edit').style.display='none'; S.editId=null; }
+
+async function saveEdit(){
+  const a=getA(S.editId); if(!a)return;
+  const updates={
+    nombre:document.getElementById('e-nombre').value.trim(),
+    tel:document.getElementById('e-tel').value.trim(),
+    tipo:document.getElementById('e-tipo').value,
+    dias:parseInt(document.getElementById('e-dias').value),
+    notas:document.getElementById('e-notas').value.trim()
+  };
+  document.getElementById('edit-msg').textContent='Guardando...';
+  try{
+    await sbPatch('alumnas',`id=eq.${S.editId}`,updates);
+    Object.assign(a,updates);
+    document.getElementById('edit-msg').textContent='';
+    closeModal();
+    render();
+  }catch(e){ document.getElementById('edit-msg').textContent='Error al guardar. Intentá de nuevo.'; }
+}
+
+async function handleFoto(aId,input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const foto=e.target.result;
+    const a=getA(aId); if(a)a.foto=foto;
+    try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function addEx(){
+  if(!S.newEx.nombre.trim())return;
+  ensureLocal(S.selA,S.selSem);
+  const day=DB.rutinas[S.selA][S.selSem].find(d=>d.dia===S.selDia);
+  day.ejercicios.push({...S.newEx});
+  S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};
+  S.addEx=false; render();
+}
+function delEx(i){
+  const day=DB.rutinas[S.selA]?.[S.selSem]?.find(d=>d.dia===S.selDia);
+  if(day)day.ejercicios.splice(i,1); render();
+}
+
+// ── Registros ─────────────────────────────────────────────────
+async function aprobar(id){
+  const reg=DB.registros.find(r=>r.id===id); if(!reg)return;
+  await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});
+  reg.estado='aprobado';
+  S.newA={
+    nombre:reg.nombre,slug:slugify(reg.nombre.split(' ')[0]),
+    tipo:reg.ubicacion?.includes('Buenos Aires')?'gym':'distancia',
+    dias:reg.dias?.includes('3')?3:2,
+    notas:`Objetivos: ${reg.objetivos||''} | Lesiones: ${reg.lesiones||''}`,
+    foto:'',tel:reg.tel||''
+  };
+  S.addA=true; go('alumnas');
+}
+async function rechazar(id){
+  if(!confirm('¿Rechazás?'))return;
+  await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});
+  DB.registros.find(r=>r.id===id).estado='rechazado'; render();
+}
+
+// ── Recordatorios ─────────────────────────────────────────────
+function envRec(aId){
+  const a=getA(aId); if(!a)return;
+  const ph=(a.tel||'').replace(/\D/g,'');
+  if(!ph){alert('Esta alumna no tiene WhatsApp cargado. Editá su perfil primero.');return;}
+  const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos que podés! — Amira`);
+  window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+}
+function envRes(aId){
+  const a=getA(aId); if(!a)return;
+  const ph=(a.tel||'').replace(/\D/g,'');
+  if(!ph){alert('Esta alumna no tiene WhatsApp cargado. Editá su perfil primero.');return;}
+  const nc=DB.comentarios.filter(c=>c.alumna_id===aId).length;
+  const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen de la semana:\n\n💬 Dejaste ${nc} nota${nc!==1?'s':''} esta semana\n📈 Tu progreso está registrado\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n— Amira 💚`);
+  window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+}
+function envTodas(){
+  const ph=localStorage.getItem('af-amira-ph')||'';
+  if(!ph){alert('Configurá tu número de WhatsApp en Config.');return;}
+  const txt=DB.alumnas.map(a=>`• ${a.nombre}: ${DB.comentarios.filter(c=>c.alumna_id===a.id).length} notas`).join('\n');
+  const msg=encodeURIComponent(`📊 Resumen semanal Amira Fitness\n\n${txt}\n\nPanel: ${BASE}/panel`);
+  window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+}
+
+// ── Historial ─────────────────────────────────────────────────
+function getPesos(aId){
+  const all=JSON.parse(localStorage.getItem('af-pesos')||'{}');
+  return Object.fromEntries(Object.entries(all).filter(([k])=>k.startsWith(`p-${aId}-`)));
+}
+
+// ── View ──────────────────────────────────────────────────────
+function go(v){
   S.view=v;
-  if(v==='comentarios')S.newComments=0;
-  if(v==='registros'){S.newRegs=0;const b=document.getElementById('reg-badge');if(b)b.style.display='none';}
+  if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';}
+  if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
   document.querySelectorAll('.nav').forEach((el,i)=>{
     el.classList.toggle('active',['inicio','alumnas','rutinas','historial','comentarios','registros','recordatorios','links','config'][i]===v);
   });
   render();
 }
 
-function save(){
-  try{
-    localStorage.setItem('amira-alumnas',JSON.stringify(DB.alumnas));
-    localStorage.setItem('amira-rutinas',JSON.stringify(DB.rutinas));
-    localStorage.setItem('amira-fotos',JSON.stringify(DB.fotos));
-    if(useSupabase)syncToSupabase();
-    S.saveMsg='Guardado ✓';S.saveErr='';
-    render();setTimeout(()=>{S.saveMsg='';render();},2000);
-  }catch(e){S.saveErr='Error al guardar';render();}
-}
-
-async function syncToSupabase(){
-  // Sync alumnas
-  for(const a of DB.alumnas){
-    await fetch(`${SUPABASE_URL}/rest/v1/alumnas?id=eq.${a.id}`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'resolution=merge-duplicates'},
-      body:JSON.stringify(a)
-    });
-  }
-}
-
-function load(){
-  try{
-    const a=localStorage.getItem('amira-alumnas');
-    const r=localStorage.getItem('amira-rutinas');
-    const f=localStorage.getItem('amira-fotos');
-    const c=localStorage.getItem('af-comentarios');
-    if(a)DB.alumnas=JSON.parse(a);
-    if(r)DB.rutinas=JSON.parse(r);
-    if(f)DB.fotos=JSON.parse(f);
-    if(c)DB.comentarios=JSON.parse(c);
-    if(DB.alumnas.length>0)S.selA=DB.alumnas[0].id;
-  }catch(e){}
-}
-
-async function loadFromServer(){
-  try{
-    const res=await fetch('/api/data.json');
-    if(res.ok){
-      const data=await res.json();
-      if(data.alumnas&&data.alumnas.length>0&&DB.alumnas.length===0){
-        DB.alumnas=data.alumnas;
-        DB.rutinas=data.rutinas||{};
-        if(DB.alumnas.length>0)S.selA=DB.alumnas[0].id;
-        save();
-      }
-    }
-  }catch(e){}
-}
-
-async function pollComments(){
-  try{
-    const c=localStorage.getItem('af-comentarios');
-    if(c){
-      const newC=JSON.parse(c);
-      const totalNew=Object.values(newC).reduce((a,b)=>a+b.length,0);
-      const totalOld=Object.values(DB.comentarios).reduce((a,b)=>a+b.length,0);
-      if(totalNew>totalOld){
-        S.newComments+=(totalNew-totalOld);
-        DB.comentarios=newC;
-        const badge=document.getElementById('notif-badge');
-        if(badge&&S.newComments>0){badge.style.display='inline';badge.textContent=S.newComments;}
-      }
-    }
-    const r=localStorage.getItem('amira-registros');
-    if(r){
-      const regs=JSON.parse(r);
-      const pendientes=regs.filter(x=>x.estado==='pendiente').length;
-      const badge=document.getElementById('reg-badge');
-      if(badge){badge.style.display=pendientes>0?'inline':'none';badge.textContent=pendientes;}
-    }
-  }catch(e){}
-  setTimeout(pollComments,5000);
-}
-
-function getRegistros(){try{return JSON.parse(localStorage.getItem('amira-registros')||'[]');}catch(e){return[];}}
-function saveRegistros(r){localStorage.setItem('amira-registros',JSON.stringify(r));}
-
-function aprobarRegistro(id){
-  const regs=getRegistros();
-  const reg=regs.find(r=>r.id===id);
-  if(!reg)return;
-  reg.estado='aprobado';
-  saveRegistros(regs);
-  S.newA={
-    nombre:reg.nombre,
-    slug:slugify(reg.nombre.split(' ')[0]),
-    tipo:reg.ubicacion&&reg.ubicacion.includes('Buenos Aires')?'gym':'distancia',
-    dias:reg.dias&&reg.dias.includes('3')?3:2,
-    notas:`Tel: ${reg.tel} | Objetivos: ${reg.objetivos} | Lesiones: ${reg.lesiones}`,
-    foto:''
-  };
-  S.addA=true;
-  setView('alumnas');
-}
-
-function rechazarRegistro(id){
-  if(!confirm('¿Rechazás este registro?'))return;
-  const regs=getRegistros();
-  const reg=regs.find(r=>r.id===id);
-  if(reg)reg.estado='rechazado';
-  saveRegistros(regs);render();
-}
-
-function enviarRecordatorio(aId){
-  const a=getA(aId);
-  if(!a)return;
-  const phone=(a.tel||'').replace(/\D/g,'');
-  if(!phone){alert('Cargá el WhatsApp de esta alumna en su perfil.');return;}
-  const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento. Tu rutina te espera:\n\n${BASE}/alumna/${a.slug}\n\n¡Vamos que podés! — Amira`);
-  window.open(`https://wa.me/${phone}?text=${msg}`,'_blank');
-}
-
-function enviarResumenSemanal(aId){
-  const a=getA(aId);
-  if(!a)return;
-  const phone=(a.tel||'').replace(/\D/g,'');
-  if(!phone){alert('Cargá el WhatsApp de esta alumna en su perfil.');return;}
-  const ps=getPesos(aId);
-  const totalP=Object.keys(ps).length;
-  const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Acá va tu resumen semanal:\n\n💪 Registraste ${totalP} ejercicios con peso esta semana\n📈 Seguís progresando semana a semana\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Un abrazo! — Amira 💚`);
-  window.open(`https://wa.me/${phone}?text=${msg}`,'_blank');
-}
-
-function enviarResumenTodas(){
-  const amiraPhone=localStorage.getItem('af-amira-phone')||'';
-  if(!amiraPhone){alert('Configurá tu número de WhatsApp en Configuración.');return;}
-  const resumen=DB.alumnas.map(a=>`• ${a.nombre}: ${Object.keys(getPesos(a.id)).length} pesos registrados`).join('\n');
-  const msg=encodeURIComponent(`📊 Resumen semanal — Amira Fitness\n\n${resumen}\n\nVer panel: ${BASE}/panel`);
-  window.open(`https://wa.me/${amiraPhone}?text=${msg}`,'_blank');
-}
-
-function addAlumna(){
-  if(!S.newA.nombre.trim())return;
-  const id=Date.now();
-  const slug=S.newA.slug||slugify(S.newA.nombre.split(' ')[0]);
-  DB.alumnas.push({id,slug,nombre:S.newA.nombre,tipo:S.newA.tipo,dias:S.newA.dias,notas:S.newA.notas,foto:S.newA.foto,color:COLORS[DB.alumnas.length%COLORS.length]});
-  S.newA={nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:''};
-  S.addA=false;
-  if(!S.selA)S.selA=id;
-  save();
-}
-
-function deleteAlumna(id){
-  if(!confirm('¿Eliminás esta alumna y su rutina?'))return;
-  DB.alumnas=DB.alumnas.filter(a=>a.id!==id);
-  delete DB.rutinas[id];
-  if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;
-  save();
-}
-
-function addEjercicio(){
-  if(!S.newEx.nombre.trim())return;
-  ensureRutina(S.selA,S.selSem);
-  const day=DB.rutinas[S.selA][S.selSem].find(d=>d.dia===S.selDia);
-  day.ejercicios.push({...S.newEx});
-  S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};
-  S.addEx=false;render();
-}
-
-function deleteEjercicio(i){
-  const day=DB.rutinas[S.selA][S.selSem].find(d=>d.dia===S.selDia);
-  day.ejercicios.splice(i,1);render();
-}
-
-function copyLink(slug){
-  navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{
-    S.saveMsg='Link copiado ✓';render();setTimeout(()=>{S.saveMsg='';render();},1500);
-  });
-}
-
-function handleFoto(aId,input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    DB.fotos[aId]=e.target.result;
-    const a=getA(aId);if(a)a.foto=e.target.result;
-    save();render();
-  };
-  reader.readAsDataURL(file);
-}
-
-function handleSemana(sem){
-  S.selSem=sem;S.selDia=1;
-  const a=getA(S.selA);
-  if(a){
-    ensureRutina(a.id,sem);
-    const copiado=copiarSemAnterior(a.id,sem);
-    if(copiado){S.saveMsg='Semana copiada de la anterior — editá lo que cambie';render();setTimeout(()=>{S.saveMsg='';render();},3000);return;}
-  }
-  render();
-}
-
-function avHtml(a){
-  const foto=DB.fotos[a.id]||a.foto||'';
-  return foto?`<img src="${foto}" alt="${a.nombre}">`:`${initials(a.nombre)}`;
-}
-
-// Historial de pesos — leer desde localStorage de la alumna
-function getPesos(aId){
-  try{
-    const all=JSON.parse(localStorage.getItem('af-pesos')||'{}');
-    const res={};
-    Object.entries(all).forEach(([k,v])=>{
-      if(k.startsWith(`p-${aId}-`))res[k]=v;
-    });
-    return res;
-  }catch(e){return{};}
-}
-
 function render(){
   const m=document.getElementById('main');
-  if(S.view==='inicio')m.innerHTML=renderInicio();
-  else if(S.view==='alumnas')m.innerHTML=renderAlumnas();
-  else if(S.view==='rutinas')m.innerHTML=renderRutinas();
-  else if(S.view==='historial')m.innerHTML=renderHistorial();
-  else if(S.view==='comentarios')m.innerHTML=renderComentarios();
-  else if(S.view==='registros')m.innerHTML=renderRegistros();
-  else if(S.view==='recordatorios')m.innerHTML=renderRecordatorios();
-  else if(S.view==='links')m.innerHTML=renderLinks();
-  else if(S.view==='config')m.innerHTML=renderConfig();
+  const views={inicio:rInicio,alumnas:rAlumnas,rutinas:rRutinas,historial:rHistorial,comentarios:rComentarios,registros:rRegistros,recordatorios:rRecordatorios,links:rLinks,config:rConfig};
+  m.innerHTML=(views[S.view]||rInicio)();
   if(S.view==='historial')drawChart();
 }
 
-function renderInicio(){
+// ── Renders ───────────────────────────────────────────────────
+function rInicio(){
   const gym=DB.alumnas.filter(a=>a.tipo==='gym').length;
   const dist=DB.alumnas.filter(a=>a.tipo==='distancia').length;
-  const totalC=Object.values(DB.comentarios).reduce((a,b)=>a+b.length,0);
-  const regs=getRegistros();
-  const pendientes=regs.filter(r=>r.estado==='pendiente').length;
-  return`
-    <div class="page-title">Bienvenida, Amira</div>
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">Alumnas</div><div class="metric-val">${DB.alumnas.length}</div></div>
-      <div class="metric"><div class="metric-label">Gimnasio</div><div class="metric-val">${gym}</div></div>
-      <div class="metric"><div class="metric-label">A distancia</div><div class="metric-val">${dist}</div></div>
-      <div class="metric"><div class="metric-label">Comentarios</div><div class="metric-val green">${totalC}</div></div>
-    </div>
-    ${pendientes>0?`
-    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;cursor:pointer;" onclick="setView('registros')">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:13px;color:var(--verde-d);font-weight:500;">📥 ${pendientes} registro${pendientes!==1?'s':''} nuevo${pendientes!==1?'s':''} pendiente${pendientes!==1?'s':''} de aprobación</div>
-        <span style="font-size:12px;color:var(--verde-d);">Ver →</span>
-      </div>
-    </div>`:''}
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title">Link de registro para nuevas alumnas</div>
-      <div class="link-box"><span>${BASE}/registro</span><button class="copy-btn" onclick="navigator.clipboard.writeText('${BASE}/registro').then(()=>{S.saveMsg='Link copiado ✓';render();setTimeout(()=>{S.saveMsg='';render();},1500)})">Copiar</button></div>
-      <div style="font-size:12px;color:var(--txt-m);margin-top:8px;">Compartí este link en Instagram, WhatsApp o donde quieras. Las alumnas nuevas completan el formulario y te llega un aviso.</div>
-      ${S.saveMsg?`<div class="save-msg">${S.saveMsg}</div>`:''}
-    </div>
-    <div class="card">
-      <div class="card-title">Alumnas activas</div>
-      ${DB.alumnas.length===0?'<div class="empty">Todavía no hay alumnas cargadas.</div>':''}
-      ${DB.alumnas.map(a=>`
-        <div class="arow">
-          <div class="av av-${a.color}">${avHtml(a)}</div>
-          <div><div class="aname">${a.nombre}</div><div class="asub"><span class="badge bg-${a.tipo==='gym'?'gym':'dist'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem</div></div>
-          <div class="row-acts"><button class="btn btn-s" onclick="S.selA=${a.id};S.selDia=1;S.selSem=1;setView('rutinas')">Ver rutina</button></div>
-        </div>`).join('')}
-    </div>`;
-}
-
-function renderAlumnas(){
-  return`
-    <div class="page-title">Alumnas</div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
-      <button class="btn btn-p btn-s" onclick="S.addA=!S.addA;render()">+ Nueva alumna</button>
-    </div>
-    ${S.addA?`
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title">Nueva alumna</div>
-      <label>Nombre completo</label>
-      <input type="text" placeholder="Ej: Laura Gómez" value="${S.newA.nombre}"
-        oninput="S.newA.nombre=this.value;const el=document.getElementById('sp');if(el)el.textContent=slugify(this.value.split(' ')[0])||'nombre'">
-      <label>Link personalizado</label>
-      <div style="font-size:12px;color:var(--verde-d);margin-bottom:12px;font-family:monospace;">
-        ${BASE}/alumna/<span id="sp">${slugify(S.newA.nombre.split(' ')[0])||'nombre'}</span>
-      </div>
-      <div class="frow">
-        <div><label>Tipo</label><select onchange="S.newA.tipo=this.value"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
-        <div><label>Días/semana</label><select onchange="S.newA.dias=parseInt(this.value)"><option value="2">2 días</option><option value="3" selected>3 días</option></select></div>
-      </div>
-      <label>Notas personales</label>
-      <textarea placeholder="Lesiones, objetivos..." oninput="S.newA.notas=this.value">${S.newA.notas}</textarea>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-p btn-s" onclick="addAlumna()">Guardar</button>
-        <button class="btn btn-s" onclick="S.addA=false;render()">Cancelar</button>
-      </div>
-    </div>`:''}
+  const pend=DB.registros.filter(r=>r.estado==='pendiente').length;
+  return`<div class="ptitle">Bienvenida, Amira</div>
+  <div class="metrics">
+    <div class="metric"><div class="mlabel">Alumnas</div><div class="mval">${DB.alumnas.length}</div></div>
+    <div class="metric"><div class="mlabel">Gimnasio</div><div class="mval">${gym}</div></div>
+    <div class="metric"><div class="mlabel">A distancia</div><div class="mval">${dist}</div></div>
+    <div class="metric"><div class="mlabel">Comentarios</div><div class="mval g">${DB.comentarios.length}</div></div>
+  </div>
+  ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Link de registro para nuevas alumnas</div>
+    <div class="lbox"><span>${BASE}/registro</span><button class="cbtn" onclick="navigator.clipboard.writeText('${BASE}/registro').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar</button></div>
+    <div style="font-size:12px;color:var(--tm);margin-top:8px;">Compartí este link en tus redes. Al registrarse te llega un WhatsApp.</div>
+    ${S.msg?`<div class="sm">${S.msg}</div>`:''}
+  </div>
+  <div class="card">
+    <div class="ctitle">Alumnas activas</div>
+    ${DB.alumnas.length===0?'<div class="empty">Sin alumnas. Cargando rutina de María...</div>':''}
     ${DB.alumnas.map(a=>`
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:.75rem;">
-        <div class="av av-${a.color}">${avHtml(a)}</div>
-        <div style="flex:1"><div class="aname">${a.nombre}</div><div class="asub"><span class="badge bg-${a.tipo==='gym'?'gym':'dist'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem</div></div>
-        <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
-      </div>
-      ${a.notas?`<div class="nota-badge">${a.notas}</div>`:''}
-      <label>Foto de perfil</label>
-      <div class="foto-wrap">
-        <div class="foto-preview av-${a.color}">${avHtml(a)}</div>
-        <input type="file" accept="image/*" style="width:auto;margin-bottom:0;" onchange="handleFoto(${a.id},this)">
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selDia=1;S.selSem=1;setView('rutinas')">Gestionar rutina</button>
-        <button class="btn btn-s" onclick="copyLink('${a.slug}')">Copiar link</button>
-      </div>
-    </div>`).join('')}
-    ${S.saveMsg?`<div class="save-msg">${S.saveMsg}</div>`:''}`;
-}
-
-function renderRutinas(){
-  const a=getA(S.selA);
-  if(!a)return`<div class="page-title">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
-  ensureRutina(a.id,S.selSem);
-  const ejercicios=getEx(a.id,S.selSem,S.selDia);
-  return`
-    <div class="page-title">Rutinas</div>
-    <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
-    </div>
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
-        <div class="av av-${a.color}">${avHtml(a)}</div>
-        <div><div class="aname">${a.nombre}</div><div class="asub">${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/sem</div></div>
-      </div>
-      <div style="font-size:11px;color:var(--txt-m);margin-bottom:4px;">Semana</div>
-      <div class="sem-tab-row">
-        ${[1,2,3,4].map(s=>`<button class="semtab${S.selSem===s?' active':''}" onclick="handleSemana(${s})">Semana ${s}${s>1?' ↗':''}</button>`).join('')}
-      </div>
-      <div class="prog-badge">Semana ${S.selSem} ${S.selSem>1?'— copiada automáticamente':'— rutina base'}</div>
-      <div style="font-size:11px;color:var(--txt-m);margin-bottom:4px;">Día</div>
-      <div class="day-tab-row">
-        ${[1,2,3].slice(0,a.dias).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}
-      </div>
-      <div class="section-hd">
-        <div class="section-hd-t">Ejercicios (${ejercicios.length})</div>
-        <button class="btn btn-p btn-s" onclick="S.addEx=!S.addEx;render()">+ Agregar</button>
-      </div>
-      ${S.addEx?`
-      <div class="card" style="background:var(--surf2);margin-bottom:.75rem;">
-        <label>Nombre</label>
-        <input type="text" placeholder="Ej: Sentadilla al cajón" value="${S.newEx.nombre}" oninput="S.newEx.nombre=this.value">
-        <div class="frow">
-          <div><label>Series</label><input type="text" value="${S.newEx.series}" oninput="S.newEx.series=this.value"></div>
-          <div><label>Reps</label><input type="text" value="${S.newEx.reps}" oninput="S.newEx.reps=this.value"></div>
+      <div class="arow">
+        <div class="av av-${a.color}">${avH(a)}</div>
+        <div><div class="aname">${a.nombre}</div><div class="asub"><span class="badge ${a.tipo==='gym'?'bg':'bd'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem${a.tel?` · ${a.tel}`:' · Sin WhatsApp'}</div></div>
+        <div class="ra">
+          <button class="btn btn-s btn-warn" onclick="openEdit(${a.id})">Editar</button>
+          <button class="btn btn-s" onclick="S.selA=${a.id};S.selDia=1;S.selSem=1;go('rutinas')">Rutina</button>
         </div>
-        <label>Nota de técnica</label>
-        <textarea oninput="S.newEx.tip=this.value">${S.newEx.tip}</textarea>
-        <label>Link de video</label>
-        <input type="text" value="${S.newEx.video}" oninput="S.newEx.video=this.value" placeholder="https://youtube.com/shorts/...">
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-p btn-s" onclick="addEjercicio()">Guardar</button>
-          <button class="btn btn-s" onclick="S.addEx=false;render()">Cancelar</button>
-        </div>
-      </div>`:''}
-      ${ejercicios.length===0?'<div class="empty">Sin ejercicios en este día.</div>':''}
-      ${ejercicios.map((ex,i)=>`
-      <div class="ex-item">
-        <div class="ex-num-s">${i+1}</div>
-        <div style="flex:1">
-          <div class="ex-name-p">${ex.nombre}</div>
-          <div class="ex-det-p">${ex.series} × ${ex.reps}</div>
-          ${ex.tip?`<div class="ex-tip-p">${ex.tip}</div>`:''}
-          ${ex.video?`<div class="ex-vid-p">✓ Video</div>`:''}
-        </div>
-        <button class="btn btn-s btn-d" onclick="deleteEjercicio(${i})">×</button>
       </div>`).join('')}
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button class="btn btn-p" onclick="save()">Guardar cambios</button>
-      ${S.saveMsg?`<span class="save-msg">${S.saveMsg}</span>`:''}
-      ${S.saveErr?`<span class="err-msg">${S.saveErr}</span>`:''}
-    </div>`;
+  </div>`;
 }
 
-function renderHistorial(){
+function rAlumnas(){
+  return`<div class="ptitle">Alumnas</div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+    <button class="btn btn-p btn-s" onclick="S.addA=!S.addA;render()">+ Nueva alumna</button>
+  </div>
+  ${S.addA?`<div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Nueva alumna</div>
+    <label>Nombre completo</label>
+    <input type="text" placeholder="Ej: Laura Gómez" value="${S.newA.nombre}"
+      oninput="S.newA.nombre=this.value;const el=document.getElementById('sp');if(el)el.textContent=slugify(this.value.split(' ')[0])||'nombre'">
+    <label>Link personalizado</label>
+    <div style="font-size:12px;color:var(--vd);margin-bottom:12px;font-family:monospace;">${BASE}/alumna/<span id="sp">${slugify(S.newA.nombre.split(' ')[0])||'nombre'}</span></div>
+    <div class="frow">
+      <div><label>Tipo</label><select onchange="S.newA.tipo=this.value"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
+      <div><label>Días/semana</label><select onchange="S.newA.dias=parseInt(this.value)"><option value="2">2 días</option><option value="3" selected>3 días</option></select></div>
+    </div>
+    <label>WhatsApp (para recordatorios)</label>
+    <input type="tel" placeholder="Ej: 5491123456789" value="${S.newA.tel}" oninput="S.newA.tel=this.value">
+    <label>Notas personales</label>
+    <textarea placeholder="Lesiones, objetivos..." oninput="S.newA.notas=this.value">${S.newA.notas}</textarea>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-p btn-s" onclick="addAlumna()">Guardar</button>
+      <button class="btn btn-s" onclick="S.addA=false;render()">Cancelar</button>
+      ${S.msg?`<span class="sm">${S.msg}</span>`:''}
+      ${S.err?`<span class="em">${S.err}</span>`:''}
+    </div>
+  </div>`:''}
+  ${DB.alumnas.map(a=>`
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:.75rem;">
+      <div class="av av-${a.color}">${avH(a)}</div>
+      <div style="flex:1">
+        <div class="aname">${a.nombre}</div>
+        <div class="asub"><span class="badge ${a.tipo==='gym'?'bg':'bd'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem · ${a.tel||'<span style="color:var(--rd)">Sin WhatsApp — Editar</span>'}</div>
+      </div>
+      <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
+    </div>
+    ${a.notas?`<div class="nota">${a.notas}</div>`:''}
+    <label>Foto de perfil</label>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <div class="av av-${a.color}" style="width:52px;height:52px;font-size:18px;">${avH(a)}</div>
+      <input type="file" accept="image/*" style="width:auto;margin-bottom:0;" onchange="handleFoto(${a.id},this)">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selDia=1;S.selSem=1;go('rutinas')">Gestionar rutina</button>
+      <button class="btn btn-s btn-warn" onclick="openEdit(${a.id})">Editar datos</button>
+      <button class="btn btn-s" onclick="copyL('${a.slug}')">Copiar link</button>
+    </div>
+  </div>`).join('')}`;
+}
+
+function rRutinas(){
   const a=getA(S.selA);
-  const pesos=getPesos(a?.id||0);
-  const ejerciciosTodos=a?getEx(a.id,1,1):[];
+  if(!a)return`<div class="ptitle">Rutinas</div><div class="empty">Seleccioná una alumna.</div>`;
+  ensureLocal(a.id,S.selSem);
+  const exs=getEx(a.id,S.selSem,S.selDia);
+  return`<div class="ptitle">Rutinas</div>
+  <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+      <div class="av av-${a.color}">${avH(a)}</div>
+      <div><div class="aname">${a.nombre}</div><div class="asub">${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/sem</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Semana</div>
+    <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="handleSem(${s})">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
+    <div class="pbadge">Semana ${S.selSem}${S.selSem>1?' — copiada automáticamente':' — rutina base'}</div>
+    <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Día</div>
+    <div class="dtabs">${[1,2,3].slice(0,a.dias).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
+    <div class="shd">
+      <div class="shdt">Ejercicios (${exs.length})</div>
+      <button class="btn btn-p btn-s" onclick="S.addEx=!S.addEx;render()">+ Agregar</button>
+    </div>
+    ${S.addEx?`<div class="card" style="background:var(--s2);margin-bottom:.75rem;">
+      <label>Nombre</label><input type="text" placeholder="Ej: Sentadilla" value="${S.newEx.nombre}" oninput="S.newEx.nombre=this.value">
+      <div class="frow"><div><label>Series</label><input type="text" value="${S.newEx.series}" oninput="S.newEx.series=this.value"></div><div><label>Reps</label><input type="text" value="${S.newEx.reps}" oninput="S.newEx.reps=this.value"></div></div>
+      <label>Nota de técnica</label><textarea oninput="S.newEx.tip=this.value">${S.newEx.tip}</textarea>
+      <label>Link de video</label><input type="text" value="${S.newEx.video}" oninput="S.newEx.video=this.value" placeholder="https://youtube.com/shorts/...">
+      <div style="display:flex;gap:8px;"><button class="btn btn-p btn-s" onclick="addEx()">Guardar ejercicio</button><button class="btn btn-s" onclick="S.addEx=false;render()">Cancelar</button></div>
+    </div>`:''}
+    ${exs.length===0?'<div class="empty">Sin ejercicios en este día.</div>':''}
+    ${exs.map((ex,i)=>`<div class="ex-item">
+      <div class="exn">${i+1}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--t);">${ex.nombre}</div>
+        <div style="font-size:11px;color:var(--tm);">${ex.series} × ${ex.reps}</div>
+        ${ex.tip?`<div style="font-size:11px;color:var(--vd);margin-top:3px;">${ex.tip}</div>`:''}
+        ${ex.video?`<div style="font-size:11px;color:#185FA5;margin-top:2px;">✓ Video</div>`:''}
+      </div>
+      <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
+    </div>`).join('')}
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="btn btn-p" onclick="saveDay()">Guardar en la nube</button>
+    ${S.msg?`<span class="sm">${S.msg}</span>`:''}
+    ${S.err?`<span class="em">${S.err}</span>`:''}
+  </div>`;
+}
 
-  // Armar datos por semana para cada ejercicio
-  const histData={};
+function rHistorial(){
+  const a=getA(S.selA);
+  const pesos=a?getPesos(a.id):{};
+  const hist={};
   Object.entries(pesos).forEach(([k,v])=>{
-    const parts=k.split('-');// p-aId-sem-dia-i
-    const sem=parts[2],dia=parts[3],idx=parts[4];
-    const ex=a?getEx(a.id,parseInt(sem),parseInt(dia))[parseInt(idx)]:null;
+    const p=k.split('-'); const ex=a?getEx(a.id,+p[2],+p[3])[+p[4]]:null;
     if(!ex)return;
-    if(!histData[ex.nombre])histData[ex.nombre]=[];
-    histData[ex.nombre].push({sem:parseInt(sem),dia:parseInt(dia),kg:parseFloat(v)||0});
+    if(!hist[ex.nombre])hist[ex.nombre]=[];
+    hist[ex.nombre].push({sem:+p[2],dia:+p[3],kg:parseFloat(v)||0,label:`S${p[2]}D${p[3]}`});
   });
-
-  const exNames=Object.keys(histData);
-  const selEx=S.selHistEx||exNames[0]||'';
-
-  return`
-    <div class="page-title">Historial de progreso</div>
-    <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistEx=null;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
-    </div>
-    ${exNames.length===0?`<div class="card"><div class="empty">Todavía no hay pesos registrados para esta alumna. Los pesos aparecen acá cuando la alumna los carga en su app.</div></div>`:`
-    <div class="card">
-      <div class="card-title">Evolución por ejercicio</div>
-      <label>Ejercicio</label>
-      <select onchange="S.selHistEx=this.value;render()" style="margin-bottom:1rem;">
-        ${exNames.map(n=>`<option value="${n}" ${n===selEx?'selected':''}>${n}</option>`).join('')}
-      </select>
-      <div class="chart-wrap"><canvas id="hist-chart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Tabla de pesos</div>
-      <table class="hist-table">
-        <thead><tr><th>Ejercicio</th><th>Semana</th><th>Día</th><th>Peso</th></tr></thead>
-        <tbody>
-          ${Object.entries(histData).flatMap(([name,entries])=>
-            entries.sort((a,b)=>a.sem-b.sem||a.dia-b.dia).map(e=>`
-              <tr><td>${name}</td><td>Sem ${e.sem}</td><td>Día ${e.dia}</td><td><strong>${e.kg} kg</strong></td></tr>`)
-          ).join('')}
-        </tbody>
-      </table>
-    </div>`}`;
+  const exns=Object.keys(hist);
+  if(!S.selHistEx&&exns.length>0)S.selHistEx=exns[0];
+  return`<div class="ptitle">Historial de progreso</div>
+  <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistEx=null;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+  </div>
+  ${exns.length===0?`<div class="card"><div class="empty">Sin pesos registrados todavía. Aparecen cuando la alumna carga pesos en su app.</div></div>`:`
+  <div class="card">
+    <div class="ctitle">Evolución por ejercicio</div>
+    <label>Ejercicio</label>
+    <select onchange="S.selHistEx=this.value;render()" style="margin-bottom:1rem;">
+      ${exns.map(n=>`<option value="${n}" ${n===S.selHistEx?'selected':''}>${n}</option>`).join('')}
+    </select>
+    <div class="chart-wrap"><canvas id="hchart"></canvas></div>
+  </div>
+  <div class="card"><div class="ctitle">Tabla de pesos</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead><tr>${['Ejercicio','Semana','Día','Peso'].map(h=>`<th style="font-size:10px;font-weight:500;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);">${h}</th>`).join('')}</tr></thead>
+      <tbody>${Object.entries(hist).flatMap(([n,es])=>es.sort((a,b)=>a.sem-b.sem||a.dia-b.dia).map(e=>`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${n}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">Sem ${e.sem}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">Día ${e.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${e.kg} kg</td></tr>`)).join('')}</tbody>
+    </table>
+  </div>`}`;
 }
 
 function drawChart(){
-  const a=getA(S.selA);
-  if(!a)return;
+  const a=getA(S.selA); if(!a)return;
   const pesos=getPesos(a.id);
-  const histData={};
+  const hist={};
   Object.entries(pesos).forEach(([k,v])=>{
-    const parts=k.split('-');
-    const sem=parts[2],dia=parts[3],idx=parts[4];
-    const ex=getEx(a.id,parseInt(sem),parseInt(dia))[parseInt(idx)];
+    const p=k.split('-'); const ex=getEx(a.id,+p[2],+p[3])[+p[4]];
     if(!ex)return;
-    if(!histData[ex.nombre])histData[ex.nombre]=[];
-    histData[ex.nombre].push({sem:parseInt(sem),dia:parseInt(dia),kg:parseFloat(v)||0,label:`S${sem}D${dia}`});
+    if(!hist[ex.nombre])hist[ex.nombre]=[];
+    hist[ex.nombre].push({sem:+p[2],dia:+p[3],kg:parseFloat(v)||0,label:`S${p[2]}D${p[3]}`});
   });
-  const selEx=S.selHistEx||Object.keys(histData)[0]||'';
-  const data=histData[selEx]||[];
-  data.sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
-  const canvas=document.getElementById('hist-chart');
-  if(!canvas)return;
-  if(charts.hist)charts.hist.destroy();
-  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  const gridColor=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
-  const txtColor=isDark?'#9ca3af':'#6b7280';
-  charts.hist=new Chart(canvas,{
-    type:'line',
-    data:{
-      labels:data.map(d=>d.label),
-      datasets:[{label:`${selEx} (kg)`,data:data.map(d=>d.kg),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1D9E75',tension:.3,fill:true}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:txtColor,font:{family:'DM Sans',size:11}}},y:{grid:{color:gridColor},ticks:{color:txtColor,font:{family:'DM Sans',size:11}},beginAtZero:true}}}
-  });
+  const data=(hist[S.selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+  const c=document.getElementById('hchart'); if(!c)return;
+  if(charts.h)charts.h.destroy();
+  const dk=document.documentElement.getAttribute('data-theme')==='dark';
+  const gc=dk?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+  const tc=dk?'#9ca3af':'#6b7280';
+  charts.h=new Chart(c,{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:`${S.selHistEx} (kg)`,data:data.map(d=>d.kg),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1D9E75',tension:.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11}},beginAtZero:true}}}});
 }
 
-function renderComentarios(){
-  const totalC=Object.values(DB.comentarios).reduce((a,b)=>a+b.length,0);
-  S.newComments=0;
-  const badge=document.getElementById('notif-badge');
-  if(badge)badge.style.display='none';
-  return`
-    <div class="page-title">Comentarios de alumnas</div>
-    ${totalC===0?`<div class="card"><div class="empty">Todavía no hay comentarios. Aparecerán acá cuando las alumnas dejen una nota al terminar el día.</div></div>`:''}
-    ${DB.alumnas.map(a=>{
-      const comsA=Object.entries(DB.comentarios).filter(([k])=>k.startsWith(a.id+'-')).flatMap(([k,arr])=>{const p=k.split('-');return arr.map(c=>({...c,semana:p[1],dia:p[2]}));});
-      if(comsA.length===0)return'';
-      return`
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
-          <div class="av av-${a.color}">${avHtml(a)}</div>
-          <div><div class="aname">${a.nombre}</div><div class="asub">${comsA.length} comentario${comsA.length!==1?'s':''}</div></div>
-        </div>
-        ${comsA.map(c=>`<div class="comment-box"><div class="comment-meta">Sem ${c.semana} · Día ${c.dia} · ${c.fecha}</div><div class="comment-txt">${c.texto}</div></div>`).join('')}
-      </div>`;
-    }).join('')}`;
-}
-
-function renderLinks(){
-  return`
-    <div class="page-title">Links por alumna</div>
-    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;">
-      <div style="font-size:13px;color:var(--verde-d);line-height:1.6;">Copiá el link y mandáselo por WhatsApp. La alumna lo guarda en su celu y accede con un toque.</div>
-    </div>
-    ${DB.alumnas.map(a=>`
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;">
-        <div class="av av-${a.color}">${avHtml(a)}</div>
-        <div><div class="aname">${a.nombre}</div></div>
+function rComentarios(){
+  const byA={};
+  DB.comentarios.forEach(c=>{if(!byA[c.alumna_id])byA[c.alumna_id]=[];byA[c.alumna_id].push(c);});
+  return`<div class="ptitle">Comentarios de alumnas</div>
+  ${DB.comentarios.length===0?`<div class="card"><div class="empty">Sin comentarios todavía. Aparecen cuando las alumnas dejan notas en su app.</div></div>`:''}
+  ${DB.alumnas.map(a=>{
+    const cs=byA[a.id]||[]; if(!cs.length)return'';
+    return`<div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+        <div class="av av-${a.color}">${avH(a)}</div>
+        <div><div class="aname">${a.nombre}</div><div class="asub">${cs.length} comentario${cs.length!==1?'s':''}</div></div>
       </div>
-      <div class="link-box"><span>${BASE}/alumna/${a.slug}</span><button class="copy-btn" onclick="copyLink('${a.slug}')">Copiar</button></div>
+      ${cs.map(c=>`<div class="cbox"><div class="cmeta">Sem ${c.semana} · Día ${c.dia} · ${c.fecha||''}</div><div class="ctxt">${c.texto}</div></div>`).join('')}
+    </div>`;
+  }).join('')}`;
+}
+
+function rRegistros(){
+  const pend=DB.registros.filter(r=>r.estado==='pendiente');
+  const otros=DB.registros.filter(r=>r.estado!=='pendiente');
+  return`<div class="ptitle">Registros de alumnas</div>
+  <div class="card" style="background:var(--vl);border-color:var(--vm);margin-bottom:1rem;">
+    <div style="font-size:13px;color:var(--vd);line-height:1.6;">Cuando alguien completa el formulario en <strong>${BASE}/registro</strong> aparece acá. Al aprobar, el perfil se pre-carga automáticamente.</div>
+  </div>
+  ${pend.length===0&&otros.length===0?`<div class="card"><div class="empty">Sin registros todavía.</div></div>`:''}
+  ${pend.map(r=>`<div class="card" style="border-left:3px solid var(--v);border-radius:0 var(--r) var(--r) 0;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+      <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-p btn-s" onclick="aprobar(${r.id})">✓ Aprobar</button>
+        <button class="btn btn-s btn-d" onclick="rechazar(${r.id})">Rechazar</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+      <div><span style="color:var(--tm);">WhatsApp:</span> ${r.tel||'—'}</div>
+      <div><span style="color:var(--tm);">Mail:</span> ${r.mail||'—'}</div>
+      <div><span style="color:var(--tm);">Objetivos:</span> ${r.objetivos||'—'}</div>
+      <div><span style="color:var(--tm);">Modalidad:</span> ${r.modalidad||'—'}</div>
+      <div><span style="color:var(--tm);">Días/sem:</span> ${r.dias||'—'}</div>
+      <div><span style="color:var(--tm);">Experiencia:</span> ${r.exp||'—'}</div>
+    </div>
+    ${r.lesiones&&r.lesiones!=='—'?`<div class="nota" style="margin-top:.75rem;margin-bottom:0;">⚠️ ${r.lesiones}</div>`:''}
+  </div>`).join('')}
+  ${otros.length>0?`<div class="ctitle" style="margin:.75rem 0 .5rem;">Historial</div>
+  ${otros.map(r=>`<div class="card" style="opacity:.7;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''}</div></div><span class="badge" style="background:${r.estado==='aprobado'?'var(--vl)':'var(--rl)'};color:${r.estado==='aprobado'?'var(--vd)':'var(--rd)'};">${r.estado}</span></div></div>`).join('')}`:''}`;
+}
+
+function rRecordatorios(){
+  const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const hoy=dias[new Date().getDay()];
+  const sinWA=DB.alumnas.filter(a=>!a.tel);
+  return`<div class="ptitle">Recordatorios y resúmenes</div>
+  ${sinWA.length>0?`<div class="card" style="background:var(--rl);border-color:var(--rd);margin-bottom:1rem;">
+    <div style="font-size:13px;color:var(--rd);font-weight:500;">⚠️ ${sinWA.length} alumna${sinWA.length!==1?'s':''} sin WhatsApp cargado: ${sinWA.map(a=>a.nombre.split(' ')[0]).join(', ')}</div>
+    <div style="font-size:12px;color:var(--rd);margin-top:4px;">Editá su perfil para poder enviarle recordatorios.</div>
+  </div>`:''}
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Resumen semanal</div>
+    <p style="font-size:13px;color:var(--tm);margin-bottom:1rem;line-height:1.6;">Mandá un mensaje con el progreso de la semana. Cada alumna recibe su resumen personalizado.</p>
+    <button class="btn btn-p btn-s" onclick="envTodas()" style="margin-bottom:1rem;">📊 Enviar resumen a todas</button>
+    ${DB.alumnas.map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--b);">
+      <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+      <div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}${!a.tel?` <span style="font-size:11px;color:var(--rd);">(sin WhatsApp)</span>`:''}</div>
+      <button class="btn btn-s" onclick="envRes(${a.id})">Enviar resumen</button>
     </div>`).join('')}
-    ${S.saveMsg?`<div class="save-msg" style="margin-top:.5rem;">${S.saveMsg}</div>`:''}`;
+  </div>
+  <div class="card">
+    <div class="ctitle">Recordatorios de entrenamiento</div>
+    <p style="font-size:13px;color:var(--tm);margin-bottom:1rem;line-height:1.6;">Hoy es <strong>${hoy}</strong>. Mandá un recordatorio a quien tenga que entrenar hoy.</p>
+    ${DB.alumnas.map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--b);">
+      <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${a.nombre}</div><div style="font-size:11px;color:var(--tm);">${a.dias} días/sem</div></div>
+      <button class="btn btn-s" onclick="envRec(${a.id})">💬 Recordar</button>
+    </div>`).join('')}
+  </div>
+  <div class="card" style="background:var(--a);border-color:transparent;">
+    <div style="font-size:12px;color:var(--ad);line-height:1.7;"><strong>Nota sobre automatización:</strong> los recordatorios y resúmenes automáticos (que se envíen solos sin que hagas nada) requieren un servidor adicional fuera de Vercel. Por ahora se envían con un clic. Si querés automatizarlos completamente, el próximo paso sería conectar Make.com o un cron job — lo podemos hacer.</div>
+  </div>`;
 }
 
-function renderRegistros(){
-  const regs=getRegistros();
-  const pendientes=regs.filter(r=>r.estado==='pendiente');
-  const otros=regs.filter(r=>r.estado!=='pendiente');
-  return`
-    <div class="page-title">Registros de alumnas</div>
-    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;">
-      <div style="font-size:13px;color:var(--verde-d);line-height:1.6;">Cuando alguien completa el formulario de <strong>amira-fitness.com/registro</strong>, aparece acá. Podés aprobar y se crea el perfil automáticamente, o rechazar.</div>
+function rLinks(){
+  return`<div class="ptitle">Links por alumna</div>
+  <div class="card" style="background:var(--vl);border-color:var(--vm);margin-bottom:1rem;">
+    <div style="font-size:13px;color:var(--vd);line-height:1.6;">Copiá el link y mandáselo por WhatsApp. La alumna lo abre desde el celu y ve su rutina.</div>
+  </div>
+  ${DB.alumnas.map(a=>`<div class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;">
+      <div class="av av-${a.color}">${avH(a)}</div>
+      <div><div class="aname">${a.nombre}</div></div>
     </div>
-    ${pendientes.length===0&&otros.length===0?`<div class="card"><div class="empty">Todavía no hay registros. Compartí el link de registro en tus redes.</div></div>`:''}
-    ${pendientes.length>0?`
-    <div class="card-title" style="margin-bottom:.5rem;">Pendientes de aprobación (${pendientes.length})</div>
-    ${pendientes.map(r=>`
-    <div class="card" style="border-left:3px solid var(--verde);border-radius:0 var(--r) var(--r) 0;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
-        <div>
-          <div class="aname">${r.nombre}</div>
-          <div class="asub">${r.fecha} · ${r.ubicacion}</div>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-p btn-s" onclick="aprobarRegistro(${r.id})">✓ Aprobar</button>
-          <button class="btn btn-s btn-d" onclick="rechazarRegistro(${r.id})">Rechazar</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
-        <div><span style="color:var(--txt-m);">WhatsApp:</span> ${r.tel}</div>
-        <div><span style="color:var(--txt-m);">Mail:</span> ${r.mail}</div>
-        <div><span style="color:var(--txt-m);">Objetivos:</span> ${r.objetivos}</div>
-        <div><span style="color:var(--txt-m);">Modalidad:</span> ${r.modalidad}</div>
-        <div><span style="color:var(--txt-m);">Días/sem:</span> ${r.dias}</div>
-        <div><span style="color:var(--txt-m);">Experiencia:</span> ${r.exp}</div>
-      </div>
-      ${r.lesiones&&r.lesiones!=='—'?`<div class="nota-badge" style="margin-top:.75rem;margin-bottom:0;">⚠️ ${r.lesiones}</div>`:''}
-    </div>`).join('')}`:''}
-    ${otros.length>0?`
-    <div class="card-title" style="margin-bottom:.5rem;margin-top:1rem;">Historial</div>
-    ${otros.map(r=>`
-    <div class="card" style="opacity:.7;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha}</div></div>
-        <span class="badge" style="background:${r.estado==='aprobado'?'var(--verde-l)':'var(--rojo-l)'};color:${r.estado==='aprobado'?'var(--verde-d)':'var(--rojo-d)'};">${r.estado}</span>
-      </div>
-    </div>`).join('')}`:''}`;
+    <div class="lbox"><span>${BASE}/alumna/${a.slug}</span><button class="cbtn" onclick="copyL('${a.slug}')">Copiar</button></div>
+  </div>`).join('')}
+  ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}`;
 }
 
-function renderRecordatorios(){
-  const diasSemana=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const hoy=new Date().getDay();
-  return`
-    <div class="page-title">Recordatorios y resúmenes</div>
-
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title">Resumen semanal</div>
-      <p style="font-size:13px;color:var(--txt-m);margin-bottom:1rem;line-height:1.6;">Mandá un resumen de la semana a todas tus alumnas de una sola vez, o a cada una individualmente. Incluye sus pesos registrados y el link a su rutina.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-p btn-s" onclick="enviarResumenTodas()">📊 Enviar resumen a todas</button>
-      </div>
-      <div style="margin-top:1rem;display:flex;flex-direction:column;gap:8px;">
-        ${DB.alumnas.map(a=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);">
-          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avHtml(a)}</div>
-          <div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div>
-          <button class="btn btn-s" onclick="enviarResumenSemanal(${a.id})">Enviar resumen</button>
-        </div>`).join('')}
-      </div>
+function rConfig(){
+  const ph=localStorage.getItem('af-amira-ph')||'';
+  const pwd=localStorage.getItem('af-pwd')||'amira2025';
+  return`<div class="ptitle">Configuración</div>
+  <div class="card">
+    <div class="ctitle">Estado de Supabase</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:${S.sbOk?'var(--vd)':'var(--rd)'};margin-bottom:.5rem;">
+      <div style="width:8px;height:8px;border-radius:50%;background:${S.sbOk?'var(--v)':'var(--rd)'}"></div>
+      ${S.sbOk?'Conectado y sincronizando en tiempo real':'Sin conexión — verificar credenciales'}
     </div>
-
-    <div class="card">
-      <div class="card-title">Recordatorios de entrenamiento</div>
-      <p style="font-size:13px;color:var(--txt-m);margin-bottom:1rem;line-height:1.6;">Mandá un recordatorio por WhatsApp a las alumnas que tienen que entrenar hoy (<strong>${diasSemana[hoy]}</strong>).</p>
-      ${DB.alumnas.length===0?'<div class="empty">Sin alumnas cargadas.</div>':''}
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${DB.alumnas.map(a=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);">
-          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avHtml(a)}</div>
-          <div style="flex:1;">
-            <div style="font-size:13px;font-weight:500;">${a.nombre}</div>
-            <div style="font-size:11px;color:var(--txt-m);">${a.dias} días/semana</div>
-          </div>
-          <button class="btn btn-s" onclick="enviarRecordatorio(${a.id})">💬 Recordar</button>
-        </div>`).join('')}
-      </div>
-    </div>
-
-    <div class="card" style="background:var(--amber);border-color:transparent;">
-      <div style="font-size:12px;color:var(--amber-d);line-height:1.7;">
-        <strong>Próximamente:</strong> recordatorios automáticos programados por día de la semana. Por ahora se envían manualmente con un clic.
-      </div>
-    </div>`;
-}
-
-function renderConfig(){
-  const waPhone=localStorage.getItem('af-amira-phone')||'';
-  const sbUrl=localStorage.getItem('af-sb-url')||'';
-  const sbKey=localStorage.getItem('af-sb-key')||'';
-  const pwd=localStorage.getItem('af-panel-pwd')||'amira2025';
-  return`
-    <div class="page-title">Configuración</div>
-
-    <div class="card">
-      <div class="card-title">Contraseña del panel</div>
-      <label>Contraseña actual: <strong>${pwd}</strong></label>
-      <input type="password" id="new-pwd" placeholder="Nueva contraseña" style="margin-top:8px;">
-      <button class="btn btn-p btn-s" onclick="const v=document.getElementById('new-pwd').value;if(v){localStorage.setItem('af-panel-pwd',v);alert('Contraseña actualizada');}">Cambiar contraseña</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Notificaciones WhatsApp</div>
-      <p style="font-size:12px;color:var(--txt-m);margin-bottom:12px;line-height:1.6;">Cuando una alumna deje un comentario, le llegará un mensaje de WhatsApp a este número. Incluir código de país sin el +. Ej: <code>5491123456789</code></p>
-      <label>Tu número de WhatsApp</label>
-      <input type="tel" id="wa-input" placeholder="5491123456789" value="${waPhone}">
-      <button class="btn btn-p btn-s" onclick="const v=document.getElementById('wa-input').value;localStorage.setItem('af-amira-phone',v);S.saveMsg='Guardado';render();">Guardar número</button>
-      ${S.saveMsg?`<span class="save-msg">${S.saveMsg}</span>`:''}
-    </div>
-
-    <div class="card">
-      <div class="card-title">Supabase (base de datos en la nube)</div>
-      <p style="font-size:12px;color:var(--txt-m);margin-bottom:12px;line-height:1.6;">Una vez que tenés las credenciales de Supabase, ingresalas acá para que los datos se sincronicen entre dispositivos.</p>
-      <label>Project URL</label>
-      <input type="text" id="sb-url" placeholder="https://xxxxx.supabase.co" value="${sbUrl}">
-      <label>Anon public key</label>
-      <input type="text" id="sb-key" placeholder="eyJ..." value="${sbKey}">
-      <button class="btn btn-p btn-s" onclick="
-        const url=document.getElementById('sb-url').value;
-        const key=document.getElementById('sb-key').value;
-        localStorage.setItem('af-sb-url',url);
-        localStorage.setItem('af-sb-key',key);
-        SUPABASE_URL=url;SUPABASE_KEY=key;useSupabase=!!(url&&key);
-        S.saveMsg='Supabase configurado ✓';render();">
-        Guardar y conectar
-      </button>
-      ${SUPABASE_URL?`<div style="margin-top:8px;font-size:12px;color:var(--verde-d);">✓ Supabase conectado</div>`:''}
-    </div>`;
-}
-
-async function loadAndRender(){
-  load();
-  await loadFromServer();
-  render();
-  pollComments();
+    <div style="font-size:12px;color:var(--tm);">Proyecto: aywkeoxwybzcexaichtv.supabase.co</div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Contraseña del panel</div>
+    <label>Contraseña actual: <strong>${pwd}</strong></label>
+    <input type="password" id="np" placeholder="Nueva contraseña (mín. 4 caracteres)" style="margin-top:8px;">
+    <button class="btn btn-p btn-s" onclick="const v=document.getElementById('np').value;if(v.length>=4){localStorage.setItem('af-pwd',v);alert('Contraseña actualizada. Vas a necesitar usarla la próxima vez.');}else alert('Mínimo 4 caracteres');">Cambiar contraseña</button>
+  </div>
+  <div class="card">
+    <div class="ctitle">WhatsApp de Amira (para notificaciones)</div>
+    <p style="font-size:12px;color:var(--tm);margin-bottom:12px;line-height:1.6;">Número para recibir los resúmenes generales. Con código de país, sin + ni espacios.<br>Argentina: <code>5491123456789</code></p>
+    <label>Tu número</label>
+    <input type="tel" id="wai" placeholder="5491123456789" value="${ph}">
+    <button class="btn btn-p btn-s" onclick="const v=document.getElementById('wai').value;if(v){localStorage.setItem('af-amira-ph',v);S.msg='Guardado ✓';render();}">Guardar</button>
+    ${S.msg?`<span class="sm">${S.msg}</span>`:''}
+  </div>`;
 }
 
 initAuth();

@@ -1,60 +1,42 @@
-# Amira Fitness v4 — Versión completa con onboarding y landing
+# Amira Fitness — Fix completo
 
-## Qué hay en esta versión
+## Qué corrige esta versión
 
-```
-amira-v4/
-├── index.html          → Landing page profesional
-├── registro/           → Formulario de registro para nuevas alumnas
-├── panel/              → Panel de Amira (privado con contraseña)
-├── alumna/             → App de cada alumna
-├── api/data.json       → Datos de rutinas
-└── vercel.json         → Configuración de rutas
-```
+✅ Supabase conectado de verdad — datos sincronizados entre dispositivos
+✅ Rutina de María con todos los videos reales (se carga automáticamente al abrir el panel)
+✅ Edición de alumnas — botón "Editar" en cada alumna para cambiar nombre, WhatsApp, tipo, días y notas
+✅ Campo WhatsApp al crear nueva alumna
+✅ Temporizador de descanso automático (45 seg) al tildar cada ejercicio
+✅ Comentarios guardados en Supabase (visibles desde cualquier dispositivo)
+✅ Notificación WhatsApp a Amira cuando una alumna deja un comentario
 
-## Novedades en v4
+## Cómo deployar (reemplaza la versión anterior en Vercel)
 
-✅ **Landing page** — página de presentación con servicios, testimonios y CTA
-✅ **Formulario de registro** — wizard de 4 pasos para nuevas alumnas
-✅ **Bandeja de registros** — Amira ve los registros nuevos en el panel y aprueba/rechaza
-✅ **Onboarding automático** — al aprobar, el perfil de la alumna se pre-carga solo
-✅ **Notificación WhatsApp** — al registrarse, le llega a Amira un WhatsApp con todos los datos
-✅ **Recordatorios** — Amira envía recordatorios de entrenamiento con un clic
-✅ **Resúmenes semanales** — mensaje personalizado para cada alumna o para todas juntas
+### Opción A — Reemplazar en Vercel (recomendado)
+1. Ir a vercel.com → tu proyecto `amira-fitness`
+2. Settings → Git (o el panel principal)
+3. Descomprimir esta carpeta en tu compu
+4. Arrastrar la carpeta `amira-fix` directamente al proyecto en Vercel
+5. Vercel detecta los cambios y redeploya automáticamente
 
-## Flujo completo de una alumna nueva
+### Opción B — Nuevo proyecto en Vercel
+1. vercel.com → Add New Project
+2. Seleccionar la carpeta `amira-fix`
+3. Deploy
+4. La URL nueva va a ser algo como `amira-fix.vercel.app`
+5. Actualizar el dominio `amira-fitness.com` para apuntar al nuevo proyecto (Settings → Domains)
 
-1. Ve el link `/registro` en Instagram o WhatsApp de Amira
-2. Completa el formulario (2 minutos)
-3. Amira recibe un WhatsApp con todos los datos
-4. Amira entra al panel → Registros → Aprueba
-5. El perfil se crea automáticamente con los datos del formulario
-6. Amira asigna la rutina y copia el link
-7. Le manda el link por WhatsApp a la alumna
+## Qué hacer después de deployar
 
-## Cómo subir a Vercel
+1. Entrar al panel con `amira2025`
+2. La rutina de María se carga automáticamente desde Supabase en el primer uso
+3. Ir a Alumnas → buscar a María → "Editar datos" → cargar su número de WhatsApp
+4. Ir a Config → cargar el número de WhatsApp de Amira para recibir notificaciones
 
-1. vercel.com → crear cuenta con Google (gratis)
-2. Add New Project → seleccionar carpeta `amira-v4`
-3. Deploy → listo en 30 segundos
+## Nota sobre automatización
 
-## Configuración inicial
+Los recordatorios automáticos (que se envíen solos sin hacer nada) requieren
+un servicio externo como Make.com o un cron job. Por ahora se envían manualmente
+con un clic desde el panel → Recordatorios.
 
-### Contraseña del panel
-- Entrar con `amira2025`
-- Panel → Configuración → cambiar contraseña
-
-### WhatsApp para notificaciones
-- Panel → Configuración → número de WhatsApp
-- Formato: código de país + número, sin + ni espacios
-- Argentina: `5491123456789`
-
-### Personalizar la landing
-Editar `index.html` — buscar los textos entre comillas y reemplazar:
-- "Amira Fitness" → nombre real si es diferente
-- Los números de estadísticas (+50 alumnas, etc.)
-- Los testimonios (están marcados como genéricos)
-- La foto del hero (reemplazar el emoji 🧘‍♀️ con una imagen real)
-
-## Supabase (sincronización entre dispositivos)
-Panel → Configuración → pegar Project URL y Anon key
+Si querés automatizarlos, el próximo paso sería conectar Make.com (tiene plan gratis).
