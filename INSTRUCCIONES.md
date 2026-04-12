@@ -1,42 +1,73 @@
-# Amira Fitness — Fix completo
+# Amira Fitness PRO — Instrucciones completas
 
-## Qué corrige esta versión
+## Novedades en esta versión
 
-✅ Supabase conectado de verdad — datos sincronizados entre dispositivos
-✅ Rutina de María con todos los videos reales (se carga automáticamente al abrir el panel)
-✅ Edición de alumnas — botón "Editar" en cada alumna para cambiar nombre, WhatsApp, tipo, días y notas
-✅ Campo WhatsApp al crear nueva alumna
-✅ Temporizador de descanso automático (45 seg) al tildar cada ejercicio
-✅ Comentarios guardados en Supabase (visibles desde cualquier dispositivo)
-✅ Notificación WhatsApp a Amira cuando una alumna deja un comentario
+✅ Login con contraseña para proteger el panel
+✅ Modo oscuro (en panel y en app de alumnas)
+✅ Temporizador de descanso automático — arranca al tildar cada ejercicio
+✅ Registro de pesos por ejercicio — la alumna anota cuánto levantó
+✅ Gráfico de progreso — el panel muestra la evolución de pesos semana a semana
+✅ Confetti al completar el día 🎉
+✅ Vibración del celu cuando termina el descanso
+✅ Progresión automática entre semanas
+✅ Supabase listo para conectar (base de datos real y gratuita)
+✅ Notificaciones a Amira por WhatsApp cuando una alumna comenta
 
-## Cómo deployar (reemplaza la versión anterior en Vercel)
+## Cómo configurar antes de publicar
 
-### Opción A — Reemplazar en Vercel (recomendado)
-1. Ir a vercel.com → tu proyecto `amira-fitness`
-2. Settings → Git (o el panel principal)
-3. Descomprimir esta carpeta en tu compu
-4. Arrastrar la carpeta `amira-fix` directamente al proyecto en Vercel
-5. Vercel detecta los cambios y redeploya automáticamente
+### 1. Cambiar la contraseña del panel
+Abrí `panel/index.html` y buscá esta línea:
+```
+const PASSWORD = 'amira2024';
+```
+Cambiala por la contraseña que quieras.
 
-### Opción B — Nuevo proyecto en Vercel
-1. vercel.com → Add New Project
-2. Seleccionar la carpeta `amira-fix`
-3. Deploy
-4. La URL nueva va a ser algo como `amira-fix.vercel.app`
-5. Actualizar el dominio `amira-fitness.com` para apuntar al nuevo proyecto (Settings → Domains)
+### 2. Conectar Supabase (base de datos gratuita)
+1. Entrá a https://supabase.com y creá una cuenta gratis
+2. Creá un proyecto nuevo
+3. En el proyecto, andá a SQL Editor y ejecutá:
+```sql
+create table comentarios (
+  id bigint generated always as identity primary key,
+  alumna_id bigint,
+  alumna_nombre text,
+  semana int,
+  dia int,
+  texto text,
+  fecha text,
+  created_at timestamptz default now()
+);
+alter table comentarios enable row level security;
+create policy "Public insert" on comentarios for insert with check (true);
+create policy "Public select" on comentarios for select using (true);
+```
+4. En Settings → API copiá:
+   - Project URL → pegalo en `SUPABASE_URL` en ambos archivos HTML
+   - anon/public key → pegalo en `SUPABASE_KEY`
 
-## Qué hacer después de deployar
+### 3. Configurar WhatsApp de Amira
+En `alumna/index.html` buscá:
+```
+const WA_NUMBER = '5491100000000';
+```
+Reemplazá con el número de WhatsApp de Amira (código de país + número, sin +).
+Ej: `5491123456789` para Argentina.
 
-1. Entrar al panel con `amira2025`
-2. La rutina de María se carga automáticamente desde Supabase en el primer uso
-3. Ir a Alumnas → buscar a María → "Editar datos" → cargar su número de WhatsApp
-4. Ir a Config → cargar el número de WhatsApp de Amira para recibir notificaciones
+## Cómo subir a Vercel
 
-## Nota sobre automatización
+1. Entrá a https://vercel.com — creá cuenta con Google (gratis)
+2. "Add New Project" → seleccioná la carpeta `amira-pro`
+3. Deploy → en 30 segundos está publicado
 
-Los recordatorios automáticos (que se envíen solos sin hacer nada) requieren
-un servicio externo como Make.com o un cron job. Por ahora se envían manualmente
-con un clic desde el panel → Recordatorios.
+URL resultante: `https://amira-pro.vercel.app`
 
-Si querés automatizarlos, el próximo paso sería conectar Make.com (tiene plan gratis).
+## Links de alumnas
+
+- María → `https://amira-pro.vercel.app/alumna/maria`
+
+Más alumnas se agregan desde el panel y el link se copia con un botón.
+
+## Dominio propio (opcional, ~$15 USD/año)
+
+1. Comprá en https://namecheap.com
+2. En Vercel → Settings → Domains → agregar dominio

@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Mi rutina — Amira Fitness</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#1D9E75">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Amira Fitness">
+  <link rel="manifest" href="/api/manifest.json">
+  <link rel="apple-touch-icon" href="/api/icon-192.svg">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <script src="/api/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -99,6 +106,24 @@
     .cinput{flex:1;padding:8px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--t);background:var(--s2);resize:none;}
     .cinput:focus{outline:none;border-color:var(--v);}
     .csend{background:var(--v);color:white;border:none;border-radius:var(--rs);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+    .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);display:flex;z-index:25;max-width:430px;margin:0 auto;}
+    .bitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px;cursor:pointer;border:none;background:none;font-family:"DM Sans",sans-serif;}
+    .bitem span:first-child{font-size:18px;}
+    .bitem span:last-child{font-size:10px;color:var(--tm);}
+    .bitem.active span:last-child{color:var(--v);font-weight:500;}
+    .chart-wrap{position:relative;height:200px;margin:1rem 0;}
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
+    .stat-card{background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.85rem 1rem;}
+    .stat-num{font-family:"DM Serif Display",serif;font-size:1.75rem;color:var(--v);display:block;}
+    .stat-lbl{font-size:11px;color:var(--tm);margin-top:2px;}
+    .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
+    .badge-item{display:flex;align-items:center;gap:5px;background:var(--s2);border-radius:var(--rs);padding:5px 9px;font-size:11px;color:var(--tm);}
+    .badge-item.earned{background:var(--vl);color:var(--vd);}
+    .ex-sel{width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:"DM Sans",sans-serif;background:var(--s2);color:var(--t);margin-bottom:1rem;}
+    .install-box{background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;display:flex;align-items:center;gap:10px;}
+    .install-box p{font-size:12px;color:var(--vd);flex:1;line-height:1.5;}
+    .install-box button{background:var(--v);color:white;border:none;border-radius:var(--rs);padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;font-family:"DM Sans",sans-serif;white-space:nowrap;}
     .nota{background:var(--a);border-radius:var(--rs);padding:.7rem 1rem;font-size:12px;color:var(--ad);line-height:1.55;margin-top:1rem;}
     .loading{text-align:center;padding:3rem 1rem;color:var(--tm);font-size:13px;}
     .nf{text-align:center;padding:3rem 1rem;}
@@ -363,6 +388,152 @@ async function init(){
   render();
 }
 init();
+
+// PWA Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;});
+async function installApp(){if(!installPrompt)return;installPrompt.prompt();installPrompt=null;}
+
+// Tabs
+let curTab='r';
+let progChart=null;
+let selHistEx=null;
+
+function switchTab(t){
+  curTab=t;
+  ['r','p','n'].forEach(x=>{
+    const scr=document.getElementById('s'+({r:'rutina',p:'progreso',n:'notas'}[x]||x+'notas'));
+    const bn=document.getElementById('bn-'+x);
+    if(scr)scr.style.display=t===x?'block':'none';
+    if(bn)bn.classList.toggle('active',t===x);
+  });
+  const sapp=document.getElementById('screen');
+  if(sapp)sapp.style.display=t==='r'?'block':'none';
+  if(t==='p')renderProgress();
+  if(t==='n')renderNotasTab();
+}
+
+function getPesosAlumna(aId){
+  return Object.fromEntries(Object.entries(pesos).filter(([k])=>k.startsWith('p-'+aId+'-')));
+}
+
+function buildHist(aId){
+  const ps=getPesosAlumna(aId);
+  const hist={};
+  Object.entries(ps).forEach(([k,v])=>{
+    const p=k.split('-');
+    try{
+      const rows=DB.rutinas[aId]?.[+p[2]];
+      const ex=rows?.find(d=>d.dia===+p[3])?.ejercicios[+p[4]];
+      if(!ex||!parseFloat(v))return;
+      if(!hist[ex.nombre])hist[ex.nombre]=[];
+      hist[ex.nombre].push({sem:+p[2],dia:+p[3],kg:parseFloat(v),label:'S'+p[2]+'D'+p[3]});
+    }catch(e){}
+  });
+  return hist;
+}
+
+function renderProgress(){
+  const scr=document.getElementById('sprogreso'); if(!scr)return;
+  const a=getAlumna(); if(!a){scr.innerHTML='';return;}
+  const ps=getPesosAlumna(a.id);
+  const totalP=Object.values(ps).filter(v=>parseFloat(v)>0).length;
+  const totalD=new Set(Object.keys(ps).filter(k=>parseFloat(ps[k])>0).map(k=>{const p=k.split('-');return p[2]+'-'+p[3];})).size;
+  const hist=buildHist(a.id);
+  const exns=Object.keys(hist);
+  if(!selHistEx&&exns.length>0)selHistEx=exns[0];
+
+  let mejor='—';let mejorKg=0;
+  Object.entries(hist).forEach(([n,es])=>{const mx=Math.max(...es.map(e=>e.kg));if(mx>mejorKg){mejorKg=mx;mejor=n;}});
+
+  const badges=[
+    {icon:'🏁',label:'Primera rutina',e:totalD>=1},
+    {icon:'🔥',label:'3 días entrenados',e:totalD>=3},
+    {icon:'💪',label:'Primer peso cargado',e:totalP>=1},
+    {icon:'⭐',label:'10 ejercicios con peso',e:totalP>=10},
+    {icon:'🏆',label:'Semana completa',e:totalD>=3},
+    {icon:'🚀',label:'Mes de constancia',e:totalD>=12},
+  ];
+
+  scr.innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card"><span class="stat-num">${totalD}</span><span class="stat-lbl">Días entrenados</span></div>
+      <div class="stat-card"><span class="stat-num">${totalP}</span><span class="stat-lbl">Ejercicios con peso</span></div>
+      <div class="stat-card" style="grid-column:1/-1;"><span class="stat-lbl">Mejor peso registrado</span>
+        <div style="font-size:14px;font-weight:500;color:var(--t);margin-top:4px;">${mejor!=='—'?mejorKg+' kg — '+mejor:'Cargá pesos en tu rutina para verlo acá'}</div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Logros</div>
+    <div class="badge-row">
+      ${badges.map(b=>`<div class="badge-item${b.e?' earned':''}"><span style="font-size:18px;">${b.icon}</span><span>${b.label}</span></div>`).join('')}
+    </div>
+    ${exns.length>0?`
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos</div>
+    <select class="ex-sel" onchange="selHistEx=this.value;renderProgress()">
+      ${exns.map(n=>'<option value="'+n+'"'+(n===selHistEx?' selected':'')+'>'+n+'</option>').join('')}
+    </select>
+    <div class="chart-wrap"><canvas id="pchart"></canvas></div>
+    `:`<div style="background:var(--s2);border-radius:var(--rs);padding:1.5rem;text-align:center;color:var(--tm);font-size:13px;">
+      Cargá el peso que usás en cada ejercicio durante tu rutina.<br>
+      <span style="font-size:11px;">El gráfico de evolución aparece acá.</span>
+    </div>`}`;
+
+  if(exns.length>0)setTimeout(drawProgress,50);
+}
+
+function drawProgress(){
+  const a=getAlumna(); if(!a)return;
+  const hist=buildHist(a.id);
+  const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+  const c=document.getElementById('pchart'); if(!c)return;
+  if(progChart)progChart.destroy();
+  const dk=document.documentElement.getAttribute('data-theme')==='dark';
+  const gc=dk?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+  const tc=dk?'#9ca3af':'#6b7280';
+  progChart=new Chart(c,{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:selHistEx+' (kg)',data:data.map(d=>d.kg),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' kg'}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11},callback:v=>v+' kg'},beginAtZero:false}}}});
+}
+
+function renderNotasTab(){
+  const scr=document.getElementById('snotas'); if(!scr)return;
+  const a=getAlumna(); if(!a){scr.innerHTML='';return;}
+  const coms=DB.comentarios.filter(c=>c.alumna_id===a.id);
+  scr.innerHTML=`<div class="csec">
+    <div class="ctit">Mis notas para Amira</div>
+    <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>
+    ${coms.map(c=>'<div class="citem"><div class="cmeta">Sem '+c.semana+' · Día '+c.dia+' · '+(c.fecha||'')+'</div>'+c.texto+'</div>').join('')}
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <textarea class="cinput" id="cinp2" rows="3" placeholder="Ej: Día 1 terminado. Sentadilla con 12kg."></textarea>
+      <button class="csend" onclick="envComTab(${a.id})">Enviar</button>
+    </div>
+  </div>`;
+}
+
+async function envComTab(aId){
+  const inp=document.getElementById('cinp2'); if(!inp||!inp.value.trim())return;
+  const texto=inp.value.trim();
+  const now=new Date();
+  const fecha=now.getDate()+'/'+(now.getMonth()+1)+' '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  try{
+    await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
+    DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
+    const amPh=localStorage.getItem('af-amira-ph')||'';
+    if(amPh){const a=getAlumna();const msg=encodeURIComponent('💪 '+(a?.nombre||slug)+' (Sem '+selSem+', Día '+selDia+'):\n\n"'+texto+'"');window.open('https://wa.me/'+amPh+'?text='+msg,'_blank');}
+  }catch(e){DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});}
+  renderNotasTab();
+}
+
 </script>
+
+<div class="bnav" id="bnav">
+  <button class="bitem active" id="bn-r" onclick="switchTab('r')"><span>💪</span><span>Rutina</span></button>
+  <button class="bitem" id="bn-p" onclick="switchTab('p')"><span>📈</span><span>Progreso</span></button>
+  <button class="bitem" id="bn-n" onclick="switchTab('n')"><span>💬</span><span>Notas</span></button>
+</div>
+
+<div id="sprogreso" style="display:none;padding:1rem 1.25rem;max-width:430px;margin:0 auto;padding-bottom:5rem;"></div>
+<div id="snotas" style="display:none;padding:1rem 1.25rem;max-width:430px;margin:0 auto;padding-bottom:5rem;"></div>
 </body>
 </html>
