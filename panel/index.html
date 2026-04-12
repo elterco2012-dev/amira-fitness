@@ -522,6 +522,24 @@ function addEx(){
   render();
 }
 
+function editEx(i){
+  ensureLocal(S.selA, S.selSem);
+  const day = DB.rutinas[S.selA]?.[S.selSem]?.find(d => d.dia === S.selDia);
+  if (!day || !day.ejercicios[i]) return;
+
+  const ex = day.ejercicios[i];
+  S.newEx = {
+    nombre: ex.nombre || '',
+    series: ex.series || '3',
+    reps: ex.reps || '10',
+    tip: ex.tip || '',
+    video: ex.video || ''
+  };
+  S.editExIndex = i;
+  S.addEx = true;
+  render();
+}
+
 function delEx(i){
   const day=DB.rutinas[S.selA]?.[S.selSem]?.find(d=>d.dia===S.selDia);
   if(day)day.ejercicios.splice(i,1); render();
@@ -737,14 +755,16 @@ function rRutinas(){
     <div class="dtabs">${[1,2,3].slice(0,a.dias).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
     <div class="shd">
       <div class="shdt">Ejercicios (${exs.length})</div>
-      <button class="btn btn-p btn-s" onclick="S.addEx=false;S.editExIndex=null;S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};render()">+ Agregar</button>
+      <button class="btn btn-p btn-s" onclick="S.addEx=true;S.editExIndex=null;S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};render()">+ Agregar</button>
     </div>
     ${S.addEx?`<div class="card" style="background:var(--s2);margin-bottom:.75rem;">
       <label>Nombre</label><input type="text" placeholder="Ej: Sentadilla" value="${S.newEx.nombre}" oninput="S.newEx.nombre=this.value">
       <div class="frow"><div><label>Series</label><input type="text" value="${S.newEx.series}" oninput="S.newEx.series=this.value"></div><div><label>Reps</label><input type="text" value="${S.newEx.reps}" oninput="S.newEx.reps=this.value"></div></div>
       <label>Nota de técnica</label><textarea oninput="S.newEx.tip=this.value">${S.newEx.tip}</textarea>
       <label>Link de video</label><input type="text" value="${S.newEx.video}" oninput="S.newEx.video=this.value" placeholder="https://youtube.com/shorts/...">
-      <div style="display:flex;gap:8px;"><button class="btn btn-p btn-s" onclick="addEx()">Guardar ejercicio</button><button class="btn btn-s" onclick="S.addEx=false;render()">Cancelar</button></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-p btn-s" onclick="addEx()">
+  ${S.editExIndex !== null ? 'Guardar cambios' : 'Guardar ejercicio'}
+</button><button class="btn btn-s" onclick="S.addEx=false;S.editExIndex=null;S.newEx={nombre:'',series:'3',reps:'10',tip:'',video:''};render()">Cancelar</button></div>
     </div>`:''}
     ${exs.length===0?'<div class="empty">Sin ejercicios en este día.</div>':''}
     ${exs.map((ex,i)=>`<div class="ex-item">
