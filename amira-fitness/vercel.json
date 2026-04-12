@@ -1,6 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/panel", "destination": "/panel/index.html" },
-    { "source": "/alumna/:slug", "destination": "/alumna/index.html" }
-  ]
-}
