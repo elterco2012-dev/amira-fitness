@@ -341,7 +341,12 @@ async function saveDay(){
   if(!day)return;
   S.msg='Guardando...';render();
   try{
-    await sbUpsert('rutinas',{alumna_id:S.selA,semana:S.selSem,dia:S.selDia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
+    await sbUpsert('rutinas',{
+  alumna_id: S.selA,
+  semana: S.selSem,
+  dia: S.selDia,
+  ejercicios: day.ejercicios
+});
     S.msg='Guardado en la nube ✓';S.err='';
   }catch(e){S.err='Error al guardar';S.msg='';}
   render();
