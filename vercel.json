@@ -2,8 +2,6 @@
   "rewrites": [
     { "source": "/panel", "destination": "/panel/index.html" },
     { "source": "/alumna/:slug", "destination": "/alumna/index.html" },
-    { "source": "/registro", "destination": "/registro/index.html" },
-    { "source": "/api/supabase.js", "destination": "/api/supabase.js" },
     { "source": "/api/data.json", "destination": "/api/data.json" }
   ]
 }

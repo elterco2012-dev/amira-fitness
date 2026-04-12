@@ -1,61 +1,57 @@
-# Amira Fitness — Versión Final con Supabase
+# Amira Fitness v2 — Instrucciones
 
-## Estructura
+## Qué hay en esta carpeta
 
 ```
-amira-final/
-├── index.html              → Landing page
-├── registro/index.html     → Formulario para nuevas alumnas  
-├── panel/index.html        → Panel privado de Amira
-├── alumna/index.html       → App de cada alumna
-├── api/
-│   ├── supabase.js         → Cliente Supabase (credenciales ya configuradas)
-│   └── data.json           → Rutina de María de respaldo
-├── SUPABASE_SQL.sql        → SQL para crear las tablas
-└── vercel.json             → Configuración de rutas
+amira-v2/
+├── index.html           → Página de inicio
+├── vercel.json          → Configuración de rutas
+├── panel/
+│   └── index.html       → Panel de Amira
+├── alumna/
+│   └── index.html       → App de cada alumna
+└── api/
+    └── data.json        → Rutina completa de María (con todos los videos)
 ```
 
-## Paso 1 — Crear las tablas en Supabase
+## Novedades en esta versión
 
-1. Ir a https://supabase.com → tu proyecto → **SQL Editor**
-2. Hacer clic en **New query**
-3. Copiar y pegar el contenido de `SUPABASE_SQL.sql`
-4. Hacer clic en **Run**
-5. Debería decir "Success. No rows returned"
+✅ Videos reales de YouTube en todos los ejercicios
+✅ Foto de perfil por alumna (se sube desde el panel)
+✅ Comentarios: la alumna deja notas al terminar el día y Amira las ve en el panel
+✅ Progresión automática: al pasar a la semana 2, 3 o 4, los ejercicios se copian de la semana anterior. Amira solo modifica lo que cambia.
+✅ Sección "Comentarios" en el panel para ver todas las notas de todas las alumnas
 
-## Paso 2 — Subir a Vercel
+## Cómo subir a Vercel (5 minutos, gratis)
 
-1. Ir a https://vercel.com → Add New Project
-2. Seleccionar la carpeta `amira-final`
-3. Deploy → listo en 30 segundos
+1. Entrá a https://vercel.com y creá una cuenta con Google (gratis)
+2. En el dashboard hacé clic en "Add New Project"
+3. Elegí "Browse" y seleccioná la carpeta `amira-v2`
+4. Hacé clic en "Deploy"
 
-La URL va a ser algo como: `https://amira-final.vercel.app`
+En 30 segundos queda publicado en: `https://amira-v2.vercel.app`
 
-## Paso 3 — Configuración inicial del panel
+## Links de alumnas
 
-1. Entrar a `/panel` con la contraseña `amira2025`
-2. Ir a **Configuración** → cambiar la contraseña
-3. Cargar el número de WhatsApp para notificaciones
+Cada alumna tiene su link único:
+- María → `https://amira-v2.vercel.app/alumna/maria`
 
-## Lo que funciona con Supabase activo
+Copialo desde el panel → sección "Links" → botón "Copiar".
 
-✅ Panel accesible desde cualquier dispositivo (celu, compu, tablet)
-✅ Alumnas y rutinas guardadas en la nube permanentemente  
-✅ Comentarios de las alumnas aparecen en tiempo real en el panel
-✅ Registros de nuevas alumnas llegan al panel en segundos
-✅ Si el celu se rompe o cambia, los datos no se pierden
+## Nota sobre los datos
 
-## URLs importantes
+Por ahora los datos se guardan en el navegador de Amira (localStorage).
+Esto significa que si Amira accede al panel desde otro dispositivo, no verá los datos.
 
-| Página | URL |
-|--------|-----|
-| Landing | `tu-dominio.vercel.app` |
-| Registro | `tu-dominio.vercel.app/registro` |
-| Panel (privado) | `tu-dominio.vercel.app/panel` |
-| María | `tu-dominio.vercel.app/alumna/maria` |
+**Solución fácil:** Exportar e importar el archivo `data.json` desde el panel
+(se puede agregar en una próxima versión).
+
+**Solución permanente:** Conectar con Supabase (base de datos gratuita).
+Avisanos y lo implementamos.
 
 ## Dominio propio (opcional)
 
-1. Comprar en https://namecheap.com (~$15 USD/año)
-2. Vercel → Settings → Domains → agregar
-3. Seguir instrucciones de Vercel (5 min)
+Si Amira quiere `amira-fitness.com`:
+1. Comprá el dominio en https://namecheap.com (~$15 USD/año)
+2. En Vercel → Settings → Domains → agregar el dominio
+3. Seguir las instrucciones (5 min)
