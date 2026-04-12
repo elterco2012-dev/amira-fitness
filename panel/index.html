@@ -180,6 +180,8 @@
     <button class="nav" onclick="setView('rutinas')"><span class="nav-ic">📋</span>Rutinas</button>
     <button class="nav" onclick="setView('historial')"><span class="nav-ic">📈</span>Historial</button>
     <button class="nav" onclick="setView('comentarios')"><span class="nav-ic">💬</span>Comentarios <span id="notif-badge" style="display:none;background:var(--rojo-d);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;">0</span></button>
+    <button class="nav" onclick="setView('registros')"><span class="nav-ic">📥</span>Registros <span id="reg-badge" style="display:none;background:var(--rojo-d);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;">0</span></button>
+    <button class="nav" onclick="setView('recordatorios')"><span class="nav-ic">⏰</span>Recordatorios</button>
     <button class="nav" onclick="setView('links')"><span class="nav-ic">🔗</span>Links</button>
     <button class="nav" onclick="setView('config')"><span class="nav-ic">⚙️</span>Configuración</button>
     <div class="sidebar-bottom">
@@ -205,7 +207,7 @@ let DB={alumnas:[],rutinas:{},comentarios:{},fotos:{}};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,addA:false,addEx:false,
   newA:{nombre:'',slug:'',tipo:'gym',dias:3,notas:'',foto:''},
   newEx:{nombre:'',series:'3',reps:'10',tip:'',video:''},
-  saveMsg:'',saveErr:'',newComments:0};
+  saveMsg:'',saveErr:'',newComments:0,newRegs:0,selHistEx:null};
 let darkMode=localStorage.getItem('af-dark')==='1';
 let charts={};
 
@@ -272,8 +274,9 @@ function copiarSemAnterior(aId,sem){
 function setView(v){
   S.view=v;
   if(v==='comentarios')S.newComments=0;
+  if(v==='registros'){S.newRegs=0;const b=document.getElementById('reg-badge');if(b)b.style.display='none';}
   document.querySelectorAll('.nav').forEach((el,i)=>{
-    el.classList.toggle('active',['inicio','alumnas','rutinas','historial','comentarios','links','config'][i]===v);
+    el.classList.toggle('active',['inicio','alumnas','rutinas','historial','comentarios','registros','recordatorios','links','config'][i]===v);
   });
   render();
 }
@@ -330,7 +333,6 @@ async function loadFromServer(){
 }
 
 async function pollComments(){
-  // Poll comentarios del localStorage (alumnas los guardan ahí)
   try{
     const c=localStorage.getItem('af-comentarios');
     if(c){
@@ -344,8 +346,72 @@ async function pollComments(){
         if(badge&&S.newComments>0){badge.style.display='inline';badge.textContent=S.newComments;}
       }
     }
+    const r=localStorage.getItem('amira-registros');
+    if(r){
+      const regs=JSON.parse(r);
+      const pendientes=regs.filter(x=>x.estado==='pendiente').length;
+      const badge=document.getElementById('reg-badge');
+      if(badge){badge.style.display=pendientes>0?'inline':'none';badge.textContent=pendientes;}
+    }
   }catch(e){}
   setTimeout(pollComments,5000);
+}
+
+function getRegistros(){try{return JSON.parse(localStorage.getItem('amira-registros')||'[]');}catch(e){return[];}}
+function saveRegistros(r){localStorage.setItem('amira-registros',JSON.stringify(r));}
+
+function aprobarRegistro(id){
+  const regs=getRegistros();
+  const reg=regs.find(r=>r.id===id);
+  if(!reg)return;
+  reg.estado='aprobado';
+  saveRegistros(regs);
+  S.newA={
+    nombre:reg.nombre,
+    slug:slugify(reg.nombre.split(' ')[0]),
+    tipo:reg.ubicacion&&reg.ubicacion.includes('Buenos Aires')?'gym':'distancia',
+    dias:reg.dias&&reg.dias.includes('3')?3:2,
+    notas:`Tel: ${reg.tel} | Objetivos: ${reg.objetivos} | Lesiones: ${reg.lesiones}`,
+    foto:''
+  };
+  S.addA=true;
+  setView('alumnas');
+}
+
+function rechazarRegistro(id){
+  if(!confirm('¿Rechazás este registro?'))return;
+  const regs=getRegistros();
+  const reg=regs.find(r=>r.id===id);
+  if(reg)reg.estado='rechazado';
+  saveRegistros(regs);render();
+}
+
+function enviarRecordatorio(aId){
+  const a=getA(aId);
+  if(!a)return;
+  const phone=(a.tel||'').replace(/\D/g,'');
+  if(!phone){alert('Cargá el WhatsApp de esta alumna en su perfil.');return;}
+  const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento. Tu rutina te espera:\n\n${BASE}/alumna/${a.slug}\n\n¡Vamos que podés! — Amira`);
+  window.open(`https://wa.me/${phone}?text=${msg}`,'_blank');
+}
+
+function enviarResumenSemanal(aId){
+  const a=getA(aId);
+  if(!a)return;
+  const phone=(a.tel||'').replace(/\D/g,'');
+  if(!phone){alert('Cargá el WhatsApp de esta alumna en su perfil.');return;}
+  const ps=getPesos(aId);
+  const totalP=Object.keys(ps).length;
+  const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Acá va tu resumen semanal:\n\n💪 Registraste ${totalP} ejercicios con peso esta semana\n📈 Seguís progresando semana a semana\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Un abrazo! — Amira 💚`);
+  window.open(`https://wa.me/${phone}?text=${msg}`,'_blank');
+}
+
+function enviarResumenTodas(){
+  const amiraPhone=localStorage.getItem('af-amira-phone')||'';
+  if(!amiraPhone){alert('Configurá tu número de WhatsApp en Configuración.');return;}
+  const resumen=DB.alumnas.map(a=>`• ${a.nombre}: ${Object.keys(getPesos(a.id)).length} pesos registrados`).join('\n');
+  const msg=encodeURIComponent(`📊 Resumen semanal — Amira Fitness\n\n${resumen}\n\nVer panel: ${BASE}/panel`);
+  window.open(`https://wa.me/${amiraPhone}?text=${msg}`,'_blank');
 }
 
 function addAlumna(){
@@ -433,6 +499,8 @@ function render(){
   else if(S.view==='rutinas')m.innerHTML=renderRutinas();
   else if(S.view==='historial')m.innerHTML=renderHistorial();
   else if(S.view==='comentarios')m.innerHTML=renderComentarios();
+  else if(S.view==='registros')m.innerHTML=renderRegistros();
+  else if(S.view==='recordatorios')m.innerHTML=renderRecordatorios();
   else if(S.view==='links')m.innerHTML=renderLinks();
   else if(S.view==='config')m.innerHTML=renderConfig();
   if(S.view==='historial')drawChart();
@@ -442,6 +510,8 @@ function renderInicio(){
   const gym=DB.alumnas.filter(a=>a.tipo==='gym').length;
   const dist=DB.alumnas.filter(a=>a.tipo==='distancia').length;
   const totalC=Object.values(DB.comentarios).reduce((a,b)=>a+b.length,0);
+  const regs=getRegistros();
+  const pendientes=regs.filter(r=>r.estado==='pendiente').length;
   return`
     <div class="page-title">Bienvenida, Amira</div>
     <div class="metrics">
@@ -449,6 +519,19 @@ function renderInicio(){
       <div class="metric"><div class="metric-label">Gimnasio</div><div class="metric-val">${gym}</div></div>
       <div class="metric"><div class="metric-label">A distancia</div><div class="metric-val">${dist}</div></div>
       <div class="metric"><div class="metric-label">Comentarios</div><div class="metric-val green">${totalC}</div></div>
+    </div>
+    ${pendientes>0?`
+    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;cursor:pointer;" onclick="setView('registros')">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:13px;color:var(--verde-d);font-weight:500;">📥 ${pendientes} registro${pendientes!==1?'s':''} nuevo${pendientes!==1?'s':''} pendiente${pendientes!==1?'s':''} de aprobación</div>
+        <span style="font-size:12px;color:var(--verde-d);">Ver →</span>
+      </div>
+    </div>`:''}
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Link de registro para nuevas alumnas</div>
+      <div class="link-box"><span>${BASE}/registro</span><button class="copy-btn" onclick="navigator.clipboard.writeText('${BASE}/registro').then(()=>{S.saveMsg='Link copiado ✓';render();setTimeout(()=>{S.saveMsg='';render();},1500)})">Copiar</button></div>
+      <div style="font-size:12px;color:var(--txt-m);margin-top:8px;">Compartí este link en Instagram, WhatsApp o donde quieras. Las alumnas nuevas completan el formulario y te llega un aviso.</div>
+      ${S.saveMsg?`<div class="save-msg">${S.saveMsg}</div>`:''}
     </div>
     <div class="card">
       <div class="card-title">Alumnas activas</div>
@@ -691,6 +774,97 @@ function renderLinks(){
       <div class="link-box"><span>${BASE}/alumna/${a.slug}</span><button class="copy-btn" onclick="copyLink('${a.slug}')">Copiar</button></div>
     </div>`).join('')}
     ${S.saveMsg?`<div class="save-msg" style="margin-top:.5rem;">${S.saveMsg}</div>`:''}`;
+}
+
+function renderRegistros(){
+  const regs=getRegistros();
+  const pendientes=regs.filter(r=>r.estado==='pendiente');
+  const otros=regs.filter(r=>r.estado!=='pendiente');
+  return`
+    <div class="page-title">Registros de alumnas</div>
+    <div class="card" style="background:var(--verde-l);border-color:var(--verde-m);margin-bottom:1rem;">
+      <div style="font-size:13px;color:var(--verde-d);line-height:1.6;">Cuando alguien completa el formulario de <strong>amira-fitness.com/registro</strong>, aparece acá. Podés aprobar y se crea el perfil automáticamente, o rechazar.</div>
+    </div>
+    ${pendientes.length===0&&otros.length===0?`<div class="card"><div class="empty">Todavía no hay registros. Compartí el link de registro en tus redes.</div></div>`:''}
+    ${pendientes.length>0?`
+    <div class="card-title" style="margin-bottom:.5rem;">Pendientes de aprobación (${pendientes.length})</div>
+    ${pendientes.map(r=>`
+    <div class="card" style="border-left:3px solid var(--verde);border-radius:0 var(--r) var(--r) 0;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+        <div>
+          <div class="aname">${r.nombre}</div>
+          <div class="asub">${r.fecha} · ${r.ubicacion}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-p btn-s" onclick="aprobarRegistro(${r.id})">✓ Aprobar</button>
+          <button class="btn btn-s btn-d" onclick="rechazarRegistro(${r.id})">Rechazar</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+        <div><span style="color:var(--txt-m);">WhatsApp:</span> ${r.tel}</div>
+        <div><span style="color:var(--txt-m);">Mail:</span> ${r.mail}</div>
+        <div><span style="color:var(--txt-m);">Objetivos:</span> ${r.objetivos}</div>
+        <div><span style="color:var(--txt-m);">Modalidad:</span> ${r.modalidad}</div>
+        <div><span style="color:var(--txt-m);">Días/sem:</span> ${r.dias}</div>
+        <div><span style="color:var(--txt-m);">Experiencia:</span> ${r.exp}</div>
+      </div>
+      ${r.lesiones&&r.lesiones!=='—'?`<div class="nota-badge" style="margin-top:.75rem;margin-bottom:0;">⚠️ ${r.lesiones}</div>`:''}
+    </div>`).join('')}`:''}
+    ${otros.length>0?`
+    <div class="card-title" style="margin-bottom:.5rem;margin-top:1rem;">Historial</div>
+    ${otros.map(r=>`
+    <div class="card" style="opacity:.7;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha}</div></div>
+        <span class="badge" style="background:${r.estado==='aprobado'?'var(--verde-l)':'var(--rojo-l)'};color:${r.estado==='aprobado'?'var(--verde-d)':'var(--rojo-d)'};">${r.estado}</span>
+      </div>
+    </div>`).join('')}`:''}`;
+}
+
+function renderRecordatorios(){
+  const diasSemana=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const hoy=new Date().getDay();
+  return`
+    <div class="page-title">Recordatorios y resúmenes</div>
+
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Resumen semanal</div>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:1rem;line-height:1.6;">Mandá un resumen de la semana a todas tus alumnas de una sola vez, o a cada una individualmente. Incluye sus pesos registrados y el link a su rutina.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-p btn-s" onclick="enviarResumenTodas()">📊 Enviar resumen a todas</button>
+      </div>
+      <div style="margin-top:1rem;display:flex;flex-direction:column;gap:8px;">
+        ${DB.alumnas.map(a=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avHtml(a)}</div>
+          <div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div>
+          <button class="btn btn-s" onclick="enviarResumenSemanal(${a.id})">Enviar resumen</button>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recordatorios de entrenamiento</div>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:1rem;line-height:1.6;">Mandá un recordatorio por WhatsApp a las alumnas que tienen que entrenar hoy (<strong>${diasSemana[hoy]}</strong>).</p>
+      ${DB.alumnas.length===0?'<div class="empty">Sin alumnas cargadas.</div>':''}
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${DB.alumnas.map(a=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avHtml(a)}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;">${a.nombre}</div>
+            <div style="font-size:11px;color:var(--txt-m);">${a.dias} días/semana</div>
+          </div>
+          <button class="btn btn-s" onclick="enviarRecordatorio(${a.id})">💬 Recordar</button>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--amber);border-color:transparent;">
+      <div style="font-size:12px;color:var(--amber-d);line-height:1.7;">
+        <strong>Próximamente:</strong> recordatorios automáticos programados por día de la semana. Por ahora se envían manualmente con un clic.
+      </div>
+    </div>`;
 }
 
 function renderConfig(){
