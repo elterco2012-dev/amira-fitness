@@ -12,7 +12,7 @@
   <link rel="manifest" href="/api/manifest.json">
   <link rel="apple-touch-icon" href="/api/icon-192.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  <script src="/api/sb.js"></script>
+  <script src="/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
@@ -365,26 +365,53 @@ function render(){
 async function init(){
   loadLocal();
   try{
-    const [alumnas,rutinas]=await Promise.all([
-      sbGet('alumnas','order=created_at.asc'),
-      sbGet('rutinas','order=alumna_id.asc,semana.asc,dia.asc')
+    const [alumnas, rutinas] = await Promise.all([
+      sbGet('alumnas', 'order=id.asc'),
+      sbGet('rutinas', 'order=alumna_id.asc,semana.asc,dia.asc')
     ]);
-    DB.alumnas=alumnas;
-    DB.rutinas={};
-    rutinas.forEach(r=>{
-      if(!DB.rutinas[r.alumna_id])DB.rutinas[r.alumna_id]={};
-      if(!DB.rutinas[r.alumna_id][r.semana])DB.rutinas[r.alumna_id][r.semana]=[];
-      DB.rutinas[r.alumna_id][r.semana].push({dia:r.dia,ejercicios:r.ejercicios||[]});
+
+    DB.alumnas = alumnas;
+    DB.rutinas = {};
+
+    rutinas.forEach(r => {
+      if (!DB.rutinas[r.alumna_id]) DB.rutinas[r.alumna_id] = {};
+      if (!DB.rutinas[r.alumna_id][r.semana]) DB.rutinas[r.alumna_id][r.semana] = [];
+      DB.rutinas[r.alumna_id][r.semana].push({
+        dia: r.dia,
+        ejercicios: r.ejercicios || []
+      });
     });
-    const a=getAlumna();
-    if(a){
-      const coms=await sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`);
-      DB.comentarios=coms;
+
+    const a = getAlumna();
+    if (a) {
+      const coms = await sbGet('comentarios', `alumna_id=eq.${a.id}`);
+      DB.comentarios = coms;
     }
-  }catch(e){
-    // Fallback
-    try{const res=await fetch('/api/seed.json');if(res.ok){const d=await res.json();DB.alumnas=d.alumnas||[];d.rutinas?.forEach(r=>{if(!DB.rutinas[r.alumna_id])DB.rutinas[r.alumna_id]={};if(!DB.rutinas[r.alumna_id][r.semana])DB.rutinas[r.alumna_id][r.semana]=[];DB.rutinas[r.alumna_id][r.semana].push({dia:r.dia,ejercicios:r.ejercicios});});}}catch(e2){}
+  } catch(e) {
+    console.error('ERROR cargando Supabase en alumna:', e);
+    try {
+      const res = await fetch('/api/seed.json');
+      if (res.ok) {
+        const d = await res.json();
+        DB.alumnas = d.alumnas || [];
+        d.rutinas?.forEach(r => {
+          if (!DB.rutinas[r.alumna_id]) DB.rutinas[r.alumna_id] = {};
+          if (!DB.rutinas[r.alumna_id][r.semana]) DB.rutinas[r.alumna_id][r.semana] = [];
+          DB.rutinas[r.alumna_id][r.semana].push({
+            dia: r.dia,
+            ejercicios: r.ejercicios
+          });
+        });
+      }
+    } catch(e2) {
+      console.error('ERROR fallback seed.json:', e2);
+    }
   }
+
+  console.log('ALUMNAS CARGADAS:', DB.alumnas);
+  console.log('RUTINAS CARGADAS:', DB.rutinas);
+  console.log('SLUG ACTUAL:', slug);
+
   render();
 }
 init();

@@ -540,6 +540,36 @@ function editEx(i){
   render();
 }
 
+function moveExUp(i){
+  ensureLocal(S.selA, S.selSem);
+  const day = DB.rutinas[S.selA]?.[S.selSem]?.find(d => d.dia === S.selDia);
+  if (!day || i <= 0) return;
+
+  [day.ejercicios[i - 1], day.ejercicios[i]] = [day.ejercicios[i], day.ejercicios[i - 1]];
+  render();
+}
+
+function moveExDown(i){
+  ensureLocal(S.selA, S.selSem);
+  const day = DB.rutinas[S.selA]?.[S.selSem]?.find(d => d.dia === S.selDia);
+  if (!day || i >= day.ejercicios.length - 1) return;
+
+  [day.ejercicios[i + 1], day.ejercicios[i]] = [day.ejercicios[i], day.ejercicios[i + 1]];
+  render();
+}
+
+function ytThumb(url){
+  if (!url) return '';
+  const m =
+    url.match(/youtu\.be\/([^?&]+)/) ||
+    url.match(/[?&]v=([^?&]+)/) ||
+    url.match(/shorts\/([^?&]+)/) ||
+    url.match(/embed\/([^?&]+)/);
+
+  const id = m ? m[1] : null;
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+}
+
 function delEx(i){
   const day=DB.rutinas[S.selA]?.[S.selSem]?.find(d=>d.dia===S.selDia);
   if(day)day.ejercicios.splice(i,1); render();
@@ -773,13 +803,26 @@ function rRutinas(){
     <div style="font-size:13px;font-weight:500;color:var(--t);">${ex.nombre}</div>
     <div style="font-size:11px;color:var(--tm);">${ex.series} × ${ex.reps}</div>
     ${ex.tip ? `<div style="font-size:11px;color:var(--vd);margin-top:3px;">${ex.tip}</div>` : ''}
-    ${ex.video ? `<div style="font-size:11px;margin-top:4px;">
+    ${ex.video ? `
+  <div style="margin-top:8px;">
+    <a href="${ex.video}" target="_blank" style="text-decoration:none;">
+      <img src="${ytThumb(ex.video)}"
+           alt="Vista previa del video"
+           style="width:180px;max-width:100%;border-radius:10px;border:1px solid var(--b);display:block;">
+    </a>
+    <div style="font-size:11px;margin-top:4px;">
       <a href="${ex.video}" target="_blank" style="color:#185FA5;text-decoration:none;">▶ Ver video</a>
-    </div>` : ''}
+    </div>
+  </div>
+` : ''}
   </div>
   <div style="display:flex;gap:6px;">
-    <button class="btn btn-s" onclick="editEx(${i})">Editar</button>
-    <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
+    <div style="display:flex;gap:6px;align-items:center;">
+  <button class="btn btn-s" onclick="moveExUp(${i})">↑</button>
+  <button class="btn btn-s" onclick="moveExDown(${i})">↓</button>
+  <button class="btn btn-s" onclick="editEx(${i})">Editar</button>
+  <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
+</div>
   </div>
 </div>`).join('')}
   </div>
