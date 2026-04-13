@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Mi rutina — Amira Fitness</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1D9E75">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Amira Fitness">
-  <link rel="manifest" href="/api/manifest.json">
+  
   <link rel="apple-touch-icon" href="/api/icon-192.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <script src="/sb.js"></script>
@@ -404,7 +405,15 @@ function startTimer(nextName){
       playBeep();
       showRestFinished(nextName);
 
-      setTimeout(() => {
+// 💥 efecto visual
+  document.body.style.background = "#d4ffe6";
+
+  setTimeout(() => {
+    document.body.style.background = "";
+  }, 300);
+
+
+setTimeout(() => {
         document.getElementById('timer').classList.remove('show');
       }, 2500);
     }
@@ -917,6 +926,7 @@ async function envComTab(aId){
 
   renderNotasTab();
 }
+
 </script>
 </body>
 </html>
