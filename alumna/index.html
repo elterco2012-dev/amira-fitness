@@ -10,7 +10,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Amira Fitness">
-  
   <link rel="apple-touch-icon" href="/api/icon-192.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <script src="/sb.js"></script>
@@ -83,7 +82,6 @@
     .peso-lbl{font-size:11px;color:var(--tm);white-space:nowrap;}
     .peso-in{flex:1;padding:5px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);max-width:100px;}
     .peso-in:focus{outline:none;border-color:var(--v);}
-
     .timer{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
     .timer.show{transform:translateY(0);}
     .tcircle{width:54px;height:54px;border-radius:50%;background:var(--v);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
@@ -93,9 +91,7 @@
     .tname{font-size:13px;font-weight:500;color:var(--t);}
     .tsub{font-size:11px;color:var(--tm);margin-top:2px;}
     .tskip{background:none;border:1px solid var(--bm);border-radius:var(--rs);padding:6px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;}
-
     #cc{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none;}
-
     .done-banner{text-align:center;padding:1.5rem 0 .5rem;font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--vd);}
     .csec{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-top:1rem;}
     .ctit{font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px;}
@@ -105,7 +101,6 @@
     .cinput{flex:1;padding:8px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--t);background:var(--s2);resize:none;}
     .cinput:focus{outline:none;border-color:var(--v);}
     .csend{background:var(--v);color:white;border:none;border-radius:var(--rs);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
-
     .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);display:flex;z-index:25;max-width:430px;margin:0 auto;}
     .bitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px;cursor:pointer;border:none;background:none;font-family:"DM Sans",sans-serif;}
     .bitem span:first-child{font-size:18px;}
@@ -405,15 +400,12 @@ function startTimer(nextName){
       playBeep();
       showRestFinished(nextName);
 
-// 💥 efecto visual
-  document.body.style.background = "#d4ffe6";
+      document.body.style.background = "#d4ffe6";
+      setTimeout(() => {
+        document.body.style.background = "";
+      }, 300);
 
-  setTimeout(() => {
-    document.body.style.background = "";
-  }, 300);
-
-
-setTimeout(() => {
+      setTimeout(() => {
         document.getElementById('timer').classList.remove('show');
       }, 2500);
     }
@@ -665,9 +657,14 @@ async function init(){
 init();
 
 window.addEventListener('beforeinstallprompt', e => {
+  console.log('beforeinstallprompt disparado');
   e.preventDefault();
   installPrompt = e;
   render();
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('App instalada');
 });
 
 async function installApp(){
@@ -675,10 +672,6 @@ async function installApp(){
   installPrompt.prompt();
   installPrompt = null;
   render();
-}
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 }
 
 function switchTab(t){
@@ -720,7 +713,6 @@ function buildHist(aId){
 }
 
 function renderProgress(){
-
   const scr = document.getElementById('sprogreso');
   if(!scr) return;
 
@@ -927,6 +919,9 @@ async function envComTab(aId){
   renderNotasTab();
 }
 
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
