@@ -168,7 +168,7 @@
 const slug = location.pathname.split('/').filter(Boolean).pop() || '';
 const DEFAULT_REST_SECONDS = parseInt(localStorage.getItem('af-rest-seconds') || '45', 10);
 
-let DB = { alumnas: [], rutinas: {}, comentarios: [], pesos: [] };
+let DB = { alumnas: [], rutinas: {}, comentarios: [], pesos: [], progreso: [] };
 let selSem = 1, selDia = 1;
 let done = {}, expanded = {}, pesos = {};
 let timerInt = null, timerSecs = 0, timerTotal = DEFAULT_REST_SECONDS;
@@ -227,6 +227,17 @@ function syncLocalPesosFromServer(aId){
   localStorage.setItem('af-pesos', JSON.stringify(pesos));
 }
 
+function syncLocalDoneFromServer(aId){
+  (DB.progreso || [])
+    .filter(r => r.alumna_id === aId)
+    .forEach(r => {
+      const k = dKey(aId, r.semana, r.dia, r.ejercicio_idx);
+      done[k] = !!r.hecho;
+    });
+
+  localStorage.setItem('af-done', JSON.stringify(done));
+}
+
 function saveDone(){
   try{ localStorage.setItem('af-done', JSON.stringify(done)); }catch(e){}
 }
@@ -240,11 +251,46 @@ function loadLocal(){
   }catch(e){}
 }
 
-function toggleDone(aId,i,nextName){
+async function toggleDone(aId,i,nextName){
   const k = dKey(aId, selSem, selDia, i);
-  done[k] = !done[k];
+  const exs = getExs(aId);
+  const ex = exs[i];
+  const nuevo = !done[k];
+
+  done[k] = nuevo;
   saveDone();
-  if(done[k]) startTimer(nextName);
+
+  try{
+    const saved = await sbUpsert(
+      'progreso',
+      {
+        alumna_id: aId,
+        semana: selSem,
+        dia: selDia,
+        ejercicio_idx: i,
+        ejercicio: ex?.nombre || '',
+        hecho: nuevo
+      },
+      'alumna_id,semana,dia,ejercicio_idx'
+    );
+
+    const row = Array.isArray(saved) ? saved[0] : saved;
+    const ix = DB.progreso.findIndex(r =>
+      r.alumna_id === aId &&
+      r.semana === selSem &&
+      r.dia === selDia &&
+      r.ejercicio_idx === i
+    );
+
+    if (ix >= 0) DB.progreso[ix] = { ...DB.progreso[ix], ...(row || { hecho: nuevo }) };
+    else DB.progreso.push(row || {
+      alumna_id:aId, semana:selSem, dia:selDia, ejercicio_idx:i, ejercicio:ex?.nombre || '', hecho:nuevo
+    });
+  }catch(e){
+    console.error('Error guardando progreso:', e);
+  }
+
+  if(nuevo) startTimer(nextName);
   render();
 }
 
@@ -315,6 +361,26 @@ function playBeep(){
   }catch(e){
     console.log('No se pudo reproducir beep:', e);
   }
+}
+
+function finDescanso(nextName){
+  try{
+    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+    audio.play().catch(()=>{});
+  }catch(e){
+    console.log('No se pudo reproducir audio externo:', e);
+  }
+
+  if (navigator.vibrate) {
+    navigator.vibrate([200,100,200,100,200]);
+  }
+
+  document.body.style.background = '#d4ffe6';
+  setTimeout(() => {
+    document.body.style.background = '';
+  }, 300);
+
+  showRestFinished(nextName);
 }
 
 function showRestFinished(nextName){
@@ -395,15 +461,8 @@ function startTimer(nextName){
 
     if (timerSecs <= 0) {
       clearInterval(timerInt);
-
-      if (navigator.vibrate) navigator.vibrate([300,120,300,120,500]);
       playBeep();
-      showRestFinished(nextName);
-
-      document.body.style.background = "#d4ffe6";
-      setTimeout(() => {
-        document.body.style.background = "";
-      }, 300);
+      finDescanso(nextName);
 
       setTimeout(() => {
         document.getElementById('timer').classList.remove('show');
@@ -618,13 +677,16 @@ async function init(){
 
     const a = getAlumna();
     if (a) {
-      const [coms, pesosRows] = await Promise.all([
+      const [coms, pesosRows, progresoRows] = await Promise.all([
         sbGet('comentarios', `alumna_id=eq.${a.id}`),
-        sbGet('pesos', `alumna_id=eq.${a.id}&order=semana.asc,dia.asc,created_at.asc`)
+        sbGet('pesos', `alumna_id=eq.${a.id}&order=semana.asc,dia.asc,created_at.asc`),
+        sbGet('progreso', `alumna_id=eq.${a.id}&order=semana.asc,dia.asc,ejercicio_idx.asc`)
       ]);
       DB.comentarios = coms;
       DB.pesos = pesosRows;
+      DB.progreso = progresoRows;
       syncLocalPesosFromServer(a.id);
+      syncLocalDoneFromServer(a.id);
     }
   } catch(e) {
     console.error('ERROR cargando Supabase en alumna:', e);
@@ -650,6 +712,7 @@ async function init(){
   console.log('ALUMNAS CARGADAS:', DB.alumnas);
   console.log('RUTINAS CARGADAS:', DB.rutinas);
   console.log('PESOS CARGADOS:', DB.pesos);
+  console.log('PROGRESO CARGADO:', DB.progreso);
   console.log('SLUG ACTUAL:', slug);
 
   render();
