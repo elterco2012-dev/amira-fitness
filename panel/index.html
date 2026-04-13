@@ -220,7 +220,7 @@
 <script>
 const BASE = location.origin;
 const COLORS = ['teal','purple','amber','coral'];
-let DB = { alumnas:[], rutinas:{}, comentarios:[], registros:[] };
+let DB = { alumnas:[], rutinas:{}, comentarios:[], registros:[], pesos:[] };
 let S = {
   view:'inicio',
   selA:null,
@@ -283,11 +283,12 @@ function sbSt(ok,msg){
 // ── Load ──────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    const [alumnas,rutinas,coms,regs]=await Promise.all([
-      sbGet('alumnas','order=created_at.asc'),
+    const [alumnas,rutinas,coms,regs,pesos]=await Promise.all([
+      sbGet('alumnas','order=id.asc'),
       sbGet('rutinas','order=alumna_id.asc,semana.asc,dia.asc'),
-      sbGet('comentarios','order=created_at.desc'),
-      sbGet('registros','order=created_at.desc')
+      sbGet('comentarios','order=id.desc'),
+      sbGet('registros','order=id.desc'),
+      sbGet('pesos','order=created_at.asc')
     ]);
     DB.alumnas=alumnas;
     DB.rutinas={};
@@ -298,6 +299,7 @@ async function loadAll(){
     });
     DB.comentarios=coms;
     DB.registros=regs;
+    DB.pesos=pesos;
     prevCom=coms.length;
     prevReg=regs.filter(r=>r.estado==='pendiente').length;
     if(DB.alumnas.length===0) await seedMaria();
@@ -657,11 +659,30 @@ function envTodas(){
 
 // ── Historial ─────────────────────────────────────────────────
 function getPesos(aId){
-  const all=JSON.parse(localStorage.getItem('af-pesos')||'{}');
-  return Object.fromEntries(Object.entries(all).filter(([k])=>k.startsWith(`p-${aId}-`)));
+  return (DB.pesos || [])
+    .filter(p => p.alumna_id === aId && p.kg !== null && p.kg !== undefined && !isNaN(Number(p.kg)))
+    .sort((a,b) => {
+      if (a.semana !== b.semana) return a.semana - b.semana;
+      if (a.dia !== b.dia) return a.dia - b.dia;
+      return (a.id || 0) - (b.id || 0);
+    });
 }
 
-// ── View ──────────────────────────────────────────────────────
+function groupPesos(aId){
+  const out = {};
+  getPesos(aId).forEach(p => {
+    if(!out[p.ejercicio]) out[p.ejercicio] = [];
+    out[p.ejercicio].push({
+      sem: p.semana,
+      dia: p.dia,
+      kg: Number(p.kg),
+      label: `S${p.semana}D${p.dia}`
+    });
+  });
+  return out;
+}
+
+// ── View ────────────────────────────────────────────────────── ──────────────────────────────────────────────────────
 function go(v){
   S.view=v;
   if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';}
@@ -835,54 +856,166 @@ function rRutinas(){
 
 function rHistorial(){
   const a=getA(S.selA);
-  const pesos=a?getPesos(a.id):{};
-  const hist={};
-  Object.entries(pesos).forEach(([k,v])=>{
-    const p=k.split('-'); const ex=a?getEx(a.id,+p[2],+p[3])[+p[4]]:null;
-    if(!ex)return;
-    if(!hist[ex.nombre])hist[ex.nombre]=[];
-    hist[ex.nombre].push({sem:+p[2],dia:+p[3],kg:parseFloat(v)||0,label:`S${p[2]}D${p[3]}`});
-  });
-  const exns=Object.keys(hist);
-  if(!S.selHistEx&&exns.length>0)S.selHistEx=exns[0];
-  return`<div class="ptitle">Historial de progreso</div>
+  if(!a)return `<div class="ptitle">Historial de progreso</div><div class="card"><div class="empty">Seleccioná una alumna.</div></div>`;
+
+  const hist = groupPesos(a.id);
+  const exns = Object.keys(hist);
+  if(!S.selHistEx && exns.length>0) S.selHistEx = exns[0];
+
+  const ranking = Object.entries(hist)
+    .map(([nombre, lista]) => {
+      const orden = [...lista].sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+      const first = orden[0]?.kg ?? 0;
+      const best = Math.max(...orden.map(x => x.kg));
+      return { nombre, mejora: +(best - first).toFixed(1), best };
+    })
+    .sort((a,b)=>b.mejora-a.mejora);
+
+  const alertas = Object.entries(hist)
+    .map(([nombre, lista]) => {
+      const porSemana = {};
+      lista.forEach(x => {
+        if(!porSemana[x.sem]) porSemana[x.sem] = [];
+        porSemana[x.sem].push(x.kg);
+      });
+      const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
+      if(semanas.length < 2) return null;
+      const prev = Math.max(...porSemana[semanas[semanas.length-2]]);
+      const curr = Math.max(...porSemana[semanas[semanas.length-1]]);
+      const delta = +(curr - prev).toFixed(1);
+      if(delta >= 5) return { tipo:'up', txt:`Subiste ${delta} kg esta semana en ${nombre}` };
+      if(delta >= 2.5) return { tipo:'mid', txt:`Mejoraste ${delta} kg esta semana en ${nombre}` };
+      return null;
+    })
+    .filter(Boolean);
+
+  const totalPesos = getPesos(a.id);
+  const totalD = new Set(totalPesos.map(p => `${p.semana}-${p.dia}`)).size;
+  const mejor = ranking[0];
+
+  return `<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
     ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistEx=null;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
-  ${exns.length===0?`<div class="card"><div class="empty">Sin pesos registrados todavía. Aparecen cuando la alumna carga pesos en su app.</div></div>`:`
-  <div class="card">
-    <div class="ctitle">Evolución por ejercicio</div>
-    <label>Ejercicio</label>
-    <select onchange="S.selHistEx=this.value;render()" style="margin-bottom:1rem;">
-      ${exns.map(n=>`<option value="${n}" ${n===S.selHistEx?'selected':''}>${n}</option>`).join('')}
-    </select>
-    <div class="chart-wrap"><canvas id="hchart"></canvas></div>
-  </div>
-  <div class="card"><div class="ctitle">Tabla de pesos</div>
-    <table style="width:100%;font-size:12px;border-collapse:collapse;">
-      <thead><tr>${['Ejercicio','Semana','Día','Peso'].map(h=>`<th style="font-size:10px;font-weight:500;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);">${h}</th>`).join('')}</tr></thead>
-      <tbody>${Object.entries(hist).flatMap(([n,es])=>es.sort((a,b)=>a.sem-b.sem||a.dia-b.dia).map(e=>`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${n}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">Sem ${e.sem}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">Día ${e.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${e.kg} kg</td></tr>`)).join('')}</tbody>
-    </table>
-  </div>`}`;
+  ${exns.length===0?`
+    <div class="card"><div class="empty">Sin pesos registrados todavía. Aparecen cuando la alumna carga pesos en su app.</div></div>
+  `:`
+    <div class="metrics" style="margin-bottom:1rem;">
+      <div class="metric"><div class="mlabel">Días entrenados</div><div class="mval">${totalD}</div></div>
+      <div class="metric"><div class="mlabel">Ejercicios con peso</div><div class="mval">${totalPesos.length}</div></div>
+      <div class="metric" style="grid-column:span 2;"><div class="mlabel">Mejor peso registrado</div><div class="mval g" style="font-size:1.2rem;">${mejor ? `${mejor.best} kg — ${mejor.nombre}` : '—'}</div></div>
+    </div>
+
+    ${ranking.length?`
+      <div class="card">
+        <div class="ctitle">Ranking de progreso</div>
+        ${ranking.slice(0,5).map((r,idx)=>`
+          <div class="arow">
+            <div class="exn">${idx+1}</div>
+            <div style="flex:1;">
+              <div class="aname">${r.nombre}</div>
+              <div class="asub">Récord: ${r.best} kg</div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:${r.mejora>0?'var(--vd)':'var(--tm)'};">
+              ${r.mejora>0?`+${r.mejora} kg`:'Sin cambios'}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `:''}
+
+    ${alertas.length?`
+      <div class="card">
+        <div class="ctitle">Alertas de progreso</div>
+        ${alertas.map(a=>`
+          <div style="background:${a.tipo==='up'?'var(--vl)':'var(--a)'};color:${a.tipo==='up'?'var(--vd)':'var(--ad)'};border-radius:var(--rs);padding:.7rem .9rem;font-size:12px;margin-bottom:8px;">
+            ${a.tipo==='up'?'🚀':'📈'} ${a.txt}
+          </div>
+        `).join('')}
+      </div>
+    `:''}
+
+    <div class="card">
+      <div class="ctitle">Evolución por ejercicio</div>
+      <label>Ejercicio</label>
+      <select onchange="S.selHistEx=this.value;render()" style="margin-bottom:1rem;">
+        ${exns.map(n=>`<option value="${n}" ${n===S.selHistEx?'selected':''}>${n}</option>`).join('')}
+      </select>
+      <div class="chart-wrap"><canvas id="hchart"></canvas></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:1rem;">
+        ${(() => {
+          const serie = hist[S.selHistEx] || [];
+          const best = serie.length ? Math.max(...serie.map(x=>x.kg)) : 0;
+          const first = serie[0]?.kg || 0;
+          const delta = serie.length ? +(best-first).toFixed(1) : 0;
+          return `
+            <div class="metric"><div class="mlabel">Récord automático</div><div class="mval g" style="font-size:1.2rem;">${best || '—'}${best ? ' kg' : ''}</div></div>
+            <div class="metric"><div class="mlabel">Progreso acumulado</div><div class="mval g" style="font-size:1.2rem;">${delta>0?`+${delta} kg`:'—'}</div></div>
+          `;
+        })()}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Detalle de cargas</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse;">
+        <thead><tr>${['Ejercicio','Semana','Día','Peso'].map(h=>`<th style="font-size:10px;font-weight:500;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);">${h}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${Object.entries(hist).flatMap(([n,es])=>
+            es.sort((a,b)=>a.sem-b.sem||a.dia-b.dia).map(e=>`
+              <tr>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--b);">${n}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--b);">Sem ${e.sem}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--b);">Día ${e.dia}</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${e.kg} kg</td>
+              </tr>
+            `)
+          ).join('')}
+        </tbody>
+      </table>
+    </div>
+  `}`;
 }
 
 function drawChart(){
   const a=getA(S.selA); if(!a)return;
-  const pesos=getPesos(a.id);
-  const hist={};
-  Object.entries(pesos).forEach(([k,v])=>{
-    const p=k.split('-'); const ex=getEx(a.id,+p[2],+p[3])[+p[4]];
-    if(!ex)return;
-    if(!hist[ex.nombre])hist[ex.nombre]=[];
-    hist[ex.nombre].push({sem:+p[2],dia:+p[3],kg:parseFloat(v)||0,label:`S${p[2]}D${p[3]}`});
-  });
+  const hist=groupPesos(a.id);
   const data=(hist[S.selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
-  const c=document.getElementById('hchart'); if(!c)return;
+  const c=document.getElementById('hchart'); if(!c || !data.length)return;
   if(charts.h)charts.h.destroy();
   const dk=document.documentElement.getAttribute('data-theme')==='dark';
   const gc=dk?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
   const tc=dk?'#9ca3af':'#6b7280';
-  charts.h=new Chart(c,{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:`${S.selHistEx} (kg)`,data:data.map(d=>d.kg),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#1D9E75',tension:.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11}},beginAtZero:true}}}});
+  charts.h=new Chart(c,{
+    type:'line',
+    data:{
+      labels:data.map(d=>d.label),
+      datasets:[{
+        label:`${S.selHistEx} (kg)`,
+        data:data.map(d=>d.kg),
+        borderColor:'#1D9E75',
+        backgroundColor:'rgba(29,158,117,0.10)',
+        borderWidth:3,
+        pointRadius:4,
+        pointHoverRadius:5,
+        pointBackgroundColor:'#1D9E75',
+        tension:.35,
+        fill:true
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' kg'}}
+      },
+      scales:{
+        x:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11}}},
+        y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Sans',size:11},callback:v=>v+' kg'},beginAtZero:false}
+      }
+    }
+  });
 }
 
 function rComentarios(){

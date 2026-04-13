@@ -172,7 +172,7 @@
 const slug = location.pathname.split('/').filter(Boolean).pop() || '';
 const DEFAULT_REST_SECONDS = parseInt(localStorage.getItem('af-rest-seconds') || '45', 10);
 
-let DB = { alumnas: [], rutinas: {}, comentarios: [] };
+let DB = { alumnas: [], rutinas: {}, comentarios: [], pesos: [] };
 let selSem = 1, selDia = 1;
 let done = {}, expanded = {}, pesos = {};
 let timerInt = null, timerSecs = 0, timerTotal = DEFAULT_REST_SECONDS;
@@ -210,6 +210,27 @@ function getExs(aId){
   }
 }
 
+function syncLocalPesosFromServer(aId){
+  const exIndexByName = {};
+  Object.entries(DB.rutinas[aId] || {}).forEach(([semana, dias]) => {
+    (dias || []).forEach(d => {
+      (d.ejercicios || []).forEach((ex, i) => {
+        exIndexByName[`${semana}-${d.dia}-${ex.nombre}`] = i;
+      });
+    });
+  });
+
+  (DB.pesos || [])
+    .filter(p => p.alumna_id === aId)
+    .forEach(p => {
+      const i = exIndexByName[`${p.semana}-${p.dia}-${p.ejercicio}`];
+      if (i === undefined) return;
+      pesos[pKey(aId, p.semana, p.dia, i)] = String(p.kg ?? '');
+    });
+
+  localStorage.setItem('af-pesos', JSON.stringify(pesos));
+}
+
 function saveDone(){
   try{ localStorage.setItem('af-done', JSON.stringify(done)); }catch(e){}
 }
@@ -237,10 +258,44 @@ function toggleExp(aId,i){
   render();
 }
 
-function savePeso(aId,i,val){
+async function savePeso(aId,i,val){
   const k = pKey(aId, selSem, selDia, i);
   pesos[k] = val;
   localStorage.setItem('af-pesos', JSON.stringify(pesos));
+
+  const exs = getExs(aId);
+  const ex = exs[i];
+  if (!ex) return;
+
+  const kg = parseFloat(String(val).replace(',', '.'));
+  if (isNaN(kg)) return;
+
+  try{
+    const saved = await sbUpsert(
+      'pesos',
+      {
+        alumna_id: aId,
+        semana: selSem,
+        dia: selDia,
+        ejercicio: ex.nombre,
+        kg: kg
+      },
+      'alumna_id,semana,dia,ejercicio'
+    );
+
+    const row = Array.isArray(saved) ? saved[0] : saved;
+    const ix = DB.pesos.findIndex(p =>
+      p.alumna_id === aId &&
+      p.semana === selSem &&
+      p.dia === selDia &&
+      p.ejercicio === ex.nombre
+    );
+
+    if (ix >= 0) DB.pesos[ix] = { ...DB.pesos[ix], ...(row || { kg }) };
+    else DB.pesos.push(row || { alumna_id:aId, semana:selSem, dia:selDia, ejercicio:ex.nombre, kg });
+  }catch(e){
+    console.error('Error guardando peso:', e);
+  }
 }
 
 function playBeep(){
@@ -562,8 +617,13 @@ async function init(){
 
     const a = getAlumna();
     if (a) {
-      const coms = await sbGet('comentarios', `alumna_id=eq.${a.id}`);
+      const [coms, pesosRows] = await Promise.all([
+        sbGet('comentarios', `alumna_id=eq.${a.id}`),
+        sbGet('pesos', `alumna_id=eq.${a.id}&order=semana.asc,dia.asc,created_at.asc`)
+      ]);
       DB.comentarios = coms;
+      DB.pesos = pesosRows;
+      syncLocalPesosFromServer(a.id);
     }
   } catch(e) {
     console.error('ERROR cargando Supabase en alumna:', e);
@@ -588,6 +648,7 @@ async function init(){
 
   console.log('ALUMNAS CARGADAS:', DB.alumnas);
   console.log('RUTINAS CARGADAS:', DB.rutinas);
+  console.log('PESOS CARGADOS:', DB.pesos);
   console.log('SLUG ACTUAL:', slug);
 
   render();
@@ -626,26 +687,31 @@ function switchTab(t){
 }
 
 function getPesosAlumna(aId){
-  return Object.fromEntries(Object.entries(pesos).filter(([k]) => k.startsWith('p-' + aId + '-')));
+  return (DB.pesos || [])
+    .filter(p => p.alumna_id === aId && p.kg !== null && p.kg !== undefined && !isNaN(Number(p.kg)))
+    .sort((a,b) => {
+      if (a.semana !== b.semana) return a.semana - b.semana;
+      if (a.dia !== b.dia) return a.dia - b.dia;
+      return (a.id || 0) - (b.id || 0);
+    });
 }
 
 function buildHist(aId){
-  const ps = getPesosAlumna(aId);
   const hist = {};
-  Object.entries(ps).forEach(([k,v]) => {
-    const p = k.split('-');
-    try{
-      const rows = DB.rutinas[aId]?.[+p[2]];
-      const ex = rows?.find(d => d.dia === +p[3])?.ejercicios[+p[4]];
-      if(!ex || !parseFloat(v)) return;
-      if(!hist[ex.nombre]) hist[ex.nombre] = [];
-      hist[ex.nombre].push({sem:+p[2], dia:+p[3], kg:parseFloat(v), label:'S'+p[2]+'D'+p[3]});
-    }catch(e){}
+  getPesosAlumna(aId).forEach(p => {
+    if (!hist[p.ejercicio]) hist[p.ejercicio] = [];
+    hist[p.ejercicio].push({
+      sem: p.semana,
+      dia: p.dia,
+      kg: Number(p.kg),
+      label: 'S' + p.semana + 'D' + p.dia
+    });
   });
   return hist;
 }
 
 function renderProgress(){
+
   const scr = document.getElementById('sprogreso');
   if(!scr) return;
 
@@ -656,11 +722,8 @@ function renderProgress(){
   }
 
   const ps = getPesosAlumna(a.id);
-  const totalP = Object.values(ps).filter(v => parseFloat(v) > 0).length;
-  const totalD = new Set(Object.keys(ps).filter(k => parseFloat(ps[k]) > 0).map(k => {
-    const p = k.split('-');
-    return p[2] + '-' + p[3];
-  })).size;
+  const totalP = ps.length;
+  const totalD = new Set(ps.map(p => `${p.semana}-${p.dia}`)).size;
 
   const hist = buildHist(a.id);
   const exns = Object.keys(hist);
@@ -693,6 +756,52 @@ function renderProgress(){
         <div style="font-size:14px;font-weight:500;color:var(--t);margin-top:4px;">${mejor!=='—' ? mejorKg+' kg — '+mejor : 'Cargá pesos en tu rutina para verlo acá'}</div>
       </div>
     </div>
+    ${(() => {
+      const ranking = Object.entries(hist)
+        .map(([nombre, lista]) => {
+          const orden = [...lista].sort((a,b) => a.sem - b.sem || a.dia - b.dia);
+          const first = orden[0]?.kg ?? 0;
+          const best = Math.max(...orden.map(x => x.kg));
+          return { nombre, mejora: +(best - first).toFixed(1), best };
+        })
+        .sort((a,b) => b.mejora - a.mejora)
+        .slice(0,3);
+
+      const alertas = Object.entries(hist)
+        .map(([nombre, lista]) => {
+          const porSemana = {};
+          lista.forEach(x => {
+            if (!porSemana[x.sem]) porSemana[x.sem] = [];
+            porSemana[x.sem].push(x.kg);
+          });
+          const semanas = Object.keys(porSemana).map(Number).sort((a,b) => a-b);
+          if (semanas.length < 2) return null;
+          const prev = Math.max(...porSemana[semanas[semanas.length - 2]]);
+          const curr = Math.max(...porSemana[semanas[semanas.length - 1]]);
+          const delta = +(curr - prev).toFixed(1);
+          if (delta >= 5) return `🚀 Subiste ${delta} kg esta semana en ${nombre}`;
+          if (delta >= 2.5) return `📈 Mejoraste ${delta} kg esta semana en ${nombre}`;
+          return null;
+        })
+        .filter(Boolean);
+
+      return `
+        ${ranking.length ? `
+          <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Ranking de progreso</div>
+          <div class="badge-row">
+            ${ranking.map((r, idx) => `
+              <div class="badge-item earned">${idx===0?'🥇':idx===1?'🥈':'🥉'} ${r.nombre} · +${r.mejora} kg</div>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${alertas.length ? `
+          <div style="font-size:13px;font-weight:500;color:var(--t);margin:.25rem 0 .5rem;">Alertas</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
+            ${alertas.map(a => `<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.7rem .9rem;font-size:12px;color:var(--vd);">${a}</div>`).join('')}
+          </div>
+        ` : ''}
+      `;
+    })()}
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Logros</div>
     <div class="badge-row">
       ${badges.map(b=>`<div class="badge-item${b.e?' earned':''}"><span style="font-size:18px;">${b.icon}</span><span>${b.label}</span></div>`).join('')}
