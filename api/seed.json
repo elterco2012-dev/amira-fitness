@@ -2,7 +2,7 @@
   "seed": true,
   "alumnas": [
     {
-      "id": 1,
+      "id": 1000001,
       "nombre": "María González",
       "slug": "maria",
       "tipo": "gym",

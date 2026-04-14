@@ -5,24 +5,9 @@
     { "source": "/registro", "destination": "/registro/index.html" },
     { "source": "/api/sb.js", "destination": "/api/sb.js" },
     { "source": "/api/seed.json", "destination": "/api/seed.json" },
-    { "source": "/api/manifest.json", "destination": "/api/manifest.json" },
-    { "source": "/api/icon-192.svg", "destination": "/api/icon-192.svg" },
-    { "source": "/api/icon-512.svg", "destination": "/api/icon-512.svg" },
     { "source": "/sw.js", "destination": "/sw.js" }
   ],
   "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
-    },
-    {
-      "source": "/api/manifest.json",
-      "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" }
-      ]
-    }
+    { "source": "/sw.js", "headers": [{ "key": "Service-Worker-Allowed", "value": "/" },{ "key": "Cache-Control", "value": "no-cache" }] }
   ]
 }

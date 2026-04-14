@@ -14,34 +14,13 @@ async function sbGet(table, qs = '') {
   return r.json();
 }
 
-async function sbUpsert(table, data, conflictKeys){
-  let url = `${SB_URL}/rest/v1/${table}`;
-
-  // 👇 clave para evitar el error 409
-  if (conflictKeys) {
-    url += `?on_conflict=${conflictKeys}`;
-  }
-
-  // 🧪 DEBUG (esto querías agregar)
-  console.log('UPSERT →', table, data);
-
-  const r = await fetch(url, {
+async function sbUpsert(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
     method: 'POST',
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': `Bearer ${SB_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=representation'
-    },
-    body: JSON.stringify(data)
+    headers: { ...SB_H, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(body)
   });
-
-  if (!r.ok) {
-    const txt = await r.text();
-    console.error('UPSERT ERROR →', txt); // 👈 súper útil también
-    throw new Error(txt);
-  }
-
+  if (!r.ok) { const e = await r.text(); throw new Error(`UPSERT ${table}: ${e}`); }
   return r.json();
 }
 
