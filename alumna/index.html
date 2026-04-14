@@ -258,8 +258,19 @@ async function enviarCom(aId){
   const fecha=`${now.getDate()}/${now.getMonth()+1} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
   const a=getAlumna();
   try{
-    await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
-    DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
+    //await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
+await sbUpsert(
+  'rutinas',
+  {
+    alumna_id: S.selA,
+    ciclo: 1,
+    semana: S.selSem,
+    dia: S.selDia,
+    ejercicios: day.ejercicios
+  },
+  'alumna_id,ciclo,semana,dia'
+);   
+ DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
     // WhatsApp a Amira
     const amPh=localStorage.getItem('af-amira-ph')||'';
     if(amPh){
@@ -519,7 +530,18 @@ async function envComTab(aId){
   const now=new Date();
   const fecha=now.getDate()+'/'+(now.getMonth()+1)+' '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   try{
-    await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
+    //await sbUpsert('comentarios',{alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
+await sbUpsert(
+  'rutinas',
+  {
+    alumna_id: S.selA,
+    ciclo: 1,
+    semana: S.selSem,
+    dia: S.selDia,
+    ejercicios: day.ejercicios
+  },
+  'alumna_id,ciclo,semana,dia'
+);
     DB.comentarios.push({alumna_id:aId,semana:selSem,dia:selDia,texto,fecha});
     const amPh=localStorage.getItem('af-amira-ph')||'';
     if(amPh){const a=getAlumna();const msg=encodeURIComponent('💪 '+(a?.nombre||slug)+' (Sem '+selSem+', Día '+selDia+'):\n\n"'+texto+'"');window.open('https://wa.me/'+amPh+'?text='+msg,'_blank');}
