@@ -8,34 +8,40 @@ const SB_H = {
   'Prefer': 'return=representation'
 };
 
+// Columnas del unique constraint por tabla
+// CRÍTICO: Supabase necesita saber exactamente qué columnas usar para el merge
+const ON_CONFLICT = {
+  rutinas:              'alumna_id,ciclo,semana,dia',
+  alumnas:              'id',
+  ejercicios_biblioteca:'id',
+  plantillas:           'id',
+  progreso:             'alumna_id,ciclo,semana,dia,ejercicio_idx',
+  registros:            'id',
+  comentarios:          'id',
+};
+
 async function sbGet(table, qs = '') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}${qs ? '?' + qs : ''}`, { headers: SB_H });
   if (!r.ok) { const e = await r.text(); throw new Error(`GET ${table}: ${e}`); }
   return r.json();
 }
 
-async function sbUpsert(table, body, onConflict = null) {
-  const url = `${SB_URL}/rest/v1/${table}` + 
-    (onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : '');
-
-  console.log('UPSERT →', table, body);
-
+async function sbUpsert(table, body) {
+  const conflict = ON_CONFLICT[table] || 'id';
+  const url = `${SB_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(conflict)}`;
   const r = await fetch(url, {
     method: 'POST',
-    headers: {
-      ...SB_H,
-      'Prefer': 'resolution=merge-duplicates,return=representation'
-    },
+    headers: { ...SB_H, 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body: JSON.stringify(body)
   });
-
   if (!r.ok) {
     const e = await r.text();
+    console.error(`UPSERT ${table} error:`, e);
     throw new Error(`UPSERT ${table}: ${e}`);
   }
-
   return r.json();
 }
+
 async function sbPatch(table, filter, body) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
     method: 'PATCH',

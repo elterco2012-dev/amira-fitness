@@ -4,10 +4,16 @@
     { "source": "/alumna/:slug", "destination": "/alumna/index.html" },
     { "source": "/registro", "destination": "/registro/index.html" },
     { "source": "/api/sb.js", "destination": "/api/sb.js" },
+    { "source": "/sb.js", "destination": "/sb.js" },
     { "source": "/api/seed.json", "destination": "/api/seed.json" },
     { "source": "/sw.js", "destination": "/sw.js" }
   ],
   "headers": [
-    { "source": "/sw.js", "headers": [{ "key": "Service-Worker-Allowed", "value": "/" },{ "key": "Cache-Control", "value": "no-cache" }] }
+    { "source": "/sw.js", "headers": [
+      { "key": "Service-Worker-Allowed", "value": "/" },
+      { "key": "Cache-Control", "value": "no-cache" }
+    ]},
+    { "source": "/sb.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }]},
+    { "source": "/api/sb.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }]}
   ]
 }

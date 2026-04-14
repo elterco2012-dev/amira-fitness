@@ -392,7 +392,12 @@ function slugify(n){return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u0
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function getA(id){return DB.alumnas.find(a=>a.id===id);}
 function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
-function getEx(aId,ciclo,sem,dia){try{return DB.rutinas[aId]?.[ciclo]?.[sem]?.find(d=>d.dia===dia)?.ejercicios||[];}catch(e){return[];}}
+function getEx(aId,ciclo,sem,dia){
+  try{
+    const c=parseInt(ciclo)||1,s=parseInt(sem),d=parseInt(dia);
+    return DB.rutinas[aId]?.[c]?.[s]?.find(x=>x.dia===d)?.ejercicios||[];
+  }catch(e){return[];}
+}
 function copyL(slug){navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{S.msg='Copiado ✓';render();setTimeout(()=>{S.msg='';render();},1200);});}
 function sbSt(ok,msg){S.sbOk=ok;const d=document.getElementById('sbd'),l=document.getElementById('sbl');if(d)d.className='dot '+(ok?'ok':'err');if(l)l.textContent=msg;}
 function grupoColor(g){const m={Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Brazos:'#854F0B'};return m[g]||'#6b7280';}
@@ -411,12 +416,34 @@ async function loadAll(){
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
-      const aId=r.alumna_id,c=r.ciclo||1,s=r.semana,d=r.dia;
+      const aId=r.alumna_id,c=parseInt(r.ciclo)||1,s=parseInt(r.semana),d=parseInt(r.dia);
       if(!DB.rutinas[aId])DB.rutinas[aId]={};
       if(!DB.rutinas[aId][c])DB.rutinas[aId][c]={};
       if(!DB.rutinas[aId][c][s])DB.rutinas[aId][c][s]=[];
-      DB.rutinas[aId][c][s].push({dia:d,ejercicios:r.ejercicios||[]});
+      // Evitar duplicados
+      if(!DB.rutinas[aId][c][s].find(x=>x.dia===d)){
+        DB.rutinas[aId][c][s].push({dia:d,ejercicios:r.ejercicios||[]});
+      }
     });
+    // Si María existe pero sus rutinas no tienen ciclo en la BD, cargar del seed
+    const mariaA=DB.alumnas.find(a=>a.slug==='maria');
+    if(mariaA&&(!DB.rutinas[mariaA.id]||Object.keys(DB.rutinas[mariaA.id]).length===0)){
+      try{
+        const seedRes=await fetch('/api/seed.json');
+        if(seedRes.ok){
+          const seed=await seedRes.json();
+          (seed.rutinas||[]).forEach(r=>{
+            const aId=mariaA.id,c=1,s=r.semana,d=r.dia;
+            if(!DB.rutinas[aId])DB.rutinas[aId]={};
+            if(!DB.rutinas[aId][c])DB.rutinas[aId][c]={};
+            if(!DB.rutinas[aId][c][s])DB.rutinas[aId][c][s]=[];
+            if(!DB.rutinas[aId][c][s].find(x=>x.dia===d)){
+              DB.rutinas[aId][c][s].push({dia:d,ejercicios:r.ejercicios||[]});
+            }
+          });
+        }
+      }catch(e){console.warn('Seed fallback failed',e);}
+    }
     DB.comentarios=coms;
     DB.registros=regs;
     DB.biblioteca=bib;
@@ -442,17 +469,21 @@ function startPoll(){
 
 // ── Rutinas ───────────────────────────────────────────────────
 function ensureLocal(aId,ciclo,sem){
+  const c=parseInt(ciclo)||1,s=parseInt(sem);
   if(!DB.rutinas[aId])DB.rutinas[aId]={};
-  if(!DB.rutinas[aId][ciclo])DB.rutinas[aId][ciclo]={};
-  if(!DB.rutinas[aId][ciclo][sem])DB.rutinas[aId][ciclo][sem]=[1,2,3].map(d=>({dia:d,ejercicios:[]}));
+  if(!DB.rutinas[aId][c])DB.rutinas[aId][c]={};
+  if(!DB.rutinas[aId][c][s])DB.rutinas[aId][c][s]=[1,2,3].map(d=>({dia:d,ejercicios:[]}));
 }
 
 async function saveDay(){
-  const day=DB.rutinas[S.selA]?.[S.selCiclo]?.[S.selSem]?.find(d=>d.dia===S.selDia);
-  if(!day)return;
-  S.msg='Guardando...';render();
+  const ciclo=parseInt(S.selCiclo)||1;
+  const semana=parseInt(S.selSem);
+  const dia=parseInt(S.selDia);
+  const day=DB.rutinas[S.selA]?.[ciclo]?.[semana]?.find(d=>d.dia===dia);
+  if(!day){S.err='No hay ejercicios para guardar';render();return;}
+  S.msg='Guardando...';S.err='';render();
   try{
-    await sbUpsert('rutinas',{alumna_id:S.selA,ciclo:S.selCiclo,semana:S.selSem,dia:S.selDia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
+    await sbUpsert('rutinas',{alumna_id:S.selA,ciclo,semana,dia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
     S.msg='Guardado ✓';S.err='';
   }catch(e){S.err='Error';S.msg='';}
   render();setTimeout(()=>{S.msg='';render();},2000);
@@ -801,7 +832,7 @@ function rRutinas(){
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=${al.ciclo_actual||1};S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
