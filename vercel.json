@@ -3,6 +3,7 @@
     { "source": "/panel", "destination": "/panel/index.html" },
     { "source": "/alumna/:slug", "destination": "/alumna/index.html" },
     { "source": "/registro", "destination": "/registro/index.html" },
+    { "source": "/ficha/:slug", "destination": "/ficha/index.html" },
     { "source": "/ficha", "destination": "/ficha/index.html" },
     { "source": "/api/sb.js", "destination": "/api/sb.js" },
     { "source": "/sb.js", "destination": "/sb.js" },
@@ -14,7 +15,6 @@
       { "key": "Service-Worker-Allowed", "value": "/" },
       { "key": "Cache-Control", "value": "no-cache" }
     ]},
-    { "source": "/sb.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }]},
-    { "source": "/api/sb.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }]}
+    { "source": "/(sb|api/sb).js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }]}
   ]
 }

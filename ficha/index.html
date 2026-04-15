@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ficha de salud — Amira Fitness</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-  <script src="/sb.js"></script>
+  <script src="/api/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{--v:#1D9E75;--vl:#E1F5EE;--vd:#0F6E56;--a:#FAEEDA;--ad:#633806;--rl:#FCEBEB;--rd:#A32D2D;--bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;--t:#1a1a1a;--tm:#6b7280;--b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);--r:14px;--rs:9px;}
@@ -209,7 +209,45 @@
 </div>
 
 <script>
+// Obtener slug de la URL: /ficha/maria → slug='maria'
+const fichaSlug = location.pathname.split('/').filter(Boolean).pop()||'';
+let fichaAlumnaId = null;
+let fichaAlumnaNombre = '';
 let step=1;
+
+// Verificar si ya completó la ficha
+const fichaKey = `af-ficha-${fichaSlug}`;
+if(fichaSlug && localStorage.getItem(fichaKey)){
+  document.querySelector('.wrap').innerHTML=`
+    <div style="text-align:center;padding:3rem 1rem;">
+      <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.75rem;">Ficha ya enviada</h2>
+      <p style="font-size:13px;color:var(--tm);line-height:1.7;">Ya completaste tu ficha de salud. Amira la tiene guardada.<br>Si necesitás actualizar algún dato, escribile directamente.</p>
+    </div>`;
+}
+
+// Pre-cargar nombre de la alumna si viene en la URL
+async function cargarAlumna(){
+  try{
+    const alumnas = await sbGet('alumnas','order=created_at.asc');
+    const a = alumnas.find(x=>
+      x.slug===fichaSlug ||
+      (x.nombre||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(' ')[0] === fichaSlug.normalize('NFD').replace(/[̀-ͯ]/g,'')
+    );
+    if(a){
+      fichaAlumnaId=a.id;
+      fichaAlumnaNombre=a.nombre;
+      // Pre-rellenar nombre
+      const ni=document.getElementById('f-nombre');
+      if(ni&&!ni.value) ni.value=a.nombre;
+      // Actualizar título
+      const h=document.querySelector('.header h1');
+      if(h) h.textContent=`Ficha de salud — ${a.nombre.split(' ')[0]}`;
+    }
+  }catch(e){}
+}
+if(fichaSlug) cargarAlumna();
+
 
 // Chip single-select
 function cs(el,groupId){
@@ -307,8 +345,14 @@ async function enviar(){
     estado:'pendiente'
   };
 
+  // Asociar a alumna si viene de URL personalizada
+  if(fichaAlumnaId) datos.alumna_id = fichaAlumnaId;
+  
   // Guardar en Supabase
   try{await sbUpsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+  
+  // Marcar como completada en localStorage (no se puede reenviar)
+  if(fichaSlug) localStorage.setItem(fichaKey, '1');
 
   // WhatsApp a Amira
   const amPh='5492226500790';
