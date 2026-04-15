@@ -113,6 +113,9 @@ drop policy if exists "public all alumnas" on alumnas;
 drop policy if exists "public all rutinas" on rutinas;
 drop policy if exists "public all comentarios" on comentarios;
 drop policy if exists "public all registros" on registros;
+drop policy if exists "public all biblioteca" on ejercicios_biblioteca;
+drop policy if exists "public all plantillas" on plantillas;
+drop policy if exists "public all progreso" on progreso;
 
 create policy "public all alumnas" on alumnas for all using (true) with check (true);
 create policy "public all rutinas" on rutinas for all using (true) with check (true);

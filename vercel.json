@@ -3,6 +3,7 @@
     { "source": "/panel", "destination": "/panel/index.html" },
     { "source": "/alumna/:slug", "destination": "/alumna/index.html" },
     { "source": "/registro", "destination": "/registro/index.html" },
+    { "source": "/ficha", "destination": "/ficha/index.html" },
     { "source": "/api/sb.js", "destination": "/api/sb.js" },
     { "source": "/sb.js", "destination": "/sb.js" },
     { "source": "/api/seed.json", "destination": "/api/seed.json" },

@@ -364,6 +364,10 @@
 
 <script>
 const BASE=location.origin;
+// WhatsApp de Amira — hardcodeado como default permanente
+if(!localStorage.getItem('af-amira-ph')){
+  localStorage.setItem('af-amira-ph','5492226500790');
+}
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[]};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,msg:'',err:'',sbOk:false};
@@ -610,7 +614,9 @@ function addFromBib(){
     video:bibSelEx.video||'',
     grupo:bibSelEx.grupo_muscular||''
   });
-  closeBib();render();
+  closeBib();
+  // Autoguardado inmediato
+  await saveDay();
 }
 
 // ── Manual nuevo ejercicio ────────────────────────────────────
@@ -675,10 +681,10 @@ async function saveEditEx(){
   closeEditEx();render();
 }
 
-function delEx(idx){
+async function delEx(idx){
   const a=getA(S.selA);if(!a)return;
   const day=DB.rutinas[a.id]?.[S.selCiclo]?.[S.selSem]?.find(d=>d.dia===S.selDia);
-  if(day)day.ejercicios.splice(idx,1);render();
+  if(day){day.ejercicios.splice(idx,1);render();await saveDay();}
 }
 
 // ── Editar alumna ─────────────────────────────────────────────
@@ -703,6 +709,18 @@ async function saveEditA(){
 }
 
 // ── CRUD Alumnas ──────────────────────────────────────────────
+function handleFoto(aId,input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const foto=e.target.result;
+    const a=getA(aId); if(a)a.foto=foto;
+    try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
 async function addAlumna(){
   const n=document.getElementById('na-nombre')?.value?.trim();
   if(!n)return;
@@ -712,6 +730,49 @@ async function addAlumna(){
   S.msg='Guardando...';render();
   try{await sbUpsert('alumnas',a);DB.alumnas.push(a);if(!S.selA)S.selA=id;S.addA=false;S.msg='Alumna creada ✓';render();setTimeout(()=>{S.msg='';render();},2000);}
   catch(e){S.err='Error al guardar';render();}
+}
+
+async function openEditBib(id){
+  const e=DB.biblioteca.find(x=>x.id===id); if(!e)return;
+  const nombre=prompt('Nombre del ejercicio:',e.nombre); if(!nombre)return;
+  const tip=prompt('Descripción técnica:',e.descripcion||'');
+  const video=prompt('Link de video:',e.video||'');
+  const grupo=prompt('Grupo muscular (Core/Piernas/Glúteos/Espalda/Pecho/Hombros/Brazos):',e.grupo_muscular||'');
+  try{
+    await sbPatch('ejercicios_biblioteca',`id=eq.${id}`,{nombre,descripcion:tip,video,grupo_muscular:grupo});
+    Object.assign(e,{nombre,descripcion:tip,video,grupo_muscular:grupo});
+    S.msg='Ejercicio actualizado ✓';render();setTimeout(()=>{S.msg='';render();},2000);
+  }catch(err){alert('Error al guardar: '+err.message);}
+}
+
+async function deleteBib(id){
+  if(!confirm('¿Eliminás este ejercicio de la biblioteca?'))return;
+  try{
+    await sbDelete('ejercicios_biblioteca',`id=eq.${id}`);
+    DB.biblioteca=DB.biblioteca.filter(e=>e.id!==id);
+    render();
+  }catch(err){alert('Error al eliminar: '+err.message);}
+}
+
+function verPlantilla(id){
+  const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
+  const estructura=p.estructura||{};
+  let txt=`Plantilla: ${p.nombre}\n\n`;
+  Object.entries(estructura).forEach(([dia,exs])=>{
+    txt+=`Día ${dia}:\n`;
+    exs.forEach((e,i)=>{ txt+=`  ${i+1}. ${e.nombre} — ${e.series}×${e.reps}\n`; });
+    txt+='\n';
+  });
+  alert(txt);
+}
+
+async function deletePlantilla(id){
+  if(!confirm('¿Eliminás esta plantilla?'))return;
+  try{
+    await sbDelete('plantillas',`id=eq.${id}`);
+    DB.plantillas=DB.plantillas.filter(p=>p.id!==id);
+    render();
+  }catch(err){alert('Error: '+err.message);}
 }
 
 async function deleteAlumna(id){
@@ -814,6 +875,10 @@ function rAlumnas(){
       <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
     </div>
     ${a.notas?`<div class="nota">${a.notas}</div>`:''}
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <div class="av av-${a.color}" style="width:52px;height:52px;font-size:18px;">${avH(a)}</div>
+      <div><div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Foto de perfil</div><input type="file" accept="image/*" style="font-size:11px;" onchange="handleFoto(${a.id},this)"></div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
@@ -832,7 +897,7 @@ function rRutinas(){
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
@@ -843,10 +908,26 @@ function rRutinas(){
       <div class="ciclo-badge"><span>Ciclo</span><span class="ciclo-num">${S.selCiclo}</span></div>
     </div>
 
-    <!-- Selector de ciclo -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;">
+    <!-- Selector de ciclo — muestra todos los ciclos disponibles -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
       <div style="font-size:11px;color:var(--tm);">Ver ciclo:</div>
-      ${Array.from({length:S.selCiclo},(_, i)=>i+1).map(c=>`<button class="btn btn-s${S.selCiclo===c?' btn-purple':''}" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()">Ciclo ${c}</button>`).join('')}
+      ${(() => {
+        // Calcular el máximo ciclo real mirando TODAS las fuentes
+        const ciclosEnDB = Object.keys(DB.rutinas[a.id]||{})
+          .map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0);
+        const maxCiclo = Math.max(
+          parseInt(a.ciclo_actual)||1,
+          parseInt(S.selCiclo)||1,
+          ciclosEnDB.length>0 ? Math.max(...ciclosEnDB) : 1
+        );
+        // Guardar en S para que no se pierda al re-render
+        if(maxCiclo > (S._maxCiclo||1)) S._maxCiclo = maxCiclo;
+        const total = Math.max(maxCiclo, S._maxCiclo||1);
+        return Array.from({length:total},(_,i)=>i+1).map(c=>{
+          const activo = parseInt(S.selCiclo)===c;
+          return `<button class="btn btn-s${activo?' btn-purple':''}" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()">Ciclo ${c}</button>`;
+        }).join('');
+      })()}
       <button class="btn btn-s" style="margin-left:auto;" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
     </div>
 
@@ -935,10 +1016,16 @@ function rBiblioteca(){
     <div class="card" style="padding:1rem;margin-bottom:0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <div style="font-size:13px;font-weight:500;color:var(--t);">${e.nombre}</div>
-        <span class="ex-grupo">${e.grupo_muscular||'—'}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="ex-grupo">${e.grupo_muscular||'—'}</span>
+        </div>
       </div>
       ${e.descripcion?`<div style="font-size:11px;color:var(--vd);margin-bottom:5px;line-height:1.4;">${e.descripcion}</div>`:''}
-      ${e.video?`<div style="font-size:10px;color:#185FA5;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);">Sin video</div>'}
+      ${e.video?`<div style="font-size:10px;color:#185FA5;margin-bottom:6px;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);margin-bottom:6px;">Sin video</div>'}
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-s btn-warn" onclick="openEditBib(${e.id})">Editar</button>
+        <button class="btn btn-s btn-d" onclick="deleteBib(${e.id})">Eliminar</button>
+      </div>
     </div>`).join('')}
   </div>`;
 }
@@ -953,34 +1040,130 @@ function rPlantillas(){
   return`<div class="ptitle">Plantillas de rutina</div>
   <div class="card" style="margin-bottom:1rem;background:var(--a);border-color:transparent;">
     <div style="font-size:13px;color:var(--ad);line-height:1.6;">
-      Las plantillas son semanas completas pre-armadas. Cuando entra una alumna nueva, elegís una plantilla y se copia toda la estructura. Después solo ajustás series y reps.
+      Las plantillas son semanas completas pre-armadas. Cuando entra una alumna nueva, elegís una plantilla y se copia toda la estructura. Después solo ajustás series y reps desde la sección Rutinas.
     </div>
   </div>
   <div class="shd" style="margin-bottom:1rem;">
     <div class="shdt">Plantillas disponibles</div>
+    <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual como plantilla</button>
   </div>
-  ${DB.plantillas.length===0?`<div class="card"><div class="empty">Sin plantillas todavía. Se agregan desde el SQL o desde el panel de Rutinas.</div></div>`:''}
+  ${DB.plantillas.length===0?`<div class="card"><div class="empty">Sin plantillas todavía.</div></div>`:''}
   <div class="plant-grid">
     ${DB.plantillas.map(p=>`
     <div class="card" style="padding:1rem;margin-bottom:0;">
-      <div style="font-size:14px;font-weight:500;color:var(--t);margin-bottom:4px;">${p.nombre}</div>
-      <div style="font-size:11px;color:var(--tm);margin-bottom:8px;line-height:1.4;">${p.descripcion||''}</div>
-      <div style="font-size:10px;color:var(--vd);margin-bottom:10px;font-weight:500;">${p.dias} días/semana · ${p.tipo||'general'}</div>
-      <div style="font-size:10px;color:var(--tm);margin-bottom:10px;">
-        ${Object.entries(p.estructura||{}).map(([d,exs])=>`Día ${d}: ${exs.length} ejercicios`).join(' · ')}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div style="font-size:14px;font-weight:500;color:var(--t);">${p.nombre}</div>
+        <span class="badge bg">${p.tipo||'general'}</span>
       </div>
-      ${S.selA?`<button class="btn btn-p btn-s" onclick="aplicarPlantilla(${p.id})">Aplicar a ${getA(S.selA)?.nombre?.split(' ')[0]||'alumna'}</button>`:'<div style="font-size:11px;color:var(--tm);">Seleccioná una alumna primero</div>'}
+      <div style="font-size:11px;color:var(--tm);margin-bottom:8px;line-height:1.4;">${p.descripcion||''}</div>
+      <div style="font-size:10px;color:var(--vd);margin-bottom:6px;font-weight:500;">${p.dias} días/semana</div>
+      <div style="font-size:10px;color:var(--tm);margin-bottom:10px;line-height:1.6;">
+        ${Object.entries(p.estructura||{}).map(([d,exs])=>`<div>Día ${d}: ${exs.map(e=>e.nombre).slice(0,3).join(', ')}${exs.length>3?' +'+( exs.length-3)+' más':''}</div>`).join('')}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${S.selA?`<button class="btn btn-p btn-s" onclick="aplicarPlantilla(${p.id})">Aplicar a ${getA(S.selA)?.nombre?.split(' ')[0]||'alumna'}</button>`:'<div style="font-size:11px;color:var(--tm);">Ir a Rutinas y seleccioná una alumna para aplicar</div>'}
+        <button class="btn btn-s btn-warn" onclick="editarNombrePlantilla(${p.id})">Renombrar</button>
+        <button class="btn btn-s btn-d" onclick="deletePlantilla(${p.id})">Eliminar</button>
+      </div>
     </div>`).join('')}
   </div>`;
 }
 
+async function crearPlantillaDesdeRutina(){
+  const a=getA(S.selA);
+  if(!a){alert('Primero seleccioná una alumna en Rutinas.');return;}
+  const nombre=prompt('Nombre para esta plantilla:',`Rutina de ${a.nombre.split(' ')[0]} — Copia`);
+  if(!nombre)return;
+  const descripcion=prompt('Descripción breve (opcional):','');
+  // Armar la estructura desde la rutina actual del ciclo seleccionado
+  const rutinaCiclo=DB.rutinas[a.id]?.[S.selCiclo]||{};
+  const estructura={};
+  for(const sem of Object.keys(rutinaCiclo)){
+    const dias=rutinaCiclo[sem];
+    if(!dias)continue;
+    dias.forEach(dayObj=>{
+      if(dayObj.ejercicios&&dayObj.ejercicios.length>0){
+        estructura[dayObj.dia]=dayObj.ejercicios;
+      }
+    });
+  }
+  if(Object.keys(estructura).length===0){alert('La rutina actual no tiene ejercicios. Agregá ejercicios primero.');return;}
+  const nueva={nombre,descripcion,dias:parseInt(a.dias)||3,tipo:a.tipo||'gym',estructura};
+  try{
+    const res=await sbUpsert('plantillas',nueva);
+    const saved=Array.isArray(res)?res[0]:res;
+    DB.plantillas.push(saved);
+    S.msg='Plantilla creada ✓';go('plantillas');
+    setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){alert('Error al crear plantilla: '+e.message);}
+}
+
+async function editarNombrePlantilla(id){
+  const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
+  const nombre=prompt('Nuevo nombre:',p.nombre); if(!nombre||nombre===p.nombre)return;
+  const desc=prompt('Descripción:',p.descripcion||'');
+  try{
+    await sbPatch('plantillas',`id=eq.${id}`,{nombre,descripcion:desc});
+    p.nombre=nombre;p.descripcion=desc;
+    render();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function loadHistorial(aId){
+  try{
+    const rows = await sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`);
+    DB.progreso = DB.progreso||{};
+    DB.progreso[aId] = rows;
+    render();
+  }catch(e){console.error('historial error',e);}
+}
+
 function rHistorial(){
   const a=getA(S.selA);
+  const rows = DB.progreso?.[a?.id]||[];
+  // Agrupar por ciclo
+  const porCiclo={};
+  rows.forEach(r=>{
+    const k=r.ciclo||1;
+    if(!porCiclo[k])porCiclo[k]=[];
+    porCiclo[k].push(r);
+  });
+  // También leer pesos del localStorage de la alumna (si están)
+  const lsPesos = Object.entries(localStorage).filter(([k])=>k.startsWith('p-'+(a?.id||'')));
+  
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
-  <div class="card"><div class="empty">El historial de pesos y progreso se ve en la app de la alumna (pestaña Progreso). Acá próximamente: consolidado por ciclo.</div></div>`;
+  ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
+  rows.length===0&&lsPesos.length===0?
+  `<div class="card" style="background:var(--a);border-color:transparent;">
+    <div style="font-size:13px;color:var(--ad);line-height:1.7;">
+      <strong>Sin progreso registrado todavía.</strong><br>
+      El progreso aparece acá cuando la alumna marca ejercicios como hechos y carga pesos en su app.
+      Los pesos se guardan en el navegador de la alumna — cuando se sincronicen a Supabase (próxima versión) van a aparecer acá consolidados por ciclo.
+    </div>
+  </div>`:
+  `${Object.entries(porCiclo).sort(([a],[b])=>b-a).map(([ciclo,rs])=>`
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Ciclo ${ciclo}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.75rem;">
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Días completados</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.filter(r=>r.hecho).map(r=>r.semana+'-'+r.dia)).size}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Ejercicios hechos</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.hecho).length}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Con peso registrado</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.peso_kg).length}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Semanas</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.map(r=>r.semana)).size}</div></div>
+    </div>
+    ${rs.filter(r=>r.peso_kg).length>0?`
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead><tr>${['Sem','Día','Ejercicio','Peso','Fecha'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rs.filter(r=>r.peso_kg).map(r=>{
+        const day=getEx(a.id,parseInt(ciclo),r.semana,r.dia);
+        const ex=day[r.ejercicio_idx];
+        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${ex?.nombre||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
+      }).join('')}</tbody>
+    </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
+  </div>`).join('')}
+  `}`;
 }
 
 function rComentarios(){

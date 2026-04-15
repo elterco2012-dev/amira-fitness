@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha de salud — Amira Fitness</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <script src="/sb.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--v:#1D9E75;--vl:#E1F5EE;--vd:#0F6E56;--a:#FAEEDA;--ad:#633806;--rl:#FCEBEB;--rd:#A32D2D;--bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;--t:#1a1a1a;--tm:#6b7280;--b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);--r:14px;--rs:9px;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;}
+    .header{background:var(--s);border-bottom:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:10px;}
+    .logo{width:36px;height:36px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;color:var(--vd);}
+    .header h1{font-size:15px;font-weight:500;}
+    .wrap{max-width:600px;margin:0 auto;padding:2rem 1.25rem 4rem;}
+
+    /* Progress steps */
+    .steps{display:flex;align-items:center;margin-bottom:2rem;}
+    .sdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0;transition:all .2s;}
+    .sdot.done{background:var(--v);color:white;}
+    .sdot.active{background:var(--v);color:white;box-shadow:0 0 0 3px rgba(29,158,117,0.2);}
+    .sdot.pend{background:var(--s2);border:1px solid var(--bm);color:var(--tm);}
+    .sline{flex:1;height:2px;background:var(--b);margin:0 5px;transition:background .2s;}
+    .sline.done{background:var(--v);}
+
+    /* Cards */
+    .step-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1.75rem;display:none;}
+    .step-card.active{display:block;animation:fu .25s ease;}
+    .step-card h2{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:.4rem;}
+    .step-card p{font-size:13px;color:var(--tm);margin-bottom:1.5rem;line-height:1.6;}
+
+    label{font-size:12px;color:var(--tm);display:block;margin-bottom:5px;font-weight:500;}
+    input,select,textarea{width:100%;padding:10px 14px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--t);background:var(--s2);margin-bottom:14px;transition:border-color .15s;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--v);background:var(--s);}
+    textarea{height:70px;resize:vertical;}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+    /* Chips */
+    .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
+    .chip{padding:7px 14px;border-radius:20px;font-size:12px;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;user-select:none;transition:all .15s;}
+    .chip.on{background:var(--vl);color:var(--vd);border-color:var(--vd);font-weight:500;}
+    .chip.single.on{background:var(--v);color:white;border-color:var(--v);}
+
+    /* Botones */
+    .nav-btns{display:flex;gap:10px;margin-top:1.5rem;}
+    .btn{padding:10px 22px;border-radius:20px;font-size:13px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .btn-p{background:var(--v);color:white;border-color:var(--v);flex:1;}
+    .btn-p:hover{background:var(--vd);}
+    .btn-back{color:var(--tm);}
+
+    /* Resumen */
+    .res-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--b);font-size:12px;}
+    .res-row:last-child{border-bottom:none;}
+    .res-lbl{color:var(--tm);}
+    .res-val{font-weight:500;text-align:right;max-width:65%;}
+
+    /* Declaración */
+    .declaracion{background:var(--a);border-radius:var(--rs);padding:1rem;font-size:12px;color:var(--ad);line-height:1.6;margin-bottom:1rem;}
+    .check-wrap{display:flex;gap:10px;align-items:flex-start;cursor:pointer;}
+    .check-wrap input{width:auto;margin-bottom:0;}
+
+    /* Success */
+    .success{text-align:center;padding:3rem 1rem;display:none;}
+    .success-icon{font-size:3.5rem;margin-bottom:1rem;}
+    .success h2{font-family:'DM Serif Display',serif;font-size:1.8rem;margin-bottom:.75rem;}
+    .success p{font-size:13px;color:var(--tm);line-height:1.7;max-width:380px;margin:0 auto 1.5rem;}
+    .success .wa-btn{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:white;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:500;text-decoration:none;}
+
+    @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">A</div>
+  <h1>Amira Fitness — Ficha de salud</h1>
+</div>
+<div class="wrap">
+
+  <!-- Steps indicator -->
+  <div class="steps" id="steps-bar">
+    <div class="sdot active" id="d1">1</div>
+    <div class="sline" id="l1"></div>
+    <div class="sdot pend" id="d2">2</div>
+    <div class="sline" id="l2"></div>
+    <div class="sdot pend" id="d3">3</div>
+    <div class="sline" id="l3"></div>
+    <div class="sdot pend" id="d4">4</div>
+  </div>
+
+  <!-- Step 1: Datos personales -->
+  <div class="step-card active" id="s1">
+    <h2>Datos personales</h2>
+    <p>Completá esta ficha antes de empezar. La información es confidencial y ayuda a Amira a diseñar tu plan de forma segura.</p>
+    <div class="frow"><div><label>Nombre y apellido *</label><input id="f-nombre" type="text" placeholder="Tu nombre completo"></div><div><label>Edad *</label><input id="f-edad" type="number" placeholder="Ej: 28" min="14" max="99"></div></div>
+    <label>Correo electrónico *</label><input id="f-mail" type="email" placeholder="tu@mail.com">
+    <label>WhatsApp *</label><input id="f-tel" type="tel" placeholder="Ej: 1123456789">
+    <label>¿Dónde entrenarás?</label>
+    <div class="chips" id="ch-lugar">
+      <div class="chip single" onclick="cs(this,'ch-lugar')">Gimnasio presencial</div>
+      <div class="chip single" onclick="cs(this,'ch-lugar')">A distancia (en casa)</div>
+      <div class="chip single" onclick="cs(this,'ch-lugar')">A distancia (gym)</div>
+    </div>
+    <div class="nav-btns"><button class="btn btn-p" onclick="next(1)">Continuar →</button></div>
+  </div>
+
+  <!-- Step 2: Historial de salud -->
+  <div class="step-card" id="s2">
+    <h2>Historial de salud</h2>
+    <p>Esta información es importante para adaptar el entrenamiento y cuidar tu bienestar.</p>
+    <label>Último control médico *</label>
+    <div class="chips" id="ch-control">
+      <div class="chip single" onclick="cs(this,'ch-control')">Hace menos de 6 meses</div>
+      <div class="chip single" onclick="cs(this,'ch-control')">Hace 6-12 meses</div>
+      <div class="chip single" onclick="cs(this,'ch-control')">Hace más de 1 año</div>
+      <div class="chip single" onclick="cs(this,'ch-control')">No recuerdo</div>
+    </div>
+    <label>¿Tiene alguna enfermedad diagnosticada?</label>
+    <input id="f-enfermedad" type="text" placeholder="Ej: diabetes, hipertensión, hipotiroidismo... o 'Ninguna'">
+    <label>¿Toma medicación actualmente?</label>
+    <input id="f-medicacion" type="text" placeholder="Nombre del medicamento o 'No'">
+    <label>¿Presenta patología cardiovascular, respiratoria o metabólica? *</label>
+    <div class="chips" id="ch-cardio">
+      <div class="chip single" onclick="cs(this,'ch-cardio')">No</div>
+      <div class="chip single" onclick="cs(this,'ch-cardio')">Sí — especificar abajo</div>
+    </div>
+    <label>¿Es fumador/a?</label>
+    <div class="chips" id="ch-fuma">
+      <div class="chip single" onclick="cs(this,'ch-fuma')">No</div>
+      <div class="chip single" onclick="cs(this,'ch-fuma')">Ex fumador/a</div>
+      <div class="chip single" onclick="cs(this,'ch-fuma')">Sí</div>
+    </div>
+    <label>Observaciones adicionales de salud</label>
+    <textarea id="f-obs-salud" placeholder="Cualquier información de salud relevante..."></textarea>
+    <div class="nav-btns"><button class="btn btn-back" onclick="prev(2)">← Volver</button><button class="btn btn-p" onclick="next(2)">Continuar →</button></div>
+  </div>
+
+  <!-- Step 3: Lesiones y actividad física -->
+  <div class="step-card" id="s3">
+    <h2>Lesiones y actividad física</h2>
+    <p>Ayuda a Amira a adaptar cada ejercicio y evitar molestias.</p>
+    <label>¿Tiene lesiones actuales? (detallar zona y diagnóstico)</label>
+    <textarea id="f-lesiones" placeholder="Ej: Rodilla derecha — condromalacia diagnosticada. O 'Sin lesiones actuales'."></textarea>
+    <label>¿Ha tenido lesiones previas relevantes?</label>
+    <textarea id="f-lesiones-prev" placeholder="Ej: Hernia de disco L4-L5 operada en 2020. O 'Sin antecedentes'."></textarea>
+    <label>¿Sufre dolor frecuente en alguna zona? (elegí todas las que aplican)</label>
+    <div class="chips" id="ch-dolor">
+      <div class="chip" onclick="cm(this)">Rodilla</div>
+      <div class="chip" onclick="cm(this)">Tobillo</div>
+      <div class="chip" onclick="cm(this)">Zona lumbar</div>
+      <div class="chip" onclick="cm(this)">Cadera</div>
+      <div class="chip" onclick="cm(this)">Hombro</div>
+      <div class="chip" onclick="cm(this)">Cervical</div>
+      <div class="chip" onclick="cm(this)">Ninguna</div>
+    </div>
+    <label>¿Realiza actividad física actualmente?</label>
+    <div class="chips" id="ch-act">
+      <div class="chip single" onclick="cs(this,'ch-act')">No, empezaré desde cero</div>
+      <div class="chip single" onclick="cs(this,'ch-act')">Sí, de forma irregular</div>
+      <div class="chip single" onclick="cs(this,'ch-act')">Sí, de forma regular (2-3 veces/semana)</div>
+      <div class="chip single" onclick="cs(this,'ch-act')">Sí, de forma intensa (+4 veces/semana)</div>
+    </div>
+    <label>¿Qué actividad física realizás actualmente?</label>
+    <input id="f-act-cual" type="text" placeholder="Ej: caminata, natación, gym... o 'Ninguna'">
+    <div class="nav-btns"><button class="btn btn-back" onclick="prev(3)">← Volver</button><button class="btn btn-p" onclick="next(3)">Continuar →</button></div>
+  </div>
+
+  <!-- Step 4: Objetivos y confirmación -->
+  <div class="step-card" id="s4">
+    <h2>Objetivos y confirmación</h2>
+    <p>Último paso. Contale a Amira qué estás buscando.</p>
+    <label>¿Cuál es tu objetivo principal? (elegí todos los que aplican)</label>
+    <div class="chips" id="ch-objetivo">
+      <div class="chip" onclick="cm(this)">Bajar de peso</div>
+      <div class="chip" onclick="cm(this)">Ganar fuerza</div>
+      <div class="chip" onclick="cm(this)">Tonificar</div>
+      <div class="chip" onclick="cm(this)">Mejorar postura</div>
+      <div class="chip" onclick="cm(this)">Rehabilitación</div>
+      <div class="chip" onclick="cm(this)">Movilidad y flexibilidad</div>
+      <div class="chip" onclick="cm(this)">Bienestar general</div>
+      <div class="chip" onclick="cm(this)">Rendimiento deportivo</div>
+    </div>
+    <label>¿Hay algo más que quieras contarle a Amira?</label>
+    <textarea id="f-extra" placeholder="Motivaciones, expectativas, dudas, preferencias..."></textarea>
+    <div style="margin-top:1rem;">
+      <div id="resumen-ficha"></div>
+    </div>
+    <div class="declaracion">
+      "Declaro que la información brindada en el presente formulario es veraz y completa. Comprendo que la práctica de actividad física implica ciertos riesgos y asumo la responsabilidad sobre mi estado de salud. Me comprometo a informar cualquier cambio en mi condición física o médica a Amira."
+    </div>
+    <label class="check-wrap">
+      <input type="checkbox" id="acepto" style="width:auto;margin:0;margin-top:2px;">
+      <span style="font-size:12px;color:var(--tm);">Acepto y confirmo la veracidad de los datos proporcionados.</span>
+    </label>
+    <div class="nav-btns"><button class="btn btn-back" onclick="prev(4)">← Volver</button><button class="btn btn-p" onclick="enviar()">Enviar ficha</button></div>
+    <div id="s4-msg" style="font-size:12px;margin-top:8px;color:var(--rd);"></div>
+  </div>
+
+</div><!-- fin wrap -->
+
+<!-- Success -->
+<div class="success" id="success">
+  <div class="success-icon">🎉</div>
+  <h2>¡Ficha enviada!</h2>
+  <p>Amira recibió tu ficha de salud. Te va a escribir pronto para coordinar el inicio de tu entrenamiento personalizado.</p>
+  <a id="wa-thanks" href="#" class="wa-btn" target="_blank">
+    <span style="font-size:18px;">💬</span> Escribirle a Amira
+  </a>
+</div>
+
+<script>
+let step=1;
+
+// Chip single-select
+function cs(el,groupId){
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c=>{c.classList.remove('on','single');});
+  el.classList.add('on','single');
+}
+// Chip multi-select
+function cm(el){ el.classList.toggle('on'); }
+
+function getChips(id){return [...document.querySelectorAll(`#${id} .chip.on`)].map(c=>c.textContent).join(', ')||'—';}
+
+function goTo(n){
+  document.querySelectorAll('.step-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  for(let i=1;i<=4;i++){
+    const d=document.getElementById('d'+i);
+    d.className='sdot '+(i<n?'done':i===n?'active':'pend');
+    if(i<4)document.getElementById('l'+i).className='sline'+(i<n?' done':'');
+  }
+  step=n;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function validate(n){
+  if(n===1){
+    if(!document.getElementById('f-nombre').value.trim()){alert('El nombre es obligatorio.');return false;}
+    if(!document.getElementById('f-edad').value){alert('La edad es obligatoria.');return false;}
+    if(!document.getElementById('f-mail').value.trim()){alert('El mail es obligatorio.');return false;}
+    if(!document.getElementById('f-tel').value.trim()){alert('El WhatsApp es obligatorio.');return false;}
+  }
+  if(n===4){
+    if(!document.getElementById('acepto').checked){
+      document.getElementById('s4-msg').textContent='Debés aceptar la declaración de responsabilidad.';
+      return false;
+    }
+  }
+  return true;
+}
+
+function buildResumen(){
+  const rows=[
+    ['Nombre',document.getElementById('f-nombre').value],
+    ['Edad',document.getElementById('f-edad').value+' años'],
+    ['Mail',document.getElementById('f-mail').value],
+    ['WhatsApp',document.getElementById('f-tel').value],
+    ['Lugar de entrenamiento',getChips('ch-lugar')],
+    ['Último control médico',getChips('ch-control')],
+    ['Enfermedad diagnosticada',document.getElementById('f-enfermedad').value||'—'],
+    ['Medicación',document.getElementById('f-medicacion').value||'—'],
+    ['Patología cardiovascular',getChips('ch-cardio')],
+    ['Lesiones actuales',document.getElementById('f-lesiones').value||'—'],
+    ['Lesiones previas',document.getElementById('f-lesiones-prev').value||'—'],
+    ['Dolor frecuente',getChips('ch-dolor')],
+    ['Actividad actual',getChips('ch-act')],
+    ['Objetivos',getChips('ch-objetivo')],
+  ];
+  document.getElementById('resumen-ficha').innerHTML=`
+    <div style="background:var(--s2);border-radius:var(--rs);padding:1rem;margin-bottom:1rem;">
+      <div style="font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;">Resumen de tu ficha</div>
+      ${rows.map(([l,v])=>`<div class="res-row"><span class="res-lbl">${l}</span><span class="res-val">${v}</span></div>`).join('')}
+    </div>`;
+}
+
+function next(n){
+  if(!validate(n))return;
+  if(n===3)buildResumen();
+  goTo(n+1);
+}
+function prev(n){goTo(n-1);}
+
+async function enviar(){
+  if(!validate(4))return;
+  const datos={
+    id:Date.now(),
+    nombre:document.getElementById('f-nombre').value.trim(),
+    tel:document.getElementById('f-tel').value.trim(),
+    mail:document.getElementById('f-mail').value.trim(),
+    edad:document.getElementById('f-edad').value,
+    ubicacion:getChips('ch-lugar'),
+    objetivos:getChips('ch-objetivo'),
+    modalidad:'—',
+    dias:'—',
+    // Campos de salud adicionales
+    control_medico:getChips('ch-control'),
+    enfermedad:document.getElementById('f-enfermedad').value||'Ninguna',
+    medicacion:document.getElementById('f-medicacion').value||'No',
+    patologia_cardio:getChips('ch-cardio'),
+    lesiones:document.getElementById('f-lesiones').value||'Sin lesiones',
+    lesiones_previas:document.getElementById('f-lesiones-prev').value||'Sin antecedentes',
+    dolor_zonas:getChips('ch-dolor'),
+    actividad_actual:getChips('ch-act')+' — '+document.getElementById('f-act-cual').value,
+    extra:document.getElementById('f-extra').value||'—',
+    exp:'—',
+    fecha:new Date().toLocaleDateString('es-AR'),
+    estado:'pendiente'
+  };
+
+  // Guardar en Supabase
+  try{await sbUpsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+
+  // WhatsApp a Amira
+  const amPh='5492226500790';
+  const msg=encodeURIComponent(
+`🆕 Nueva ficha de salud — Amira Fitness
+
+👤 ${datos.nombre} · ${datos.edad} años
+📱 ${datos.tel} · ${datos.mail}
+📍 ${datos.ubicacion}
+
+🎯 Objetivos: ${datos.objetivos}
+🏥 Último control: ${datos.control_medico}
+💊 Medicación: ${datos.medicacion}
+⚠️ Lesiones actuales: ${datos.lesiones}
+🔴 Dolor frecuente: ${datos.dolor_zonas}
+💪 Actividad actual: ${datos.actividad_actual}
+
+Revisá el panel: ${location.origin}/panel`);
+
+  document.querySelector('.wrap').style.display='none';
+  document.getElementById('success').style.display='block';
+  document.getElementById('wa-thanks').href=`https://wa.me/${amPh}?text=${msg}`;
+
+  // Abrir WhatsApp automáticamente después de 1 segundo
+  setTimeout(()=>window.open(`https://wa.me/${amPh}?text=${msg}`,'_blank'),1000);
+}
+</script>
+</body>
+</html>

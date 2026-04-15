@@ -12,7 +12,7 @@
   <link rel="manifest" href="/api/manifest.json">
   <link rel="apple-touch-icon" href="/api/icon-192.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  <script src="/api/sb.js"></script>
+  <script src="/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
@@ -175,8 +175,54 @@ function eKey(aId,s,d,i){return`exp-${aId}-${s}-${d}-${i}`;}
 function pKey(aId,s,d,i){return`p-${aId}-${s}-${d}-${i}`;}
 function cKey(aId,s,d){return`${aId}-${s}-${d}`;}
 
-function getAlumna(){return DB.alumnas.find(a=>a.slug===slug||a.nombre.toLowerCase().split(' ')[0]===slug);}
-function getExs(aId){try{return DB.rutinas[aId]?.[selSem]?.find(d=>d.dia===selDia)?.ejercicios||[];}catch(e){return[];}}
+function normalizar(s){return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function getAlumna(){
+  return DB.alumnas.find(a=>
+    a.slug===slug ||
+    normalizar(a.slug)===normalizar(slug) ||
+    normalizar(a.nombre.split(' ')[0])===normalizar(slug)
+  );
+}
+function getCicloActual(aId){
+  const a=DB.alumnas.find(x=>x.id===aId);
+  return parseInt(a?.ciclo_actual)||1;
+}
+function getExs(aId){
+  try{
+    const c=getCicloActual(aId);
+    const sem=parseInt(selSem);
+    const dia=parseInt(selDia);
+    
+    // Intentar con ciclo actual (claves pueden ser number o string)
+    const rutinasCiclo = DB.rutinas[aId]?.[c] || DB.rutinas[aId]?.[String(c)];
+    if(rutinasCiclo){
+      const diasSemana = rutinasCiclo[sem] || rutinasCiclo[String(sem)];
+      if(diasSemana){
+        const dayObj = diasSemana.find(d=>parseInt(d.dia)===dia);
+        if(dayObj&&dayObj.ejercicios&&dayObj.ejercicios.length>0) return dayObj.ejercicios;
+      }
+    }
+    
+    // Fallback: ciclo 1
+    const rutinas1 = DB.rutinas[aId]?.[1] || DB.rutinas[aId]?.['1'];
+    if(rutinas1){
+      const diasSem1 = rutinas1[sem] || rutinas1[String(sem)];
+      if(diasSem1){
+        const dayObj = diasSem1.find(d=>parseInt(d.dia)===dia);
+        if(dayObj) return dayObj.ejercicios||[];
+      }
+    }
+    
+    // Fallback viejo: sin ciclo (estructura legacy)
+    const legacy = DB.rutinas[aId]?.[sem] || DB.rutinas[aId]?.[String(sem)];
+    if(Array.isArray(legacy)){
+      const dayObj = legacy.find(d=>parseInt(d.dia)===dia);
+      if(dayObj) return dayObj.ejercicios||[];
+    }
+    
+    return [];
+  }catch(e){console.error('getExs error:',e);return[];}
+}
 
 function saveDone(){try{localStorage.setItem('af-done',JSON.stringify(done));}catch(e){}}
 function loadLocal(){
@@ -186,21 +232,49 @@ function loadLocal(){
   }catch(e){}
 }
 
-function toggleDone(aId,i,nextName){
+async function toggleDone(aId,i,nextName){
   const k=dKey(aId,selSem,selDia,i);
   done[k]=!done[k];
   saveDone();
   if(done[k])startTimer(nextName);
-  render();
+  renderRutina();
+  // Sync a Supabase en background
+  try{
+    const a=DB.alumnas.find(x=>x.id===aId);
+    const c=parseInt(a?.ciclo_actual)||1;
+    await sbUpsert('progreso',{
+      alumna_id:aId, ciclo:c,
+      semana:parseInt(selSem), dia:parseInt(selDia), ejercicio_idx:i,
+      hecho:done[k], fecha_registro:new Date().toISOString()
+    });
+  }catch(e){/* offline — guardado en localStorage */}
 }
 function toggleExp(aId,i){
   const k=eKey(aId,selSem,selDia,i);
   expanded[k]=!expanded[k];render();
 }
+let _pesoTimeout={};
 function savePeso(aId,i,val){
   const k=pKey(aId,selSem,selDia,i);
   pesos[k]=val;
   localStorage.setItem('af-pesos',JSON.stringify(pesos));
+  // Debounce: sync a Supabase 1.5s después de dejar de escribir
+  const tKey=`${aId}-${i}`;
+  if(_pesoTimeout[tKey])clearTimeout(_pesoTimeout[tKey]);
+  _pesoTimeout[tKey]=setTimeout(async()=>{
+    try{
+      const a=DB.alumnas.find(x=>x.id===aId);
+      const c=parseInt(a?.ciclo_actual)||1;
+      const kg=parseFloat(val)||null;
+      if(kg){
+        await sbUpsert('progreso',{
+          alumna_id:aId, ciclo:c,
+          semana:parseInt(selSem), dia:parseInt(selDia), ejercicio_idx:i,
+          peso_kg:kg, fecha_registro:new Date().toISOString()
+        });
+      }
+    }catch(e){/* offline */}
+  },1500);
 }
 
 // Timer
@@ -289,7 +363,9 @@ function render(){
   const comp=exs.filter((_,i)=>done[dKey(a.id,selSem,selDia,i)]).length;
   const total=exs.length;
   const pct=total>0?Math.round((comp/total)*100):0;
-  const semanas=Object.keys(DB.rutinas[a.id]||{'1':[]}).map(Number);
+  const c=getCicloActual(a.id);
+    const rutinasCiclo = DB.rutinas[a.id]?.[c] || DB.rutinas[a.id]?.[String(c)] || {};
+    const semanas = Object.keys(rutinasCiclo).filter(k=>!isNaN(parseInt(k))&&parseInt(k)>0).map(Number).sort();
   const coms=DB.comentarios.filter(c=>c.alumna_id===a.id&&c.semana===selSem&&c.dia===selDia);
   const fotoSrc=a.foto||'';
   const avContent=fotoSrc?`<img src="${fotoSrc}" alt="${a.nombre}">`:`${ini(a.nombre)}`;
@@ -297,7 +373,11 @@ function render(){
 
   let html=`
     <div class="hero">
-      <div class="av av-${a.color||'teal'}">${avContent}</div>
+      <div class="av av-${a.color||'teal'}" style="cursor:pointer;position:relative;" onclick="document.getElementById('foto-input-${a.id}').click()" title="Cambiar foto">
+        ${avContent}
+        <div style="position:absolute;bottom:-2px;right:-2px;background:var(--v);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:8px;color:white;border:2px solid var(--bg);">✎</div>
+      </div>
+      <input type="file" id="foto-input-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
       <div><h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2><p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana</p></div>
     </div>
     <div class="warmup">
@@ -362,6 +442,30 @@ function render(){
   screen.innerHTML=html;
 }
 
+async function cambiarFotoAlumna(aId, input){
+  const file=input.files[0]; if(!file)return;
+  // Comprimir imagen antes de guardar
+  const canvas=document.createElement('canvas');
+  const img=new Image();
+  img.onload=async()=>{
+    const MAX=200;
+    const ratio=Math.min(MAX/img.width,MAX/img.height);
+    canvas.width=img.width*ratio;canvas.height=img.height*ratio;
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const foto=canvas.toDataURL('image/jpeg',0.8);
+    const a=DB.alumnas.find(x=>x.id===aId);
+    if(a)a.foto=foto;
+    try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
+    renderRutina();
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+// Número de Amira hardcodeado como default
+if(!localStorage.getItem('af-amira-ph')){
+  localStorage.setItem('af-amira-ph','5492226500790');
+}
+
 async function init(){
   loadLocal();
   try{
@@ -380,8 +484,25 @@ async function init(){
     });
     const a=getAlumna();
     if(a){
-      const coms=await sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`);
+      const [coms,prog]=await Promise.all([
+        sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
+        sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc,semana.asc,dia.asc`)
+      ]);
       DB.comentarios=coms;
+      // Restaurar checks y pesos desde Supabase (más fresco que localStorage)
+      const c=parseInt(a.ciclo_actual)||1;
+      prog.forEach(p=>{
+        if(p.hecho){
+          const k=`${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
+          done[k]=true;
+        }
+        if(p.peso_kg){
+          const k=`p-${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
+          pesos[k]=String(p.peso_kg);
+        }
+      });
+      localStorage.setItem('af-done',JSON.stringify(done));
+      localStorage.setItem('af-pesos',JSON.stringify(pesos));
     }
   }catch(e){
     // Fallback
@@ -425,11 +546,22 @@ function getPesosAlumna(aId){
 function buildHist(aId){
   const ps=getPesosAlumna(aId);
   const hist={};
+  const c=getCicloActual(aId);
   Object.entries(ps).forEach(([k,v])=>{
     const p=k.split('-');
+    // Formato nuevo: p-aId-cN-sem-dia-idx (6 partes con ciclo como 'c1')
+    // Formato viejo: p-aId-sem-dia-idx (5 partes)
+    let sem,dia,idx;
+    if(p.length>=6&&p[2].startsWith('c')){
+      // nuevo: p[0]=p, p[1]=aId, p[2]=cN, p[3]=sem, p[4]=dia, p[5]=idx
+      sem=+p[3];dia=+p[4];idx=+p[5];
+    } else {
+      // viejo: p[0]=p, p[1]=aId, p[2]=sem, p[3]=dia, p[4]=idx
+      sem=+p[2];dia=+p[3];idx=+p[4];
+    }
     try{
-      const rows=DB.rutinas[aId]?.[+p[2]];
-      const ex=rows?.find(d=>d.dia===+p[3])?.ejercicios[+p[4]];
+      const rows=DB.rutinas[aId]?.[c]?.[sem]||DB.rutinas[aId]?.[sem];
+      const ex=rows?.find&&rows.find(d=>d.dia===dia)?.ejercicios?.[idx];
       if(!ex||!parseFloat(v))return;
       if(!hist[ex.nombre])hist[ex.nombre]=[];
       hist[ex.nombre].push({sem:+p[2],dia:+p[3],kg:parseFloat(v),label:'S'+p[2]+'D'+p[3]});
