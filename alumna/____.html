@@ -177,7 +177,7 @@ localStorage.setItem('af-amira-ph', AMIRA_WA);
 let DB = {alumnas:[], rutinas:{}, comentarios:[]};
 let selSem = 1, selDia = 1, selCiclo = 1;
 let done = {}, expanded = {}, pesos = {};
-let timerInt = null, timerTotal = 45, timerRem = 0, timerRunning = false;
+let timerInt = null, timerTotal = 45;
 let dark = localStorage.getItem('af-dark')==='1';
 let curTab = 'r';
 let charts = {};
@@ -267,39 +267,23 @@ function switchTab(t){
 
 // ── Timer ─────────────────────────────────────────────────────
 function startTimer(nextName){
-  // Matar cualquier timer anterior PRIMERO
-  if(timerInt){ clearInterval(timerInt); timerInt=null; }
-  timerRunning=true;
-  timerTotal=45; timerRem=45;
-  const el=document.getElementById('timer');
-  const numEl=document.getElementById('tnum');
-  const arcEl=document.getElementById('tarc');
-  const subEl=document.getElementById('tsub');
-  if(!el) return;
-  if(subEl) subEl.textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
-  if(numEl) numEl.textContent=timerRem;
-  if(arcEl) arcEl.style.strokeDashoffset='0';
-  el.classList.add('show');
+  const secs=45; timerTotal=secs; let rem=secs;
+  document.getElementById('tsub').textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
+  document.getElementById('timer').classList.add('show');
+  clearInterval(timerInt);
   timerInt=setInterval(()=>{
-    timerRem--;
-    const n=document.getElementById('tnum');
-    const arc=document.getElementById('tarc');
-    const t=document.getElementById('timer');
-    if(n) n.textContent=timerRem;
-    if(arc) arc.style.strokeDashoffset=150.8*(1-timerRem/timerTotal);
-    if(timerRem<=0){
-      clearInterval(timerInt); timerInt=null; timerRunning=false;
-      if(t) t.classList.remove('show');
+    rem--;
+    const n=document.getElementById('tnum'),arc=document.getElementById('tarc');
+    if(n) n.textContent=rem;
+    if(arc) arc.style.strokeDashoffset=150.8*(1-rem/secs);
+    if(rem<=0){
+      clearInterval(timerInt);
+      document.getElementById('timer').classList.remove('show');
       if(navigator.vibrate) navigator.vibrate([200,100,200]);
     }
   },1000);
 }
-function skipTimer(){
-  if(timerInt){ clearInterval(timerInt); timerInt=null; }
-  timerRunning=false; timerRem=0;
-  const el=document.getElementById('timer');
-  if(el) el.classList.remove('show');
-}
+function skipTimer(){clearInterval(timerInt);document.getElementById('timer').classList.remove('show');}
 
 // ── Confetti ──────────────────────────────────────────────────
 function launchConfetti(){
@@ -332,9 +316,9 @@ async function toggleDone(aId,i,nextName){
   const wasDone=!!done[k];
   done[k]=!done[k];
   saveDone();
-  // Timer: matar siempre primero, luego arrancar solo si se marcó como hecho
-  skipTimer();
+  // Timer: solo al marcar hecho (no al desmarcar), y ocultar si se desmarca
   if(done[k] && !wasDone) startTimer(nextName);
+  if(!done[k]) skipTimer();
   renderRutina();
   // Sync Supabase en background
   try{
@@ -456,7 +440,7 @@ function renderRutina(){
   // Selector de ciclos — siempre visible
   if(ciclos.length>0){
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
+      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="skipTimer();selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
     </div></div>`;
   }
 
@@ -464,12 +448,12 @@ function renderRutina(){
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
     ${[1,2,3,4].map(s=>{
       const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
-      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
+      return`<button class="stab${selSem===s?' active':''}" onclick="skipTimer();selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?' ✓':''}</button>`;
     }).join('')}
   </div></div>`;
 
   // Selector de días
-  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="skipTimer();selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
   // Progreso del día
   html+=`<div class="prog-wrap">
@@ -584,7 +568,7 @@ function renderProgreso(){
 function renderNotas(){
   const scr=document.getElementById('screen-notas'); if(!scr) return;
   const a=getAlumna(); if(!a){scr.innerHTML='';return;}
-  const coms=DB.comentarios.filter(c=>c.alumna_id===a.id);
+  const coms=DB.comentarios.filter(c=>String(c.alumna_id)===String(a.id));
   scr.innerHTML=`<div class="csec">
     <div class="ctit">Mis notas para Amira</div>
     <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>

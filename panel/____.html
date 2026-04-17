@@ -229,7 +229,7 @@
 </div>
 
 <!-- Modal agregar ejercicio desde biblioteca -->
-<div class="modal-bg" id="modal-bib" style="display:none;" onclick="if(event.target===this)closeBib()">
+<div class="modal-bg" id="modal-bib" style="display:none;z-index:200;" onclick="if(event.target===this)closeBib()">
   <div class="modal">
     <h3>Agregar desde biblioteca</h3>
     <div class="bib-search">
@@ -369,8 +369,8 @@ if(!localStorage.getItem('af-amira-ph')){
   localStorage.setItem('af-amira-ph','5492226500790');
 }
 const COLORS=['teal','purple','amber','coral'];
-let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],progreso:{},pesos:{}};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,selHistA:null,editExIdx:null,editAId:null,msg:'',err:'',sbOk:false};
+let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[]};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
 let bibSelEx=null;
@@ -606,20 +606,45 @@ function selectBibEx(id){
 
 async function addFromBib(){
   if(!bibSelEx)return;
-  const a=getA(S.selA);if(!a)return;
-  ensureLocal(a.id,S.selCiclo,S.selSem);
-  const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
   const nota=document.getElementById('bib-nota').value.trim();
-  day.ejercicios.push({
+  const ex={
     nombre:bibSelEx.nombre,
     series:document.getElementById('bib-series').value,
     reps:document.getElementById('bib-reps').value,
     tip:nota||bibSelEx.descripcion||'',
     video:bibSelEx.video||'',
     grupo:bibSelEx.grupo_muscular||''
-  });
+  };
+  // Modo: agregar a plantilla nueva
+  if(S._bibMode==='nuevaPlant'){
+    const d=S._nuevaPlantDiaActivo||1;
+    if(!S._nuevaPlantEstructura) S._nuevaPlantEstructura={};
+    if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
+    S._nuevaPlantEstructura[d].push(ex);
+    S._bibMode=null; closeBib();
+    renderNuevaPlantillaModal();
+    document.getElementById('modal-nueva-plant').style.display='flex';
+    return;
+  }
+  // Modo: agregar a plantilla existente (editar)
+  if(S._bibMode==='editPlant'){
+    const p=DB.plantillas.find(x=>x.id===S._editPlantId);
+    if(p){
+      const d=S._editPlantDia||1;
+      if(!p.estructura[d]) p.estructura[d]=[];
+      p.estructura[d].push(ex);
+    }
+    S._bibMode=null; closeBib();
+    renderModalPlantilla();
+    document.getElementById('modal-edit-plant').style.display='flex';
+    return;
+  }
+  // Modo normal: agregar a rutina de alumna
+  const a=getA(S.selA);if(!a)return;
+  ensureLocal(a.id,S.selCiclo,S.selSem);
+  const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
+  day.ejercicios.push(ex);
   closeBib();
-  // Autoguardado inmediato
   await saveDay();
 }
 
@@ -781,7 +806,18 @@ async function deleteBib(id){
 function verPlantilla(id){
   const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
   S._editPlantId=id;
-  S._editPlantDia=1;
+  const estructura=p.estructura||{};
+  const diasKeys=Object.keys(estructura).map(Number).filter(n=>n>0).sort();
+  S._editPlantDia=diasKeys[0]||1;
+  // Poblar campos del header del modal
+  const titleEl=document.getElementById('modal-plant-title');
+  if(titleEl) titleEl.textContent=p.nombre;
+  const nombreEl=document.getElementById('plant-edit-nombre');
+  const descEl=document.getElementById('plant-edit-desc');
+  const tipoEl=document.getElementById('plant-edit-tipo');
+  if(nombreEl) nombreEl.value=p.nombre||'';
+  if(descEl) descEl.value=p.descripcion||'';
+  if(tipoEl) tipoEl.value=p.tipo||'gym';
   renderModalPlantilla();
   document.getElementById('modal-edit-plant').style.display='flex';
 }
@@ -805,13 +841,13 @@ function renderModalPlantilla(){
     <div class="ex-item" id="pex-${i}">
       <div class="exn">${i+1}</div>
       <div class="ex-body" style="flex:1;">
-        <input type="text" value="${ex.nombre||''}" style="font-size:12px;font-weight:500;margin-bottom:4px;" placeholder="Nombre" onchange="updatePlantEx(${i},'nombre',this.value)">
+        <input type="text" value="${(ex.nombre||'').replace(/"/g,'&quot;')}" style="font-size:12px;font-weight:500;margin-bottom:4px;width:100%;" placeholder="Nombre *" oninput="updatePlantEx(${i},'nombre',this.value)">
         <div style="display:flex;gap:6px;">
-          <input type="text" value="${ex.series||'3'}" style="width:70px;font-size:11px;margin-bottom:0;" placeholder="Series" onchange="updatePlantEx(${i},'series',this.value)">
-          <input type="text" value="${ex.reps||'10'}" style="width:80px;font-size:11px;margin-bottom:0;" placeholder="Reps" onchange="updatePlantEx(${i},'reps',this.value)">
+          <input type="text" value="${ex.series||'3'}" style="width:70px;font-size:11px;margin-bottom:0;" placeholder="Series" oninput="updatePlantEx(${i},'series',this.value)">
+          <input type="text" value="${ex.reps||'10'}" style="flex:1;font-size:11px;margin-bottom:0;" placeholder="Reps / tiempo" oninput="updatePlantEx(${i},'reps',this.value)">
         </div>
-        <input type="text" value="${ex.tip||''}" style="font-size:11px;margin-top:4px;margin-bottom:0;" placeholder="Técnica (opcional)" onchange="updatePlantEx(${i},'tip',this.value)">
-        <input type="text" value="${ex.video||''}" style="font-size:10px;color:#185FA5;margin-top:3px;margin-bottom:0;" placeholder="Video URL" onchange="updatePlantEx(${i},'video',this.value)">
+        <input type="text" value="${(ex.tip||'').replace(/"/g,'&quot;')}" style="font-size:11px;margin-top:4px;margin-bottom:0;width:100%;" placeholder="Técnica / tip (opcional)" oninput="updatePlantEx(${i},'tip',this.value)">
+        <input type="text" value="${(ex.video||'').replace(/"/g,'&quot;')}" style="font-size:10px;color:#185FA5;margin-top:3px;margin-bottom:0;width:100%;" placeholder="Video URL (opcional)" oninput="updatePlantEx(${i},'video',this.value)">
       </div>
       <button class="btn btn-s btn-d" onclick="deletePlantEx(${i})" style="flex-shrink:0;">×</button>
     </div>`).join('');
@@ -833,15 +869,36 @@ function deletePlantEx(idx){
 function addPlantEx(){
   const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
   if(!p.estructura[S._editPlantDia]) p.estructura[S._editPlantDia]=[];
-  p.estructura[S._editPlantDia].push({nombre:'',series:'3',reps:'10',tip:'',video:''});
+  p.estructura[S._editPlantDia].push({nombre:'',series:'3',reps:'10',tip:'',video:'',grupo:''});
+  renderModalPlantilla();
+}
+
+function addDiaPlantilla(){
+  const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
+  const dias=Object.keys(p.estructura||{}).map(Number).filter(n=>n>0);
+  const nuevoDia=dias.length>0?Math.max(...dias)+1:1;
+  p.estructura[nuevoDia]=[];
+  p.dias=(p.dias||3)+1;
+  S._editPlantDia=nuevoDia;
   renderModalPlantilla();
 }
 
 async function savePlantilla(){
   const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
+  // Leer campos del header si existen
+  const nombreEl=document.getElementById('plant-edit-nombre');
+  const descEl=document.getElementById('plant-edit-desc');
+  const tipoEl=document.getElementById('plant-edit-tipo');
+  const updates={
+    nombre: (nombreEl?.value.trim())||p.nombre,
+    descripcion: (descEl?.value.trim())||p.descripcion||'',
+    tipo: tipoEl?.value||p.tipo||'gym',
+    estructura: p.estructura
+  };
   document.getElementById('plant-save-msg').textContent='Guardando...';
   try{
-    await sbPatch('plantillas',`id=eq.${S._editPlantId}`,{estructura:p.estructura});
+    await sbPatch('plantillas',`id=eq.${S._editPlantId}`,updates);
+    Object.assign(p,updates);
     document.getElementById('plant-save-msg').textContent='';
     document.getElementById('modal-edit-plant').style.display='none';
     S.msg='Plantilla guardada ✓';render();setTimeout(()=>{S.msg='';render();},2000);
@@ -876,10 +933,13 @@ function go(v){
   S.view=v;
   if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';}
   if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
-  // Al entrar a historial, cargar la alumna actualmente seleccionada o la primera
   if(v==='historial'){
-    const aId = S.selHistA || S.selA || DB.alumnas[0]?.id;
-    if(aId) loadHistorial(aId);
+    // Auto-seleccionar la primera alumna y cargar su historial
+    const aId=S.selHistA||S.selA||(DB.alumnas[0]?.id);
+    if(aId&&(!DB.progreso||DB.progreso[aId]===undefined)){
+      S.selHistA=aId;
+      loadHistorial(aId);
+    }
   }
   document.querySelectorAll('.nav').forEach(el=>{el.classList.remove('active');});
   document.querySelectorAll('.nav').forEach(el=>{if(el.getAttribute('onclick')===`go('${v}')`)el.classList.add('active');});
@@ -966,7 +1026,16 @@ function rAlumnas(){
       <div class="av av-${a.color}" style="width:52px;height:52px;font-size:18px;">${avH(a)}</div>
       <div><div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Foto de perfil</div><input type="file" accept="image/*" style="font-size:11px;" onchange="handleFoto(${a.id},this)"></div>
     </div>
-    <div style="display:flex;gap:8px;">
+    ${(()=>{
+      const ficha=DB.registros.find(r=>String(r.alumna_id)===String(a.id)||r.nombre===a.nombre);
+      if(!ficha)return`<div style="font-size:11px;color:var(--tm);margin-bottom:8px;">📋 Sin ficha de salud · <a href="${BASE}/registro" target="_blank" style="color:var(--v);text-decoration:none;">Enviar link de ficha</a></div>`;
+      return`<div style="background:var(--vl);border-radius:var(--rs);padding:.65rem 1rem;margin-bottom:8px;font-size:12px;color:var(--vd);">
+        📋 Ficha de salud recibida · ${ficha.fecha||''}
+        <button class="btn btn-s" style="font-size:10px;padding:2px 9px;margin-left:8px;" onclick="verFicha(${ficha.id})">Ver ficha completa</button>
+        ${ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'?`<div style="margin-top:4px;color:var(--ad);font-size:11px;">⚠️ ${ficha.lesiones}</div>`:''}
+      </div>`;
+    })()}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
       <button class="btn btn-s" onclick="navigator.clipboard.writeText('${BASE}/alumna/${a.slug}').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar link</button>
@@ -1132,7 +1201,10 @@ function rPlantillas(){
   </div>
   <div class="shd" style="margin-bottom:1rem;">
     <div class="shdt">Plantillas disponibles</div>
-    <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual como plantilla</button>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-s" onclick="abrirNuevaPlantilla()">+ Crear plantilla</button>
+      <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual</button>
+    </div>
   </div>
   ${DB.plantillas.length===0?`<div class="card"><div class="empty">Sin plantillas todavía.</div></div>`:''}
   <div class="plant-grid">
@@ -1152,7 +1224,7 @@ function rPlantillas(){
           <option value="">Aplicar a alumna...</option>
           ${DB.alumnas.map(al=>`<option value="${al.id}">${al.nombre.split(' ')[0]}</option>`).join('')}
         </select>
-        <button class="btn btn-s btn-warn" onclick="editarNombrePlantilla(${p.id})">Renombrar</button>
+        <button class="btn btn-s btn-warn" onclick="verPlantilla(${p.id})">✏️ Editar</button>
         <button class="btn btn-s btn-d" onclick="deletePlantilla(${p.id})">Eliminar</button>
       </div>
     </div>`).join('')}
@@ -1200,93 +1272,74 @@ async function editarNombrePlantilla(id){
 }
 
 async function loadHistorial(aId){
-  S.selHistA = aId;
-  render(); // mostrar la alumna seleccionada de inmediato
+  S.selHistA=aId;S.selA=aId;
+  if(!DB.progreso) DB.progreso={};
+  // Marcar como "cargando" (array vacío definido = ya consultado)
   try{
-    // Progreso: orden sin ciclo (la columna puede no existir en la BD)
-    const progresoQs = `alumna_id=eq.${aId}&order=semana.asc,dia.asc,ejercicio_idx.asc`;
-    const [progrRows, pesosRows] = await Promise.all([
-      sbGet('progreso', progresoQs).catch(()=>[]),
-      sbGet('pesos', `alumna_id=eq.${aId}&order=semana.asc,dia.asc`).catch(()=>[])
-    ]);
-    DB.progreso = DB.progreso||{};
-    DB.progreso[aId] = progrRows;
-    DB.pesos = DB.pesos||{};
-    DB.pesos[aId] = pesosRows;
+    const rows = await sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`);
+    DB.progreso[aId] = rows;
     render();
-  }catch(e){console.error('historial error',e);}
+  }catch(e){
+    DB.progreso[aId]=[];
+    console.error('historial error',e);
+    render();
+  }
 }
 
 function rHistorial(){
-  // Usar selHistA para no interferir con la alumna seleccionada en Rutinas
-  if(!S.selHistA && DB.alumnas.length>0) S.selHistA = DB.alumnas[0].id;
-  const histId = S.selHistA;
-  const a = getA(histId);
-
-  // Datos de progreso (checks/hechos)
-  const progrRows = DB.progreso?.[a?.id]||[];
-  // Datos de pesos (tabla pesos separada)
-  const pesosRows = DB.pesos?.[a?.id]||[];
-
-  // Combinar: agrupar por semana-dia para métricas
-  const diasHechos = new Set(progrRows.filter(r=>r.hecho).map(r=>`${r.semana}-${r.dia}`));
-  const totalEjHechos = progrRows.filter(r=>r.hecho).length;
-  const totalConPeso = pesosRows.length;
-  const totalSems = new Set(progrRows.map(r=>r.semana)).size;
-
-  const hayDatos = progrRows.length>0 || pesosRows.length>0;
-
+  const a=getA(S.selA);
+  // Auto-cargar si hay alumna y no tenemos datos aún
+  if(a && (!DB.progreso || DB.progreso[a.id]===undefined)){
+    loadHistorial(a.id);
+    return`<div class="ptitle">Historial de progreso</div>
+    <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+    </div>
+    <div class="spin">Cargando historial...</div>`;
+  }
+  const rows = DB.progreso?.[a?.id]||[];
+  // Agrupar por ciclo
+  const porCiclo={};
+  rows.forEach(r=>{
+    const k=r.ciclo||1;
+    if(!porCiclo[k])porCiclo[k]=[];
+    porCiclo[k].push(r);
+  });
+  // También leer pesos del localStorage de la alumna (si están)
+  const lsPesos = Object.entries(localStorage).filter(([k])=>k.startsWith('p-'+(a?.id||'')));
+  
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${histId===al.id?' btn-p':''}" onclick="loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
-  !hayDatos && !DB.progreso?.[a.id] ?
-  `<div class="card" style="background:var(--a);border-color:transparent;">
-    <div style="font-size:13px;color:var(--ad);">Cargando progreso...</div>
-  </div>` :
-  !hayDatos ?
+  rows.length===0&&lsPesos.length===0?
   `<div class="card" style="background:var(--a);border-color:transparent;">
     <div style="font-size:13px;color:var(--ad);line-height:1.7;">
       <strong>Sin progreso registrado todavía.</strong><br>
       El progreso aparece acá cuando la alumna marca ejercicios como hechos y carga pesos en su app.
+      Los pesos se guardan en el navegador de la alumna — cuando se sincronicen a Supabase (próxima versión) van a aparecer acá consolidados por ciclo.
     </div>
-  </div>` :
-  `<div class="card" style="margin-bottom:1rem;">
-    <div class="ctitle">Resumen general</div>
+  </div>`:
+  `${Object.entries(porCiclo).sort(([a],[b])=>b-a).map(([ciclo,rs])=>`
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Ciclo ${ciclo}</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.75rem;">
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Días completados</div><div class="mval" style="font-size:1.5rem;">${diasHechos.size}</div></div>
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Ejercicios hechos</div><div class="mval" style="font-size:1.5rem;">${totalEjHechos}</div></div>
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Pesos registrados</div><div class="mval" style="font-size:1.5rem;">${totalConPeso}</div></div>
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Semanas</div><div class="mval" style="font-size:1.5rem;">${totalSems}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Días completados</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.filter(r=>r.hecho).map(r=>r.semana+'-'+r.dia)).size}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Ejercicios hechos</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.hecho).length}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Con peso registrado</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.peso_kg).length}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Semanas</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.map(r=>r.semana)).size}</div></div>
     </div>
-  </div>
-  ${pesosRows.length>0?`
-  <div class="card">
-    <div class="ctitle">Pesos registrados</div>
+    ${rs.filter(r=>r.peso_kg).length>0?`
     <table style="width:100%;font-size:12px;border-collapse:collapse;">
       <thead><tr>${['Sem','Día','Ejercicio','Peso','Fecha'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
-      <tbody>${pesosRows.map(r=>`<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid var(--b);">${r.ejercicio||'—'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.kg||r.peso_kg||'—'} kg</td>
-        <td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.created_at?new Date(r.created_at).toLocaleDateString('es-AR'):''}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-  </div>`:''}
-  ${progrRows.filter(r=>r.hecho).length>0?`
-  <div class="card">
-    <div class="ctitle">Ejercicios completados</div>
-    <table style="width:100%;font-size:12px;border-collapse:collapse;">
-      <thead><tr>${['Sem','Día','Ejercicio'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
-      <tbody>${progrRows.filter(r=>r.hecho).map(r=>`<tr>
-        <td style="padding:5px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td>
-        <td style="padding:5px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td>
-        <td style="padding:5px 8px;border-bottom:1px solid var(--b);">${r.ejercicio||'Ejercicio '+(r.ejercicio_idx+1)}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-  </div>`:''}
+      <tbody>${rs.filter(r=>r.peso_kg).map(r=>{
+        const day=getEx(a.id,parseInt(ciclo),r.semana,r.dia);
+        const ex=day[r.ejercicio_idx];
+        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${ex?.nombre||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
+      }).join('')}</tbody>
+    </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
+  </div>`).join('')}
   `}`;
 }
 
@@ -1346,6 +1399,132 @@ function rConfig(){
 }
 
 initAuth();
+
+// ── Ver ficha de salud completa ───────────────────────────────
+function verFicha(id){
+  const r=DB.registros.find(x=>x.id===id); if(!r)return;
+  const campos=[
+    ['Nombre',r.nombre],
+    ['Edad',r.edad?r.edad+' años':null],
+    ['Mail',r.mail],
+    ['WhatsApp',r.tel],
+    ['Lugar',r.ubicacion],
+    ['Objetivos',r.objetivos],
+    ['Modalidad',r.modalidad],
+    ['Días/semana',r.dias],
+    ['Experiencia',r.exp],
+    ['Último control médico',r.control_medico],
+    ['Enfermedad diagnosticada',r.enfermedad],
+    ['Medicación habitual',r.medicacion],
+    ['Patología cardiovascular',r.patologia_cardio],
+    ['Lesiones actuales',r.lesiones],
+    ['Lesiones previas',r.lesiones_previas],
+    ['Dolor frecuente en zonas',r.dolor_zonas],
+    ['Actividad física actual',r.actividad_actual],
+    ['Notas extra',r.extra],
+    ['Fecha de envío',r.fecha],
+  ];
+  document.getElementById('ficha-modal-body').innerHTML=campos.map(([l,v])=>{
+    const val=v||'—';
+    const empty=!v;
+    return`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:.55rem 0;border-bottom:1px solid var(--b);gap:12px;"><span style="font-size:11px;color:var(--tm);flex-shrink:0;min-width:160px;">${l}</span><span style="font-size:12px;font-weight:${empty?'400':'500'};color:${empty?'var(--th)':'var(--t)'};text-align:right;">${val}</span></div>`;
+  }).join('');
+  document.getElementById('modal-ver-ficha').style.display='flex';
+}
+
+// ── Nueva plantilla desde cero ────────────────────────────────
+function abrirNuevaPlantilla(){
+  S._nuevaPlantEstructura = {1:[],2:[],3:[]};
+  S._nuevaPlantDiaActivo = 1;
+  document.getElementById('np-nombre').value='';
+  document.getElementById('np-desc').value='';
+  document.getElementById('np-tipo').value='gym';
+  document.getElementById('np-dias').value='3';
+  document.getElementById('np-msg').textContent='';
+  renderNuevaPlantillaModal();
+  document.getElementById('modal-nueva-plant').style.display='flex';
+}
+
+function renderNuevaPlantillaModal(){
+  const dias = parseInt(document.getElementById('np-dias')?.value||3);
+  if(!S._nuevaPlantEstructura) S._nuevaPlantEstructura={};
+  for(let d=1;d<=dias;d++){ if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[]; }
+  Object.keys(S._nuevaPlantEstructura).forEach(d=>{ if(parseInt(d)>dias) delete S._nuevaPlantEstructura[d]; });
+  if((S._nuevaPlantDiaActivo||1)>dias) S._nuevaPlantDiaActivo=1;
+  const diaActual = S._nuevaPlantDiaActivo||1;
+  const exs = S._nuevaPlantEstructura[diaActual]||[];
+  const tabsEl = document.getElementById('np-dia-tabs');
+  if(tabsEl) tabsEl.innerHTML = Array.from({length:dias},(_,i)=>i+1)
+    .map(d=>`<button class="dtab${diaActual===d?' active':''}" onclick="S._nuevaPlantDiaActivo=${d};renderNuevaPlantillaModal()" style="flex:none;padding:5px 12px;">Día ${d}</button>`).join('');
+  const listEl = document.getElementById('np-exs-list');
+  if(!listEl) return;
+  listEl.innerHTML = exs.length===0 ? '<div class="empty" style="padding:.5rem 0;">Sin ejercicios todavía.</div>' :
+    exs.map((ex,i)=>`<div class="ex-item">
+      <div class="exn">${i+1}</div>
+      <div class="ex-body" style="flex:1;">
+        <input type="text" value="${(ex.nombre||'').replace(/"/g,'&quot;')}" style="font-size:12px;font-weight:500;margin-bottom:4px;width:100%;" placeholder="Nombre del ejercicio *" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].nombre=this.value">
+        <div style="display:flex;gap:6px;margin-bottom:4px;">
+          <input type="text" value="${ex.series||'3'}" style="width:70px;font-size:11px;margin-bottom:0;" placeholder="Series" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].series=this.value">
+          <input type="text" value="${ex.reps||'10'}" style="width:80px;font-size:11px;margin-bottom:0;" placeholder="Reps" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].reps=this.value">
+        </div>
+        <input type="text" value="${(ex.tip||'').replace(/"/g,'&quot;')}" style="font-size:11px;margin-bottom:3px;width:100%;" placeholder="Técnica (opcional)" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].tip=this.value">
+        <input type="text" value="${(ex.video||'').replace(/"/g,'&quot;')}" style="font-size:10px;color:#185FA5;margin-bottom:0;width:100%;" placeholder="Video URL (opcional)" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].video=this.value">
+      </div>
+      <button class="btn btn-s btn-d" onclick="S._nuevaPlantEstructura[${diaActual}].splice(${i},1);renderNuevaPlantillaModal()" style="flex-shrink:0;align-self:flex-start;">×</button>
+    </div>`).join('');
+}
+
+function addNuevaPlantEx(){
+  const d = S._nuevaPlantDiaActivo||1;
+  if(!S._nuevaPlantEstructura) S._nuevaPlantEstructura={};
+  if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
+  S._nuevaPlantEstructura[d].push({nombre:'',series:'3',reps:'10',tip:'',video:''});
+  renderNuevaPlantillaModal();
+}
+
+function addNuevaPlantExDesdeBib(){
+  S._bibMode = 'nuevaPlant';
+  document.getElementById('bib-q').value='';
+  document.getElementById('bib-grupo').value='';
+  renderBib();
+  document.getElementById('bib-selected-wrap').style.display='none';
+  document.getElementById('bib-add-btn').style.display='none';
+  document.getElementById('modal-bib').style.display='flex';
+}
+
+function addPlantExDesdeBib(){
+  S._bibMode = 'editPlant';
+  document.getElementById('bib-q').value='';
+  document.getElementById('bib-grupo').value='';
+  renderBib();
+  document.getElementById('bib-selected-wrap').style.display='none';
+  document.getElementById('bib-add-btn').style.display='none';
+  document.getElementById('modal-bib').style.display='flex';
+}
+
+async function saveNuevaPlantilla(){
+  const nombre = document.getElementById('np-nombre').value.trim();
+  if(!nombre){ document.getElementById('np-msg').textContent='El nombre es obligatorio.'; return; }
+  const estructura = S._nuevaPlantEstructura||{};
+  const datos = {
+    nombre,
+    descripcion: document.getElementById('np-desc').value.trim(),
+    tipo: document.getElementById('np-tipo').value,
+    dias: parseInt(document.getElementById('np-dias').value)||3,
+    estructura
+  };
+  document.getElementById('np-msg').textContent='Guardando...';
+  try{
+    const res = await sbUpsert('plantillas', datos);
+    const saved = Array.isArray(res)?res[0]:res;
+    DB.plantillas.push(saved);
+    document.getElementById('modal-nueva-plant').style.display='none';
+    S.msg='Plantilla creada ✓'; go('plantillas');
+    setTimeout(()=>{S.msg='';render();},2500);
+  }catch(e){ document.getElementById('np-msg').textContent='Error: '+e.message; }
+}
+
+function changeNuevaDias(){ renderNuevaPlantillaModal(); }
 </script>
 
 <!-- Modal editar ejercicio en biblioteca -->
@@ -1385,21 +1564,79 @@ initAuth();
 
 <!-- Modal editar plantilla completa -->
 <div class="modal-bg" id="modal-edit-plant" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:600px;">
+  <div class="modal" style="max-width:620px;">
     <h3 id="modal-plant-title">Editar plantilla</h3>
-    <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:1rem;"></div>
-    <div style="margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:12px;color:var(--tm);">Editá los ejercicios de este día. Los cambios se guardan al presionar "Guardar plantilla".</div>
-      <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Ejercicio</button>
+    <div class="frow" style="margin-bottom:10px;">
+      <div><label>Nombre</label><input type="text" id="plant-edit-nombre" placeholder="Nombre de la plantilla"></div>
+      <div><label>Tipo</label><select id="plant-edit-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
     </div>
-    <div id="plant-exs-list" style="max-height:340px;overflow-y:auto;padding-right:4px;"></div>
-    <div style="display:flex;gap:8px;margin-top:1rem;">
+    <label>Descripción</label>
+    <input type="text" id="plant-edit-desc" placeholder="Descripción breve" style="margin-bottom:.75rem;">
+    <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:.75rem;flex-wrap:wrap;"></div>
+    <div style="margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:12px;color:var(--tm);">Ejercicios del día — se guardan al presionar "Guardar plantilla".</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-s btn-purple" onclick="addPlantExDesdeBib()">+ Desde biblioteca</button>
+        <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Nuevo ejercicio</button>
+      </div>
+    </div>
+    <div id="plant-exs-list" style="max-height:300px;overflow-y:auto;padding-right:4px;border:1px solid var(--b);border-radius:var(--rs);padding:.5rem;min-height:60px;"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
       <button class="btn btn-p" onclick="savePlantilla()">Guardar plantilla</button>
+      <button class="btn btn-s" onclick="addDiaPlantilla()">+ Agregar día</button>
       <button class="btn" onclick="document.getElementById('modal-edit-plant').style.display='none'">Cancelar</button>
     </div>
     <div id="plant-save-msg" style="font-size:12px;margin-top:8px;color:var(--rd);"></div>
   </div>
 </div>
+<!-- Modal nueva plantilla desde cero -->
+<div class="modal-bg" id="modal-nueva-plant" style="display:none;z-index:150;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:620px;">
+    <h3>Nueva plantilla</h3>
+    <div class="frow" style="margin-bottom:10px;">
+      <div>
+        <label>Nombre *</label>
+        <input type="text" id="np-nombre" placeholder="Ej: Gym 3 días — Intermedio">
+      </div>
+      <div>
+        <label>Tipo</label>
+        <select id="np-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select>
+      </div>
+    </div>
+    <label>Descripción</label>
+    <input type="text" id="np-desc" placeholder="Ej: Para alumnas con 6+ meses de experiencia" style="margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <label style="margin-bottom:0;white-space:nowrap;">Días/semana:</label>
+      <select id="np-dias" onchange="changeNuevaDias()" style="width:90px;margin-bottom:0;">
+        <option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+      </select>
+    </div>
+    <div class="dtabs" id="np-dia-tabs" style="margin-bottom:.75rem;flex-wrap:wrap;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+      <div style="font-size:12px;color:var(--tm);">Ejercicios del día seleccionado</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-s btn-purple" onclick="addNuevaPlantExDesdeBib()">+ Desde biblioteca</button>
+        <button class="btn btn-p btn-s" onclick="addNuevaPlantEx()">+ Agregar ejercicio</button>
+      </div>
+    </div>
+    <div id="np-exs-list" style="max-height:280px;overflow-y:auto;padding-right:4px;margin-bottom:1rem;border:1px solid var(--b);border-radius:var(--rs);padding:.5rem;min-height:60px;"></div>
+    <div id="np-msg" style="font-size:12px;color:var(--rd);min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" onclick="saveNuevaPlantilla()">Crear plantilla</button>
+      <button class="btn" onclick="document.getElementById('modal-nueva-plant').style.display='none'">Cancelar</button>
+    </div>
+  </div>
+</div>
 
+<!-- Modal ver ficha de salud -->
+<div class="modal-bg" id="modal-ver-ficha" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="margin-bottom:0;">📋 Ficha de salud</h3>
+      <button class="btn btn-s" onclick="document.getElementById('modal-ver-ficha').style.display='none'">✕ Cerrar</button>
+    </div>
+    <div id="ficha-modal-body" style="max-height:65vh;overflow-y:auto;padding-right:4px;"></div>
+  </div>
+</div>
 </body>
 </html>
