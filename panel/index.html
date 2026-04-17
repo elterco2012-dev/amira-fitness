@@ -604,7 +604,7 @@ function selectBibEx(id){
   document.getElementById('bib-nota').value='';
 }
 
-function addFromBib(){
+async function addFromBib(){
   if(!bibSelEx)return;
   const a=getA(S.selA);if(!a)return;
   ensureLocal(a.id,S.selCiclo,S.selSem);
