@@ -153,7 +153,7 @@
   <div id="screen-progreso" class="screen" style="display:none;"></div>
   <div id="screen-notas" class="screen" style="display:none;"></div>
 </div>
-<div class="timer" id="timer">
+<div class="timer" id="timer" style="transform:translateY(100%);">
   <div class="tcircle">
     <svg class="tring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="3"/><circle id="tarc" cx="27" cy="27" r="24" fill="none" stroke="white" stroke-width="3" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 27 27)"/></svg>
     <span class="tnum" id="tnum">45</span>
@@ -185,7 +185,13 @@ let selHistEx = null;
 
 // ── PWA ───────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>{
+    // Limpiar service workers viejos primero
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      regs.forEach(r=>{ if(r.scope!==location.origin+'/') r.unregister(); });
+    });
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
 }
 
 // ── Theme ─────────────────────────────────────────────────────
