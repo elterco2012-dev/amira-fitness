@@ -100,8 +100,8 @@
     .peso-in{flex:1;padding:6px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);max-width:90px;text-align:center;}
     .peso-in:focus{outline:none;border-color:var(--v);}
 
-    .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(120%);visibility:hidden;pointer-events:none;transition:transform .35s cubic-bezier(.4,0,.2,1),visibility 0s linear .35s;box-shadow:0 -4px 20px rgba(0,0,0,.08);}
-    .timer.show{transform:translateY(0);visibility:visible;pointer-events:auto;transition:transform .35s cubic-bezier(.4,0,.2,1),visibility 0s linear 0s;}
+    .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 20px rgba(0,0,0,.08);}
+    .timer.show{transform:translateY(0);}
     .tcircle{width:54px;height:54px;border-radius:50%;background:var(--v);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
     .tnum{font-family:'DM Serif Display',serif;font-size:22px;color:white;position:relative;z-index:1;}
     .tring{position:absolute;inset:0;border-radius:50%;}
@@ -153,7 +153,7 @@
   <div id="screen-progreso" class="screen" style="display:none;"></div>
   <div id="screen-notas" class="screen" style="display:none;"></div>
 </div>
-<div class="timer" id="timer">
+<div class="timer" id="timer" style="transform:translateY(100%);">
   <div class="tcircle">
     <svg class="tring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="3"/><circle id="tarc" cx="27" cy="27" r="24" fill="none" stroke="white" stroke-width="3" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 27 27)"/></svg>
     <span class="tnum" id="tnum">45</span>
@@ -185,7 +185,13 @@ let selHistEx = null;
 
 // ── PWA ───────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>{
+    // Limpiar service workers viejos primero
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      regs.forEach(r=>{ if(r.scope!==location.origin+'/') r.unregister(); });
+    });
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
 }
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -269,19 +275,15 @@ function switchTab(t){
 function startTimer(nextName){
   // Matar cualquier timer anterior PRIMERO
   if(timerInt){ clearInterval(timerInt); timerInt=null; }
-  timerRunning=true;
-  timerTotal=45; timerRem=45;
+  timerRunning=true; timerTotal=45; timerRem=45;
   const el=document.getElementById('timer');
+  const subEl=document.getElementById('tsub');
   const numEl=document.getElementById('tnum');
   const arcEl=document.getElementById('tarc');
-  const subEl=document.getElementById('tsub');
-  if(!el) return;
   if(subEl) subEl.textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
   if(numEl) numEl.textContent=timerRem;
   if(arcEl) arcEl.style.strokeDashoffset='0';
-  el.classList.add('show');
-  el.style.visibility='visible';
-  el.style.pointerEvents='auto';
+  if(el) el.classList.add('show');
   timerInt=setInterval(()=>{
     timerRem--;
     const n=document.getElementById('tnum');
@@ -291,7 +293,7 @@ function startTimer(nextName){
     if(arc) arc.style.strokeDashoffset=150.8*(1-timerRem/timerTotal);
     if(timerRem<=0){
       clearInterval(timerInt); timerInt=null; timerRunning=false;
-      if(t){t.classList.remove('show');t.style.visibility='';t.style.pointerEvents='';}
+      if(t) t.classList.remove('show');
       if(navigator.vibrate) navigator.vibrate([200,100,200]);
     }
   },1000);
@@ -300,7 +302,7 @@ function skipTimer(){
   if(timerInt){ clearInterval(timerInt); timerInt=null; }
   timerRunning=false; timerRem=0;
   const el=document.getElementById('timer');
-  if(el){el.classList.remove('show');el.style.visibility='';el.style.pointerEvents='';}
+  if(el) el.classList.remove('show');
 }
 
 // ── Confetti ──────────────────────────────────────────────────
@@ -334,9 +336,8 @@ async function toggleDone(aId,i,nextName){
   const wasDone=!!done[k];
   done[k]=!done[k];
   saveDone();
-  // Timer: matar siempre primero, luego arrancar solo si se marcó como hecho
-  skipTimer();
-  if(done[k] && !wasDone) startTimer(nextName);
+  skipTimer(); // siempre matar timer anterior primero
+  if(done[k] && !wasDone) startTimer(nextName); // solo arrancar al marcar, no al desmarcar
   renderRutina();
   // Sync Supabase en background
   try{
@@ -458,7 +459,7 @@ function renderRutina(){
   // Selector de ciclos — siempre visible
   if(ciclos.length>0){
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
+      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="skipTimer();selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
     </div></div>`;
   }
 
@@ -466,12 +467,12 @@ function renderRutina(){
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
     ${[1,2,3,4].map(s=>{
       const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
-      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
+      return`<button class="stab${selSem===s?' active':''}" onclick="skipTimer();selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
     }).join('')}
   </div></div>`;
 
   // Selector de días
-  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="skipTimer();selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
   // Progreso del día
   html+=`<div class="prog-wrap">
@@ -658,6 +659,7 @@ async function init(){
       }
     }catch(e2){}
   }
+  skipTimer(); // asegurar que el timer no quede visible al cargar
   renderRutina();
 }
 init();
