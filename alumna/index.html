@@ -100,8 +100,8 @@
     .peso-in{flex:1;padding:6px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);max-width:90px;text-align:center;}
     .peso-in:focus{outline:none;border-color:var(--v);}
 
-    .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(120%);visibility:hidden;pointer-events:none;transition:transform .35s cubic-bezier(.4,0,.2,1),visibility 0s linear .35s;box-shadow:0 -4px 20px rgba(0,0,0,.08);}
-    .timer.show{transform:translateY(0);visibility:visible;pointer-events:auto;transition:transform .35s cubic-bezier(.4,0,.2,1),visibility 0s linear 0s;}
+    .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 20px rgba(0,0,0,.08);}
+    .timer.show{transform:translateY(0);}
     .tcircle{width:54px;height:54px;border-radius:50%;background:var(--v);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
     .tnum{font-family:'DM Serif Display',serif;font-size:22px;color:white;position:relative;z-index:1;}
     .tring{position:absolute;inset:0;border-radius:50%;}
@@ -177,7 +177,7 @@ localStorage.setItem('af-amira-ph', AMIRA_WA);
 let DB = {alumnas:[], rutinas:{}, comentarios:[]};
 let selSem = 1, selDia = 1, selCiclo = 1;
 let done = {}, expanded = {}, pesos = {};
-let timerInt = null, timerTotal = 45, timerRem = 0, timerRunning = false;
+let timerInt = null, timerTotal = 45;
 let dark = localStorage.getItem('af-dark')==='1';
 let curTab = 'r';
 let charts = {};
@@ -267,41 +267,23 @@ function switchTab(t){
 
 // ── Timer ─────────────────────────────────────────────────────
 function startTimer(nextName){
-  // Matar cualquier timer anterior PRIMERO
-  if(timerInt){ clearInterval(timerInt); timerInt=null; }
-  timerRunning=true;
-  timerTotal=45; timerRem=45;
-  const el=document.getElementById('timer');
-  const numEl=document.getElementById('tnum');
-  const arcEl=document.getElementById('tarc');
-  const subEl=document.getElementById('tsub');
-  if(!el) return;
-  if(subEl) subEl.textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
-  if(numEl) numEl.textContent=timerRem;
-  if(arcEl) arcEl.style.strokeDashoffset='0';
-  el.classList.add('show');
-  el.style.visibility='visible';
-  el.style.pointerEvents='auto';
+  const secs=45; timerTotal=secs; let rem=secs;
+  document.getElementById('tsub').textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
+  document.getElementById('timer').classList.add('show');
+  clearInterval(timerInt);
   timerInt=setInterval(()=>{
-    timerRem--;
-    const n=document.getElementById('tnum');
-    const arc=document.getElementById('tarc');
-    const t=document.getElementById('timer');
-    if(n) n.textContent=timerRem;
-    if(arc) arc.style.strokeDashoffset=150.8*(1-timerRem/timerTotal);
-    if(timerRem<=0){
-      clearInterval(timerInt); timerInt=null; timerRunning=false;
-      if(t){t.classList.remove('show');t.style.visibility='';t.style.pointerEvents='';}
+    rem--;
+    const n=document.getElementById('tnum'),arc=document.getElementById('tarc');
+    if(n) n.textContent=rem;
+    if(arc) arc.style.strokeDashoffset=150.8*(1-rem/secs);
+    if(rem<=0){
+      clearInterval(timerInt);
+      document.getElementById('timer').classList.remove('show');
       if(navigator.vibrate) navigator.vibrate([200,100,200]);
     }
   },1000);
 }
-function skipTimer(){
-  if(timerInt){ clearInterval(timerInt); timerInt=null; }
-  timerRunning=false; timerRem=0;
-  const el=document.getElementById('timer');
-  if(el){el.classList.remove('show');el.style.visibility='';el.style.pointerEvents='';}
-}
+function skipTimer(){clearInterval(timerInt);document.getElementById('timer').classList.remove('show');}
 
 // ── Confetti ──────────────────────────────────────────────────
 function launchConfetti(){
@@ -331,12 +313,9 @@ function launchConfetti(){
 // ── Actions ───────────────────────────────────────────────────
 async function toggleDone(aId,i,nextName){
   const k=dKey(aId,selSem,selDia,i);
-  const wasDone=!!done[k];
   done[k]=!done[k];
   saveDone();
-  // Timer: matar siempre primero, luego arrancar solo si se marcó como hecho
-  skipTimer();
-  if(done[k] && !wasDone) startTimer(nextName);
+  if(done[k]) startTimer(nextName);
   renderRutina();
   // Sync Supabase en background
   try{
