@@ -351,13 +351,8 @@
     <label>WhatsApp</label><input type="tel" id="ea-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="ea-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
-      <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+      <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option></select></div>
     </div>
-    <label>Ciclo actual <span style="font-size:11px;color:var(--tm);">(lo que ve la alumna al abrir su rutina)</span></label>
-    <select id="ea-ciclo" style="margin-bottom:12px;">
-      <option value="1">Ciclo 1</option><option value="2">Ciclo 2</option><option value="3">Ciclo 3</option>
-      <option value="4">Ciclo 4</option><option value="5">Ciclo 5</option><option value="6">Ciclo 6</option>
-    </select>
     <label>Notas personales</label><textarea id="ea-notas"></textarea>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" onclick="saveEditA()">Guardar</button>
@@ -375,7 +370,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,msg:'',err:'',sbOk:false};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,selHistA:null,editExIdx:null,editAId:null,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
 let bibSelEx=null;
@@ -611,46 +606,20 @@ function selectBibEx(id){
 
 async function addFromBib(){
   if(!bibSelEx)return;
+  const a=getA(S.selA);if(!a)return;
+  ensureLocal(a.id,S.selCiclo,S.selSem);
+  const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
   const nota=document.getElementById('bib-nota').value.trim();
-  const ex={
+  day.ejercicios.push({
     nombre:bibSelEx.nombre,
     series:document.getElementById('bib-series').value,
     reps:document.getElementById('bib-reps').value,
     tip:nota||bibSelEx.descripcion||'',
     video:bibSelEx.video||'',
     grupo:bibSelEx.grupo_muscular||''
-  };
-  // Modo agregar a nueva plantilla
-  if(S._bibParaPlantillaEdit){
-    // Agregar a plantilla existente (editar)
-    const p=DB.plantillas.find(x=>x.id===S._editPlantId);
-    if(p){
-      const d=S._editPlantDia||1;
-      if(!p.estructura[d]) p.estructura[d]=[];
-      p.estructura[d].push(ex);
-    }
-    S._bibParaPlantillaEdit=false;
-    closeBib();
-    renderModalPlantilla();
-    document.getElementById('modal-edit-plant').style.display='flex';
-    return;
-  }
-  if(S._bibParaPlantilla){
-    const d=S._nuevaPlantDiaActivo||1;
-    if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
-    S._nuevaPlantEstructura[d].push(ex);
-    S._bibParaPlantilla=false;
-    closeBib();
-    renderNuevaPlantillaModal();
-    document.getElementById('modal-nueva-plant').style.display='flex';
-    return;
-  }
-  // Modo agregar a rutina de alumna
-  const a=getA(S.selA);if(!a)return;
-  ensureLocal(a.id,S.selCiclo,S.selSem);
-  const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
-  day.ejercicios.push(ex);
+  });
   closeBib();
+  // Autoguardado inmediato
   await saveDay();
 }
 
@@ -730,7 +699,6 @@ function openEditA(id){
   document.getElementById('ea-tel').value=a.tel||'';
   document.getElementById('ea-tipo').value=a.tipo;
   document.getElementById('ea-dias').value=a.dias;
-  document.getElementById('ea-ciclo').value=a.ciclo_actual||1;
   document.getElementById('ea-notas').value=a.notas||'';
   document.getElementById('ea-msg').textContent='';
   document.getElementById('modal-edit-a').style.display='flex';
@@ -738,14 +706,7 @@ function openEditA(id){
 function closeEditA(){document.getElementById('modal-edit-a').style.display='none';S.editAId=null;}
 async function saveEditA(){
   const a=getA(S.editAId);if(!a)return;
-  const updates={
-    nombre:document.getElementById('ea-nombre').value.trim(),
-    tel:document.getElementById('ea-tel').value.trim(),
-    tipo:document.getElementById('ea-tipo').value,
-    dias:parseInt(document.getElementById('ea-dias').value),
-    ciclo_actual:parseInt(document.getElementById('ea-ciclo').value)||1,
-    notas:document.getElementById('ea-notas').value.trim()
-  };
+  const updates={nombre:document.getElementById('ea-nombre').value.trim(),tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim()};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
   catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
@@ -820,12 +781,7 @@ async function deleteBib(id){
 function verPlantilla(id){
   const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
   S._editPlantId=id;
-  const estructura=p.estructura||{};
-  S._editPlantDia=parseInt(Object.keys(estructura).sort()[0])||1;
-  // Cargar campos de cabecera
-  document.getElementById('plant-edit-nombre').value=p.nombre||'';
-  document.getElementById('plant-edit-desc').value=p.descripcion||'';
-  document.getElementById('plant-edit-tipo').value=p.tipo||'gym';
+  S._editPlantDia=1;
   renderModalPlantilla();
   document.getElementById('modal-edit-plant').style.display='flex';
 }
@@ -881,27 +837,11 @@ function addPlantEx(){
   renderModalPlantilla();
 }
 
-function addPlantExDesdeBib(){
-  S._bibParaPlantillaEdit=true;
-  renderBib();
-  document.getElementById('bib-selected-wrap').style.display='none';
-  document.getElementById('bib-add-btn').style.display='none';
-  document.getElementById('modal-bib').style.display='flex';
-}
-
 async function savePlantilla(){
   const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
-  const nombre=document.getElementById('plant-edit-nombre').value.trim()||p.nombre;
-  const updates={
-    nombre,
-    descripcion:document.getElementById('plant-edit-desc').value.trim(),
-    tipo:document.getElementById('plant-edit-tipo').value,
-    estructura:p.estructura
-  };
   document.getElementById('plant-save-msg').textContent='Guardando...';
   try{
-    await sbPatch('plantillas',`id=eq.${S._editPlantId}`,updates);
-    Object.assign(p,updates);
+    await sbPatch('plantillas',`id=eq.${S._editPlantId}`,{estructura:p.estructura});
     document.getElementById('plant-save-msg').textContent='';
     document.getElementById('modal-edit-plant').style.display='none';
     S.msg='Plantilla guardada ✓';render();setTimeout(()=>{S.msg='';render();},2000);
@@ -1021,7 +961,15 @@ function rAlumnas(){
       <div class="av av-${a.color}" style="width:52px;height:52px;font-size:18px;">${avH(a)}</div>
       <div><div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Foto de perfil</div><input type="file" accept="image/*" style="font-size:11px;" onchange="handleFoto(${a.id},this)"></div>
     </div>
-    <div style="display:flex;gap:8px;">
+    ${(()=>{
+      const ficha=DB.registros.find(r=>String(r.alumna_id)===String(a.id)||r.nombre===a.nombre);
+      if(!ficha)return`<div style="font-size:11px;color:var(--tm);margin-bottom:8px;">📋 Sin ficha de salud · <a href="${BASE}/ficha/${a.slug}" target="_blank" style="color:var(--v);text-decoration:none;">Enviar link de ficha</a></div>`;
+      return`<div style="background:var(--vl);border-radius:var(--rs);padding:.65rem 1rem;margin-bottom:8px;font-size:12px;color:var(--vd);">
+        📋 Ficha de salud recibida · ${ficha.fecha||''} · <button class="btn btn-s" style="font-size:10px;padding:2px 8px;" onclick="verFicha(${ficha.id})">Ver ficha</button>
+        ${ficha.lesiones&&ficha.lesiones!=='Sin lesiones'?`<div style="margin-top:4px;color:var(--ad);">⚠️ ${ficha.lesiones}</div>`:''}
+      </div>`;
+    })()}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
       <button class="btn btn-s" onclick="navigator.clipboard.writeText('${BASE}/alumna/${a.slug}').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar link</button>
@@ -1187,12 +1135,8 @@ function rPlantillas(){
   </div>
   <div class="shd" style="margin-bottom:1rem;">
     <div class="shdt">Plantillas disponibles</div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn btn-s" onclick="abrirNuevaPlantilla()">+ Crear plantilla</button>
-      <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual</button>
-    </div>
+    <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual como plantilla</button>
   </div>
-  ${S.msg?`<div style="font-size:12px;color:var(--vd);margin-bottom:.75rem;">${S.msg}</div>`:''}
   ${DB.plantillas.length===0?`<div class="card"><div class="empty">Sin plantillas todavía.</div></div>`:''}
   <div class="plant-grid">
     ${DB.plantillas.map(p=>`
@@ -1211,7 +1155,7 @@ function rPlantillas(){
           <option value="">Aplicar a alumna...</option>
           ${DB.alumnas.map(al=>`<option value="${al.id}">${al.nombre.split(' ')[0]}</option>`).join('')}
         </select>
-        <button class="btn btn-s btn-warn" onclick="verPlantilla(${p.id})">✏️ Editar</button>
+        <button class="btn btn-s btn-warn" onclick="editarNombrePlantilla(${p.id})">Renombrar</button>
         <button class="btn btn-s btn-d" onclick="deletePlantilla(${p.id})">Eliminar</button>
       </div>
     </div>`).join('')}
@@ -1259,6 +1203,8 @@ async function editarNombrePlantilla(id){
 }
 
 async function loadHistorial(aId){
+  S.selHistA=aId;
+  render(); // re-render inmediato para mostrar la alumna seleccionada
   try{
     const rows = await sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`);
     DB.progreso = DB.progreso||{};
@@ -1268,7 +1214,9 @@ async function loadHistorial(aId){
 }
 
 function rHistorial(){
-  const a=getA(S.selA);
+  const histId = S.selHistA || S.selA;
+  if(!histId && DB.alumnas.length>0){ S.selHistA=DB.alumnas[0].id; loadHistorial(DB.alumnas[0].id); }
+  const a=getA(histId||DB.alumnas[0]?.id);
   const rows = DB.progreso?.[a?.id]||[];
   // Agrupar por ciclo
   const porCiclo={};
@@ -1282,7 +1230,7 @@ function rHistorial(){
   
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${(S.selHistA||S.selA)===al.id?' btn-p':''}" onclick="S.selHistA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
   rows.length===0&&lsPesos.length===0?
@@ -1372,90 +1320,28 @@ function rConfig(){
 
 initAuth();
 
-// ── Nueva plantilla desde cero ────────────────────────────────
-function abrirNuevaPlantilla(){
-  S._nuevaPlantDias=3;
-  S._nuevaPlantEstructura={1:[],2:[],3:[]};
-  S._nuevaPlantDiaActivo=1;
-  document.getElementById('np-nombre').value='';
-  document.getElementById('np-desc').value='';
-  document.getElementById('np-tipo').value='gym';
-  document.getElementById('np-dias').value='3';
-  document.getElementById('np-msg').textContent='';
-  renderNuevaPlantillaModal();
-  document.getElementById('modal-nueva-plant').style.display='flex';
-}
-
-function renderNuevaPlantillaModal(){
-  const dias = parseInt(document.getElementById('np-dias')?.value||3);
-  // Asegurar que la estructura tiene los días correctos
-  for(let d=1;d<=dias;d++){ if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[]; }
-  // Limpiar días extra si se redujo
-  Object.keys(S._nuevaPlantEstructura).forEach(d=>{ if(parseInt(d)>dias) delete S._nuevaPlantEstructura[d]; });
-  if(S._nuevaPlantDiaActivo>dias) S._nuevaPlantDiaActivo=1;
-  const diaActual=S._nuevaPlantDiaActivo;
-  const exs=S._nuevaPlantEstructura[diaActual]||[];
-  
-  const tabsHtml=Array.from({length:dias},(_,i)=>i+1).map(d=>`<button class="dtab${diaActual===d?' active':''}" onclick="S._nuevaPlantDiaActivo=${d};renderNuevaPlantillaModal()" style="flex:none;padding:5px 12px;">Día ${d}</button>`).join('');
-  document.getElementById('np-dia-tabs').innerHTML=tabsHtml;
-  
-  const exsHtml=exs.map((ex,i)=>`
-    <div class="ex-item">
-      <div class="exn">${i+1}</div>
-      <div class="ex-body" style="flex:1;">
-        <input type="text" value="${ex.nombre||''}" style="font-size:12px;font-weight:500;margin-bottom:4px;" placeholder="Nombre del ejercicio *" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].nombre=this.value">
-        <div style="display:flex;gap:6px;">
-          <input type="text" value="${ex.series||'3'}" style="width:70px;font-size:11px;margin-bottom:0;" placeholder="Series" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].series=this.value">
-          <input type="text" value="${ex.reps||'10'}" style="width:80px;font-size:11px;margin-bottom:0;" placeholder="Reps" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].reps=this.value">
-        </div>
-        <input type="text" value="${ex.tip||''}" style="font-size:11px;margin-top:4px;margin-bottom:0;" placeholder="Técnica (opcional)" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].tip=this.value">
-        <input type="text" value="${ex.video||''}" style="font-size:10px;color:#185FA5;margin-top:3px;margin-bottom:0;" placeholder="URL video (opcional)" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].video=this.value">
-      </div>
-      <button class="btn btn-s btn-d" onclick="S._nuevaPlantEstructura[${diaActual}].splice(${i},1);renderNuevaPlantillaModal()" style="flex-shrink:0;">×</button>
-    </div>`).join('');
-  document.getElementById('np-exs-list').innerHTML=exsHtml||'<div class="empty" style="padding:.5rem 0;">Sin ejercicios. Agregá con el botón de abajo.</div>';
-}
-
-function addNuevaPlantEx(){
-  const d=S._nuevaPlantDiaActivo;
-  if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
-  S._nuevaPlantEstructura[d].push({nombre:'',series:'3',reps:'10',tip:'',video:'',grupo:''});
-  renderNuevaPlantillaModal();
-}
-
-function addNuevaPlantExDesdeBib(){
-  // Permite agregar ejercicios de la biblioteca a la plantilla nueva
-  S._bibParaPlantilla=true;
-  renderBib();
-  document.getElementById('bib-selected-wrap').style.display='none';
-  document.getElementById('bib-add-btn').style.display='none';
-  document.getElementById('modal-bib').style.display='flex';
-}
-
-async function saveNuevaPlantilla(){
-  const nombre=document.getElementById('np-nombre').value.trim();
-  if(!nombre){document.getElementById('np-msg').textContent='El nombre es obligatorio.';return;}
-  const estructura=S._nuevaPlantEstructura||{};
-  const datos={
-    nombre,
-    descripcion:document.getElementById('np-desc').value.trim(),
-    tipo:document.getElementById('np-tipo').value,
-    dias:parseInt(document.getElementById('np-dias').value)||3,
-    estructura
-  };
-  document.getElementById('np-msg').textContent='Guardando...';
-  try{
-    const res=await sbUpsert('plantillas',datos);
-    const saved=Array.isArray(res)?res[0]:res;
-    DB.plantillas.push(saved);
-    document.getElementById('modal-nueva-plant').style.display='none';
-    S.msg='Plantilla creada ✓';go('plantillas');
-    setTimeout(()=>{S.msg='';render();},2500);
-  }catch(e){document.getElementById('np-msg').textContent='Error: '+e.message;}
-}
-
-function changeNuevaDias(){
-  renderNuevaPlantillaModal();
+// ── Ver ficha de salud ────────────────────────────────────────
+function verFicha(id){
+  const r=DB.registros.find(x=>x.id===id); if(!r)return;
+  const campos=[
+    ['Nombre',r.nombre],['Edad',r.edad?r.edad+' años':'—'],
+    ['Mail',r.mail||'—'],['WhatsApp',r.tel||'—'],
+    ['Lugar',r.ubicacion||'—'],['Objetivos',r.objetivos||'—'],
+    ['Último control',r.control_medico||'—'],
+    ['Medicación',r.medicacion||'—'],
+    ['Patología cardio',r.patologia_cardio||'—'],
+    ['Lesiones actuales',r.lesiones||'—'],
+    ['Lesiones previas',r.lesiones_previas||'—'],
+    ['Dolor frecuente',r.dolor_zonas||'—'],
+    ['Actividad actual',r.actividad_actual||'—'],
+    ['Extra',r.extra||'—'],
+    ['Fecha envío',r.fecha||'—'],
+  ];
+  document.getElementById('ficha-modal-body').innerHTML=campos
+    .filter(([,v])=>v&&v!=='—')
+    .map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--b);font-size:12px;gap:12px;"><span style="color:var(--tm);flex-shrink:0;">${l}</span><span style="font-weight:500;text-align:right;">${v}</span></div>`)
+    .join('');
+  document.getElementById('modal-ver-ficha').style.display='flex';
 }
 </script>
 
@@ -1496,23 +1382,14 @@ function changeNuevaDias(){
 
 <!-- Modal editar plantilla completa -->
 <div class="modal-bg" id="modal-edit-plant" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:620px;">
-    <h3>Editar plantilla</h3>
-    <div class="frow" style="margin-bottom:10px;">
-      <div><label>Nombre</label><input type="text" id="plant-edit-nombre" placeholder="Nombre de la plantilla"></div>
-      <div><label>Tipo</label><select id="plant-edit-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
+  <div class="modal" style="max-width:600px;">
+    <h3 id="modal-plant-title">Editar plantilla</h3>
+    <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:1rem;"></div>
+    <div style="margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:12px;color:var(--tm);">Editá los ejercicios de este día. Los cambios se guardan al presionar "Guardar plantilla".</div>
+      <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Ejercicio</button>
     </div>
-    <label>Descripción</label>
-    <input type="text" id="plant-edit-desc" placeholder="Descripción breve" style="margin-bottom:.75rem;">
-    <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:.75rem;"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
-      <div style="font-size:12px;color:var(--tm);">Ejercicios del día — los cambios se guardan al presionar Guardar.</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-s btn-purple" onclick="addPlantExDesdeBib()">+ Biblioteca</button>
-        <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Nuevo</button>
-      </div>
-    </div>
-    <div id="plant-exs-list" style="max-height:300px;overflow-y:auto;padding-right:4px;"></div>
+    <div id="plant-exs-list" style="max-height:340px;overflow-y:auto;padding-right:4px;"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
       <button class="btn btn-p" onclick="savePlantilla()">Guardar plantilla</button>
       <button class="btn" onclick="document.getElementById('modal-edit-plant').style.display='none'">Cancelar</button>
@@ -1522,42 +1399,12 @@ function changeNuevaDias(){
 </div>
 
 
-<!-- Modal nueva plantilla desde cero -->
-<div class="modal-bg" id="modal-nueva-plant" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="max-width:620px;">
-    <h3>Nueva plantilla</h3>
-    <div class="frow" style="margin-bottom:12px;">
-      <div>
-        <label>Nombre *</label>
-        <input type="text" id="np-nombre" placeholder="Ej: Gym 3 días — Intermedio">
-      </div>
-      <div>
-        <label>Tipo</label>
-        <select id="np-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select>
-      </div>
-    </div>
-    <label>Descripción breve</label>
-    <input type="text" id="np-desc" placeholder="Ej: Para alumnas con 6+ meses de experiencia" style="margin-bottom:12px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
-      <label style="margin-bottom:0;">Días/semana:</label>
-      <select id="np-dias" onchange="changeNuevaDias()" style="width:80px;margin-bottom:0;">
-        <option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
-      </select>
-    </div>
-    <div class="dtabs" id="np-dia-tabs" style="margin-bottom:.75rem;"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
-      <div style="font-size:12px;color:var(--tm);">Ejercicios del día seleccionado</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-s btn-purple" onclick="addNuevaPlantExDesdeBib()">+ Desde biblioteca</button>
-        <button class="btn btn-p btn-s" onclick="addNuevaPlantEx()">+ Agregar ejercicio</button>
-      </div>
-    </div>
-    <div id="np-exs-list" style="max-height:300px;overflow-y:auto;padding-right:4px;margin-bottom:1rem;"></div>
-    <div id="np-msg" style="font-size:12px;color:var(--rd);min-height:16px;margin-bottom:8px;"></div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-p" onclick="saveNuevaPlantilla()">Crear plantilla</button>
-      <button class="btn" onclick="document.getElementById('modal-nueva-plant').style.display='none'">Cancelar</button>
-    </div>
+<!-- Modal ver ficha de salud -->
+<div class="modal-bg" id="modal-ver-ficha" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:500px;">
+    <h3>📋 Ficha de salud</h3>
+    <div id="ficha-modal-body" style="max-height:70vh;overflow-y:auto;"></div>
+    <div style="margin-top:1rem;"><button class="btn" onclick="document.getElementById('modal-ver-ficha').style.display='none'">Cerrar</button></div>
   </div>
 </div>
 </body>
