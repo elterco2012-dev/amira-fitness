@@ -167,6 +167,12 @@
   <button class="bitem" id="bn-n" onclick="switchTab('n')"><span>💬</span><span>Notas</span></button>
 </div>
 <script>
+// ── Error global handler ──────────────────────────────────────
+window.onerror=function(msg,src,line,col,err){
+  console.error('Global error:',msg,'at line',line,err);
+  return false;
+};
+
 // ── Config ────────────────────────────────────────────────────
 const AMIRA_WA = '5492226500790';
 const slug = location.pathname.split('/').filter(Boolean).pop()||'';
@@ -313,11 +319,12 @@ function launchConfetti(){
 // ── Actions ───────────────────────────────────────────────────
 async function toggleDone(aId,i,nextName){
   const k=dKey(aId,selSem,selDia,i);
-  const wasDone=!!done[k];
+  const wasDone=done[k];
   done[k]=!done[k];
   saveDone();
-  // Timer: solo al marcar hecho (no al desmarcar), y ocultar si se desmarca
+  // Timer solo al marcar como hecho (no al desmarcar)
   if(done[k] && !wasDone) startTimer(nextName);
+  // Si se desmarca, ocultar timer si estaba visible
   if(!done[k]) skipTimer();
   renderRutina();
   // Sync Supabase en background
@@ -393,6 +400,7 @@ async function enviarCom(aId){
 
 // ── Renders ───────────────────────────────────────────────────
 function renderRutina(){
+  try{
   const scr=document.getElementById('screen-rutina');
   const a=getAlumna();
   if(!a){
@@ -404,12 +412,14 @@ function renderRutina(){
 
   // Obtener datos
   const ciclos = getCiclos(a.id);
-  // Asegurar selCiclo válido
-  if(!ciclos.includes(selCiclo)) selCiclo = ciclos[ciclos.length-1];
+  // Asegurar selCiclo válido — preferir ciclo_actual de la alumna
+  const cicloPreferido = parseInt(a.ciclo_actual)||1;
+  if(!ciclos.includes(selCiclo)){
+    selCiclo = ciclos.includes(cicloPreferido) ? cicloPreferido : (ciclos[ciclos.length-1]||1);
+  }
   const semanas = getSemanas(a.id, selCiclo);
-  // Asegurar selSem válido — si no hay semanas usar 1
-  const semsValidas = semanas.length>0 ? semanas : [1,2,3,4];
-  if(!semsValidas.includes(selSem)) selSem = semsValidas[0];
+  // No restringir selSem — siempre mostrar 1-4
+  if(selSem<1||selSem>4) selSem=1;
 
   const exs = getExs(a.id, selCiclo, selSem, selDia);
   const comp = exs.filter((_,i)=>done[dKey(a.id,selSem,selDia,i)]).length;
@@ -447,7 +457,8 @@ function renderRutina(){
   // Selector de semanas — siempre visible (1-4)
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
     ${[1,2,3,4].map(s=>{
-      const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
+      let tieneEjs=false;
+      try{tieneEjs=getExs(a.id,selCiclo,s,1).length>0||getExs(a.id,selCiclo,s,2).length>0||getExs(a.id,selCiclo,s,3).length>0;}catch(e){}
       return`<button class="stab${selSem===s?' active':''}" onclick="skipTimer();selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?' ✓':''}</button>`;
     }).join('')}
   </div></div>`;
@@ -503,6 +514,10 @@ function renderRutina(){
   }
   if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
   scr.innerHTML=html;
+  }catch(err){
+    console.error('renderRutina error:',err);
+    document.getElementById('screen-rutina').innerHTML=`<div style="padding:1rem;color:var(--rd);font-size:13px;">Error al cargar rutina: ${err.message}. Recargá la página.</div>`;
+  }
 }
 
 function renderProgreso(){
@@ -568,7 +583,7 @@ function renderProgreso(){
 function renderNotas(){
   const scr=document.getElementById('screen-notas'); if(!scr) return;
   const a=getAlumna(); if(!a){scr.innerHTML='';return;}
-  const coms=DB.comentarios.filter(c=>String(c.alumna_id)===String(a.id));
+  const coms=DB.comentarios.filter(c=>c.alumna_id===a.id);
   scr.innerHTML=`<div class="csec">
     <div class="ctit">Mis notas para Amira</div>
     <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>
