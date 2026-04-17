@@ -229,7 +229,7 @@
 </div>
 
 <!-- Modal agregar ejercicio desde biblioteca -->
-<div class="modal-bg" id="modal-bib" style="display:none;z-index:200;" onclick="if(event.target===this)closeBib()">
+<div class="modal-bg" id="modal-bib" style="display:none;" onclick="if(event.target===this)closeBib()">
   <div class="modal">
     <h3>Agregar desde biblioteca</h3>
     <div class="bib-search">
@@ -351,8 +351,13 @@
     <label>WhatsApp</label><input type="tel" id="ea-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="ea-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
-      <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option></select></div>
+      <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
+    <label>Ciclo actual <span style="font-size:11px;color:var(--tm);">(lo que ve la alumna al abrir su rutina)</span></label>
+    <select id="ea-ciclo" style="margin-bottom:12px;">
+      <option value="1">Ciclo 1</option><option value="2">Ciclo 2</option><option value="3">Ciclo 3</option>
+      <option value="4">Ciclo 4</option><option value="5">Ciclo 5</option><option value="6">Ciclo 6</option>
+    </select>
     <label>Notas personales</label><textarea id="ea-notas"></textarea>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" onclick="saveEditA()">Guardar</button>
@@ -615,31 +620,32 @@ async function addFromBib(){
     video:bibSelEx.video||'',
     grupo:bibSelEx.grupo_muscular||''
   };
-  // Modo: agregar a plantilla nueva
-  if(S._bibMode==='nuevaPlant'){
-    const d=S._nuevaPlantDiaActivo||1;
-    if(!S._nuevaPlantEstructura) S._nuevaPlantEstructura={};
-    if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
-    S._nuevaPlantEstructura[d].push(ex);
-    S._bibMode=null; closeBib();
-    renderNuevaPlantillaModal();
-    document.getElementById('modal-nueva-plant').style.display='flex';
-    return;
-  }
-  // Modo: agregar a plantilla existente (editar)
-  if(S._bibMode==='editPlant'){
+  // Modo agregar a nueva plantilla
+  if(S._bibParaPlantillaEdit){
+    // Agregar a plantilla existente (editar)
     const p=DB.plantillas.find(x=>x.id===S._editPlantId);
     if(p){
       const d=S._editPlantDia||1;
       if(!p.estructura[d]) p.estructura[d]=[];
       p.estructura[d].push(ex);
     }
-    S._bibMode=null; closeBib();
+    S._bibParaPlantillaEdit=false;
+    closeBib();
     renderModalPlantilla();
     document.getElementById('modal-edit-plant').style.display='flex';
     return;
   }
-  // Modo normal: agregar a rutina de alumna
+  if(S._bibParaPlantilla){
+    const d=S._nuevaPlantDiaActivo||1;
+    if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
+    S._nuevaPlantEstructura[d].push(ex);
+    S._bibParaPlantilla=false;
+    closeBib();
+    renderNuevaPlantillaModal();
+    document.getElementById('modal-nueva-plant').style.display='flex';
+    return;
+  }
+  // Modo agregar a rutina de alumna
   const a=getA(S.selA);if(!a)return;
   ensureLocal(a.id,S.selCiclo,S.selSem);
   const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
@@ -724,6 +730,7 @@ function openEditA(id){
   document.getElementById('ea-tel').value=a.tel||'';
   document.getElementById('ea-tipo').value=a.tipo;
   document.getElementById('ea-dias').value=a.dias;
+  document.getElementById('ea-ciclo').value=a.ciclo_actual||1;
   document.getElementById('ea-notas').value=a.notas||'';
   document.getElementById('ea-msg').textContent='';
   document.getElementById('modal-edit-a').style.display='flex';
@@ -731,7 +738,14 @@ function openEditA(id){
 function closeEditA(){document.getElementById('modal-edit-a').style.display='none';S.editAId=null;}
 async function saveEditA(){
   const a=getA(S.editAId);if(!a)return;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim()};
+  const updates={
+    nombre:document.getElementById('ea-nombre').value.trim(),
+    tel:document.getElementById('ea-tel').value.trim(),
+    tipo:document.getElementById('ea-tipo').value,
+    dias:parseInt(document.getElementById('ea-dias').value),
+    ciclo_actual:parseInt(document.getElementById('ea-ciclo').value)||1,
+    notas:document.getElementById('ea-notas').value.trim()
+  };
   document.getElementById('ea-msg').textContent='Guardando...';
   try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
   catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
@@ -807,17 +821,11 @@ function verPlantilla(id){
   const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
   S._editPlantId=id;
   const estructura=p.estructura||{};
-  const diasKeys=Object.keys(estructura).map(Number).filter(n=>n>0).sort();
-  S._editPlantDia=diasKeys[0]||1;
-  // Poblar campos del header del modal
-  const titleEl=document.getElementById('modal-plant-title');
-  if(titleEl) titleEl.textContent=p.nombre;
-  const nombreEl=document.getElementById('plant-edit-nombre');
-  const descEl=document.getElementById('plant-edit-desc');
-  const tipoEl=document.getElementById('plant-edit-tipo');
-  if(nombreEl) nombreEl.value=p.nombre||'';
-  if(descEl) descEl.value=p.descripcion||'';
-  if(tipoEl) tipoEl.value=p.tipo||'gym';
+  S._editPlantDia=parseInt(Object.keys(estructura).sort()[0])||1;
+  // Cargar campos de cabecera
+  document.getElementById('plant-edit-nombre').value=p.nombre||'';
+  document.getElementById('plant-edit-desc').value=p.descripcion||'';
+  document.getElementById('plant-edit-tipo').value=p.tipo||'gym';
   renderModalPlantilla();
   document.getElementById('modal-edit-plant').style.display='flex';
 }
@@ -873,17 +881,22 @@ function addPlantEx(){
   renderModalPlantilla();
 }
 
+function addPlantExDesdeBib(){
+  S._bibParaPlantillaEdit=true;
+  renderBib();
+  document.getElementById('bib-selected-wrap').style.display='none';
+  document.getElementById('bib-add-btn').style.display='none';
+  document.getElementById('modal-bib').style.display='flex';
+}
+
 async function savePlantilla(){
   const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
-  // Leer campos del header si existen
-  const nombreEl=document.getElementById('plant-edit-nombre');
-  const descEl=document.getElementById('plant-edit-desc');
-  const tipoEl=document.getElementById('plant-edit-tipo');
+  const nombre=document.getElementById('plant-edit-nombre').value.trim()||p.nombre;
   const updates={
-    nombre: (nombreEl?.value.trim())||p.nombre,
-    descripcion: (descEl?.value.trim())||p.descripcion||'',
-    tipo: tipoEl?.value||p.tipo||'gym',
-    estructura: p.estructura
+    nombre,
+    descripcion:document.getElementById('plant-edit-desc').value.trim(),
+    tipo:document.getElementById('plant-edit-tipo').value,
+    estructura:p.estructura
   };
   document.getElementById('plant-save-msg').textContent='Guardando...';
   try{
@@ -1179,6 +1192,7 @@ function rPlantillas(){
       <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual</button>
     </div>
   </div>
+  ${S.msg?`<div style="font-size:12px;color:var(--vd);margin-bottom:.75rem;">${S.msg}</div>`:''}
   ${DB.plantillas.length===0?`<div class="card"><div class="empty">Sin plantillas todavía.</div></div>`:''}
   <div class="plant-grid">
     ${DB.plantillas.map(p=>`
@@ -1268,7 +1282,7 @@ function rHistorial(){
   
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
   rows.length===0&&lsPesos.length===0?
@@ -1360,8 +1374,9 @@ initAuth();
 
 // ── Nueva plantilla desde cero ────────────────────────────────
 function abrirNuevaPlantilla(){
-  S._nuevaPlantEstructura = {1:[],2:[],3:[]};
-  S._nuevaPlantDiaActivo = 1;
+  S._nuevaPlantDias=3;
+  S._nuevaPlantEstructura={1:[],2:[],3:[]};
+  S._nuevaPlantDiaActivo=1;
   document.getElementById('np-nombre').value='';
   document.getElementById('np-desc').value='';
   document.getElementById('np-tipo').value='gym';
@@ -1373,55 +1388,44 @@ function abrirNuevaPlantilla(){
 
 function renderNuevaPlantillaModal(){
   const dias = parseInt(document.getElementById('np-dias')?.value||3);
-  if(!S._nuevaPlantEstructura) S._nuevaPlantEstructura={};
+  // Asegurar que la estructura tiene los días correctos
   for(let d=1;d<=dias;d++){ if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[]; }
+  // Limpiar días extra si se redujo
   Object.keys(S._nuevaPlantEstructura).forEach(d=>{ if(parseInt(d)>dias) delete S._nuevaPlantEstructura[d]; });
-  if((S._nuevaPlantDiaActivo||1)>dias) S._nuevaPlantDiaActivo=1;
-  const diaActual = S._nuevaPlantDiaActivo||1;
-  const exs = S._nuevaPlantEstructura[diaActual]||[];
-  const tabsEl = document.getElementById('np-dia-tabs');
-  if(tabsEl) tabsEl.innerHTML = Array.from({length:dias},(_,i)=>i+1)
-    .map(d=>`<button class="dtab${diaActual===d?' active':''}" onclick="S._nuevaPlantDiaActivo=${d};renderNuevaPlantillaModal()" style="flex:none;padding:5px 12px;">Día ${d}</button>`).join('');
-  const listEl = document.getElementById('np-exs-list');
-  if(!listEl) return;
-  listEl.innerHTML = exs.length===0 ? '<div class="empty" style="padding:.5rem 0;">Sin ejercicios todavía.</div>' :
-    exs.map((ex,i)=>`<div class="ex-item">
+  if(S._nuevaPlantDiaActivo>dias) S._nuevaPlantDiaActivo=1;
+  const diaActual=S._nuevaPlantDiaActivo;
+  const exs=S._nuevaPlantEstructura[diaActual]||[];
+  
+  const tabsHtml=Array.from({length:dias},(_,i)=>i+1).map(d=>`<button class="dtab${diaActual===d?' active':''}" onclick="S._nuevaPlantDiaActivo=${d};renderNuevaPlantillaModal()" style="flex:none;padding:5px 12px;">Día ${d}</button>`).join('');
+  document.getElementById('np-dia-tabs').innerHTML=tabsHtml;
+  
+  const exsHtml=exs.map((ex,i)=>`
+    <div class="ex-item">
       <div class="exn">${i+1}</div>
       <div class="ex-body" style="flex:1;">
-        <input type="text" value="${(ex.nombre||'').replace(/"/g,'&quot;')}" style="font-size:12px;font-weight:500;margin-bottom:4px;width:100%;" placeholder="Nombre del ejercicio *" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].nombre=this.value">
-        <div style="display:flex;gap:6px;margin-bottom:4px;">
-          <input type="text" value="${ex.series||'3'}" style="width:70px;font-size:11px;margin-bottom:0;" placeholder="Series" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].series=this.value">
-          <input type="text" value="${ex.reps||'10'}" style="width:80px;font-size:11px;margin-bottom:0;" placeholder="Reps" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].reps=this.value">
+        <input type="text" value="${ex.nombre||''}" style="font-size:12px;font-weight:500;margin-bottom:4px;" placeholder="Nombre del ejercicio *" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].nombre=this.value">
+        <div style="display:flex;gap:6px;">
+          <input type="text" value="${ex.series||'3'}" style="width:70px;font-size:11px;margin-bottom:0;" placeholder="Series" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].series=this.value">
+          <input type="text" value="${ex.reps||'10'}" style="width:80px;font-size:11px;margin-bottom:0;" placeholder="Reps" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].reps=this.value">
         </div>
-        <input type="text" value="${(ex.tip||'').replace(/"/g,'&quot;')}" style="font-size:11px;margin-bottom:3px;width:100%;" placeholder="Técnica (opcional)" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].tip=this.value">
-        <input type="text" value="${(ex.video||'').replace(/"/g,'&quot;')}" style="font-size:10px;color:#185FA5;margin-bottom:0;width:100%;" placeholder="Video URL (opcional)" oninput="S._nuevaPlantEstructura[${diaActual}][${i}].video=this.value">
+        <input type="text" value="${ex.tip||''}" style="font-size:11px;margin-top:4px;margin-bottom:0;" placeholder="Técnica (opcional)" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].tip=this.value">
+        <input type="text" value="${ex.video||''}" style="font-size:10px;color:#185FA5;margin-top:3px;margin-bottom:0;" placeholder="URL video (opcional)" onchange="S._nuevaPlantEstructura[${diaActual}][${i}].video=this.value">
       </div>
-      <button class="btn btn-s btn-d" onclick="S._nuevaPlantEstructura[${diaActual}].splice(${i},1);renderNuevaPlantillaModal()" style="flex-shrink:0;align-self:flex-start;">×</button>
+      <button class="btn btn-s btn-d" onclick="S._nuevaPlantEstructura[${diaActual}].splice(${i},1);renderNuevaPlantillaModal()" style="flex-shrink:0;">×</button>
     </div>`).join('');
+  document.getElementById('np-exs-list').innerHTML=exsHtml||'<div class="empty" style="padding:.5rem 0;">Sin ejercicios. Agregá con el botón de abajo.</div>';
 }
 
 function addNuevaPlantEx(){
-  const d = S._nuevaPlantDiaActivo||1;
-  if(!S._nuevaPlantEstructura) S._nuevaPlantEstructura={};
+  const d=S._nuevaPlantDiaActivo;
   if(!S._nuevaPlantEstructura[d]) S._nuevaPlantEstructura[d]=[];
-  S._nuevaPlantEstructura[d].push({nombre:'',series:'3',reps:'10',tip:'',video:''});
+  S._nuevaPlantEstructura[d].push({nombre:'',series:'3',reps:'10',tip:'',video:'',grupo:''});
   renderNuevaPlantillaModal();
 }
 
 function addNuevaPlantExDesdeBib(){
-  S._bibMode = 'nuevaPlant';
-  document.getElementById('bib-q').value='';
-  document.getElementById('bib-grupo').value='';
-  renderBib();
-  document.getElementById('bib-selected-wrap').style.display='none';
-  document.getElementById('bib-add-btn').style.display='none';
-  document.getElementById('modal-bib').style.display='flex';
-}
-
-function addPlantExDesdeBib(){
-  S._bibMode = 'editPlant';
-  document.getElementById('bib-q').value='';
-  document.getElementById('bib-grupo').value='';
+  // Permite agregar ejercicios de la biblioteca a la plantilla nueva
+  S._bibParaPlantilla=true;
   renderBib();
   document.getElementById('bib-selected-wrap').style.display='none';
   document.getElementById('bib-add-btn').style.display='none';
@@ -1429,28 +1433,30 @@ function addPlantExDesdeBib(){
 }
 
 async function saveNuevaPlantilla(){
-  const nombre = document.getElementById('np-nombre').value.trim();
-  if(!nombre){ document.getElementById('np-msg').textContent='El nombre es obligatorio.'; return; }
-  const estructura = S._nuevaPlantEstructura||{};
-  const datos = {
+  const nombre=document.getElementById('np-nombre').value.trim();
+  if(!nombre){document.getElementById('np-msg').textContent='El nombre es obligatorio.';return;}
+  const estructura=S._nuevaPlantEstructura||{};
+  const datos={
     nombre,
-    descripcion: document.getElementById('np-desc').value.trim(),
-    tipo: document.getElementById('np-tipo').value,
-    dias: parseInt(document.getElementById('np-dias').value)||3,
+    descripcion:document.getElementById('np-desc').value.trim(),
+    tipo:document.getElementById('np-tipo').value,
+    dias:parseInt(document.getElementById('np-dias').value)||3,
     estructura
   };
   document.getElementById('np-msg').textContent='Guardando...';
   try{
-    const res = await sbUpsert('plantillas', datos);
-    const saved = Array.isArray(res)?res[0]:res;
+    const res=await sbUpsert('plantillas',datos);
+    const saved=Array.isArray(res)?res[0]:res;
     DB.plantillas.push(saved);
     document.getElementById('modal-nueva-plant').style.display='none';
-    S.msg='Plantilla creada ✓'; go('plantillas');
+    S.msg='Plantilla creada ✓';go('plantillas');
     setTimeout(()=>{S.msg='';render();},2500);
-  }catch(e){ document.getElementById('np-msg').textContent='Error: '+e.message; }
+  }catch(e){document.getElementById('np-msg').textContent='Error: '+e.message;}
 }
 
-function changeNuevaDias(){ renderNuevaPlantillaModal(); }
+function changeNuevaDias(){
+  renderNuevaPlantillaModal();
+}
 </script>
 
 <!-- Modal editar ejercicio en biblioteca -->
@@ -1491,22 +1497,22 @@ function changeNuevaDias(){ renderNuevaPlantillaModal(); }
 <!-- Modal editar plantilla completa -->
 <div class="modal-bg" id="modal-edit-plant" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal" style="max-width:620px;">
-    <h3 id="modal-plant-title">Editar plantilla</h3>
+    <h3>Editar plantilla</h3>
     <div class="frow" style="margin-bottom:10px;">
       <div><label>Nombre</label><input type="text" id="plant-edit-nombre" placeholder="Nombre de la plantilla"></div>
       <div><label>Tipo</label><select id="plant-edit-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
     </div>
     <label>Descripción</label>
     <input type="text" id="plant-edit-desc" placeholder="Descripción breve" style="margin-bottom:.75rem;">
-    <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:.75rem;flex-wrap:wrap;"></div>
-    <div style="margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:12px;color:var(--tm);">Ejercicios del día — se guardan al presionar "Guardar plantilla".</div>
+    <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:.75rem;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+      <div style="font-size:12px;color:var(--tm);">Ejercicios del día — los cambios se guardan al presionar Guardar.</div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-s btn-purple" onclick="addPlantExDesdeBib()">+ Desde biblioteca</button>
-        <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Nuevo ejercicio</button>
+        <button class="btn btn-s btn-purple" onclick="addPlantExDesdeBib()">+ Biblioteca</button>
+        <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Nuevo</button>
       </div>
     </div>
-    <div id="plant-exs-list" style="max-height:300px;overflow-y:auto;padding-right:4px;border:1px solid var(--b);border-radius:var(--rs);padding:.5rem;min-height:60px;"></div>
+    <div id="plant-exs-list" style="max-height:300px;overflow-y:auto;padding-right:4px;"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
       <button class="btn btn-p" onclick="savePlantilla()">Guardar plantilla</button>
       <button class="btn" onclick="document.getElementById('modal-edit-plant').style.display='none'">Cancelar</button>
@@ -1514,11 +1520,13 @@ function changeNuevaDias(){ renderNuevaPlantillaModal(); }
     <div id="plant-save-msg" style="font-size:12px;margin-top:8px;color:var(--rd);"></div>
   </div>
 </div>
+
+
 <!-- Modal nueva plantilla desde cero -->
-<div class="modal-bg" id="modal-nueva-plant" style="display:none;z-index:150;" onclick="if(event.target===this)this.style.display='none'">
+<div class="modal-bg" id="modal-nueva-plant" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal" style="max-width:620px;">
     <h3>Nueva plantilla</h3>
-    <div class="frow" style="margin-bottom:10px;">
+    <div class="frow" style="margin-bottom:12px;">
       <div>
         <label>Nombre *</label>
         <input type="text" id="np-nombre" placeholder="Ej: Gym 3 días — Intermedio">
@@ -1528,15 +1536,15 @@ function changeNuevaDias(){ renderNuevaPlantillaModal(); }
         <select id="np-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select>
       </div>
     </div>
-    <label>Descripción</label>
+    <label>Descripción breve</label>
     <input type="text" id="np-desc" placeholder="Ej: Para alumnas con 6+ meses de experiencia" style="margin-bottom:12px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <label style="margin-bottom:0;white-space:nowrap;">Días/semana:</label>
-      <select id="np-dias" onchange="changeNuevaDias()" style="width:90px;margin-bottom:0;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+      <label style="margin-bottom:0;">Días/semana:</label>
+      <select id="np-dias" onchange="changeNuevaDias()" style="width:80px;margin-bottom:0;">
         <option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
       </select>
     </div>
-    <div class="dtabs" id="np-dia-tabs" style="margin-bottom:.75rem;flex-wrap:wrap;"></div>
+    <div class="dtabs" id="np-dia-tabs" style="margin-bottom:.75rem;"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
       <div style="font-size:12px;color:var(--tm);">Ejercicios del día seleccionado</div>
       <div style="display:flex;gap:6px;">
@@ -1544,7 +1552,7 @@ function changeNuevaDias(){ renderNuevaPlantillaModal(); }
         <button class="btn btn-p btn-s" onclick="addNuevaPlantEx()">+ Agregar ejercicio</button>
       </div>
     </div>
-    <div id="np-exs-list" style="max-height:280px;overflow-y:auto;padding-right:4px;margin-bottom:1rem;border:1px solid var(--b);border-radius:var(--rs);padding:.5rem;min-height:60px;"></div>
+    <div id="np-exs-list" style="max-height:300px;overflow-y:auto;padding-right:4px;margin-bottom:1rem;"></div>
     <div id="np-msg" style="font-size:12px;color:var(--rd);min-height:16px;margin-bottom:8px;"></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" onclick="saveNuevaPlantilla()">Crear plantilla</button>
@@ -1552,6 +1560,5 @@ function changeNuevaDias(){ renderNuevaPlantillaModal(); }
     </div>
   </div>
 </div>
-
 </body>
 </html>
