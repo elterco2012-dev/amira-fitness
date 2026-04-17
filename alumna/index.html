@@ -269,17 +269,15 @@ function switchTab(t){
 function startTimer(nextName){
   // Matar cualquier timer anterior PRIMERO
   if(timerInt){ clearInterval(timerInt); timerInt=null; }
-  timerRunning=true;
-  timerTotal=45; timerRem=45;
+  timerRunning=true; timerTotal=45; timerRem=45;
   const el=document.getElementById('timer');
+  const subEl=document.getElementById('tsub');
   const numEl=document.getElementById('tnum');
   const arcEl=document.getElementById('tarc');
-  const subEl=document.getElementById('tsub');
-  if(!el) return;
   if(subEl) subEl.textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
   if(numEl) numEl.textContent=timerRem;
   if(arcEl) arcEl.style.strokeDashoffset='0';
-  el.classList.add('show');
+  if(el) el.classList.add('show');
   timerInt=setInterval(()=>{
     timerRem--;
     const n=document.getElementById('tnum');
@@ -332,9 +330,8 @@ async function toggleDone(aId,i,nextName){
   const wasDone=!!done[k];
   done[k]=!done[k];
   saveDone();
-  // Timer: matar siempre primero, luego arrancar solo si se marcó como hecho
-  skipTimer();
-  if(done[k] && !wasDone) startTimer(nextName);
+  skipTimer(); // siempre matar timer anterior primero
+  if(done[k] && !wasDone) startTimer(nextName); // solo arrancar al marcar, no al desmarcar
   renderRutina();
   // Sync Supabase en background
   try{
@@ -456,7 +453,7 @@ function renderRutina(){
   // Selector de ciclos — siempre visible
   if(ciclos.length>0){
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
+      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="skipTimer();selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
     </div></div>`;
   }
 
@@ -464,12 +461,12 @@ function renderRutina(){
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
     ${[1,2,3,4].map(s=>{
       const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
-      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
+      return`<button class="stab${selSem===s?' active':''}" onclick="skipTimer();selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
     }).join('')}
   </div></div>`;
 
   // Selector de días
-  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="skipTimer();selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
   // Progreso del día
   html+=`<div class="prog-wrap">
@@ -656,6 +653,7 @@ async function init(){
       }
     }catch(e2){}
   }
+  skipTimer(); // asegurar que el timer no quede visible al cargar
   renderRutina();
 }
 init();
