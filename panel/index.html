@@ -605,21 +605,24 @@ function selectBibEx(id){
 }
 
 async function addFromBib(){
-  if(!bibSelEx)return;
-  const a=getA(S.selA);if(!a)return;
-  ensureLocal(a.id,S.selCiclo,S.selSem);
-  const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
-  const nota=document.getElementById('bib-nota').value.trim();
+  if(!bibSelEx) return;
+
+  const a = getA(S.selA);
+  if(!a) return;
+
+  const day = getOrCreateDay(a.id, S.selCiclo, S.selSem, S.selDia);
+  const nota = document.getElementById('bib-nota').value.trim();
+
   day.ejercicios.push({
-    nombre:bibSelEx.nombre,
-    series:document.getElementById('bib-series').value,
-    reps:document.getElementById('bib-reps').value,
-    tip:nota||bibSelEx.descripcion||'',
-    video:bibSelEx.video||'',
-    grupo:bibSelEx.grupo_muscular||''
+    nombre: bibSelEx.nombre,
+    series: document.getElementById('bib-series').value,
+    reps: document.getElementById('bib-reps').value,
+    tip: nota || bibSelEx.descripcion || '',
+    video: bibSelEx.video || '',
+    grupo: bibSelEx.grupo_muscular || ''
   });
+
   closeBib();
-  // Autoguardado inmediato
   await saveDay();
 }
 
@@ -628,23 +631,60 @@ function openManual(){document.getElementById('m-nombre').value='';document.getE
 function closeManual(){document.getElementById('modal-manual').style.display='none';}
 
 async function saveManual(){
-  const nombre=document.getElementById('m-nombre').value.trim();
-  if(!nombre){document.getElementById('manual-msg').textContent='El nombre es obligatorio.';return;}
-  document.getElementById('manual-msg').textContent='Guardando...';
-  const nuevoEx={nombre,descripcion:document.getElementById('m-tip').value.trim(),video:document.getElementById('m-video').value.trim(),grupo_muscular:document.getElementById('m-grupo').value,tipo:document.getElementById('m-tipo').value};
+  const nombre = document.getElementById('m-nombre').value.trim();
+  if(!nombre){
+    document.getElementById('manual-msg').textContent = 'El nombre es obligatorio.';
+    return;
+  }
+
+  document.getElementById('manual-msg').textContent = 'Guardando...';
+
+  const nuevoEx = {
+    nombre,
+    descripcion: document.getElementById('m-tip').value.trim(),
+    video: document.getElementById('m-video').value.trim(),
+    grupo_muscular: document.getElementById('m-grupo').value,
+    tipo: document.getElementById('m-tipo').value
+  };
+
   try{
-    const res=await sbUpsert('ejercicios_biblioteca',nuevoEx);
-    const saved=Array.isArray(res)?res[0]:res;
+    const res = await sbUpsert('ejercicios_biblioteca', nuevoEx);
+    const saved = Array.isArray(res) ? res[0] : res;
     DB.biblioteca.push(saved);
-    // Agregar a la rutina también
-    const a=getA(S.selA);
+
+    const a = getA(S.selA);
     if(a){
-      ensureLocal(a.id,S.selCiclo,S.selSem);
-      const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
-      day.ejercicios.push({nombre,series:document.getElementById('m-series').value,reps:document.getElementById('m-reps').value,tip:document.getElementById('m-tip').value.trim(),video:document.getElementById('m-video').value.trim(),grupo:document.getElementById('m-grupo').value});
+      ensureLocal(a.id, S.selCiclo, S.selSem);
+
+      const week = DB.rutinas[a.id][S.selCiclo][S.selSem];
+      let day = week.find(d => parseInt(d.dia) === parseInt(S.selDia));
+
+      if(!day){
+        day = { dia: parseInt(S.selDia), ejercicios: [] };
+        week.push(day);
+      }
+
+      if(!Array.isArray(day.ejercicios)){
+        day.ejercicios = [];
+      }
+
+      day.ejercicios.push({
+        nombre,
+        series: document.getElementById('m-series').value,
+        reps: document.getElementById('m-reps').value,
+        tip: document.getElementById('m-tip').value.trim(),
+        video: document.getElementById('m-video').value.trim(),
+        grupo: document.getElementById('m-grupo').value
+      });
+
+      await saveDay();
     }
-    closeManual();render();
-  }catch(e){document.getElementById('manual-msg').textContent='Error: '+e.message;}
+
+    closeManual();
+    render();
+  }catch(e){
+    document.getElementById('manual-msg').textContent = 'Error: ' + e.message;
+  }
 }
 
 // ── Editar ejercicio en rutina ────────────────────────────────
@@ -1097,13 +1137,53 @@ function rRutinas(){
   </div>`;
 }
 
-function addVariante(exNombre,varNombre,series,reps,tip){
-  const a=getA(S.selA);if(!a)return;
-  ensureLocal(a.id,S.selCiclo,S.selSem);
-  const day=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===S.selDia);
-  const bibEx=DB.biblioteca.find(e=>e.nombre===exNombre);
-  day.ejercicios.push({nombre:exNombre,series,reps,tip,video:bibEx?.video||'',grupo:bibEx?.grupo_muscular||''});
+async function addVariante(variante){
+  const a = getA(S.selA);
+  if(!a || !variante) return;
+
+  ensureLocal(a.id, S.selCiclo, S.selSem);
+
+  const week = DB.rutinas[a.id][S.selCiclo][S.selSem];
+  let day = week.find(d => parseInt(d.dia) === parseInt(S.selDia));
+
+  if(!day){
+    day = { dia: parseInt(S.selDia), ejercicios: [] };
+    week.push(day);
+  }
+
+  if(!Array.isArray(day.ejercicios)){
+    day.ejercicios = [];
+  }
+
+  day.ejercicios.push({
+    nombre: variante.ejercicio_nombre || variante.nombre || '',
+    series: variante.series || '3',
+    reps: variante.reps || '10',
+    tip: variante.tip || '',
+    video: variante.video || '',
+    grupo: variante.grupo || ''
+  });
+
+  await saveDay();
   render();
+}
+
+function getOrCreateDay(aId, ciclo, sem, dia){
+  ensureLocal(aId, ciclo, sem);
+
+  const week = DB.rutinas[aId][ciclo][sem];
+  let dayObj = week.find(d => parseInt(d.dia) === parseInt(dia));
+
+  if(!dayObj){
+    dayObj = { dia: parseInt(dia), ejercicios: [] };
+    week.push(dayObj);
+  }
+
+  if(!Array.isArray(dayObj.ejercicios)){
+    dayObj.ejercicios = [];
+  }
+
+  return dayObj;
 }
 
 function rBiblioteca(){
