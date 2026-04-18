@@ -1344,10 +1344,10 @@ async function init(){
 
   // 2. Intentar actualizar desde Supabase
   try{
-    const [alumnas,rutinas]=await Promise.all([
-      sbGet('alumnas','order=created_at.asc&_t='+Date.now()),
-      sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc&_t='+Date.now())
-    ]);
+const [alumnas,rutinas]=await Promise.all([
+  sbGet('alumnas','order=created_at.asc'),
+  sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc')
+]);
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1425,11 +1425,12 @@ async function limpiarCachesViejos(){
   try{
     if('caches' in window){
       const keys = await caches.keys();
-      const viejos = keys.filter(k => k !== 'amira-v3');
-      await Promise.all(viejos.map(k => caches.delete(k)));
-      if(viejos.length > 0) console.log('Caches viejos eliminados:', viejos);
+      await Promise.all(keys.map(k => caches.delete(k)));
+      console.log('Caches eliminados:', keys);
     }
-  }catch(e){}
+  }catch(e){
+    console.warn('No se pudieron limpiar caches', e);
+  }
 }
 limpiarCachesViejos();
 init();
