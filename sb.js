@@ -1,15 +1,19 @@
 const SB_URL = 'https://aywkeoxwybzcexaichtv.supabase.co';
 const SB_KEY = 'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb';
 
-const SB_H = {
-  'Content-Type': 'application/json',
-  'apikey': SB_KEY,
-  'Authorization': `Bearer ${SB_KEY}`,
-  'Prefer': 'return=representation'
-};
+// Usa el JWT de sesión si está disponible, cae a la anon key si no
+function getSBH(extra) {
+  const token = localStorage.getItem('af-access-token') || SB_KEY;
+  return {
+    'Content-Type': 'application/json',
+    'apikey': SB_KEY,
+    'Authorization': `Bearer ${token}`,
+    'Prefer': 'return=representation',
+    ...extra
+  };
+}
 
 // Columnas del unique constraint por tabla
-// CRÍTICO: Supabase necesita saber exactamente qué columnas usar para el merge
 const ON_CONFLICT = {
   rutinas:              'alumna_id,ciclo,semana,dia',
   alumnas:              'id',
@@ -21,7 +25,7 @@ const ON_CONFLICT = {
 };
 
 async function sbGet(table, qs = '') {
-  const r = await fetch(`${SB_URL}/rest/v1/${table}${qs ? '?' + qs : ''}`, { headers: SB_H });
+  const r = await fetch(`${SB_URL}/rest/v1/${table}${qs ? '?' + qs : ''}`, { headers: getSBH() });
   if (!r.ok) { const e = await r.text(); throw new Error(`GET ${table}: ${e}`); }
   return r.json();
 }
@@ -31,7 +35,7 @@ async function sbUpsert(table, body) {
   const url = `${SB_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(conflict)}`;
   const r = await fetch(url, {
     method: 'POST',
-    headers: { ...SB_H, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    headers: getSBH({ 'Prefer': 'resolution=merge-duplicates,return=representation' }),
     body: JSON.stringify(body)
   });
   if (!r.ok) {
@@ -45,7 +49,7 @@ async function sbUpsert(table, body) {
 async function sbPatch(table, filter, body) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
     method: 'PATCH',
-    headers: { ...SB_H, 'Prefer': 'return=representation' },
+    headers: getSBH({ 'Prefer': 'return=representation' }),
     body: JSON.stringify(body)
   });
   if (!r.ok) { const e = await r.text(); throw new Error(`PATCH ${table}: ${e}`); }
@@ -54,7 +58,7 @@ async function sbPatch(table, filter, body) {
 
 async function sbDelete(table, filter) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
-    method: 'DELETE', headers: SB_H
+    method: 'DELETE', headers: getSBH()
   });
   if (!r.ok) throw new Error(`DELETE ${table} failed`);
   return true;

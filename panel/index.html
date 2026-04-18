@@ -191,10 +191,11 @@
   <div class="lb">
     <div class="ll">A</div>
     <h2>Panel privado</h2>
-    <p>Ingresá tu contraseña</p>
-    <input class="li" type="password" id="pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    <p>Ingresá tus datos</p>
+    <input class="li" type="email" id="email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')login()">
+    <input class="li" type="password" id="pwd" placeholder="Contraseña" onkeydown="if(event.key==='Enter')login()" style="margin-top:8px;">
     <button class="lbtn" onclick="login()">Entrar</button>
-    <div class="lerr" id="lerr">Contraseña incorrecta</div>
+    <div class="lerr" id="lerr" style="display:none;">Email o contraseña incorrectos</div>
   </div>
 </div>
 
@@ -378,14 +379,62 @@ let bibSelEx=null;
 if(dark)document.documentElement.setAttribute('data-theme','dark');
 
 // ── Auth ──────────────────────────────────────────────────────
-function login(){
-  const v=document.getElementById('pwd').value;
-  if(v===(localStorage.getItem('af-pwd')||'amira2025')){localStorage.setItem('af-ok','1');showPanel();}
-  else document.getElementById('lerr').style.display='block';
+function _saveSession(data){
+  localStorage.setItem('af-access-token',data.access_token);
+  localStorage.setItem('af-refresh-token',data.refresh_token);
+  localStorage.setItem('af-token-expires',Date.now()+(data.expires_in||3600)*1000);
+}
+function _clearSession(){
+  ['af-access-token','af-refresh-token','af-token-expires','af-ok','af-pwd'].forEach(k=>localStorage.removeItem(k));
+}
+async function _refreshSession(){
+  const rt=localStorage.getItem('af-refresh-token');if(!rt)return false;
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body:JSON.stringify({refresh_token:rt})
+    });
+    if(!r.ok)return false;
+    _saveSession(await r.json());return true;
+  }catch(e){return false;}
+}
+async function login(){
+  const email=document.getElementById('email').value.trim();
+  const pwd=document.getElementById('pwd').value;
+  const btn=document.querySelector('.lbtn');
+  const lerr=document.getElementById('lerr');
+  if(!email||!pwd){lerr.textContent='Completá email y contraseña';lerr.style.display='block';return;}
+  btn.textContent='Entrando...';lerr.style.display='none';
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body:JSON.stringify({email,password:pwd})
+    });
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error_description||data.msg||'Error');
+    _saveSession(data);showPanel();
+  }catch(e){
+    lerr.textContent='Email o contraseña incorrectos';lerr.style.display='block';
+    btn.textContent='Entrar';
+  }
 }
 function showPanel(){document.getElementById('LS').style.display='none';document.getElementById('PS').style.display='block';loadAll();}
-function doLogout(){localStorage.removeItem('af-ok');document.getElementById('PS').style.display='none';document.getElementById('LS').style.display='flex';}
-function initAuth(){if(localStorage.getItem('af-ok')==='1')showPanel();else document.getElementById('LS').style.display='flex';}
+async function doLogout(){
+  const token=localStorage.getItem('af-access-token');
+  if(token){await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${token}`}}).catch(()=>{});}
+  _clearSession();
+  document.getElementById('PS').style.display='none';document.getElementById('LS').style.display='flex';
+}
+async function initAuth(){
+  const token=localStorage.getItem('af-access-token');
+  const expires=parseInt(localStorage.getItem('af-token-expires')||'0');
+  if(!token){document.getElementById('LS').style.display='flex';return;}
+  if(Date.now()>expires-5*60*1000){
+    const ok=await _refreshSession();
+    if(!ok){_clearSession();document.getElementById('LS').style.display='flex';return;}
+  }
+  showPanel();
+}
 
 // ── Theme ─────────────────────────────────────────────────────
 function toggleDark(){dark=!dark;document.documentElement.setAttribute('data-theme',dark?'dark':'light');localStorage.setItem('af-dark',dark?'1':'0');document.getElementById('tic').textContent=dark?'☀️':'🌙';}
