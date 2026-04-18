@@ -1040,8 +1040,14 @@ async function enviarCom(aId){
 // ── Renders ───────────────────────────────────────────────────
 function renderRutina(){
   const scr=document.getElementById('screen-rutina');
+  if(!scr) return; // Seguridad: si el elemento no existe, salir
   const a=getAlumna();
   if(!a){
+    // Si todavía estamos cargando, mostrar spinner en vez de error
+    if(window._cargando){
+      scr.innerHTML=`<div style="text-align:center;padding:4rem 1rem;color:var(--tm);font-size:13px;">Cargando tu rutina...</div>`;
+      return;
+    }
     const amiraWA=localStorage.getItem('af-amira-ph')||AMIRA_WA;
     const waMsg=encodeURIComponent('Hola Amira! Entré a mi link de rutina pero dice que no existe. ¿Podés enviarme el link correcto?');
     scr.innerHTML=`<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center;">
@@ -1309,13 +1315,28 @@ function renderNotas(){
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
   initTimerPicker(); // Aplicar preferencia de duración guardada
+  window._cargando = true; // Bandera: estamos en proceso de carga
   // 1. Cargar datos locales primero — la pantalla responde de inmediato
   loadLocal();
   // Inyectar fotos cacheadas en las alumnas del cache
   loadFotosCache();
   // Si ya tenemos cache, renderizar en el acto (modo offline inmediato)
   const tieneCache = DB.alumnas.length > 0;
-  if(tieneCache) renderRutina();
+  if(tieneCache){
+    // Hay caché — intentar mostrar inmediatamente
+    // Pero si la alumna no se encuentra en el caché, mostrar loading
+    // (puede que el caché sea de otro dispositivo o el slug cambió)
+    const aCache = getAlumna();
+    if(aCache) renderRutina();
+    else {
+      const scr = document.getElementById('screen-rutina');
+      if(scr) scr.innerHTML = `<div style="text-align:center;padding:4rem 1rem;color:var(--tm);font-size:13px;">Cargando tu rutina...</div>`;
+    }
+  } else {
+    // Sin caché: mostrar "Cargando..." mientras espera Supabase
+    const scr = document.getElementById('screen-rutina');
+    if(scr) scr.innerHTML = `<div style="text-align:center;padding:4rem 1rem;color:var(--tm);font-size:13px;">Cargando tu rutina...</div>`;
+  }
 
   // 2. Intentar actualizar desde Supabase
   try{
@@ -1362,9 +1383,11 @@ async function init(){
     loadFotosCache();
     // 4. Guardar snapshot actualizado para la próxima vez sin conexión
     saveCache();
+    window._cargando = false; // Carga completa
     renderRutina();
 
   }catch(e){
+    window._cargando = false; // Aunque haya error, la carga terminó
     console.warn('Sin conexión, usando datos en caché:', e);
 
     // Si ya renderizamos desde cache, mostrar aviso discreto
