@@ -370,7 +370,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,msg:'',err:'',sbOk:false};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
 let bibSelEx=null;
@@ -499,7 +499,7 @@ function copiarSem(aId,ciclo,sem){
   if(!prev)return false;
   ensureLocal(aId,ciclo,sem);
   let ok=false;
-  DB.rutinas[aId][ciclo][sem].forEach((d,i)=>{if(d.ejercicios.length===0&&prev[i]){d.ejercicios=JSON.parse(JSON.stringify(prev[i].ejercicios));ok=true;}});
+  DB.rutinas[aId][ciclo][sem].forEach(d=>{const prevDay=prev.find(pd=>pd.dia===d.dia);if(d.ejercicios.length===0&&prevDay?.ejercicios?.length>0){d.ejercicios=JSON.parse(JSON.stringify(prevDay.ejercicios));ok=true;}});
   return ok;
 }
 
@@ -722,6 +722,7 @@ async function saveEditEx(){
     vars.push(variante);localStorage.setItem('af-variantes',JSON.stringify(vars));
     DB.variantes=vars;
   }
+  await saveDay();
   closeEditEx();render();
 }
 
@@ -1123,7 +1124,7 @@ function rRutinas(){
     ${variantes.length>0?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
       <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">Variantes guardadas — click para agregar:</div>
       ${variantes.filter(v=>v.ejercicio_nombre).slice(0,5).map(v=>`
-        <div class="var-item" onclick="addVariante('${v.ejercicio_nombre.replace(/'/g,"\\'")}','${v.variante_nombre.replace(/'/g,"\\'")}','${v.series}','${v.reps}','${(v.tip||'').replace(/'/g,"\\'")}')">
+        <div class="var-item" onclick='addVariante(${JSON.stringify(v)})'>
           <div class="var-name">${v.variante_nombre}</div>
           <div class="var-det">${v.series}×${v.reps}</div>
         </div>`).join('')}
