@@ -1373,7 +1373,8 @@ function rHistorial(){
       <tbody>${rs.filter(r=>r.peso_kg).map(r=>{
         const day=getEx(a.id,parseInt(ciclo),r.semana,r.dia);
         const ex=Array.isArray(day)&&r.ejercicio_idx<day.length?day[r.ejercicio_idx]:null;
-        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${ex?.nombre||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
+        const exNombre=r.ejercicio_nombre||(ex?.nombre)||'—';
+        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${exNombre}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
       }).join('')}</tbody>
     </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
   </div>`).join('')}
