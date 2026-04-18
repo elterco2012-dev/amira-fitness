@@ -737,6 +737,8 @@ function loadLocal(){
   try{
     const d=localStorage.getItem('af-done');   if(d) done=JSON.parse(d);
     const p=localStorage.getItem('af-pesos');  if(p) pesos=JSON.parse(p);
+    // Restaurar selCiclo desde cache para que el primer render sea correcto
+    const sc=localStorage.getItem('af-selCiclo'); if(sc) selCiclo=parseInt(sc)||1;
     // Recuperar datos de alumna y rutinas del cache local
     const ca=localStorage.getItem('af-cache-alumnas');
     const cr=localStorage.getItem('af-cache-rutinas');
@@ -1136,6 +1138,19 @@ function renderRutina(){
   <div class="dlbl">Ciclo ${selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
 
   if(exs.length===0){
+    // Intentar encontrar un día/semana con datos y navegar ahí automáticamente
+    let encontrado=false;
+    outer: for(const c of ciclos){
+      const sems=getSemanas(a.id,c);
+      for(const s of (sems.length>0?sems:[1,2,3,4])){
+        for(const d of [1,2,3].slice(0,parseInt(a.dias)||3)){
+          if(getExs(a.id,c,s,d).length>0){
+            selCiclo=c; selSem=s; selDia=d; encontrado=true; break outer;
+          }
+        }
+      }
+    }
+    if(encontrado){ scr.innerHTML=''; renderRutina(); return; }
     html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.25rem;text-align:center;color:var(--tm);font-size:13px;margin-top:.5rem;">
       Sin ejercicios para esta semana.<br><span style="font-size:11px;">Amira los estará cargando pronto.</span>
     </div>`;
@@ -1359,6 +1374,7 @@ async function init(){
     const a=getAlumna();
     if(a){
       selCiclo=parseInt(a.ciclo_actual)||1;
+      localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
       const [coms,prog]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`)
