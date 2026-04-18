@@ -84,8 +84,42 @@
     .ex-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem;transition:all .25s;}
     .ex-card.done{background:var(--vl);border-color:var(--vm);}
     .ex-top{display:flex;align-items:center;gap:10px;cursor:pointer;}
-    .ex-num{width:28px;height:28px;border-radius:50%;background:var(--s2);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--tm);flex-shrink:0;transition:all .25s;}
+    .ex-num{width:28px;height:28px;border-radius:50%;background:var(--s2);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--tm);flex-shrink:0;transition:background .2s,border-color .2s,color .2s,transform .2s;}
     .ex-card.done .ex-num{background:var(--v);color:white;border-color:var(--v);}
+    /* Animación del check al marcar hecho */
+    @keyframes popCheck{
+      0%  {transform:scale(1);}
+      40% {transform:scale(1.45);}
+      65% {transform:scale(.88);}
+      85% {transform:scale(1.12);}
+      100%{transform:scale(1);}
+    }
+    @keyframes popUncheck{
+      0%  {transform:scale(1);}
+      35% {transform:scale(.78);}
+      70% {transform:scale(1.08);}
+      100%{transform:scale(1);}
+    }
+    @keyframes slideInCard{
+      from{opacity:.6;transform:translateY(-4px);}
+      to  {opacity:1; transform:translateY(0);}
+    }
+    @keyframes ripple{
+      0%  {box-shadow:0 0 0 0 rgba(29,158,117,.45);}
+      70% {box-shadow:0 0 0 12px rgba(29,158,117,0);}
+      100%{box-shadow:0 0 0 0 rgba(29,158,117,0);}
+    }
+    .ex-num.anim-check  {animation:popCheck  .42s cubic-bezier(.4,0,.2,1) forwards;}
+    .ex-num.anim-uncheck{animation:popUncheck .35s cubic-bezier(.4,0,.2,1) forwards;}
+    .ex-num.anim-ripple {animation:ripple .5s ease-out;}
+    .ex-card.anim-done  {animation:slideInCard .22s ease forwards;}
+    /* Botón hecho — micro-bounce */
+    @keyframes bchkBounce{
+      0%  {transform:scale(1);}
+      50% {transform:scale(.92);}
+      100%{transform:scale(1);}
+    }
+    .bchk.anim-tap{animation:bchkBounce .18s ease;}
     .ex-name{font-size:13px;font-weight:500;flex:1;color:var(--t);}
     .ex-det{font-size:11px;color:var(--tm);margin-top:3px;}
     .ex-btns{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--b);flex-wrap:wrap;}
@@ -109,6 +143,30 @@
     .ttitle{font-size:13px;font-weight:500;color:var(--t);}
     .tsub{font-size:11px;color:var(--tm);margin-top:2px;}
     .tskip{background:none;border:1px solid var(--bm);border-radius:var(--rs);padding:6px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;}
+    /* Círculo del timer tappeable */
+    .tcircle{cursor:pointer;transition:transform .15s;}
+    .tcircle:active{transform:scale(.93);}
+    /* Selector de tiempo */
+    .timer-picker{
+      position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+      background:var(--s);border:1px solid var(--bm);border-radius:14px;
+      padding:10px 6px;display:flex;gap:6px;align-items:center;
+      box-shadow:0 4px 20px rgba(0,0,0,.15);
+      animation:fadeIn .18s ease;
+      white-space:nowrap;z-index:10;
+    }
+    .timer-picker::after{
+      content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+      border:6px solid transparent;border-top-color:var(--bm);
+    }
+    .tpick-opt{
+      padding:7px 13px;border-radius:10px;font-size:13px;font-weight:500;
+      border:none;background:var(--s2);color:var(--tm);cursor:pointer;
+      font-family:'DM Sans',sans-serif;transition:all .15s;
+    }
+    .tpick-opt.active{background:var(--v);color:white;}
+    .tpick-opt:hover:not(.active){background:var(--vl);color:var(--vd);}
+    .tpick-lbl{font-size:10px;color:var(--th);padding:0 4px;font-family:'DM Sans',sans-serif;}
 
     #cc{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none;}
     .done-banner{text-align:center;padding:1.5rem 0 .5rem;font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--vd);}
@@ -139,10 +197,141 @@
     .nf{text-align:center;padding:3rem 1rem;}
     .nf h2{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.5rem;}
     .nf p{font-size:13px;color:var(--tm);}
+    @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+    #push-banner *{box-sizing:border-box;}
+
+    /* ── Onboarding ── */
+    #onboarding{
+      position:fixed;inset:0;z-index:200;
+      background:var(--bg);
+      display:flex;flex-direction:column;
+      max-width:430px;margin:0 auto;
+      animation:fadeIn .3s ease;
+    }
+    .ob-slides{flex:1;overflow:hidden;position:relative;}
+    .ob-slide{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:2.5rem 2rem;text-align:center;
+      opacity:0;transform:translateX(40px);
+      transition:opacity .35s ease,transform .35s ease;
+      pointer-events:none;
+    }
+    .ob-slide.active{
+      opacity:1;transform:translateX(0);pointer-events:auto;
+    }
+    .ob-slide.exit{
+      opacity:0;transform:translateX(-40px);
+    }
+    .ob-icon{font-size:4.5rem;margin-bottom:1.5rem;line-height:1;}
+    .ob-title{
+      font-family:'DM Serif Display',serif;font-size:1.65rem;
+      color:var(--t);margin-bottom:.85rem;line-height:1.25;
+    }
+    .ob-body{
+      font-size:14px;color:var(--tm);line-height:1.75;
+      max-width:320px;margin:0 auto;
+    }
+    .ob-body strong{color:var(--t);}
+    .ob-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      background:var(--vl);color:var(--vd);
+      border-radius:var(--rp);padding:5px 14px;
+      font-size:12px;font-weight:500;margin-top:12px;
+    }
+    .ob-footer{
+      padding:1.5rem 2rem 2.5rem;
+      display:flex;flex-direction:column;align-items:center;gap:16px;
+    }
+    .ob-dots{display:flex;gap:7px;}
+    .ob-dot{
+      width:7px;height:7px;border-radius:50%;
+      background:var(--bm);transition:all .3s;
+    }
+    .ob-dot.active{background:var(--v);width:20px;border-radius:99px;}
+    .ob-btn{
+      width:100%;max-width:320px;
+      padding:13px;border-radius:var(--rp);
+      background:var(--v);color:white;border:none;
+      font-size:14px;font-weight:500;cursor:pointer;
+      font-family:'DM Sans',sans-serif;
+      transition:background .15s;
+    }
+    .ob-btn:hover{background:var(--vd);}
+    .ob-skip{
+      font-size:12px;color:var(--th);
+      background:none;border:none;cursor:pointer;
+      font-family:'DM Sans',sans-serif;padding:4px;
+    }
+    @keyframes obIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   </style>
 </head>
 <body>
 <canvas id="cc"></canvas>
+
+<!-- ── Onboarding (solo primera vez) ── -->
+<div id="onboarding" style="display:none;">
+  <div class="ob-slides">
+
+    <!-- Slide 1: Bienvenida -->
+    <div class="ob-slide active" id="ob-s1">
+      <div class="ob-icon">🏋️‍♀️</div>
+      <div class="ob-title" id="ob-nombre-titulo">Bienvenida a<br>tu rutina</div>
+      <div class="ob-body">
+        Acá vas a tener <strong>todos tus ejercicios del día</strong>, con video y técnica incluidos.<br><br>
+        Amira armó este plan especialmente para vos.
+      </div>
+      <div class="ob-pill">✦ Tu entrenamiento personalizado</div>
+    </div>
+
+    <!-- Slide 2: Cómo usar -->
+    <div class="ob-slide" id="ob-s2">
+      <div class="ob-icon">✅</div>
+      <div class="ob-title">Así funciona<br>cada ejercicio</div>
+      <div class="ob-body">
+        Tocá <strong>Ver técnica</strong> para leer el consejo de Amira.<br><br>
+        Tocá <strong>▶ Video</strong> para ver el movimiento.<br><br>
+        Cuando terminés las series, tocá <strong>Marcar hecho</strong> — arranca el descanso automáticamente.
+      </div>
+    </div>
+
+    <!-- Slide 3: Peso y progreso -->
+    <div class="ob-slide" id="ob-s3">
+      <div class="ob-icon">📈</div>
+      <div class="ob-title">Registrá<br>tus pesos</div>
+      <div class="ob-body">
+        Cargá el peso que usás en cada ejercicio.<br><br>
+        En la pestaña <strong>Progreso</strong> vas a ver cómo mejorás semana a semana.<br><br>
+        Amira también puede verlo desde su panel.
+      </div>
+    </div>
+
+    <!-- Slide 4: Notas y listo -->
+    <div class="ob-slide" id="ob-s4">
+      <div class="ob-icon">💬</div>
+      <div class="ob-title">Mandále notas<br>a Amira</div>
+      <div class="ob-body">
+        En la pestaña <strong>Notas</strong> podés escribirle cómo te fue, cómo te sentiste o cualquier duda.<br><br>
+        Ella las ve en su panel y te responde por WhatsApp.
+      </div>
+      <div class="ob-pill">🚀 ¡Todo listo para empezar!</div>
+    </div>
+
+  </div>
+
+  <div class="ob-footer">
+    <div class="ob-dots">
+      <div class="ob-dot active" id="od1"></div>
+      <div class="ob-dot" id="od2"></div>
+      <div class="ob-dot" id="od3"></div>
+      <div class="ob-dot" id="od4"></div>
+    </div>
+    <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
+    <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
+  </div>
+</div>
+
 <div class="app">
   <div class="header">
     <div class="hlogo">A</div>
@@ -153,12 +342,22 @@
   <div id="screen-progreso" class="screen" style="display:none;"></div>
   <div id="screen-notas" class="screen" style="display:none;"></div>
 </div>
-<div class="timer" id="timer" style="transform:translateY(100%);">
-  <div class="tcircle">
+<div class="timer" id="timer">
+  <div class="tcircle" onclick="toggleTimerPicker()" title="Tocá para cambiar el tiempo">
     <svg class="tring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="3"/><circle id="tarc" cx="27" cy="27" r="24" fill="none" stroke="white" stroke-width="3" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 27 27)"/></svg>
     <span class="tnum" id="tnum">45</span>
+    <!-- Picker de tiempo (se muestra al tocar el círculo) -->
+    <div class="timer-picker" id="timer-picker" style="display:none;" onclick="event.stopPropagation()">
+      <span class="tpick-lbl">Descanso</span>
+      <button class="tpick-opt" id="tpick-30" onclick="setTimerDuration(30)">30s</button>
+      <button class="tpick-opt" id="tpick-45" onclick="setTimerDuration(45)">45s</button>
+      <button class="tpick-opt" id="tpick-60" onclick="setTimerDuration(60)">60s</button>
+    </div>
   </div>
-  <div class="tinfo"><div class="ttitle">Descanso</div><div class="tsub" id="tsub">Próximo: —</div></div>
+  <div class="tinfo">
+    <div class="ttitle">Descanso <span id="timer-dur-lbl" style="font-size:10px;color:rgba(255,255,255,.6);font-family:'DM Sans',sans-serif;font-weight:400;"></span></div>
+    <div class="tsub" id="tsub">Próximo: —</div>
+  </div>
   <button class="tskip" onclick="skipTimer()">Saltar</button>
 </div>
 <div class="bnav" id="bnav">
@@ -174,18 +373,306 @@ const slug = location.pathname.split('/').filter(Boolean).pop()||'';
 // WhatsApp de Amira siempre actualizado
 localStorage.setItem('af-amira-ph', AMIRA_WA);
 
+// ── Onboarding ────────────────────────────────────────────────
+let obStep = 1;
+const OB_TOTAL = 4;
+
+function obMostrar(nombre){
+  // Solo la primera vez
+  if(localStorage.getItem('af-onboarding-done') === '1') return;
+  // Personalizar el título del primer slide con el nombre
+  const tit = document.getElementById('ob-nombre-titulo');
+  if(tit && nombre) tit.innerHTML = `¡Hola, ${nombre}!<br>Bienvenida a tu rutina`;
+  obStep = 1;
+  obRender();
+  document.getElementById('onboarding').style.display = 'flex';
+  // Bloquear scroll del body mientras está abierto
+  document.body.style.overflow = 'hidden';
+}
+
+function obRender(){
+  // Actualizar slides
+  for(let i=1; i<=OB_TOTAL; i++){
+    const sl = document.getElementById(`ob-s${i}`);
+    if(!sl) continue;
+    if(i === obStep){
+      sl.classList.remove('exit');
+      sl.classList.add('active');
+    } else {
+      sl.classList.remove('active');
+    }
+  }
+  // Actualizar dots
+  for(let i=1; i<=OB_TOTAL; i++){
+    const d = document.getElementById(`od${i}`);
+    if(d) d.classList.toggle('active', i === obStep);
+  }
+  // Actualizar botón
+  const btn = document.getElementById('ob-btn-next');
+  const skip = document.getElementById('ob-btn-skip');
+  if(btn){
+    if(obStep === OB_TOTAL){
+      btn.textContent = '¡Empezar a entrenar! 💪';
+      btn.style.background = 'var(--v)';
+    } else {
+      btn.textContent = 'Siguiente →';
+    }
+  }
+  // Ocultar skip en el último slide
+  if(skip) skip.style.display = obStep === OB_TOTAL ? 'none' : 'block';
+}
+
+function obNext(){
+  if(obStep < OB_TOTAL){
+    // Animar salida del slide actual
+    const current = document.getElementById(`ob-s${obStep}`);
+    if(current){
+      current.classList.add('exit');
+      setTimeout(()=>{ current.classList.remove('active','exit'); }, 350);
+    }
+    obStep++;
+    // Preparar nuevo slide desde la derecha
+    const next = document.getElementById(`ob-s${obStep}`);
+    if(next){
+      next.style.transform = 'translateX(40px)';
+      next.style.opacity = '0';
+      next.classList.add('active');
+      requestAnimationFrame(()=>{
+        next.style.transform = '';
+        next.style.opacity = '';
+      });
+    }
+    obRender();
+  } else {
+    obCerrar();
+  }
+}
+
+function obCerrar(){
+  const ob = document.getElementById('onboarding');
+  if(ob){
+    ob.style.opacity = '0';
+    ob.style.transition = 'opacity .25s ease';
+    setTimeout(()=>{
+      ob.style.display = 'none';
+      ob.style.opacity = '';
+      ob.style.transition = '';
+    }, 250);
+  }
+  document.body.style.overflow = '';
+  localStorage.setItem('af-onboarding-done', '1');
+}
+
 let DB = {alumnas:[], rutinas:{}, comentarios:[]};
 let selSem = 1, selDia = 1, selCiclo = 1;
 let done = {}, expanded = {}, pesos = {};
-let timerInt = null, timerTotal = 45, timerRem = 0, timerRunning = false;
+// Duración preferida por la alumna (persistida en localStorage)
+let timerDuracion = parseInt(localStorage.getItem('af-timer-dur') || '45');
+let timerInt = null, timerTotal = timerDuracion, timerRem = 0, timerRunning = false;
+let pickerVisible = false;
+
+// Inicializar botones del picker con el estado guardado
+function initTimerPicker(){
+  [30,45,60].forEach(s=>{
+    const btn = document.getElementById(`tpick-${s}`);
+    if(btn) btn.classList.toggle('active', s === timerDuracion);
+  });
+  const lbl = document.getElementById('timer-dur-lbl');
+  if(lbl) lbl.textContent = timerDuracion === 45 ? '' : `· ${timerDuracion}s`;
+}
+
+function toggleTimerPicker(){
+  const picker = document.getElementById('timer-picker');
+  if(!picker) return;
+  pickerVisible = !pickerVisible;
+  picker.style.display = pickerVisible ? 'flex' : 'none';
+  if(pickerVisible){
+    // Pausar el countdown mientras elige
+    if(timerRunning && timerInt){
+      clearInterval(timerInt);
+      timerInt = null;
+    }
+  }
+}
+
+function setTimerDuration(secs){
+  timerDuracion = secs;
+  localStorage.setItem('af-timer-dur', String(secs));
+  // Actualizar visual del picker
+  [30,45,60].forEach(s=>{
+    const btn = document.getElementById(`tpick-${s}`);
+    if(btn) btn.classList.toggle('active', s === secs);
+  });
+  // Actualizar label de duración en el header del timer
+  const lbl = document.getElementById('timer-dur-lbl');
+  if(lbl) lbl.textContent = secs === 45 ? '' : `· ${secs}s`;
+  // Cerrar picker y reiniciar con la nueva duración
+  pickerVisible = false;
+  document.getElementById('timer-picker').style.display = 'none';
+  // Reiniciar el timer con la nueva duración
+  timerTotal = secs;
+  timerRem   = secs;
+  const numEl = document.getElementById('tnum');
+  const arcEl = document.getElementById('tarc');
+  if(numEl) numEl.textContent = secs;
+  if(arcEl) arcEl.style.strokeDashoffset = '0';
+  // Reanudar countdown con nueva duración
+  if(timerRunning){
+    timerInt = setInterval(tickTimer, 1000);
+  }
+}
+
+// Cerrar picker si toca fuera del timer
+document.addEventListener('click', (e)=>{
+  if(pickerVisible && !e.target.closest('#timer')){
+    pickerVisible = false;
+    const picker = document.getElementById('timer-picker');
+    if(picker) picker.style.display = 'none';
+    // Reanudar si estaba corriendo
+    if(timerRunning && !timerInt){
+      timerInt = setInterval(tickTimer, 1000);
+    }
+  }
+});
 let dark = localStorage.getItem('af-dark')==='1';
 let curTab = 'r';
 let charts = {};
 let selHistEx = null;
 
-// ── PWA ───────────────────────────────────────────────────────
+// ── PWA + Push ────────────────────────────────────────────────
+const VAPID_PUB_KEY = 'BEvlwuJG1bcxVQ6PoIF3DM6oiwb07s-vyRGWb8S7cUo3zYzvaaqpMu_DWDe_eBwMXUWavosn-BbMs_Bm0gsZZB8';
+let swReg = null;
+
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  window.addEventListener('load', async ()=>{
+    try{
+      swReg = await navigator.serviceWorker.register('/sw.js');
+      console.log('SW registrado ✓');
+      // Pedir permiso de notificaciones después de que cargue la alumna
+      // (se llama desde init() una vez que sabemos el id)
+    }catch(e){ console.warn('SW error:', e); }
+  });
+}
+
+// ── Convertir VAPID public key a Uint8Array ───────────────────
+function urlB64ToUint8(b64){
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob(b64.replace(/-/g,'+').replace(/_/g,'/') + pad);
+  return Uint8Array.from(raw, c=>c.charCodeAt(0));
+}
+
+// ── Pedir permiso y suscribir al push ────────────────────────
+async function setupPush(alumnaId){
+  if(!swReg || !('PushManager' in window)) return;
+  // No molestar si ya dio permiso o rechazó
+  const prev = localStorage.getItem('af-push-asked');
+  if(prev === 'denied' || prev === 'granted') return;
+
+  // Esperar que el SW esté activo
+  await swReg.ready;
+
+  // Verificar si ya hay suscripción activa
+  const existing = await swReg.pushManager.getSubscription();
+  if(existing){
+    localStorage.setItem('af-push-asked','granted');
+    await guardarSuscripcion(alumnaId, existing);
+    return;
+  }
+
+  // Mostrar banner amigable antes de pedir permiso del browser
+  mostrarBannerPush(alumnaId);
+}
+
+// ── Banner de permiso ─────────────────────────────────────────
+function mostrarBannerPush(alumnaId){
+  if(document.getElementById('push-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'push-banner';
+  banner.style.cssText = `
+    position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;
+    background:var(--s);border-top:2px solid var(--v);border-radius:var(--r) var(--r) 0 0;
+    padding:1rem 1.25rem;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,.12);
+    animation:slideUp .35s cubic-bezier(.4,0,.2,1);
+  `;
+  banner.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-size:28px;line-height:1;">💪</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:3px;">¿Recibir recordatorios de entrenamiento?</div>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:10px;line-height:1.5;">
+          Te avisamos a las 9AM los días que te toca entrenar. Sin spam.
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="activarPush(${alumnaId})" style="
+            flex:1;background:var(--v);color:white;border:none;border-radius:var(--rp);
+            padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;
+          ">Sí, activar</button>
+          <button onclick="rechazarPush()" style="
+            background:none;border:1px solid var(--bm);border-radius:var(--rp);
+            padding:8px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;
+          ">Ahora no</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+}
+
+function rechazarPush(){
+  localStorage.setItem('af-push-asked','denied');
+  const b = document.getElementById('push-banner');
+  if(b) b.remove();
+}
+
+async function activarPush(alumnaId){
+  const b = document.getElementById('push-banner');
+  if(b) b.remove();
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      localStorage.setItem('af-push-asked','denied');
+      return;
+    }
+    await swReg.ready;
+    const sub = await swReg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8(VAPID_PUB_KEY)
+    });
+    localStorage.setItem('af-push-asked','granted');
+    await guardarSuscripcion(alumnaId, sub);
+    // Mostrar confirmación
+    mostrarToast('✓ Recordatorios activados 💪');
+  }catch(e){
+    console.warn('Push subscription error:', e);
+    localStorage.setItem('af-push-asked','denied');
+  }
+}
+
+async function guardarSuscripcion(alumnaId, sub){
+  const j = sub.toJSON();
+  try{
+    await sbUpsert('push_subscriptions', {
+      alumna_id: alumnaId,
+      endpoint:  j.endpoint,
+      p256dh:    j.keys.p256dh,
+      auth:      j.keys.auth,
+    }, 'alumna_id,endpoint');
+    console.log('Suscripción guardada ✓');
+  }catch(e){ console.warn('Error guardando suscripción:', e); }
+}
+
+// ── Toast de confirmación ─────────────────────────────────────
+function mostrarToast(msg){
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--v);color:white;padding:8px 18px;border-radius:var(--rp);
+    font-size:12px;font-weight:500;z-index:50;white-space:nowrap;
+    animation:fadeIn .25s ease;font-family:'DM Sans',sans-serif;
+  `;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2800);
 }
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -248,10 +735,79 @@ function pKey(aId,s,d,i){ return `p-${aId}-c${selCiclo}-${s}-${d}-${i}`; }
 function saveDone(){try{localStorage.setItem('af-done',JSON.stringify(done));}catch(e){}}
 function loadLocal(){
   try{
-    const d=localStorage.getItem('af-done'); if(d) done=JSON.parse(d);
-    const p=localStorage.getItem('af-pesos'); if(p) pesos=JSON.parse(p);
+    const d=localStorage.getItem('af-done');   if(d) done=JSON.parse(d);
+    const p=localStorage.getItem('af-pesos');  if(p) pesos=JSON.parse(p);
+    // Recuperar datos de alumna y rutinas del cache local
+    const ca=localStorage.getItem('af-cache-alumnas');
+    const cr=localStorage.getItem('af-cache-rutinas');
+    if(ca) DB.alumnas=JSON.parse(ca);
+    if(cr) DB.rutinas=JSON.parse(cr);
   }catch(e){}
 }
+
+// Guardar snapshot de los datos en localStorage para modo offline
+function saveCache(){
+  try{
+    // Guardar fotos por separado para no saturar el cache principal
+    const fotos={};
+    DB.alumnas.forEach(a=>{ if(a.foto) fotos[a.id]=a.foto; });
+    localStorage.setItem('af-cache-fotos',   JSON.stringify(fotos));
+    // Guardar alumnas sin fotos (ahorrar espacio)
+    const alumnasSinFoto = DB.alumnas.map(a=>({...a,foto:''}));
+    localStorage.setItem('af-cache-alumnas', JSON.stringify(alumnasSinFoto));
+    localStorage.setItem('af-cache-rutinas',  JSON.stringify(DB.rutinas));
+    localStorage.setItem('af-cache-ts', Date.now().toString());
+  }catch(e){ console.warn('Cache write error:', e); }
+}
+
+// Recuperar fotos del cache e inyectarlas en DB.alumnas
+function loadFotosCache(){
+  try{
+    const f=localStorage.getItem('af-cache-fotos');
+    if(!f) return;
+    const fotos=JSON.parse(f);
+    DB.alumnas.forEach(a=>{ if(fotos[a.id] && !a.foto) a.foto=fotos[a.id]; });
+  }catch(e){}
+}
+
+// ── Cola de sync offline ─────────────────────────────────────
+// Guarda operaciones que fallaron para reintentarlas cuando haya conexión
+let syncQueue = JSON.parse(localStorage.getItem('af-sync-queue')||'[]');
+
+function queueSync(op){
+  syncQueue.push({...op, ts: Date.now()});
+  // Máximo 50 operaciones en cola para no llenar el storage
+  if(syncQueue.length > 50) syncQueue = syncQueue.slice(-50);
+  localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
+}
+
+async function flushSyncQueue(){
+  if(!syncQueue.length) return;
+  const pendientes = [...syncQueue];
+  syncQueue = [];
+  localStorage.setItem('af-sync-queue', JSON.stringify([]));
+  let fallidos = [];
+  for(const op of pendientes){
+    try{
+      await sbUpsert('progreso', op.data);
+    }catch(e){
+      fallidos.push(op); // si falla de nuevo, vuelve a la cola
+    }
+  }
+  if(fallidos.length){
+    syncQueue = [...fallidos, ...syncQueue];
+    localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
+  } else if(pendientes.length){
+    console.log(`✓ ${pendientes.length} operaciones sincronizadas`);
+    mostrarToast('✓ Progreso sincronizado');
+  }
+}
+
+// Escuchar cuando el dispositivo recupera la conexión
+window.addEventListener('online', ()=>{
+  console.log('Conexión recuperada — sincronizando...');
+  flushSyncQueue();
+});
 
 // ── Tabs ──────────────────────────────────────────────────────
 function switchTab(t){
@@ -266,36 +822,58 @@ function switchTab(t){
 }
 
 // ── Timer ─────────────────────────────────────────────────────
-function startTimer(nextName){
-  if(timerInt){clearInterval(timerInt);timerInt=null;}
-  timerRunning=true; timerTotal=45; timerRem=45;
-  const el=document.getElementById('timer');
-  const subEl=document.getElementById('tsub');
-  const numEl=document.getElementById('tnum');
-  const arcEl=document.getElementById('tarc');
-  if(subEl) subEl.textContent=nextName?`Próximo: ${nextName}`:'¡Último ejercicio!';
-  if(numEl) numEl.textContent=timerRem;
-  if(arcEl) arcEl.style.strokeDashoffset='0';
-  if(el) el.classList.add('show');
-  timerInt=setInterval(()=>{
-    timerRem--;
-    const n=document.getElementById('tnum');
-    const arc=document.getElementById('tarc');
-    const t=document.getElementById('timer');
-    if(n) n.textContent=timerRem;
-    if(arc) arc.style.strokeDashoffset=150.8*(1-timerRem/timerTotal);
-    if(timerRem<=0){
-      clearInterval(timerInt); timerInt=null; timerRunning=false;
-      if(t) t.classList.remove('show');
-      if(navigator.vibrate) navigator.vibrate([200,100,200]);
-    }
-  },1000);
+// Tick del countdown — extraído para poder pausar/reanudar
+function tickTimer(){
+  timerRem--;
+  const n   = document.getElementById('tnum');
+  const arc = document.getElementById('tarc');
+  const t   = document.getElementById('timer');
+  if(n)   n.textContent = timerRem;
+  if(arc) arc.style.strokeDashoffset = 150.8 * (1 - timerRem / timerTotal);
+  if(timerRem <= 0){
+    clearInterval(timerInt); timerInt=null; timerRunning=false;
+    pickerVisible=false;
+    const picker=document.getElementById('timer-picker');
+    if(picker) picker.style.display='none';
+    if(t){ t.classList.remove('show'); t.style.visibility=''; t.style.pointerEvents=''; }
+    if(navigator.vibrate) navigator.vibrate([200,100,200]);
+  }
 }
+
+function startTimer(nextName){
+  if(timerInt){ clearInterval(timerInt); timerInt=null; }
+  // Cerrar picker si estaba abierto
+  pickerVisible=false;
+  const picker=document.getElementById('timer-picker');
+  if(picker) picker.style.display='none';
+  timerRunning=true;
+  timerTotal=timerDuracion;
+  timerRem=timerDuracion;
+  const el    = document.getElementById('timer');
+  const numEl = document.getElementById('tnum');
+  const arcEl = document.getElementById('tarc');
+  const subEl = document.getElementById('tsub');
+  if(!el) return;
+  if(subEl) subEl.textContent = nextName ? `Próximo: ${nextName}` : '¡Último ejercicio!';
+  if(numEl) numEl.textContent = timerRem;
+  if(arcEl) arcEl.style.strokeDashoffset = '0';
+  el.classList.add('show');
+  el.style.visibility='visible';
+  el.style.pointerEvents='auto';
+  // Actualizar label de duración
+  const lbl = document.getElementById('timer-dur-lbl');
+  if(lbl) lbl.textContent = timerDuracion === 45 ? '' : `· ${timerDuracion}s`;
+  timerInt = setInterval(tickTimer, 1000);
+}
+
 function skipTimer(){
-  if(timerInt){clearInterval(timerInt);timerInt=null;}
+  if(timerInt){ clearInterval(timerInt); timerInt=null; }
   timerRunning=false; timerRem=0;
+  pickerVisible=false;
+  const picker=document.getElementById('timer-picker');
+  if(picker) picker.style.display='none';
   const el=document.getElementById('timer');
-  if(el) el.classList.remove('show');
+  if(el){ el.classList.remove('show'); el.style.visibility=''; el.style.pointerEvents=''; }
 }
 
 // ── Confetti ──────────────────────────────────────────────────
@@ -329,16 +907,64 @@ async function toggleDone(aId,i,nextName){
   const wasDone=!!done[k];
   done[k]=!done[k];
   saveDone();
-  skipTimer();
-  if(done[k]&&!wasDone) startTimer(nextName);
-  renderRutina();
-  // Sync Supabase en background
+
+  // ── Micro-animación ANTES de re-renderizar ──────────────────
+  // Buscar por ID para targeting 100% seguro aunque haya expand/collapse
+  const card  = document.getElementById(`exc-${aId}-${i}`);
+  const numEl = document.getElementById(`exn-${aId}-${i}`);
+  const bchk  = card?.querySelector('.bchk');
+
+  if(numEl){
+    // Quitar clases anteriores para poder re-triggerear
+    numEl.classList.remove('anim-check','anim-uncheck','anim-ripple');
+    void numEl.offsetWidth; // reflow para re-trigger
+    if(done[k]){
+      // Marcar hecho: pop + ripple verde
+      numEl.textContent = '✓';
+      numEl.style.background = 'var(--v)';
+      numEl.style.color = 'white';
+      numEl.style.borderColor = 'var(--v)';
+      numEl.classList.add('anim-check','anim-ripple');
+    } else {
+      // Desmarcar: volver al número
+      numEl.textContent = String(i+1);
+      numEl.style.background = '';
+      numEl.style.color = '';
+      numEl.style.borderColor = '';
+      numEl.classList.add('anim-uncheck');
+    }
+  }
+  if(bchk){
+    bchk.classList.remove('anim-tap');
+    void bchk.offsetWidth;
+    bchk.classList.add('anim-tap');
+    bchk.textContent = done[k] ? '✓ Hecho' : 'Marcar hecho';
+  }
+  if(card && done[k]){
+    card.classList.add('done','anim-done');
+  } else if(card){
+    card.classList.remove('done');
+  }
+
+  // Esperar que la animación del check termine antes de re-renderizar
+  // (solo si hay animación — 420ms para check, 350ms para uncheck)
+  const delay = done[k] ? 400 : 320;
+  setTimeout(()=>{
+    // Timer: matar siempre primero, luego arrancar solo si se marcó como hecho
+    skipTimer();
+    if(done[k] && !wasDone) startTimer(nextName);
+    renderRutina();
+  }, delay);
+  // Sync Supabase en background — si falla, encolar para reintento
+  const progresoData = {
+    alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
+    ejercicio_idx:i, hecho:done[k], fecha_registro:new Date().toISOString()
+  };
   try{
-    await sbUpsert('progreso',{
-      alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
-      ejercicio_idx:i,hecho:done[k],fecha_registro:new Date().toISOString()
-    });
-  }catch(e){}
+    await sbUpsert('progreso', progresoData);
+  }catch(e){
+    queueSync({data: progresoData});
+  }
 }
 
 function toggleExp(aId,i){
@@ -357,12 +983,15 @@ function savePeso(aId,i,val){
   _pt[tk]=setTimeout(async()=>{
     const kg=parseFloat(val)||null;
     if(!kg) return;
+    const pesoData = {
+      alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
+      ejercicio_idx:i, peso_kg:kg, fecha_registro:new Date().toISOString()
+    };
     try{
-      await sbUpsert('progreso',{
-        alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
-        ejercicio_idx:i,peso_kg:kg,fecha_registro:new Date().toISOString()
-      });
-    }catch(e){}
+      await sbUpsert('progreso', pesoData);
+    }catch(e){
+      queueSync({data: pesoData});
+    }
   },1500);
 }
 
@@ -378,6 +1007,12 @@ async function cambiarFotoAlumna(aId,input){
     const foto=canvas.toDataURL('image/jpeg',0.8);
     const a=DB.alumnas.find(x=>x.id===aId);
     if(a) a.foto=foto;
+    // Guardar en cache local inmediatamente para evitar parpadeo
+    try{
+      const fotos=JSON.parse(localStorage.getItem('af-cache-fotos')||'{}');
+      fotos[aId]=foto;
+      localStorage.setItem('af-cache-fotos',JSON.stringify(fotos));
+    }catch(e){}
     try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
     renderRutina();
   };
@@ -408,11 +1043,32 @@ function renderRutina(){
   const scr=document.getElementById('screen-rutina');
   const a=getAlumna();
   if(!a){
-    scr.innerHTML=`<div class="nf"><div style="font-size:2rem;margin-bottom:.75rem">🤔</div><h2>Rutina no encontrada</h2><p>Este link no corresponde a ninguna alumna.<br>Pedile a Amira que te reenvíe tu link.</p></div>`;
+    const amiraWA=localStorage.getItem('af-amira-ph')||AMIRA_WA;
+    const waMsg=encodeURIComponent('Hola Amira! Entré a mi link de rutina pero dice que no existe. ¿Podés enviarme el link correcto?');
+    scr.innerHTML=`<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center;">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:28px;color:var(--vd);margin-bottom:1.5rem;">A</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);margin-bottom:.6rem;line-height:1.25;">Link no encontrado</div>
+      <div style="font-size:13px;color:var(--tm);line-height:1.75;max-width:280px;margin-bottom:2rem;">
+        Este link no corresponde a ninguna alumna activa.<br>Puede que haya cambiado o que tengas uno desactualizado.
+      </div>
+      <a href="https://wa.me/${amiraWA}?text=${waMsg}" target="_blank" style="
+        display:inline-flex;align-items:center;gap:10px;
+        background:#25D366;color:white;text-decoration:none;
+        padding:12px 24px;border-radius:var(--rp);
+        font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;
+        margin-bottom:1rem;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+        Escribirle a Amira
+      </a>
+      <div style="font-size:11px;color:var(--th);">Ella te envía el link correcto en minutos.</div>
+    </div>`;
     return;
   }
   document.title=`${a.nombre.split(' ')[0]} — Amira Fitness`;
   document.getElementById('hsubtitle').textContent=`Hola, ${a.nombre.split(' ')[0]} 👋`;
+  // Mostrar onboarding solo la primera vez (después de que cargó la alumna)
+  obMostrar(a.nombre.split(' ')[0]);
 
   // Obtener datos
   const ciclos = getCiclos(a.id);
@@ -452,7 +1108,7 @@ function renderRutina(){
   // Selector de ciclos — siempre visible
   if(ciclos.length>0){
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="skipTimer();selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
+      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
     </div></div>`;
   }
 
@@ -460,12 +1116,12 @@ function renderRutina(){
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
     ${[1,2,3,4].map(s=>{
       const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
-      return`<button class="stab${selSem===s?' active':''}" onclick="skipTimer();selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
+      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
     }).join('')}
   </div></div>`;
 
   // Selector de días
-  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="skipTimer();selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
   // Progreso del día
   html+=`<div class="prog-wrap">
@@ -486,9 +1142,9 @@ function renderRutina(){
     const pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
     const nextEx=exs[i+1];
     const nextName=nextEx?nextEx.nombre.replace(/'/g,"\\'"):'';
-    html+=`<div class="ex-card${isDone?' done':''}">
+    html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
       <div class="ex-top" onclick="toggleDone(${a.id},${i},'${nextName}')">
-        <div class="ex-num">${isDone?'✓':i+1}</div>
+        <div class="ex-num" id="exn-${a.id}-${i}">${isDone?'✓':i+1}</div>
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
           <div class="ex-det">${ex.series} series × ${ex.reps}</div>
@@ -545,10 +1201,55 @@ function renderProgreso(){
     {icon:'🏆',label:'Semana completa',e:totalD>=3},
     {icon:'🚀',label:'Mes de constancia',e:totalD>=12},
   ];
+
+  // ── Calendario de constancia ─────────────────────────────────
+  // Construir mapa de días completados: "ciclo-sem-dia" → true
+  const diasHechos=new Set(
+    Object.keys(done)
+      .filter(k=>k.startsWith(`${a.id}-`)&&done[k])
+      .map(k=>{ const p=k.split('-'); return p.length>=4?`${p[1]}-${p[2]}-${p[3]}`:null; })
+      .filter(Boolean)
+  );
+
+  // Generar grilla: 4 ciclos × 4 semanas × 3 días = 48 celdas máximo
+  const ciclosDisp=getCiclos(a.id);
+  let calHtml='';
+  ciclosDisp.forEach(cic=>{
+    calHtml+=`<div style="font-size:10px;color:var(--th);margin-bottom:4px;margin-top:8px;">Ciclo ${cic}</div>`;
+    calHtml+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    [1,2,3,4].forEach(sem=>{
+      [1,2,3].slice(0,parseInt(a.dias)||3).forEach(dia=>{
+        const key=`c${cic}-${sem}-${dia}`;
+        const hecho=diasHechos.has(key);
+        const title=`Ciclo ${cic} · Sem ${sem} · Día ${dia}`;
+        calHtml+=`<div title="${title}" style="
+          width:18px;height:18px;border-radius:4px;
+          background:${hecho?'var(--v)':'var(--s2)'};
+          border:1px solid ${hecho?'var(--vd)':'var(--bm)'};
+          transition:transform .15s;cursor:default;
+          flex-shrink:0;
+        "></div>`;
+      });
+      // Separador entre semanas
+      calHtml+='<div style="width:6px;"></div>';
+    });
+    calHtml+='</div>';
+  });
+
   let html=`
     <div class="stat-grid">
       <div class="stat-card"><span class="stat-num">${totalD}</span><span class="stat-lbl">Días entrenados</span></div>
       <div class="stat-card"><span class="stat-num">${totalP}</span><span class="stat-lbl">Ejercicios con peso</span></div>
+    </div>
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Constancia</div>
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      ${calHtml}
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;">
+        <div style="width:12px;height:12px;border-radius:3px;background:var(--s2);border:1px solid var(--bm);"></div>
+        <span style="font-size:10px;color:var(--th);">Pendiente</span>
+        <div style="width:12px;height:12px;border-radius:3px;background:var(--v);margin-left:8px;"></div>
+        <span style="font-size:10px;color:var(--th);">Completado</span>
+      </div>
     </div>
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Logros</div>
     <div class="badge-row">
@@ -595,7 +1296,16 @@ function renderNotas(){
 
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
+  initTimerPicker(); // Aplicar preferencia de duración guardada
+  // 1. Cargar datos locales primero — la pantalla responde de inmediato
   loadLocal();
+  // Inyectar fotos cacheadas en las alumnas del cache
+  loadFotosCache();
+  // Si ya tenemos cache, renderizar en el acto (modo offline inmediato)
+  const tieneCache = DB.alumnas.length > 0;
+  if(tieneCache) renderRutina();
+
+  // 2. Intentar actualizar desde Supabase
   try{
     const [alumnas,rutinas]=await Promise.all([
       sbGet('alumnas','order=created_at.asc'),
@@ -612,16 +1322,15 @@ async function init(){
         DB.rutinas[aId][c][s].push({dia:parseInt(r.dia),ejercicios:r.ejercicios||[]});
       }
     });
+
     const a=getAlumna();
     if(a){
-      // Inicializar selCiclo con el ciclo actual de la alumna
       selCiclo=parseInt(a.ciclo_actual)||1;
       const [coms,prog]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`)
       ]);
       DB.comentarios=coms;
-      // Restaurar checks y pesos desde Supabase
       prog.forEach(p=>{
         if(p.hecho){
           const k=`${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
@@ -634,26 +1343,42 @@ async function init(){
       });
       saveDone();
       localStorage.setItem('af-pesos',JSON.stringify(pesos));
+      setTimeout(()=>setupPush(a.id), 3000);
     }
+
+    // 3. Inyectar fotos del cache local si Supabase no las devolvió aún
+    loadFotosCache();
+    // 4. Guardar snapshot actualizado para la próxima vez sin conexión
+    saveCache();
+    renderRutina();
+
   }catch(e){
-    console.error('Error cargando datos:',e);
-    // Fallback seed
-    try{
-      const res=await fetch('/api/seed.json');
-      if(res.ok){
-        const d=await res.json();
-        DB.alumnas=d.alumnas||[];
-        (d.rutinas||[]).forEach(r=>{
-          if(!DB.rutinas[r.alumna_id]) DB.rutinas[r.alumna_id]={};
-          if(!DB.rutinas[r.alumna_id][1]) DB.rutinas[r.alumna_id][1]={};
-          if(!DB.rutinas[r.alumna_id][1][r.semana]) DB.rutinas[r.alumna_id][1][r.semana]=[];
-          DB.rutinas[r.alumna_id][1][r.semana].push({dia:r.dia,ejercicios:r.ejercicios});
-        });
-      }
-    }catch(e2){}
+    console.warn('Sin conexión, usando datos en caché:', e);
+
+    // Si ya renderizamos desde cache, mostrar aviso discreto
+    if(tieneCache){
+      // Hay datos guardados — la alumna puede entrenar normalmente
+      mostrarToast('📵 Sin conexión — mostrando tu última rutina');
+    } else {
+      // Primera vez sin conexión: no hay nada guardado todavía
+      // No podemos mostrar nada sin haber cargado al menos una vez con señal
+      const scr = document.getElementById('screen-rutina');
+      if(scr) scr.innerHTML = `
+        <div style="text-align:center;padding:3rem 1.25rem;">
+          <div style="font-size:3rem;margin-bottom:1rem;">📵</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:.75rem;color:var(--t);">Sin conexión</div>
+          <div style="font-size:13px;color:var(--tm);line-height:1.7;margin-bottom:1.5rem;">
+            Para ver tu rutina por primera vez necesitás conectarte a internet al menos una vez.<br><br>
+            Una vez que cargues con señal, tu rutina queda guardada en el celular y podés entrenar sin conexión.
+          </div>
+          <button onclick="location.reload()" style="
+            background:var(--v);color:white;border:none;border-radius:var(--rp);
+            padding:10px 24px;font-size:13px;font-weight:500;cursor:pointer;
+            font-family:'DM Sans',sans-serif;
+          ">Reintentar</button>
+        </div>`;
+    }
   }
-  skipTimer();
-  renderRutina();
 }
 init();
 </script>
