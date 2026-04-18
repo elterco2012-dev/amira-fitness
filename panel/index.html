@@ -351,7 +351,7 @@
     <label>WhatsApp</label><input type="tel" id="ea-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="ea-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
-      <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option></select></div>
+      <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
     <label>Notas personales</label><textarea id="ea-notas"></textarea>
     <div style="display:flex;gap:8px;">
@@ -476,7 +476,7 @@ function ensureLocal(aId,ciclo,sem){
   const c=parseInt(ciclo)||1,s=parseInt(sem);
   if(!DB.rutinas[aId])DB.rutinas[aId]={};
   if(!DB.rutinas[aId][c])DB.rutinas[aId][c]={};
-  if(!DB.rutinas[aId][c][s])DB.rutinas[aId][c][s]=[1,2,3].map(d=>({dia:d,ejercicios:[]}));
+  if(!DB.rutinas[aId][c][s])DB.rutinas[aId][c][s]=[1,2,3,4,5].slice(0,parseInt(getA(aId)?.dias)||3).map(d=>({dia:d,ejercicios:[]}));
 }
 
 async function saveDay(){
@@ -876,6 +876,10 @@ function go(v){
   S.view=v;
   if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';}
   if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
+  if(v==='historial' && S.selA){
+    // Cargar progreso de todas las alumnas al entrar al historial
+    DB.alumnas.forEach(a=>loadHistorial(a.id));
+  }
   document.querySelectorAll('.nav').forEach(el=>{el.classList.remove('active');});
   document.querySelectorAll('.nav').forEach(el=>{if(el.getAttribute('onclick')===`go('${v}')`)el.classList.add('active');});
   render();
@@ -937,7 +941,7 @@ function rAlumnas(){
     <label>WhatsApp</label><input type="tel" id="na-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="na-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
-      <div><label>Días/semana</label><select id="na-dias"><option value="2">2</option><option value="3" selected>3</option></select></div>
+      <div><label>Días/semana</label><select id="na-dias"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
     <label>Notas</label><textarea id="na-notas" placeholder="Lesiones, objetivos..."></textarea>
     <div style="display:flex;gap:8px;align-items:center;">
@@ -946,7 +950,11 @@ function rAlumnas(){
       ${S.msg?`<span class="sm">${S.msg}</span>`:''}${S.err?`<span class="em">${S.err}</span>`:''}
     </div>
   </div>`:''}
-  ${DB.alumnas.map(a=>`
+  ${DB.alumnas.map(a=>{
+    // Buscar ficha de salud asociada a esta alumna
+    const ficha = DB.registros.find(r => r.alumna_id === a.id || (r.nombre && r.nombre.toLowerCase().includes(a.nombre.split(' ')[0].toLowerCase())));
+    const fichaAbierta = S[`ficha_open_${a.id}`];
+    return`
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:.75rem;">
       <div class="av av-${a.color}">${avH(a)}</div>
@@ -957,6 +965,33 @@ function rAlumnas(){
       <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
     </div>
     ${a.notas?`<div class="nota">${a.notas}</div>`:''}
+
+    ${ficha ? `
+    <div style="margin-bottom:10px;">
+      <button class="btn btn-s btn-purple" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;" onclick="S['ficha_open_${a.id}']=!S['ficha_open_${a.id}'];render()">
+        <span>📋 Ficha de salud</span>
+        <span style="font-size:10px;color:var(--pd);">${fichaAbierta?'Cerrar ▲':'Ver ▼'}</span>
+      </button>
+      ${fichaAbierta ? `
+      <div style="background:var(--p);border-radius:0 0 var(--rs) var(--rs);padding:1rem;border:1px solid rgba(60,52,137,0.15);border-top:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">
+          ${ficha.edad ? `<div><span style="color:var(--tm);">Edad:</span> <strong>${ficha.edad} años</strong></div>` : ''}
+          ${ficha.mail ? `<div><span style="color:var(--tm);">Mail:</span> ${ficha.mail}</div>` : ''}
+          ${ficha.ubicacion ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Ubicación:</span> ${ficha.ubicacion}</div>` : ''}
+          ${ficha.objetivos ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> <strong>${ficha.objetivos}</strong></div>` : ''}
+          ${ficha.control_medico ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Último control médico:</span> ${ficha.control_medico}</div>` : ''}
+          ${ficha.enfermedad && ficha.enfermedad !== 'Ninguna' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Enfermedades:</span> ${ficha.enfermedad}</div>` : ''}
+          ${ficha.medicacion && ficha.medicacion !== 'No' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Medicación:</span> ${ficha.medicacion}</div>` : ''}
+          ${ficha.lesiones && ficha.lesiones !== 'Sin lesiones' ? `<div style="grid-column:1/-1;background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones actuales:</strong> ${ficha.lesiones}</div>` : ''}
+          ${ficha.lesiones_previas && ficha.lesiones_previas !== 'Sin antecedentes' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones previas:</span> ${ficha.lesiones_previas}</div>` : ''}
+          ${ficha.dolor_zonas && ficha.dolor_zonas !== '—' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Dolor frecuente:</span> ${ficha.dolor_zonas}</div>` : ''}
+          ${ficha.actividad_actual && ficha.actividad_actual !== '—' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Actividad actual:</span> ${ficha.actividad_actual}</div>` : ''}
+          ${ficha.extra && ficha.extra !== '—' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas extra:</span> ${ficha.extra}</div>` : ''}
+          <div style="grid-column:1/-1;font-size:10px;color:var(--th);margin-top:4px;">Completada el ${ficha.fecha||'—'}</div>
+        </div>
+      </div>` : ''}
+    </div>` : `<div style="font-size:11px;color:var(--th);margin-bottom:10px;">Sin ficha de salud todavía · <a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar link de ficha</a></div>`}
+
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
       <div class="av av-${a.color}" style="width:52px;height:52px;font-size:18px;">${avH(a)}</div>
       <div><div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Foto de perfil</div><input type="file" accept="image/*" style="font-size:11px;" onchange="handleFoto(${a.id},this)"></div>
@@ -966,7 +1001,8 @@ function rAlumnas(){
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
       <button class="btn btn-s" onclick="navigator.clipboard.writeText('${BASE}/alumna/${a.slug}').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar link</button>
     </div>
-  </div>`).join('')}`;
+  </div>`;
+  }).join('')}`;
 }
 
 function rRutinas(){
@@ -1017,7 +1053,7 @@ function rRutinas(){
     <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
 
     <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Día</div>
-    <div class="dtabs">${[1,2,3].slice(0,a.dias).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
+    <div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
 
     <div class="shd">
       <div class="shdt">Ejercicios (${exs.length})</div>
