@@ -823,8 +823,16 @@ function verPlantilla(id){
   const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
   S._editPlantId=id;
   S._editPlantDia=1;
+  S._editPlantBackup=JSON.parse(JSON.stringify(p.estructura));
   renderModalPlantilla();
   document.getElementById('modal-edit-plant').style.display='flex';
+}
+
+function closePlantillaModal(){
+  const p=DB.plantillas.find(x=>x.id===S._editPlantId);
+  if(p&&S._editPlantBackup!==null)p.estructura=S._editPlantBackup;
+  S._editPlantBackup=null;
+  document.getElementById('modal-edit-plant').style.display='none';
 }
 
 function renderModalPlantilla(){
@@ -884,6 +892,7 @@ async function savePlantilla(){
   try{
     await sbPatch('plantillas',`id=eq.${S._editPlantId}`,{estructura:p.estructura});
     document.getElementById('plant-save-msg').textContent='';
+    S._editPlantBackup=null;
     document.getElementById('modal-edit-plant').style.display='none';
     S.msg='Plantilla guardada ✓';render();setTimeout(()=>{S.msg='';render();},2000);
   }catch(e){document.getElementById('plant-save-msg').textContent='Error: '+e.message;}
@@ -1360,7 +1369,7 @@ function rHistorial(){
       <thead><tr>${['Sem','Día','Ejercicio','Peso','Fecha'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
       <tbody>${rs.filter(r=>r.peso_kg).map(r=>{
         const day=getEx(a.id,parseInt(ciclo),r.semana,r.dia);
-        const ex=day[r.ejercicio_idx];
+        const ex=Array.isArray(day)&&r.ejercicio_idx<day.length?day[r.ejercicio_idx]:null;
         return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${ex?.nombre||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
       }).join('')}</tbody>
     </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
@@ -1462,7 +1471,7 @@ initAuth();
 </div>
 
 <!-- Modal editar plantilla completa -->
-<div class="modal-bg" id="modal-edit-plant" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+<div class="modal-bg" id="modal-edit-plant" style="display:none;" onclick="if(event.target===this)closePlantillaModal()">
   <div class="modal" style="max-width:600px;">
     <h3 id="modal-plant-title">Editar plantilla</h3>
     <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:1rem;"></div>
@@ -1473,7 +1482,7 @@ initAuth();
     <div id="plant-exs-list" style="max-height:340px;overflow-y:auto;padding-right:4px;"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
       <button class="btn btn-p" onclick="savePlantilla()">Guardar plantilla</button>
-      <button class="btn" onclick="document.getElementById('modal-edit-plant').style.display='none'">Cancelar</button>
+      <button class="btn" onclick="closePlantillaModal()">Cancelar</button>
     </div>
     <div id="plant-save-msg" style="font-size:12px;margin-top:8px;color:var(--rd);"></div>
   </div>
