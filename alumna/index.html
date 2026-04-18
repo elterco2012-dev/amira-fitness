@@ -1229,18 +1229,7 @@ function renderProgreso(){
       .filter(k=>k.startsWith(`${a.id}-`)&&done[k])
       .map(k=>{ const p=k.split('-'); return p.length>=4?`${p[1]}-${p[2]}-${p[3]}`:null; })
 
-// Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
-async function limpiarCachesViejos(){
-  try{
-    if('caches' in window){
-      const keys = await caches.keys();
-      const viejos = keys.filter(k => k !== 'amira-v3');
-      await Promise.all(viejos.map(k => caches.delete(k)));
-      if(viejos.length > 0) console.log('Caches viejos eliminados:', viejos);
-    }
-  }catch(e){}
-}
-limpiarCachesViejos();
+
       .filter(Boolean)
   );
 
@@ -1431,6 +1420,18 @@ async function init(){
     }
   }
 }
+// Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
+async function limpiarCachesViejos(){
+  try{
+    if('caches' in window){
+      const keys = await caches.keys();
+      const viejos = keys.filter(k => k !== 'amira-v3');
+      await Promise.all(viejos.map(k => caches.delete(k)));
+      if(viejos.length > 0) console.log('Caches viejos eliminados:', viejos);
+    }
+  }catch(e){}
+}
+limpiarCachesViejos();
 init();
 </script>
 </body>
