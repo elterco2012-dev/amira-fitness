@@ -134,8 +134,8 @@
     .peso-in{flex:1;padding:6px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);max-width:90px;text-align:center;}
     .peso-in:focus{outline:none;border-color:var(--v);}
 
-    .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 20px rgba(0,0,0,.08);}
-    .timer.show{transform:translateY(0);}
+    .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 20px rgba(0,0,0,.08);visibility:hidden;pointer-events:none;}
+    .timer.show{transform:translateY(0);visibility:visible;pointer-events:auto;}
     .tcircle{width:54px;height:54px;border-radius:50%;background:var(--v);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
     .tnum{font-family:'DM Serif Display',serif;font-size:22px;color:white;position:relative;z-index:1;}
     .tring{position:absolute;inset:0;border-radius:50%;}
@@ -835,7 +835,7 @@ function tickTimer(){
     pickerVisible=false;
     const picker=document.getElementById('timer-picker');
     if(picker) picker.style.display='none';
-    if(t){ t.classList.remove('show'); t.style.visibility=''; t.style.pointerEvents=''; }
+    if(t){ t.classList.remove('show'); }
     if(navigator.vibrate) navigator.vibrate([200,100,200]);
   }
 }
@@ -858,8 +858,7 @@ function startTimer(nextName){
   if(numEl) numEl.textContent = timerRem;
   if(arcEl) arcEl.style.strokeDashoffset = '0';
   el.classList.add('show');
-  el.style.visibility='visible';
-  el.style.pointerEvents='auto';
+  // No forzar visibility inline — el CSS .show maneja todo
   // Actualizar label de duración
   const lbl = document.getElementById('timer-dur-lbl');
   if(lbl) lbl.textContent = timerDuracion === 45 ? '' : `· ${timerDuracion}s`;
@@ -873,7 +872,7 @@ function skipTimer(){
   const picker=document.getElementById('timer-picker');
   if(picker) picker.style.display='none';
   const el=document.getElementById('timer');
-  if(el){ el.classList.remove('show'); el.style.visibility=''; el.style.pointerEvents=''; }
+  if(el){ el.classList.remove('show'); }
 }
 
 // ── Confetti ──────────────────────────────────────────────────
@@ -1208,6 +1207,19 @@ function renderProgreso(){
     Object.keys(done)
       .filter(k=>k.startsWith(`${a.id}-`)&&done[k])
       .map(k=>{ const p=k.split('-'); return p.length>=4?`${p[1]}-${p[2]}-${p[3]}`:null; })
+
+// Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
+async function limpiarCachesViejos(){
+  try{
+    if('caches' in window){
+      const keys = await caches.keys();
+      const viejos = keys.filter(k => k !== 'amira-v3');
+      await Promise.all(viejos.map(k => caches.delete(k)));
+      if(viejos.length > 0) console.log('Caches viejos eliminados:', viejos);
+    }
+  }catch(e){}
+}
+limpiarCachesViejos();
       .filter(Boolean)
   );
 
@@ -1308,8 +1320,8 @@ async function init(){
   // 2. Intentar actualizar desde Supabase
   try{
     const [alumnas,rutinas]=await Promise.all([
-      sbGet('alumnas','order=created_at.asc'),
-      sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc')
+      sbGet('alumnas','order=created_at.asc&_t='+Date.now()),
+      sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc&_t='+Date.now())
     ]);
     DB.alumnas=alumnas;
     DB.rutinas={};

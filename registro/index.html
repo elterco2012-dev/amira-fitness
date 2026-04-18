@@ -6,78 +6,92 @@
   <title>Registro — Amira Fitness</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-  <script src="/api/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
-      --v:#1D9E75;--vl:#E1F5EE;--vd:#0F6E56;
-      --p:#EEEDFE;--pd:#3C3489;
-      --a:#FAEEDA;--ad:#633806;
-      --rl:#FCEBEB;--rd:#A32D2D;
-      --txt:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
-      --surf:#f8f8f6;--s:#fff;
-      --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);
+      --verde:#1D9E75;--verde-l:#E1F5EE;--verde-d:#0F6E56;
+      --purp:#EEEDFE;--purp-d:#3C3489;
+      --amber:#FAEEDA;--amber-d:#633806;
+      --rojo-l:#FCEBEB;--rojo-d:#A32D2D;
+      --txt:#1a1a1a;--txt-m:#6b7280;--txt-h:#9ca3af;
+      --surf:#f8f8f6;--white:#fff;
+      --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.12);
       --r:16px;--rs:10px;--rp:30px;
     }
     body{font-family:'DM Sans',sans-serif;background:var(--surf);color:var(--txt);min-height:100vh;}
-    .header{background:var(--s);border-bottom:1px solid var(--b);padding:.9rem 1.5rem;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;}
-    .logo{width:36px;height:36px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;color:var(--vd);flex-shrink:0;}
+
+    /* Header */
+    .header{background:var(--white);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;gap:10px;}
+    .logo{width:36px;height:36px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;color:var(--verde-d);}
     .header h1{font-size:15px;font-weight:500;}
-    .wizard{max-width:560px;margin:0 auto;padding:1.5rem 1.25rem 5rem;}
-    .steps{display:flex;align-items:center;margin-bottom:2rem;}
+    .header a{margin-left:auto;font-size:12px;color:var(--txt-m);text-decoration:none;}
+
+    /* Wizard */
+    .wizard{max-width:560px;margin:0 auto;padding:2rem 1.25rem 4rem;}
+
+    /* Progress steps */
+    .steps{display:flex;align-items:center;margin-bottom:2.5rem;}
     .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;transition:all .3s;}
-    .step-dot.done{background:var(--v);color:white;}
-    .step-dot.active{background:var(--v);color:white;box-shadow:0 0 0 4px rgba(29,158,117,0.15);}
-    .step-dot.pending{background:var(--s);border:1px solid var(--bm);color:var(--tm);}
-    .step-line{flex:1;height:2px;background:var(--b);margin:0 6px;transition:background .3s;}
-    .step-line.done{background:var(--v);}
-    .step-panel{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1.75rem;display:none;}
+    .step-dot.done{background:var(--verde);color:white;}
+    .step-dot.active{background:var(--verde);color:white;box-shadow:0 0 0 4px rgba(29,158,117,0.15);}
+    .step-dot.pending{background:var(--white);border:1px solid var(--border-m);color:var(--txt-m);}
+    .step-line{flex:1;height:2px;background:var(--border);margin:0 6px;transition:background .3s;}
+    .step-line.done{background:var(--verde);}
+
+    /* Step panel */
+    .step-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem;display:none;}
     .step-panel.active{display:block;animation:fu .25s ease;}
-    .step-title{font-family:'DM Serif Display',serif;font-size:1.45rem;margin-bottom:.35rem;line-height:1.25;}
-    .step-sub{font-size:13px;color:var(--tm);margin-bottom:1.5rem;line-height:1.6;}
-    .legal{background:var(--a);border-radius:var(--rs);padding:.75rem 1rem;font-size:11px;color:var(--ad);line-height:1.6;margin-bottom:1.25rem;}
+    .step-title{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.4rem;}
+    .step-sub{font-size:13px;color:var(--txt-m);margin-bottom:1.5rem;line-height:1.6;}
+
+    /* Form elements */
     .field{margin-bottom:1rem;}
-    .field-half{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem;}
-    label{font-size:12px;color:var(--tm);display:block;margin-bottom:5px;font-weight:500;}
-    label .req{color:var(--rd);margin-left:2px;}
-    input,select,textarea{width:100%;padding:10px 14px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--txt);background:var(--surf);transition:border-color .15s;}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--v);background:var(--s);}
-    textarea{height:72px;resize:vertical;}
+    label{font-size:12px;color:var(--txt-m);display:block;margin-bottom:5px;font-weight:500;}
+    input,select,textarea{width:100%;padding:10px 14px;border:1px solid var(--border-m);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--txt);background:var(--surf);transition:border-color .15s;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde);background:var(--white);}
+    textarea{height:80px;resize:vertical;}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+    /* Chips (multi select) */
     .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
-    .chip{padding:7px 14px;border-radius:var(--rp);font-size:12px;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;transition:all .15s;user-select:none;}
-    .chip.selected{background:var(--vl);color:var(--vd);border-color:var(--vd);font-weight:500;}
-    .yesno{display:flex;gap:10px;margin-top:4px;}
-    .yn{flex:1;padding:9px;border-radius:var(--rs);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;text-align:center;transition:all .15s;user-select:none;}
-    .yn.yes.selected{background:var(--vl);color:var(--vd);border-color:var(--vd);}
-    .yn.no.selected{background:var(--surf);color:var(--tm);border-color:var(--v);}
-    .cond{display:none;margin-top:.65rem;animation:fu .2s ease;}
-    .cond.show{display:block;}
+    .chip{padding:7px 14px;border-radius:var(--rp);font-size:12px;border:1px solid var(--border-m);background:var(--white);color:var(--txt-m);cursor:pointer;transition:all .15s;user-select:none;}
+    .chip.selected{background:var(--verde-l);color:var(--verde-d);border-color:var(--verde-d);font-weight:500;}
+
+    /* Buttons */
     .step-nav{display:flex;gap:10px;margin-top:1.5rem;}
-    .btn{padding:10px 22px;border-radius:var(--rp);font-size:13px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--txt);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-    .btn-p{background:var(--v);color:white;border-color:var(--v);flex:1;}
-    .btn-p:hover{background:var(--vd);}
-    .btn-back{color:var(--tm);}
-    .resumen-row{display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--b);font-size:13px;}
+    .btn{padding:10px 22px;border-radius:var(--rp);font-size:13px;font-weight:500;border:1px solid var(--border-m);background:var(--white);color:var(--txt);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .btn:hover{background:var(--surf);}
+    .btn-p{background:var(--verde);color:white;border-color:var(--verde);flex:1;}
+    .btn-p:hover{background:var(--verde-d);}
+    .btn-back{color:var(--txt-m);}
+
+    /* Resumen */
+    .resumen-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--border);font-size:13px;}
     .resumen-row:last-child{border-bottom:none;}
-    .resumen-lbl{color:var(--tm);flex-shrink:0;padding-right:12px;}
-    .resumen-val{font-weight:500;text-align:right;}
-    .resumen-sec{font-size:10px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.08em;padding:.65rem 0 .25rem;display:block;}
+    .resumen-lbl{color:var(--txt-m);}
+    .resumen-val{font-weight:500;color:var(--txt);text-align:right;max-width:60%;}
+
+    /* Success */
     .success-screen{text-align:center;padding:3rem 1rem;display:none;}
     .success-icon{font-size:4rem;margin-bottom:1.25rem;}
     .success-screen h2{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:.75rem;}
-    .success-screen p{font-size:14px;color:var(--tm);line-height:1.7;max-width:360px;margin:0 auto 1.5rem;}
+    .success-screen p{font-size:14px;color:var(--txt-m);line-height:1.7;max-width:360px;margin:0 auto 1.5rem;}
     .success-wa{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:white;padding:10px 22px;border-radius:var(--rp);font-size:13px;font-weight:500;text-decoration:none;}
+
     @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   </style>
+<script src="/api/supabase.js"></script>
 </head>
 <body>
 
 <div class="header">
   <div class="logo">A</div>
-  <h1>Amira Fitness — Ficha de registro</h1>
+  <h1>Amira Fitness — Registro</h1>
+  <a href="/">← Volver al inicio</a>
 </div>
 
 <div class="wizard" id="wizard">
+  <!-- Progress -->
   <div class="steps" id="steps-bar">
     <div class="step-dot active" id="dot-1">1</div>
     <div class="step-line" id="line-1"></div>
@@ -86,25 +100,20 @@
     <div class="step-dot pending" id="dot-3">3</div>
     <div class="step-line" id="line-3"></div>
     <div class="step-dot pending" id="dot-4">4</div>
-    <div class="step-line" id="line-4"></div>
-    <div class="step-dot pending" id="dot-5">5</div>
   </div>
 
-  <!-- STEP 1: Datos personales -->
+  <!-- Step 1: Datos personales -->
   <div class="step-panel active" id="step-1">
     <div class="step-title">Hola, ¿cómo te llamás? 👋</div>
-    <div class="step-sub">Empezamos con tus datos básicos. Solo toma unos minutos.</div>
-    <div class="field-half">
-      <div><label>Nombre <span class="req">*</span></label><input type="text" id="f-nombre" placeholder="Tu nombre"></div>
-      <div><label>Apellido <span class="req">*</span></label><input type="text" id="f-apellido" placeholder="Tu apellido"></div>
+    <div class="step-sub">Empezamos con tus datos básicos. Solo toma un minuto.</div>
+    <div class="frow">
+      <div class="field"><label>Nombre</label><input type="text" id="f-nombre" placeholder="Tu nombre"></div>
+      <div class="field"><label>Apellido</label><input type="text" id="f-apellido" placeholder="Tu apellido"></div>
     </div>
-    <div class="field-half">
-      <div><label>Edad <span class="req">*</span></label><input type="number" id="f-edad" placeholder="Ej: 28" min="14" max="90"></div>
-      <div><label>WhatsApp <span class="req">*</span></label><input type="tel" id="f-tel" placeholder="Ej: 1123456789"></div>
-    </div>
+    <div class="field"><label>WhatsApp</label><input type="tel" id="f-tel" placeholder="Ej: 1123456789"></div>
     <div class="field"><label>Mail</label><input type="email" id="f-mail" placeholder="tu@mail.com"></div>
     <div class="field">
-      <label>¿Dónde estás? <span class="req">*</span></label>
+      <label>¿Dónde estás?</label>
       <select id="f-ubicacion">
         <option value="">Seleccioná...</option>
         <option>Buenos Aires (presencial disponible)</option>
@@ -112,15 +121,17 @@
         <option>Fuera de Argentina (a distancia)</option>
       </select>
     </div>
-    <div class="step-nav"><button class="btn btn-p" onclick="nextStep(1)">Continuar →</button></div>
+    <div class="step-nav">
+      <button class="btn btn-p" onclick="nextStep(1)">Continuar →</button>
+    </div>
   </div>
 
-  <!-- STEP 2: Objetivos -->
+  <!-- Step 2: Objetivos -->
   <div class="step-panel" id="step-2">
     <div class="step-title">¿Qué estás buscando? 🎯</div>
-    <div class="step-sub">Esto ayuda a Amira a armar el plan ideal para vos.</div>
+    <div class="step-sub">Contame un poco qué querés lograr. Esto ayuda a Amira a armar el plan ideal para vos.</div>
     <div class="field">
-      <label>Objetivo principal (podés elegir más de uno)</label>
+      <label>Objetivo principal (elegí uno o más)</label>
       <div class="chips" id="chips-objetivo">
         <div class="chip" onclick="toggleChip(this)">Tonificar</div>
         <div class="chip" onclick="toggleChip(this)">Ganar fuerza</div>
@@ -148,6 +159,20 @@
         <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">4-5 días</div>
       </div>
     </div>
+    <div class="step-nav">
+      <button class="btn btn-back" onclick="prevStep(2)">← Volver</button>
+      <button class="btn btn-p" onclick="nextStep(2)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Salud y experiencia -->
+  <div class="step-panel" id="step-3">
+    <div class="step-title">Un poco más sobre vos 🩺</div>
+    <div class="step-sub">Esta info ayuda a Amira a adaptar el entrenamiento y evitar cualquier molestia.</div>
+    <div class="field">
+      <label>¿Tenés alguna lesión, dolor crónico o condición médica a tener en cuenta?</label>
+      <textarea id="f-lesiones" placeholder="Ej: dolor de rodilla, hernia de disco, embarazo... O escribí 'Ninguna'"></textarea>
+    </div>
     <div class="field">
       <label>¿Cuál es tu experiencia con el ejercicio?</label>
       <div class="chips" id="chips-exp">
@@ -156,56 +181,9 @@
         <div class="chip" onclick="toggleChipSingle(this,'chips-exp')">Entreno hace tiempo</div>
       </div>
     </div>
-    <div class="step-nav">
-      <button class="btn btn-back" onclick="prevStep(2)">← Volver</button>
-      <button class="btn btn-p" onclick="nextStep(2)">Continuar →</button>
-    </div>
-  </div>
-
-  <!-- STEP 3: Salud general -->
-  <div class="step-panel" id="step-3">
-    <div class="step-title">Tu salud general 🩺</div>
-    <div class="step-sub">Información confidencial para que Amira pueda entrenarte de forma segura.</div>
-    <div class="legal">📋 Esta ficha tiene carácter de declaración jurada. La información que brindes es confidencial y solo la verá Amira para planificar tu entrenamiento.</div>
-
     <div class="field">
-      <label>¿Cuándo fue tu último control médico? <span class="req">*</span></label>
-      <div class="chips" id="chips-control">
-        <div class="chip" onclick="toggleChipSingle(this,'chips-control')">Menos de 6 meses</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-control')">6 a 12 meses</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-control')">Más de un año</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-control')">Nunca fui</div>
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Tenés alguna enfermedad diagnosticada?</label>
-      <div class="yesno">
-        <div class="yn no selected" onclick="toggleYN('enfermedad','no')">No</div>
-        <div class="yn yes" onclick="toggleYN('enfermedad','si')">Sí</div>
-      </div>
-      <div class="cond" id="cond-enfermedad">
-        <input type="text" id="f-enfermedad" placeholder="Ej: diabetes, hipotiroidismo, celiaquía...">
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Tomás alguna medicación de forma habitual?</label>
-      <div class="yesno">
-        <div class="yn no selected" onclick="toggleYN('medicacion','no')">No</div>
-        <div class="yn yes" onclick="toggleYN('medicacion','si')">Sí</div>
-      </div>
-      <div class="cond" id="cond-medicacion">
-        <input type="text" id="f-medicacion" placeholder="Ej: levotiroxina, metformina, anticonceptivos...">
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Tenés algún problema cardiovascular? <span style="font-size:11px;color:var(--rd);">Importante</span></label>
-      <div class="yesno">
-        <div class="yn no selected" onclick="toggleYN('cardio','no')">No</div>
-        <div class="yn yes" onclick="toggleYN('cardio','si')">Sí</div>
-      </div>
-      <div class="cond" id="cond-cardio">
-        <input type="text" id="f-cardio" placeholder="Ej: hipertensión, arritmia, soplo cardíaco...">
-      </div>
+      <label>¿Algo más que quieras contarle a Amira?</label>
+      <textarea id="f-extra" placeholder="Motivaciones, dudas, expectativas..."></textarea>
     </div>
     <div class="step-nav">
       <button class="btn btn-back" onclick="prevStep(3)">← Volver</button>
@@ -213,226 +191,150 @@
     </div>
   </div>
 
-  <!-- STEP 4: Lesiones y actividad -->
+  <!-- Step 4: Resumen -->
   <div class="step-panel" id="step-4">
-    <div class="step-title">Lesiones y actividad 💪</div>
-    <div class="step-sub">Para que Amira cuide tu cuerpo y evite cualquier molestia durante el entrenamiento.</div>
-
-    <div class="field">
-      <label>¿Tenés alguna lesión o dolor activo actualmente?</label>
-      <div class="yesno">
-        <div class="yn no selected" onclick="toggleYN('lesion','no')">No</div>
-        <div class="yn yes" onclick="toggleYN('lesion','si')">Sí</div>
-      </div>
-      <div class="cond" id="cond-lesion">
-        <input type="text" id="f-lesiones" placeholder="Ej: dolor de rodilla, hernia de disco, tendinitis...">
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Tuviste lesiones o cirugías en el pasado?</label>
-      <div class="yesno">
-        <div class="yn no selected" onclick="toggleYN('prev','no')">No</div>
-        <div class="yn yes" onclick="toggleYN('prev','si')">Sí</div>
-      </div>
-      <div class="cond" id="cond-prev">
-        <input type="text" id="f-lesiones-prev" placeholder="Ej: operación de rodilla, fractura de muñeca...">
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Tenés dolor frecuente en alguna zona?</label>
-      <div class="chips" id="chips-dolor">
-        <div class="chip" onclick="toggleChip(this)">Ninguno</div>
-        <div class="chip" onclick="toggleChip(this)">Cuello / cervical</div>
-        <div class="chip" onclick="toggleChip(this)">Hombros</div>
-        <div class="chip" onclick="toggleChip(this)">Espalda alta</div>
-        <div class="chip" onclick="toggleChip(this)">Zona lumbar</div>
-        <div class="chip" onclick="toggleChip(this)">Caderas</div>
-        <div class="chip" onclick="toggleChip(this)">Rodillas</div>
-        <div class="chip" onclick="toggleChip(this)">Tobillos / pies</div>
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Hacés alguna actividad física actualmente?</label>
-      <div class="chips" id="chips-actividad">
-        <div class="chip" onclick="toggleChipSingle(this,'chips-actividad')">No, empezando de cero</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-actividad')">Camino / salgo a correr</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-actividad')">Voy al gym</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-actividad')">Hago otro deporte</div>
-      </div>
-    </div>
-    <div class="field">
-      <label>¿Algo más que quieras contarle a Amira?</label>
-      <textarea id="f-extra" placeholder="Motivaciones, dudas, expectativas, situaciones especiales..."></textarea>
-    </div>
-    <div class="step-nav">
-      <button class="btn btn-back" onclick="prevStep(4)">← Volver</button>
-      <button class="btn btn-p" onclick="nextStep(4)">Continuar →</button>
-    </div>
-  </div>
-
-  <!-- STEP 5: Resumen -->
-  <div class="step-panel" id="step-5">
-    <div class="step-title">Revisá tu ficha ✅</div>
-    <div class="step-sub">Confirmá que todo esté bien antes de enviar.</div>
+    <div class="step-title">Revisá tus datos ✅</div>
+    <div class="step-sub">Antes de enviar, confirmá que todo esté bien.</div>
     <div id="resumen-content"></div>
     <div class="step-nav">
-      <button class="btn btn-back" onclick="prevStep(5)">← Editar</button>
-      <button class="btn btn-p" onclick="enviarRegistro()">Enviar ficha 🚀</button>
+      <button class="btn btn-back" onclick="prevStep(4)">← Editar</button>
+      <button class="btn btn-p" onclick="enviarRegistro()">Enviar registro 🚀</button>
     </div>
   </div>
 </div>
 
+<!-- Success -->
 <div class="success-screen" id="success">
   <div class="success-icon">🎉</div>
-  <h2>¡Ficha enviada!</h2>
-  <p>Amira recibió toda tu información y te va a escribir por WhatsApp en las próximas horas para coordinar los próximos pasos.</p>
-  <a id="wa-link" class="success-wa" href="#" target="_blank"><span style="font-size:18px;">💬</span> Escribirle a Amira ahora</a>
+  <h2>¡Registro enviado!</h2>
+  <p>Amira recibió tu info y te va a escribir por WhatsApp en menos de 24 horas para coordinar los próximos pasos. ¡Ya estás un paso más cerca de tu objetivo!</p>
+  <a id="wa-link" class="success-wa" href="#" target="_blank">
+    <span style="font-size:18px;">💬</span> Escribirle a Amira ahora
+  </a>
 </div>
 
 <script>
-const ynState={enfermedad:'no',medicacion:'no',cardio:'no',lesion:'no',prev:'no'};
+let currentStep=1;
+const totalSteps=4;
 
 function toggleChip(el){el.classList.toggle('selected');}
-function toggleChipSingle(el,gId){
-  document.querySelectorAll(`#${gId} .chip`).forEach(c=>c.classList.remove('selected'));
+function toggleChipSingle(el,groupId){
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
 }
-function getChips(gId){
-  return Array.from(document.querySelectorAll(`#${gId} .chip.selected`))
-    .map(c=>c.textContent.trim()).join(', ')||'—';
-}
 
-function toggleYN(field,val){
-  ynState[field]=val;
-  const parent=document.getElementById(`cond-${field}`)?.closest('.field');
-  if(parent){
-    parent.querySelectorAll('.yn').forEach(b=>{
-      b.classList.remove('selected');
-      if((val==='si'&&b.classList.contains('yes'))||(val==='no'&&b.classList.contains('no')))
-        b.classList.add('selected');
-    });
-  }
-  const cond=document.getElementById(`cond-${field}`);
-  if(cond) cond.classList.toggle('show',val==='si');
+function getChips(groupId){
+  return Array.from(document.querySelectorAll(`#${groupId} .chip.selected`)).map(c=>c.textContent).join(', ')||'—';
 }
-
-let currentStep=1;
-const totalSteps=5;
 
 function validate(step){
   if(step===1){
-    if(!document.getElementById('f-nombre').value.trim()||
-       !document.getElementById('f-apellido').value.trim()||
-       !document.getElementById('f-edad').value.trim()||
-       !document.getElementById('f-tel').value.trim()||
-       !document.getElementById('f-ubicacion').value){
-      alert('Por favor completá todos los campos obligatorios (*).');return false;
-    }
-  }
-  if(step===3&&getChips('chips-control')==='—'){
-    alert('Por favor indicá cuándo fue tu último control médico.');return false;
+    const nombre=document.getElementById('f-nombre').value.trim();
+    const tel=document.getElementById('f-tel').value.trim();
+    const mail=document.getElementById('f-mail').value.trim();
+    const ub=document.getElementById('f-ubicacion').value;
+    if(!nombre||!tel||!mail||!ub){alert('Por favor completá todos los campos antes de continuar.');return false;}
   }
   return true;
 }
 
-function nextStep(from){if(!validate(from))return;if(from===totalSteps-1)buildResumen();goToStep(from+1);}
+function nextStep(from){
+  if(!validate(from))return;
+  if(from===totalSteps-1)buildResumen();
+  goToStep(from+1);
+}
 function prevStep(from){goToStep(from-1);}
+
 function goToStep(n){
   document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById(`step-${n}`).classList.add('active');
   for(let i=1;i<=totalSteps;i++){
-    const d=document.getElementById(`dot-${i}`);
-    if(d) d.className='step-dot '+(i<n?'done':i===n?'active':'pending');
-    if(i<totalSteps){const l=document.getElementById(`line-${i}`);if(l)l.className='step-line'+(i<n?' done':'');}
+    const dot=document.getElementById(`dot-${i}`);
+    dot.className='step-dot '+(i<n?'done':i===n?'active':'pending');
+    if(i<totalSteps){
+      document.getElementById(`line-${i}`).className='step-line'+(i<n?' done':'');
+    }
   }
-  currentStep=n;window.scrollTo({top:0,behavior:'smooth'});
+  currentStep=n;
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function buildResumen(){
-  const val=id=>document.getElementById(id)?.value?.trim()||'—';
-  const yn=f=>ynState[f]==='si';
   const rows=[
-    {sec:'Datos personales'},
-    ['Nombre',`${val('f-nombre')} ${val('f-apellido')}`],
-    ['Edad',val('f-edad')!=='—'?val('f-edad')+' años':'—'],
-    ['WhatsApp',val('f-tel')],['Mail',val('f-mail')],
-    ['Ubicación',document.getElementById('f-ubicacion').value||'—'],
-    {sec:'Objetivos'},
-    ['Objetivos',getChips('chips-objetivo')],['Modalidad',getChips('chips-modalidad')],
-    ['Días/semana',getChips('chips-dias')],['Experiencia',getChips('chips-exp')],
-    {sec:'Salud'},
-    ['Último control',getChips('chips-control')],
-    ['Enfermedad',yn('enfermedad')?val('f-enfermedad'):'No'],
-    ['Medicación',yn('medicacion')?val('f-medicacion'):'No'],
-    ['Cardiovascular',yn('cardio')?val('f-cardio'):'No'],
-    {sec:'Lesiones y actividad'},
-    ['Lesión activa',yn('lesion')?val('f-lesiones'):'No'],
-    ['Lesiones previas',yn('prev')?val('f-lesiones-prev'):'No'],
-    ['Dolor frecuente',getChips('chips-dolor')],
-    ['Actividad actual',getChips('chips-actividad')],
-    ['Notas extra',val('f-extra')],
+    ['Nombre',`${document.getElementById('f-nombre').value} ${document.getElementById('f-apellido').value}`],
+    ['WhatsApp',document.getElementById('f-tel').value],
+    ['Mail',document.getElementById('f-mail').value],
+    ['Ubicación',document.getElementById('f-ubicacion').value],
+    ['Objetivos',getChips('chips-objetivo')],
+    ['Modalidad',getChips('chips-modalidad')],
+    ['Días/semana',getChips('chips-dias')],
+    ['Lesiones',document.getElementById('f-lesiones').value||'—'],
+    ['Experiencia',getChips('chips-exp')],
+    ['Notas extra',document.getElementById('f-extra').value||'—'],
   ];
-  document.getElementById('resumen-content').innerHTML=rows.map(r=>{
-    if(r.sec) return`<span class="resumen-sec">${r.sec}</span>`;
-    return`<div class="resumen-row"><span class="resumen-lbl">${r[0]}</span><span class="resumen-val">${r[1]}</span></div>`;
-  }).join('');
+  document.getElementById('resumen-content').innerHTML=rows.map(([l,v])=>`
+    <div class="resumen-row"><span class="resumen-lbl">${l}</span><span class="resumen-val">${v}</span></div>`).join('');
 }
 
 async function enviarRegistro(){
-  const val=id=>document.getElementById(id)?.value?.trim()||'';
-  const yn=f=>ynState[f]==='si';
-  const nombre=val('f-nombre'), apellido=val('f-apellido');
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const apellido=document.getElementById('f-apellido').value.trim();
+  const tel=document.getElementById('f-tel').value.trim();
+  const mail=document.getElementById('f-mail').value.trim();
+  const ubicacion=document.getElementById('f-ubicacion').value;
+  const objetivos=getChips('chips-objetivo');
+  const modalidad=getChips('chips-modalidad');
+  const dias=getChips('chips-dias');
+  const lesiones=document.getElementById('f-lesiones').value||'—';
+  const exp=getChips('chips-exp');
+  const extra=document.getElementById('f-extra').value||'—';
+
+  // Guardar en localStorage para que el panel lo vea
+  const registros=JSON.parse(localStorage.getItem('amira-registros')||'[]');
   const nuevo={
-    id:Date.now(),
-    nombre:`${nombre} ${apellido}`,
-    edad:val('f-edad'), tel:val('f-tel'), mail:val('f-mail'),
-    ubicacion:document.getElementById('f-ubicacion').value,
-    objetivos:getChips('chips-objetivo'), modalidad:getChips('chips-modalidad'),
-    dias:getChips('chips-dias'), exp:getChips('chips-exp'),
-    control_medico:getChips('chips-control'),
-    enfermedad:yn('enfermedad')?val('f-enfermedad'):'',
-    medicacion:yn('medicacion')?val('f-medicacion'):'',
-    patologia_cardio:yn('cardio')?val('f-cardio'):'',
-    lesiones:yn('lesion')?val('f-lesiones'):'',
-    lesiones_previas:yn('prev')?val('f-lesiones-prev'):'',
-    dolor_zonas:getChips('chips-dolor').replace('—',''),
-    actividad_actual:getChips('chips-actividad'),
-    extra:val('f-extra'),
+    id:Date.now(),nombre:`${nombre} ${apellido}`,tel,mail,ubicacion,
+    objetivos,modalidad,dias,lesiones,exp,extra,
     fecha:new Date().toLocaleDateString('es-AR'),
     estado:'pendiente'
   };
-  try{await sbUpsert('registros',nuevo);}catch(e){console.warn('Supabase:',e);}
+  registros.push(nuevo);
+  localStorage.setItem('amira-registros',JSON.stringify(registros));
 
-  const ph=localStorage.getItem('af-amira-ph')||'5492226500790';
-  const alertas=[
-    yn('enfermedad')?`⚠️ Enfermedad: ${val('f-enfermedad')||'sí'}` :'',
-    yn('medicacion')?`💊 Medicación: ${val('f-medicacion')||'sí'}` :'',
-    yn('cardio')    ?`❤️ Cardiovascular: ${val('f-cardio')||'sí'}` :'',
-    yn('lesion')    ?`🦵 Lesión activa: ${val('f-lesiones')||'sí'}` :'',
-  ].filter(Boolean).join('\n');
-
+  // Armar mensaje de WhatsApp para Amira
+  const amiraPhone=localStorage.getItem('af-amira-phone')||'';
   const msg=encodeURIComponent(
-`🆕 Nueva ficha — Amira Fitness
+`🆕 Nueva alumna registrada en Amira Fitness
 
-👤 *${nombre} ${apellido}* · ${val('f-edad')} años
-📱 ${val('f-tel')}${val('f-mail')?'\n📧 '+val('f-mail'):''}
-📍 ${document.getElementById('f-ubicacion').value}
+👤 *${nombre} ${apellido}*
+📱 ${tel}
+📧 ${mail}
+📍 ${ubicacion}
 
-🎯 ${getChips('chips-objetivo')}
-🏋️ ${getChips('chips-modalidad')} · ${getChips('chips-dias')}
-💪 Exp: ${getChips('chips-exp')} · Actividad: ${getChips('chips-actividad')}
+🎯 Objetivos: ${objetivos}
+🏋️ Modalidad: ${modalidad}
+📅 Días/semana: ${dias}
+🩺 Lesiones: ${lesiones}
+💪 Experiencia: ${exp}
+💬 Notas: ${extra}
 
-🩺 Control médico: ${getChips('chips-control')}
-${alertas||'✓ Sin alertas de salud'}
-Dolor frecuente: ${getChips('chips-dolor')}
-Lesiones previas: ${yn('prev')?val('f-lesiones-prev')||'sí':'No'}
-${val('f-extra')?'\n💬 '+val('f-extra'):''}`);
+Revisá su perfil en el panel para aprobar y asignarle una rutina.`);
+
+  // Link de WhatsApp para Amira
+  const waLink=amiraPhone
+    ?`https://wa.me/${amiraPhone}?text=${msg}`
+    :`https://wa.me/?text=${msg}`;
 
   document.getElementById('wizard').style.display='none';
   document.getElementById('success').style.display='block';
-  const waLink=`https://wa.me/${ph}?text=${msg}`;
   document.getElementById('wa-link').href=waLink;
-  setTimeout(()=>window.open(waLink,'_blank'),800);
+
+  // Guardar en Supabase
+  try {
+    await sbUpsert('registros', nuevo);
+  } catch(e) { console.log('Supabase no disponible, guardado local'); }
+
+  // Auto-abrir WhatsApp si hay número configurado
+  if(amiraPhone)setTimeout(()=>window.open(waLink,'_blank'),1000);
 }
 </script>
 </body>
