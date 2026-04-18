@@ -382,7 +382,7 @@ function obMostrar(nombre){
   if(localStorage.getItem('af-onboarding-done') === '1') return;
   // Personalizar el título del primer slide con el nombre
   const tit = document.getElementById('ob-nombre-titulo');
-  if(tit && nombre) tit.innerHTML = `¡Hola, ${nombre}!<br>Bienvenida a tu rutina`;
+  if(tit && nombre){tit.textContent='';const span=document.createElement('span');span.textContent=`¡Hola, ${nombre}!`;tit.appendChild(span);tit.appendChild(document.createElement('br'));const span2=document.createElement('span');span2.textContent='Bienvenida a tu rutina';tit.appendChild(span2);}
   obStep = 1;
   obRender();
   document.getElementById('onboarding').style.display = 'flex';
@@ -1163,9 +1163,9 @@ function renderRutina(){
     const isExp=!!expanded[eKey(a.id,selSem,selDia,i)];
     const pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
     const nextEx=exs[i+1];
-    const nextName=nextEx?nextEx.nombre.replace(/'/g,"\\'"):'';
+    const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
     html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
-      <div class="ex-top" onclick="toggleDone(${a.id},${i},'${nextName}')">
+      <div class="ex-top" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">
         <div class="ex-num" id="exn-${a.id}-${i}">${isDone?'✓':i+1}</div>
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
@@ -1175,7 +1175,7 @@ function renderRutina(){
       <div class="ex-btns">
         ${ex.tip?`<button class="btip" onclick="toggleExp(${a.id},${i})">${isExp?'Ocultar':'Ver técnica'}</button>`:''}
         ${ex.video?`<a class="bvid" href="${ex.video}" target="_blank">▶ Video</a>`:''}
-        <button class="bchk" onclick="toggleDone(${a.id},${i},'${nextName}')">${isDone?'✓ Hecho':'Marcar hecho'}</button>
+        <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       </div>
       <div class="peso-row">
         <span class="peso-lbl">Peso:</span>
