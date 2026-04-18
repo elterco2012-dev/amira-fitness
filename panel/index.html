@@ -481,8 +481,8 @@ function ensureLocal(aId,ciclo,sem){
 
 async function saveDay(){
   const ciclo=parseInt(S.selCiclo)||1;
-  const semana=parseInt(S.selSem);
-  const dia=parseInt(S.selDia);
+  const semana=parseInt(S.selSem)||1;
+  const dia=parseInt(S.selDia)||1;
   const day=DB.rutinas[S.selA]?.[ciclo]?.[semana]?.find(d=>d.dia===dia);
   if(!day){S.err='No hay ejercicios para guardar';render();return;}
   S.msg='Guardando...';S.err='';render();
@@ -507,7 +507,9 @@ function copiarSem(aId,ciclo,sem){
 function abrirNuevoCiclo(){
   const a=getA(S.selA);if(!a)return;
   const cicloActual=a.ciclo_actual||1;
-  document.getElementById('ciclo-info').innerHTML=`Alumna: <strong>${a.nombre}</strong><br>Ciclo actual: <strong>${cicloActual}</strong><br>Nuevo ciclo: <strong>${cicloActual+1}</strong><br><br>La rutina del ciclo ${cicloActual} se copiará al ciclo ${cicloActual+1} y los checks se resetearán.`;
+  const _ci=document.getElementById('ciclo-info');
+  _ci.innerHTML=`<span id="ciclo-info-nombre"></span><br>Ciclo actual: <strong>${cicloActual}</strong><br>Nuevo ciclo: <strong>${cicloActual+1}</strong><br><br>La rutina del ciclo ${cicloActual} se copiará al ciclo ${cicloActual+1} y los checks se resetearán.`;
+  document.getElementById('ciclo-info-nombre').textContent=`Alumna: ${a.nombre}`;
   document.getElementById('ciclo-nombre').value='';
   document.getElementById('ciclo-msg').textContent='';
   document.getElementById('modal-ciclo').style.display='flex';
@@ -556,13 +558,14 @@ async function aplicarPlantilla(plantId){
   S.msg='Aplicando plantilla...';render();
   try{
     for(const dia of Object.keys(estructura)){
-      await sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:parseInt(dia),ejercicios:estructura[dia],updated_at:new Date().toISOString()});
+      const exsCopy=JSON.parse(JSON.stringify(estructura[dia]));
+      await sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:parseInt(dia),ejercicios:exsCopy,updated_at:new Date().toISOString()});
       if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
       if(!DB.rutinas[a.id][S.selCiclo])DB.rutinas[a.id][S.selCiclo]={};
       if(!DB.rutinas[a.id][S.selCiclo][S.selSem])DB.rutinas[a.id][S.selCiclo][S.selSem]=[];
       const existing=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===parseInt(dia));
-      if(existing)existing.ejercicios=estructura[dia];
-      else DB.rutinas[a.id][S.selCiclo][S.selSem].push({dia:parseInt(dia),ejercicios:estructura[dia]});
+      if(existing)existing.ejercicios=exsCopy;
+      else DB.rutinas[a.id][S.selCiclo][S.selSem].push({dia:parseInt(dia),ejercicios:exsCopy});
     }
     S.msg='Plantilla aplicada ✓';render();setTimeout(()=>{S.msg='';render();},2000);
   }catch(e){S.err='Error al aplicar plantilla';render();}
@@ -869,8 +872,8 @@ function renderModalPlantilla(){
 
 function updatePlantEx(idx,field,val){
   const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
-  if(!p.estructura[S._editPlantDia]) return;
-  p.estructura[S._editPlantDia][idx][field]=val;
+  const exs=p.estructura[S._editPlantDia]; if(!exs||!exs[idx])return;
+  exs[idx][field]=val;
 }
 
 function deletePlantEx(idx){
@@ -919,7 +922,7 @@ function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace
 
 // ── Registros ─────────────────────────────────────────────────
 async function aprobar(id){const reg=DB.registros.find(r=>r.id===id);if(!reg)return;await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});reg.estado='aprobado';S.addA=true;document.getElementById('na-nombre').value=reg.nombre||'';document.getElementById('na-tel').value=reg.tel||'';go('alumnas');}
-async function rechazar(id){if(!confirm('¿Rechazás?'))return;await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});DB.registros.find(r=>r.id===id).estado='rechazado';render();}
+async function rechazar(id){if(!confirm('¿Rechazás?'))return;await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});const reg=DB.registros.find(r=>r.id===id);if(reg)reg.estado='rechazado';render();}
 
 // ── View ──────────────────────────────────────────────────────
 function go(v){
@@ -1294,7 +1297,7 @@ async function crearPlantillaDesdeRutina(){
     if(!dias)continue;
     dias.forEach(dayObj=>{
       if(dayObj.ejercicios&&dayObj.ejercicios.length>0){
-        estructura[dayObj.dia]=dayObj.ejercicios;
+        estructura[dayObj.dia]=JSON.parse(JSON.stringify(dayObj.ejercicios));
       }
     });
   }
@@ -1370,7 +1373,8 @@ function rHistorial(){
       <tbody>${rs.filter(r=>r.peso_kg).map(r=>{
         const day=getEx(a.id,parseInt(ciclo),r.semana,r.dia);
         const ex=Array.isArray(day)&&r.ejercicio_idx<day.length?day[r.ejercicio_idx]:null;
-        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${ex?.nombre||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
+        const exNombre=r.ejercicio_nombre||(ex?.nombre)||'—';
+        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${exNombre}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
       }).join('')}</tbody>
     </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
   </div>`).join('')}

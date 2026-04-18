@@ -959,7 +959,8 @@ async function toggleDone(aId,i,nextName){
   // Sync Supabase en background — si falla, encolar para reintento
   const progresoData = {
     alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
-    ejercicio_idx:i, hecho:done[k], fecha_registro:new Date().toISOString()
+    ejercicio_idx:i, ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
+    hecho:done[k], fecha_registro:new Date().toISOString()
   };
   try{
     await sbUpsert('progreso', progresoData);
@@ -986,7 +987,8 @@ function savePeso(aId,i,val){
     if(!kg) return;
     const pesoData = {
       alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
-      ejercicio_idx:i, peso_kg:kg, fecha_registro:new Date().toISOString()
+      ejercicio_idx:i, ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
+      peso_kg:kg, fecha_registro:new Date().toISOString()
     };
     try{
       await sbUpsert('progreso', pesoData);
