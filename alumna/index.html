@@ -185,13 +185,7 @@ let selHistEx = null;
 
 // ── PWA ───────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    // Limpiar service workers viejos primero
-    navigator.serviceWorker.getRegistrations().then(regs=>{
-      regs.forEach(r=>{ if(r.scope!==location.origin+'/') r.unregister(); });
-    });
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  });
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 }
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -273,8 +267,7 @@ function switchTab(t){
 
 // ── Timer ─────────────────────────────────────────────────────
 function startTimer(nextName){
-  // Matar cualquier timer anterior PRIMERO
-  if(timerInt){ clearInterval(timerInt); timerInt=null; }
+  if(timerInt){clearInterval(timerInt);timerInt=null;}
   timerRunning=true; timerTotal=45; timerRem=45;
   const el=document.getElementById('timer');
   const subEl=document.getElementById('tsub');
@@ -299,7 +292,7 @@ function startTimer(nextName){
   },1000);
 }
 function skipTimer(){
-  if(timerInt){ clearInterval(timerInt); timerInt=null; }
+  if(timerInt){clearInterval(timerInt);timerInt=null;}
   timerRunning=false; timerRem=0;
   const el=document.getElementById('timer');
   if(el) el.classList.remove('show');
@@ -336,8 +329,8 @@ async function toggleDone(aId,i,nextName){
   const wasDone=!!done[k];
   done[k]=!done[k];
   saveDone();
-  skipTimer(); // siempre matar timer anterior primero
-  if(done[k] && !wasDone) startTimer(nextName); // solo arrancar al marcar, no al desmarcar
+  skipTimer();
+  if(done[k]&&!wasDone) startTimer(nextName);
   renderRutina();
   // Sync Supabase en background
   try{
@@ -659,7 +652,7 @@ async function init(){
       }
     }catch(e2){}
   }
-  skipTimer(); // asegurar que el timer no quede visible al cargar
+  skipTimer();
   renderRutina();
 }
 init();

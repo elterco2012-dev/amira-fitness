@@ -1,4 +1,4 @@
-const CACHE = 'amira-v3';
+const CACHE = 'amira-v4';
 const STATIC = [
   '/',
   '/api/sb.js',
