@@ -863,8 +863,10 @@ function loadLocal(){
   try{
     const d=localStorage.getItem('af-done');   if(d) done=JSON.parse(d);
     const p=localStorage.getItem('af-pesos');  if(p) pesos=JSON.parse(p);
-    // Restaurar selCiclo desde cache para que el primer render sea correcto
+    // Restaurar selCiclo/selSem/selDia desde cache para que el primer render sea correcto
     const sc=localStorage.getItem('af-selCiclo'); if(sc) selCiclo=parseInt(sc)||1;
+    const ss=localStorage.getItem('af-selSem');   if(ss) selSem=parseInt(ss)||1;
+    const sd=localStorage.getItem('af-selDia');   if(sd) selDia=parseInt(sd)||1;
     // Recuperar datos de alumna y rutinas del cache local
     const ca=localStorage.getItem('af-cache-alumnas');
     const cr=localStorage.getItem('af-cache-rutinas');
@@ -1168,9 +1170,29 @@ async function enviarCom(aId){
 }
 
 // ── Renders ───────────────────────────────────────────────────
+function getProximoDia(a){
+  const ciclos=getCiclos(a.id);
+  const maxDias=parseInt(a.dias)||3;
+  for(const c of ciclos){
+    const sems=getSemanas(a.id,c);
+    for(const s of (sems.length>0?sems:[1,2,3,4])){
+      for(let d=1;d<=maxDias;d++){
+        const exs=getExs(a.id,c,s,d);
+        if(exs.length===0) continue;
+        const allDone=exs.every((_,i)=>done[dKey(a.id,s,d,i)]);
+        if(!allDone) return {ciclo:c,sem:s,dia:d};
+      }
+    }
+  }
+  return null;
+}
+
 function renderRutina(){
   const scr=document.getElementById('screen-rutina');
   if(!scr) return; // Seguridad: si el elemento no existe, salir
+  // Persistir selección de semana y día
+  localStorage.setItem('af-selSem', selSem);
+  localStorage.setItem('af-selDia', selDia);
   const a=getAlumna();
   if(!a){
     // Si todavía estamos cargando, mostrar spinner en vez de error
@@ -1257,6 +1279,23 @@ function renderRutina(){
 
   // Selector de días
   html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+
+  // Banner "Próximo entrenamiento" — solo si hay un día incompleto distinto al actual
+  const _prox=getProximoDia(a);
+  if(_prox && !(_prox.ciclo===selCiclo && _prox.sem===selSem && _prox.dia===selDia)){
+    html+=`<div style="
+      display:flex;align-items:center;justify-content:space-between;
+      background:var(--s2);border-left:3px solid var(--v);
+      border-radius:var(--rs);padding:.65rem .9rem;margin:.5rem 0;font-size:12px;
+    ">
+      <span style="color:var(--tm);">Próximo entrenamiento — Sem ${_prox.sem} · Día ${_prox.dia}</span>
+      <button onclick="selCiclo=${_prox.ciclo};selSem=${_prox.sem};selDia=${_prox.dia};renderRutina()" style="
+        background:var(--v);color:white;border:none;border-radius:20px;
+        padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;
+        font-family:'DM Sans',sans-serif;
+      ">Ir →</button>
+    </div>`;
+  }
 
   // Progreso del día
   html+=`<div class="prog-wrap">
@@ -1526,6 +1565,16 @@ async function init(){
     // 4. Guardar snapshot actualizado para la próxima vez sin conexión
     saveCache();
     window._cargando = false; // Carga completa
+    // Auto-avanzar si el día guardado ya está 100% completado
+    const _a=getAlumna();
+    if(_a){
+      const _exs=getExs(_a.id,selCiclo,selSem,selDia);
+      const _allDone=_exs.length>0 && _exs.every((_,i)=>done[dKey(_a.id,selSem,selDia,i)]);
+      if(_allDone){
+        const _prox=getProximoDia(_a);
+        if(_prox){selCiclo=_prox.ciclo;selSem=_prox.sem;selDia=_prox.dia;}
+      }
+    }
     renderRutina();
 
   }catch(e){
