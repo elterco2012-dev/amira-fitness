@@ -1044,6 +1044,19 @@ async function deleteAlumna(id){
   catch(e){alert('Error al eliminar');}
 }
 
+async function resetearProgreso(id){
+  if(!confirm('¿Resetear todo el progreso de esta alumna? Borra los ejercicios completados y los pesos cargados. La alumna verá los cambios al abrir la app.'))return;
+  try{
+    await sbDelete('progreso',`alumna_id=eq.${id}`);
+    const ts=new Date().toISOString();
+    await sbPatch('alumnas',`id=eq.${id}`,{progreso_reset_at:ts});
+    const a=getA(id); if(a) a.progreso_reset_at=ts;
+    alert('Progreso reseteado correctamente.');
+    render();
+  }catch(e){alert('Error: '+e.message);}
+}
+}
+
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
 function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen semanal:\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Seguís creciendo! — Amira 💚`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
@@ -1183,6 +1196,7 @@ function rAlumnas(){
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
+      <button class="btn btn-s btn-d" onclick="resetearProgreso(${a.id})">Resetear progreso</button>
       <button class="btn btn-s" onclick="navigator.clipboard.writeText('${BASE}/alumna/${a.slug}').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar link</button>
     </div>
   </div>`;
@@ -1427,11 +1441,10 @@ async function nuevaPlantilla(){
   const nombre=prompt('Nombre de la nueva plantilla:','');
   if(!nombre||!nombre.trim())return;
   try{
-    const id=Date.now();
-    const nueva={id,nombre:nombre.trim(),descripcion:'',estructura:{},tipo:'gym'};
-    await sbUpsert('plantillas',nueva);
-    DB.plantillas.push(nueva);
-    verPlantilla(id);
+    const result=await sbUpsert('plantillas',{nombre:nombre.trim(),descripcion:'',estructura:{},tipo:'gym'});
+    const nueva=Array.isArray(result)?result[0]:result;
+    if(nueva){DB.plantillas.push(nueva);verPlantilla(nueva.id);}
+    else render();
   }catch(e){alert('Error al crear plantilla: '+e.message);}
 }
 
