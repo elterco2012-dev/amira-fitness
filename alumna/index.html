@@ -1500,6 +1500,12 @@ async function init(){
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`)
       ]);
       DB.comentarios=coms;
+      // Si el panel reseteó el progreso, limpiar caché local antes de cargar
+      const lastReset=localStorage.getItem('af-last-reset');
+      if(a.progreso_reset_at && (!lastReset || new Date(a.progreso_reset_at)>new Date(lastReset))){
+        done={}; pesos={};
+        localStorage.setItem('af-last-reset', a.progreso_reset_at);
+      }
       prog.forEach(p=>{
         if(p.hecho){
           const k=`${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
