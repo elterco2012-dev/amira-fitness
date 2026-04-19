@@ -1055,7 +1055,6 @@ async function resetearProgreso(id){
     render();
   }catch(e){alert('Error: '+e.message);}
 }
-}
 
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
