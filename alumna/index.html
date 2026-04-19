@@ -1243,7 +1243,7 @@ function renderRutina(){
   // Selector de ciclos — siempre visible
   if(ciclos.length>0){
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">Ciclo ${c}</button>`).join('')}
+      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">${a.ciclos_nombres?.[c]||'Ciclo '+c}</button>`).join('')}
     </div></div>`;
   }
 
