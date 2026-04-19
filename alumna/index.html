@@ -170,6 +170,19 @@
 
     #cc{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none;}
     .done-banner{text-align:center;padding:1.5rem 0 .5rem;font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--vd);}
+    .np-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:.6rem 1rem;background:var(--s);border:1px dashed #e5a37e;border-radius:var(--rs);font-size:12px;color:#c06030;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:.5rem;width:100%;transition:background .15s;}
+    .np-btn:active{background:#fdf0e8;}
+    [data-theme=dark] .np-btn{background:var(--s2);border-color:#7a4020;color:#e09060;}
+    .np-done{background:#fdf0e8;border:1px solid #e5a37e;border-radius:var(--rs);padding:.5rem .85rem;font-size:12px;color:#c06030;text-align:center;margin-bottom:.5rem;}
+    [data-theme=dark] .np-done{background:#2a1a08;border-color:#7a4020;color:#e09060;}
+    .fb-picker{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-top:.5rem;text-align:center;}
+    .fb-title{font-size:13px;font-weight:500;color:var(--t);margin-bottom:.75rem;}
+    .fb-opts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+    .fb-opt{padding:8px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s2);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .fb-opt:active{transform:scale(.95);}
+    .fb-given{font-size:12px;color:var(--tm);padding:.5rem 0;text-align:center;}
+    .brep{background:none;border:none;font-size:11px;color:var(--th);cursor:pointer;font-family:'DM Sans',sans-serif;padding:3px 5px;line-height:1;border-radius:4px;}
+    .brep:hover{color:var(--rd);background:var(--rl);}
 
     /* Progreso */
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
@@ -1092,6 +1105,7 @@ async function toggleDone(aId,i,nextName){
   };
   try{
     await sbUpsert('progreso', progresoData);
+    if(done[k]) sbPatch('alumnas',`id=eq.${aId}`,{last_active_at:new Date().toISOString()}).catch(()=>{});
   }catch(e){
     queueSync({data: progresoData});
   }
@@ -1101,6 +1115,32 @@ function toggleExp(aId,i){
   const k=eKey(aId,selSem,selDia,i);
   expanded[k]=!expanded[k];
   renderRutina();
+}
+
+function npKey(aId,c,s,d){return`af-np-${aId}-c${c}-${s}-${d}`;}
+function fbKey(aId,c,s,d){return`af-fb-${aId}-c${c}-${s}-${d}`;}
+
+async function marcarNoPude(aId){
+  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'1');
+  renderRutina();
+  try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'no_pude',ciclo:selCiclo,semana:selSem,dia:selDia});}
+  catch(e){console.warn('feedback no_pude:',e);}
+}
+
+async function guardarFeedbackDia(aId,tipo){
+  localStorage.setItem(fbKey(aId,selCiclo,selSem,selDia),tipo);
+  renderRutina();
+  try{await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});}
+  catch(e){console.warn('feedback dia:',e);}
+}
+
+async function reportarProblema(aId,idx,nombre){
+  const nota=prompt('Contanos qué pasó con "'+nombre+'":');
+  if(!nota)return;
+  try{
+    await sbInsert('feedbacks',{alumna_id:aId,tipo:'ejercicio_problema',ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:idx,ejercicio_nombre:nombre,nota});
+    alert('¡Gracias! Amira lo va a revisar.');
+  }catch(e){alert('No se pudo enviar. Gracias por avisar.');}
 }
 
 let _pt={};
@@ -1270,6 +1310,14 @@ function renderRutina(){
   </div>
   <div class="dlbl">Ciclo ${selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
 
+  const _npK=npKey(a.id,selCiclo,selSem,selDia);
+  const _noPude=localStorage.getItem(_npK);
+  if(exs.length>0&&!justDone&&!_noPude){
+    html+=`<button class="np-btn" onclick="marcarNoPude(${a.id})">😔 No pude entrenar hoy</button>`;
+  } else if(_noPude&&!justDone){
+    html+=`<div class="np-done">😔 Marcaste que no pudiste entrenar este día</div>`;
+  }
+
   if(exs.length===0){
     html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.75rem 1.25rem;text-align:center;margin-top:.25rem;">
       <div style="font-size:1.75rem;margin-bottom:.5rem;">📋</div>
@@ -1295,6 +1343,7 @@ function renderRutina(){
       <div class="ex-btns">
         ${ex.tip?`<button class="btip" onclick="toggleExp(${a.id},${i})">${isExp?'Ocultar':'Ver técnica'}</button>`:''}
         ${ex.video?`<a class="bvid" href="${ex.video}" target="_blank">▶ Video</a>`:''}
+        <button class="brep" title="Reportar problema" onclick="event.stopPropagation();reportarProblema(${a.id},${i},decodeURIComponent('${encodeURIComponent(ex.nombre)}'))">⚑</button>
         <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       </div>
       <div class="peso-row">
@@ -1310,6 +1359,22 @@ function renderRutina(){
   if(justDone){
     html+=`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉</div>`;
     setTimeout(()=>{if(document.querySelector('.done-banner'))launchConfetti();},100);
+    const _fbK=fbKey(a.id,selCiclo,selSem,selDia);
+    const _fbDado=localStorage.getItem(_fbK);
+    if(!_fbDado){
+      html+=`<div class="fb-picker">
+        <div class="fb-title">¿Cómo te fue hoy?</div>
+        <div class="fb-opts">
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_bien')">💪 Bien</button>
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_muy_facil')">🔥 Muy fácil</button>
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_muy_dificil')">😤 Muy difícil</button>
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_me_dolio')">🤕 Me dolió algo</button>
+        </div>
+      </div>`;
+    }else{
+      const _fbMap={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió'};
+      html+=`<div class="fb-given">Respondiste: ${_fbMap[_fbDado]||_fbDado} ✓</div>`;
+    }
   }
   if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
   scr.innerHTML=html;
