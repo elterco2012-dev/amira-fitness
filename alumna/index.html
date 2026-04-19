@@ -679,7 +679,7 @@ let selHistEx = null;
 let maxPesos = {};
 
 // ── PWA + Push ────────────────────────────────────────────────
-const VAPID_PUB_KEY = 'BEvlwuJG1bcxVQ6PoIF3DM6oiwb07s-vyRGWb8S7cUo3zYzvaaqpMu_DWDe_eBwMXUWavosn-BbMs_Bm0gsZZB8';
+const VAPID_PUB_KEY = '1Taw1HOHNYD9QDtiMLoWjpgJX2yusUXw6SukgRwkpgpzvfGFQ4dKO00ywELAj-qHvpyckZFXvL0ii1aKbBWppg';
 let swReg = null;
 
 if('serviceWorker' in navigator){
@@ -795,7 +795,7 @@ async function guardarSuscripcion(alumnaId, sub){
       endpoint:  j.endpoint,
       p256dh:    j.keys.p256dh,
       auth:      j.keys.auth,
-    }, 'alumna_id,endpoint');
+    });
     console.log('Suscripción guardada ✓');
   }catch(e){ console.warn('Error guardando suscripción:', e); }
 }

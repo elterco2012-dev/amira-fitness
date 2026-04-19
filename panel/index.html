@@ -373,7 +373,7 @@ if(!localStorage.getItem('af-amira-ph')){
   localStorage.setItem('af-amira-ph','5492226500790');
 }
 const COLORS=['teal','purple','amber','coral'];
-let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[]};
+let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[]};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
@@ -471,6 +471,7 @@ async function loadAll(){
     ]);
     // feedbacks in separate try-catch (table may not exist yet until migration is run)
     try{DB.feedbacks=await sbGet('feedbacks','order=created_at.desc&limit=50');}catch(e){DB.feedbacks=[];}
+    try{DB.pushSubs=await sbGet('push_subscriptions','select=alumna_id');}catch(e){DB.pushSubs=[];}
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1064,6 +1065,20 @@ async function resetearProgreso(id){
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
 function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen semanal:\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Seguís creciendo! — Amira 💚`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
+
+async function enviarPush(aId){
+  const body=aId?JSON.stringify({alumna_id:aId}):'{}';
+  try{
+    const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      body
+    });
+    const d=await r.json();
+    S.msg=d.sent!==undefined?`✓ ${d.sent} notificación${d.sent!==1?'es':''} enviada${d.sent!==1?'s':''}`:('Error: '+(d.error||'desconocido'));
+    render();setTimeout(()=>{S.msg='';render();},3000);
+  }catch(e){S.msg='Error: '+e.message;render();}
+}
 
 // ── Registros ─────────────────────────────────────────────────
 async function aprobar(id){const reg=DB.registros.find(r=>r.id===id);if(!reg)return;await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});reg.estado='aprobado';S.addA=true;document.getElementById('na-nombre').value=reg.nombre||'';document.getElementById('na-tel').value=reg.tel||'';go('alumnas');}
@@ -1664,10 +1679,25 @@ function rRegistros(){
 
 function rRecordatorios(){
   const sinWA=DB.alumnas.filter(a=>!a.tel);
+  const subIds=new Set(DB.pushSubs.map(s=>s.alumna_id));
+  const conPush=DB.alumnas.filter(a=>subIds.has(a.id));
+  const pushRows=DB.alumnas.map(a=>{
+    const tiene=subIds.has(a.id);
+    const badge=tiene?`<span style="font-size:11px;color:#16a34a;font-weight:500;">● activadas</span>`:`<span style="font-size:11px;color:var(--th);">sin push</span>`;
+    const btn=tiene?`<button class="btn btn-s" onclick="enviarPush(${a.id})">📲 Enviar</button>`:`<span style="font-size:11px;color:var(--th);padding:0 8px;">—</span>`;
+    return`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${a.nombre}</div><div>${badge}</div></div>${btn}</div>`;
+  }).join('');
   return`<div class="ptitle">Recordatorios</div>
   ${sinWA.length>0?`<div class="card" style="background:var(--rl);border-color:var(--rd);margin-bottom:1rem;"><div style="font-size:13px;color:var(--rd);font-weight:500;">⚠️ ${sinWA.map(a=>a.nombre.split(' ')[0]).join(', ')} — sin WhatsApp. Editá su perfil.</div></div>`:''}
   <div class="card">
-    <div class="ctitle">Recordatorio de entrenamiento</div>
+    <div class="ctitle">Notificaciones push</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Se envían automáticamente a las 9AM · Configurar pg_cron para horario distinto</div>
+    ${pushRows}
+    ${conPush.length>0?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn" onclick="enviarPush(null)">📲 Enviar a todas (${conPush.length})</button></div>`:'<div style="font-size:12px;color:var(--th);margin-top:.5rem;">Ninguna alumna tiene push activado aún. Las alumnas lo activan desde su app.</div>'}
+    ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}
+  </div>
+  <div class="card">
+    <div class="ctitle">Recordatorio por WhatsApp</div>
     ${DB.alumnas.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}${!a.tel?` <span style="font-size:11px;color:var(--rd);">(sin WhatsApp)</span>`:''}</div><button class="btn btn-s" onclick="envRec(${a.id})">💬 Recordar</button></div>`).join('')}
   </div>
   <div class="card">
