@@ -60,6 +60,6 @@ async function sbDelete(table, filter) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
     method: 'DELETE', headers: getSBH()
   });
-  if (!r.ok) throw new Error(`DELETE ${table} failed`);
+  if (!r.ok) { const e = await r.text(); throw new Error(`DELETE ${table}: ${e}`); }
   return true;
 }

@@ -1159,16 +1159,17 @@ function rAlumnas(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">
           ${ficha.edad ? `<div><span style="color:var(--tm);">Edad:</span> <strong>${ficha.edad} años</strong></div>` : ''}
           ${ficha.mail ? `<div><span style="color:var(--tm);">Mail:</span> ${ficha.mail}</div>` : ''}
+          ${ficha.tel ? `<div><span style="color:var(--tm);">WhatsApp:</span> ${ficha.tel}</div>` : ''}
           ${ficha.ubicacion ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Ubicación:</span> ${ficha.ubicacion}</div>` : ''}
           ${ficha.objetivos ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> <strong>${ficha.objetivos}</strong></div>` : ''}
-          ${ficha.control_medico ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Último control médico:</span> ${ficha.control_medico}</div>` : ''}
-          ${ficha.enfermedad ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Enfermedades:</span> ${ficha.enfermedad}</div>` : ''}
-          ${ficha.medicacion ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Medicación:</span> ${ficha.medicacion}</div>` : ''}
-          ${ficha.patologia_cardio ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Patología cardiovascular:</span> ${ficha.patologia_cardio}</div>` : ''}
-          ${ficha.lesiones && ficha.lesiones !== 'Sin lesiones' ? `<div style="grid-column:1/-1;background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones actuales:</strong> ${ficha.lesiones}</div>` : ''}
-          ${ficha.lesiones_previas ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones previas:</span> ${ficha.lesiones_previas}</div>` : ''}
-          ${ficha.dolor_zonas ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Dolor frecuente:</span> ${ficha.dolor_zonas}</div>` : ''}
-          ${ficha.actividad_actual ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Actividad actual:</span> ${ficha.actividad_actual}</div>` : ''}
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Último control médico:</span> ${ficha.control_medico||'—'}</div>
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Enfermedades diagnosticadas:</span> ${ficha.enfermedad||'—'}</div>
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Medicación:</span> ${ficha.medicacion||'—'}</div>
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Patología cardiovascular/respiratoria:</span> ${ficha.patologia_cardio||'—'}</div>
+          ${ficha.lesiones && ficha.lesiones !== 'Sin lesiones' && ficha.lesiones !== '—' ? `<div style="grid-column:1/-1;background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones actuales:</strong> ${ficha.lesiones}</div>` : `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones actuales:</span> ${ficha.lesiones||'—'}</div>`}
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones previas:</span> ${ficha.lesiones_previas||'—'}</div>
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Dolor frecuente:</span> ${ficha.dolor_zonas||'—'}</div>
+          <div style="grid-column:1/-1;"><span style="color:var(--tm);">Actividad actual:</span> ${ficha.actividad_actual||'—'}</div>
           ${ficha.extra && ficha.extra !== '—' ? `<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas extra:</span> ${ficha.extra}</div>` : ''}
           <div style="grid-column:1/-1;font-size:10px;color:var(--th);margin-top:4px;">Completada el ${ficha.fecha||'—'}</div>
         </div>
@@ -1227,8 +1228,9 @@ function rRutinas(){
         return Array.from({length:total},(_,i)=>i+1).map(c=>{
           const activo = parseInt(S.selCiclo)===c;
           const nombre=a.ciclos_nombres?.[c]||`Ciclo ${c}`;
-          return `<span style="display:inline-flex;align-items:center;gap:2px;">
-            <button class="btn btn-s${activo?' btn-purple':''}" ondblclick="renombrarCiclo(${c})" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()" title="Doble clic para renombrar">${nombre}</button>
+          return `<span style="display:inline-flex;align-items:center;gap:1px;">
+            <button class="btn btn-s${activo?' btn-purple':''}" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()">${nombre}</button>
+            <button onclick="renombrarCiclo(${c})" title="Renombrar" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 3px;font-size:12px;line-height:1;" title="Renombrar">✎</button>
             ${total>1?`<button onclick="eliminarCiclo(${c})" title="Eliminar ciclo" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 2px;font-size:13px;line-height:1;">×</button>`:''}
           </span>`;
         }).join('');
@@ -1390,7 +1392,10 @@ function rPlantillas(){
   </div>
   <div class="shd" style="margin-bottom:1rem;">
     <div class="shdt">Plantillas disponibles</div>
-    <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual como plantilla</button>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-s" onclick="nuevaPlantilla()">+ Nueva plantilla</button>
+      <button class="btn btn-p btn-s" onclick="crearPlantillaDesdeRutina()">+ Guardar rutina actual</button>
+    </div>
   </div>
   ${DB.plantillas.length===0?`<div class="card"><div class="empty">Sin plantillas todavía.</div></div>`:''}
   <div class="plant-grid">
@@ -1416,6 +1421,18 @@ function rPlantillas(){
       </div>
     </div>`).join('')}
   </div>`;
+}
+
+async function nuevaPlantilla(){
+  const nombre=prompt('Nombre de la nueva plantilla:','');
+  if(!nombre||!nombre.trim())return;
+  try{
+    const id=Date.now();
+    const nueva={id,nombre:nombre.trim(),descripcion:'',estructura:{},tipo:'gym'};
+    await sbUpsert('plantillas',nueva);
+    DB.plantillas.push(nueva);
+    verPlantilla(id);
+  }catch(e){alert('Error al crear plantilla: '+e.message);}
 }
 
 async function crearPlantillaDesdeRutina(){
