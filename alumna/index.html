@@ -829,11 +829,14 @@ function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase
 function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
 
 function getAlumna(){
-  if(DB.alumnas.length===1)return DB.alumnas[0];
-  return DB.alumnas.find(a=>
+  const found=DB.alumnas.find(a=>
     norm(a.slug)===norm(slug) ||
     norm(a.nombre.split(' ')[0])===norm(slug)
   );
+  if(found) return found;
+  // Only fall back to the single alumna when there's no slug in the URL
+  if(!slug && DB.alumnas.length===1) return DB.alumnas[0];
+  return null;
 }
 
 // Obtener ejercicios con manejo robusto de claves (number o string)
