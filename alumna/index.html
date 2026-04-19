@@ -676,6 +676,7 @@ let dark = localStorage.getItem('af-dark')==='1';
 let curTab = 'r';
 let charts = {};
 let selHistEx = null;
+let maxPesos = {};
 
 // ── PWA + Push ────────────────────────────────────────────────
 const VAPID_PUB_KEY = 'BEvlwuJG1bcxVQ6PoIF3DM6oiwb07s-vyRGWb8S7cUo3zYzvaaqpMu_DWDe_eBwMXUWavosn-BbMs_Bm0gsZZB8';
@@ -1146,6 +1147,48 @@ async function reportarProblema(aId,idx,nombre){
   }catch(e){alert('No se pudo enviar. Gracias por avisar.');}
 }
 
+function initMaxPesos(aId){
+  const saved=localStorage.getItem('af-maxpesos');
+  if(saved){try{maxPesos=JSON.parse(saved);return;}catch(e){}}
+  // Build from existing pesos when first run
+  Object.entries(pesos).forEach(([k,v])=>{
+    if(!k.startsWith('p-'+aId+'-')) return;
+    const kg=parseFloat(v); if(!kg) return;
+    const parts=k.split('-');
+    if(parts.length<6) return;
+    const c=parseInt(parts[2].replace('c',''));
+    const sem=parseInt(parts[3]);
+    const dia=parseInt(parts[4]);
+    const idx=parseInt(parts[5]);
+    const ex=getExs(aId,c,sem,dia)[idx];
+    if(ex?.nombre){
+      const mKey=aId+'-'+ex.nombre;
+      if(!maxPesos[mKey]||kg>maxPesos[mKey]) maxPesos[mKey]=kg;
+    }
+  });
+  localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+}
+
+function mostrarBannerIOS(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari=/safari/i.test(navigator.userAgent)&&!/chrome|crios|fxios/i.test(navigator.userAgent);
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  if(!isIOS||!isSafari||isStandalone||localStorage.getItem('af-ios-dismissed')) return;
+  if(document.getElementById('ios-banner')) return;
+  const b=document.createElement('div');
+  b.id='ios-banner';
+  b.style.cssText='position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border:1px solid var(--bm);border-top:2px solid var(--v);border-radius:var(--r) var(--r) 0 0;padding:1rem 1.25rem;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,.15);font-family:\'DM Sans\',sans-serif;';
+  b.innerHTML='<div style="display:flex;align-items:start;gap:10px;">'
+    +'<div style="font-size:26px;line-height:1;">📲</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:4px;">Instalá la app en tu iPhone</div>'
+    +'<div style="font-size:12px;color:var(--tm);line-height:1.6;">Tocá <strong style="color:var(--t);">↑ Compartir</strong> en Safari y elegí <strong style="color:var(--t);">"Agregar a pantalla de inicio"</strong>.</div>'
+    +'</div>'
+    +'<button onclick="document.getElementById(\'ios-banner\').remove();localStorage.setItem(\'af-ios-dismissed\',\'1\')" style="background:none;border:none;font-size:20px;color:var(--th);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>'
+    +'</div>';
+  document.body.appendChild(b);
+}
+
 let _pt={};
 function savePeso(aId,i,val){
   const k=pKey(aId,selSem,selDia,i);
@@ -1156,13 +1199,27 @@ function savePeso(aId,i,val){
   _pt[tk]=setTimeout(async()=>{
     const kg=parseFloat(val)||null;
     if(!kg) return;
+    const exNombre=getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'';
     const pesoData = {
       alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
-      ejercicio_idx:i, ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
+      ejercicio_idx:i, ejercicio_nombre:exNombre,
       peso_kg:kg, fecha_registro:new Date().toISOString()
     };
     try{
       await sbUpsert('progreso', pesoData);
+      if(exNombre){
+        const mKey=aId+'-'+exNombre;
+        if(mKey in maxPesos){
+          if(kg>maxPesos[mKey]){
+            maxPesos[mKey]=kg;
+            localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+            mostrarToast('🏆 ¡Nuevo récord en '+exNombre+'! '+kg+' kg');
+          }
+        }else{
+          maxPesos[mKey]=kg;
+          localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+        }
+      }
     }catch(e){
       queueSync({data: pesoData});
     }
@@ -1592,6 +1649,7 @@ async function init(){
       });
       saveDone();
       localStorage.setItem('af-pesos',JSON.stringify(pesos));
+      initMaxPesos(a.id);
       setTimeout(()=>setupPush(a.id), 3000);
     }
 
@@ -1630,6 +1688,7 @@ async function init(){
         </div>`;
     }
   }
+  mostrarBannerIOS();
 }
 // Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
 async function limpiarCachesViejos(){
