@@ -349,6 +349,7 @@
   <div class="modal">
     <h3>Editar alumna</h3>
     <label>Nombre completo</label><input type="text" id="ea-nombre">
+    <label>Email (acceso alumna)</label><input type="email" id="ea-email" placeholder="laura@gmail.com">
     <label>WhatsApp</label><input type="tel" id="ea-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="ea-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
@@ -789,6 +790,7 @@ function openEditA(id){
   const a=getA(id);if(!a)return;
   S.editAId=id;
   document.getElementById('ea-nombre').value=a.nombre;
+  document.getElementById('ea-email').value=a.email||'';
   document.getElementById('ea-tel').value=a.tel||'';
   document.getElementById('ea-tipo').value=a.tipo;
   document.getElementById('ea-dias').value=a.dias;
@@ -799,7 +801,7 @@ function openEditA(id){
 function closeEditA(){document.getElementById('modal-edit-a').style.display='none';S.editAId=null;}
 async function saveEditA(){
   const a=getA(S.editAId);if(!a)return;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim()};
+  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim()};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
   catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
@@ -823,7 +825,7 @@ async function addAlumna(){
   if(!n)return;
   const id=Date.now();
   const slug=slugify(n.split(' ')[0]);
-  const a={id,slug,nombre:n,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
+  const a={id,slug,nombre:n,email:document.getElementById('na-email')?.value?.trim()||null,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
   S.msg='Guardando...';render();
   try{await sbUpsert('alumnas',a);DB.alumnas.push(a);if(!S.selA)S.selA=id;S.addA=false;S.msg='Alumna creada ✓';render();setTimeout(()=>{S.msg='';render();},2000);}
   catch(e){S.err='Error al guardar';render();}
@@ -1040,6 +1042,7 @@ function rAlumnas(){
   ${S.addA?`<div class="card" style="margin-bottom:1rem;">
     <div class="ctitle">Nueva alumna</div>
     <label>Nombre completo</label><input type="text" id="na-nombre" placeholder="Ej: Laura Gómez">
+    <label>Email (acceso alumna)</label><input type="email" id="na-email" placeholder="laura@gmail.com">
     <label>WhatsApp</label><input type="tel" id="na-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="na-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
