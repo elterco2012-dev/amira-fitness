@@ -270,6 +270,40 @@
 <body>
 <canvas id="cc"></canvas>
 
+<!-- ── Auth screen ── -->
+<div id="auth-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:200;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="width:100%;max-width:380px;">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="width:56px;height:56px;background:var(--v);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.5rem;color:white;margin-bottom:1rem;">A</div>
+      <h1 style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);">Amira Fitness</h1>
+      <p style="font-size:13px;color:var(--tm);margin-top:4px;">Tu entrenamiento personalizado</p>
+    </div>
+    <!-- Tab: Ingresar -->
+    <div id="auth-login">
+      <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:1rem;">Ingresá a tu rutina</p>
+      <input type="email" id="auth-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-pin" placeholder="Tu PIN (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="current-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <button onclick="doAlumnaLogin()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Ingresar</button>
+      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Primera vez? <span onclick="showAuthTab('signup')" style="color:var(--v);cursor:pointer;font-weight:500;">Creá tu PIN</span></p>
+      <div id="auth-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
+    </div>
+    <!-- Tab: Crear PIN -->
+    <div id="auth-signup" style="display:none;">
+      <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:4px;">Creá tu PIN de acceso</p>
+      <p style="font-size:12px;color:var(--tm);margin-bottom:1rem;">Tu entrenadora ya te registró. Ingresá tu email y elegí un PIN de 6 dígitos.</p>
+      <input type="email" id="auth-signup-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-signup-pin" placeholder="PIN nuevo (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-signup-pin2" placeholder="Repetí tu PIN" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <button onclick="doAlumnaSignup()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Crear acceso</button>
+      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Ya tenés PIN? <span onclick="showAuthTab('login')" style="color:var(--v);cursor:pointer;font-weight:500;">Ingresá</span></p>
+      <div id="auth-signup-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── App wrapper (visible tras auth) ── -->
+<div id="app-wrapper" style="display:none">
+
 <!-- ── Onboarding (solo primera vez) ── -->
 <div id="onboarding" style="display:none;">
   <div class="ob-slides">
@@ -337,6 +371,7 @@
     <div class="hlogo">A</div>
     <div class="htxt"><h1>Amira Fitness</h1><p id="hsubtitle">Tu entrenamiento</p></div>
     <button class="hbtn" id="tdbtn" onclick="toggleDark()">🌙</button>
+    <button class="hbtn" onclick="doAlumnaLogout()" title="Salir" style="font-size:11px;opacity:.7;">Salir</button>
   </div>
   <div id="screen-rutina" class="screen"></div>
   <div id="screen-progreso" class="screen" style="display:none;"></div>
@@ -365,6 +400,8 @@
   <button class="bitem" id="bn-p" onclick="switchTab('p')"><span>📈</span><span>Progreso</span></button>
   <button class="bitem" id="bn-n" onclick="switchTab('n')"><span>💬</span><span>Notas</span></button>
 </div>
+
+</div><!-- /app-wrapper -->
 <script>
 // ── Config ────────────────────────────────────────────────────
 const AMIRA_WA = '5492226500790';
@@ -372,6 +409,94 @@ const slug = location.pathname.split('/').filter(Boolean).pop()||'';
 
 // WhatsApp de Amira siempre actualizado
 localStorage.setItem('af-amira-ph', AMIRA_WA);
+
+// ── Auth (alumna) ─────────────────────────────────────────────
+const AT_KEY='af-alumna-token', AR_KEY='af-alumna-refresh', AE_KEY='af-alumna-expires';
+
+// Override getSBH from sb.js to use alumna token
+function getSBH(extra){
+  const token=localStorage.getItem(AT_KEY)||SB_KEY;
+  return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${token}`,'Prefer':'return=representation',...extra};
+}
+
+function _getAlumnaEmail(){
+  const t=localStorage.getItem(AT_KEY); if(!t)return null;
+  try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))?.email||null;}
+  catch(e){return null;}
+}
+function _saveAlumnaSess(d){localStorage.setItem(AT_KEY,d.access_token);localStorage.setItem(AR_KEY,d.refresh_token);localStorage.setItem(AE_KEY,Date.now()+(d.expires_in||3600)*1000);}
+function _clearAlumnaSess(){[AT_KEY,AR_KEY,AE_KEY].forEach(k=>localStorage.removeItem(k));}
+
+async function _refreshAlumnaSess(){
+  const rt=localStorage.getItem(AR_KEY); if(!rt)throw new Error('no rt');
+  const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({refresh_token:rt})});
+  if(!r.ok)throw new Error('refresh fail');
+  const d=await r.json(); _saveAlumnaSess(d); return d;
+}
+
+function showAuthTab(tab){
+  document.getElementById('auth-login').style.display=tab==='login'?'block':'none';
+  document.getElementById('auth-signup').style.display=tab==='signup'?'block':'none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-signup-msg').textContent='';
+}
+function showAuthScreen(){document.getElementById('auth-screen').style.display='flex';document.getElementById('app-wrapper').style.display='none';}
+function showApp(){document.getElementById('auth-screen').style.display='none';document.getElementById('app-wrapper').style.display='';}
+
+async function doAlumnaLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pin=document.getElementById('auth-pin').value.trim();
+  const msg=document.getElementById('auth-msg');
+  if(!email||!pin){msg.textContent='Completá los dos campos.';return;}
+  msg.textContent='Ingresando...';
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({email,password:pin})});
+    if(!r.ok){msg.textContent='Email o PIN incorrecto.';return;}
+    _saveAlumnaSess(await r.json());
+    await init();
+  }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
+}
+
+async function doAlumnaSignup(){
+  const email=document.getElementById('auth-signup-email').value.trim();
+  const pin=document.getElementById('auth-signup-pin').value.trim();
+  const pin2=document.getElementById('auth-signup-pin2').value.trim();
+  const msg=document.getElementById('auth-signup-msg');
+  if(!email||!pin){msg.textContent='Completá todos los campos.';return;}
+  if(pin!==pin2){msg.textContent='Los PINs no coinciden.';return;}
+  if(pin.length!==6||!/^\d{6}$/.test(pin)){msg.textContent='El PIN debe ser exactamente 6 dígitos.';return;}
+  msg.textContent='Verificando...';
+  try{
+    const rows=await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}&select=id`);
+    if(!rows.length){msg.textContent='Email no registrado. Consultá a Amira.';return;}
+  }catch(e){msg.textContent='Error al verificar. Revisá tu conexión.';return;}
+  try{
+    msg.textContent='Creando acceso...';
+    const r=await fetch(`${SB_URL}/auth/v1/signup`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({email,password:pin})});
+    const d=await r.json();
+    if(!r.ok||!d.access_token){msg.textContent=d.error_description||d.msg||'Error. ¿Ya tenés PIN? Intentá con "Ingresá".';return;}
+    _saveAlumnaSess(d);
+    await init();
+  }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
+}
+
+async function doAlumnaLogout(){
+  const t=localStorage.getItem(AT_KEY);
+  try{if(t)await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${t}`}});}catch(e){}
+  _clearAlumnaSess();
+  showAuthScreen();
+}
+
+async function checkAlumnaAuth(){
+  const t=localStorage.getItem(AT_KEY);
+  if(!t){showAuthScreen();return false;}
+  const exp=parseInt(localStorage.getItem(AE_KEY))||0;
+  if(Date.now()>exp-5*60*1000){
+    try{await _refreshAlumnaSess();}
+    catch(e){_clearAlumnaSess();showAuthScreen();return false;}
+  }
+  return true;
+}
 
 // ── Onboarding ────────────────────────────────────────────────
 let obStep = 1;
@@ -691,6 +816,7 @@ function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase
 function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
 
 function getAlumna(){
+  if(DB.alumnas.length===1)return DB.alumnas[0];
   return DB.alumnas.find(a=>
     norm(a.slug)===norm(slug) ||
     norm(a.nombre.split(' ')[0])===norm(slug)
@@ -1320,6 +1446,11 @@ function renderNotas(){
 
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
+  // Auth check
+  const authed=await checkAlumnaAuth();
+  if(!authed)return;
+  showApp();
+
   initTimerPicker(); // Aplicar preferencia de duración guardada
   window._cargando = true; // Bandera: estamos en proceso de carga
   // 1. Cargar datos locales primero — la pantalla responde de inmediato
@@ -1344,12 +1475,16 @@ async function init(){
     if(scr) scr.innerHTML = `<div style="text-align:center;padding:4rem 1rem;color:var(--tm);font-size:13px;">Cargando tu rutina...</div>`;
   }
 
-  // 2. Intentar actualizar desde Supabase
+  // 2. Intentar actualizar desde Supabase (solo datos de esta alumna)
   try{
-const [alumnas,rutinas]=await Promise.all([
-  sbGet('alumnas','order=created_at.asc'),
-  sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc')
-]);
+    const email=_getAlumnaEmail();
+    const alumnas=email
+      ?await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}`)
+      :await sbGet('alumnas','order=created_at.asc');
+    const a0=alumnas[0];
+    const rutinas=a0
+      ?await sbGet('rutinas',`alumna_id=eq.${a0.id}&order=ciclo.asc,semana.asc,dia.asc`)
+      :[];
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
