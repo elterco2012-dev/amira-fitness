@@ -1324,7 +1324,7 @@ function renderRutina(){
       const _mm=_npDt.getMinutes().toString().padStart(2,'0');
       _npSub=' · '+(_diffD===0?'hoy':'ayer')+' a las '+_hh+':'+_mm;
     }
-    html+=`<div class="np-done">😔 No pudiste entrenar · Semana ${selSem} · Día ${selDia}${_npSub}</div>`;
+    html+=`<div class="np-done">😔 No pudiste entrenar${_npSub}</div>`;
   }
 
   if(exs.length===0){
