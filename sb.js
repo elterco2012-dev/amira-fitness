@@ -22,6 +22,7 @@ const ON_CONFLICT = {
   progreso:             'alumna_id,ciclo,semana,dia,ejercicio_idx',
   registros:            'id',
   comentarios:          'id',
+  push_subscriptions:   'alumna_id',
 };
 
 async function sbGet(table, qs = '') {
