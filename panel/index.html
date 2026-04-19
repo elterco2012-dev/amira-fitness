@@ -1087,6 +1087,18 @@ function render(){
 }
 
 // ── RENDERS ───────────────────────────────────────────────────
+function fmtWhen(iso){
+  if(!iso) return '';
+  const d=new Date(iso); if(isNaN(d)) return '';
+  const diffD=Math.floor((Date.now()-d)/86400000);
+  const hh=d.getHours().toString().padStart(2,'0');
+  const mm=d.getMinutes().toString().padStart(2,'0');
+  const hora=hh+':'+mm;
+  if(diffD===0) return 'hoy '+hora;
+  if(diffD===1) return 'ayer '+hora;
+  return d.getDate()+'/'+(d.getMonth()+1)+' '+hora;
+}
+
 function rInicio(){
   const now=new Date();
   const gym=DB.alumnas.filter(a=>a.tipo==='gym').length;
@@ -1118,20 +1130,27 @@ function rInicio(){
     }).join('');
 
   // Feedbacks recientes
-  const fbLabels={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió','no_pude':'😔 No pudo','ejercicio_problema':'⚑ Reporte'};
-  const recentFb=(DB.feedbacks||[]).slice(0,6);
+  const fbLabels={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió','no_pude':'😔 No pudo entrenar','ejercicio_problema':'⚑ Reporte'};
+  const recentFb=(DB.feedbacks||[]).slice(0,8);
   let fbSec='';
   if(recentFb.length>0){
     const fbRows=recentFb.map(f=>{
       const al=DB.alumnas.find(a=>a.id===f.alumna_id);
-      const exNom=f.ejercicio_nombre?' · <span style="color:var(--tm)">'+f.ejercicio_nombre+'</span>':'';
+      const diaStr=f.ciclo?'C'+f.ciclo+'·S'+f.semana+'·D'+f.dia:'';
+      const exNom=f.ejercicio_nombre?' · '+f.ejercicio_nombre:'';
       const nota=f.nota?'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+f.nota+'"</div>':'';
-      return`<div style="display:flex;gap:8px;align-items:start;margin-bottom:.5rem;font-size:12px;">
-        <span style="flex-shrink:0;">${fbLabels[f.tipo]||f.tipo}</span>
-        <div style="flex:1;min-width:0;"><span style="font-weight:500;">${al?al.nombre:'?'}</span>${exNom}${nota}</div>
-      </div>`;
+      const cuando=f.created_at?fmtWhen(f.created_at):'';
+      return'<div style="display:flex;gap:8px;align-items:start;padding:.5rem 0;border-bottom:1px solid var(--b);font-size:12px;">'
+        +'<span style="flex-shrink:0;">'+fbLabels[f.tipo]+'</span>'
+        +'<div style="flex:1;min-width:0;">'
+        +'<span style="font-weight:500;">'+(al?al.nombre:'?')+'</span>'
+        +(diaStr?'<span style="color:var(--tm);"> · '+diaStr+'</span>':'')
+        +(exNom?'<span style="color:var(--tm);">'+exNom+'</span>':'')
+        +(cuando?'<span style="color:var(--th);font-size:10px;"> · '+cuando+'</span>':'')
+        +nota
+        +'</div></div>';
     }).join('');
-    fbSec='<div class="card" style="margin-bottom:1rem;"><div class="ctitle" style="margin-bottom:.75rem;">Feedbacks recientes</div>'+fbRows+'</div>';
+    fbSec='<div class="card" style="margin-bottom:1rem;"><div class="ctitle" style="margin-bottom:.5rem;">Feedbacks recientes</div>'+fbRows+'</div>';
   }
 
   return`<div class="ptitle">Bienvenida, Amira</div>

@@ -181,8 +181,8 @@
     .fb-opt{padding:8px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s2);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
     .fb-opt:active{transform:scale(.95);}
     .fb-given{font-size:12px;color:var(--tm);padding:.5rem 0;text-align:center;}
-    .brep{background:none;border:none;font-size:11px;color:var(--th);cursor:pointer;font-family:'DM Sans',sans-serif;padding:3px 5px;line-height:1;border-radius:4px;}
-    .brep:hover{color:var(--rd);background:var(--rl);}
+    .brep{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;padding:5px 9px;line-height:1;transition:all .15s;}
+    .brep:hover{color:var(--rd);border-color:var(--rd);background:var(--rl);}
 
     /* Progreso */
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
@@ -1124,7 +1124,7 @@ function npKey(aId,c,s,d){return`af-np-${aId}-c${c}-${s}-${d}`;}
 function fbKey(aId,c,s,d){return`af-fb-${aId}-c${c}-${s}-${d}`;}
 
 async function marcarNoPude(aId){
-  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'1');
+  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),new Date().toISOString());
   renderRutina();
   try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'no_pude',ciclo:selCiclo,semana:selSem,dia:selDia});}
   catch(e){console.warn('feedback no_pude:',e);}
@@ -1257,10 +1257,8 @@ function renderRutina(){
   const ciclos = getCiclos(a.id);
   // Asegurar selCiclo válido
   if(!ciclos.includes(selCiclo)) selCiclo = ciclos[ciclos.length-1];
-  const semanas = getSemanas(a.id, selCiclo);
-  // Asegurar selSem válido — si no hay semanas usar 1
-  const semsValidas = semanas.length>0 ? semanas : [1,2,3,4];
-  if(!semsValidas.includes(selSem)) selSem = semsValidas[0];
+  // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
+  if(selSem < 1 || selSem > 4) selSem = 1;
 
   const exs = getExs(a.id, selCiclo, selSem, selDia);
   const comp = exs.filter((_,i)=>done[dKey(a.id,selSem,selDia,i)]).length;
@@ -1318,7 +1316,15 @@ function renderRutina(){
   if(exs.length>0&&!justDone&&!_noPude){
     html+=`<button class="np-btn" onclick="marcarNoPude(${a.id})">😔 No pude entrenar hoy</button>`;
   } else if(_noPude&&!justDone){
-    html+=`<div class="np-done">😔 Marcaste que no pudiste entrenar este día</div>`;
+    const _npDt=new Date(_noPude);const _npOk=!isNaN(_npDt.getTime());
+    let _npSub='';
+    if(_npOk){
+      const _diffD=Math.floor((Date.now()-_npDt)/86400000);
+      const _hh=_npDt.getHours().toString().padStart(2,'0');
+      const _mm=_npDt.getMinutes().toString().padStart(2,'0');
+      _npSub=' · '+(_diffD===0?'hoy':'ayer')+' a las '+_hh+':'+_mm;
+    }
+    html+=`<div class="np-done">😔 No pudiste entrenar · Semana ${selSem} · Día ${selDia}${_npSub}</div>`;
   }
 
   if(exs.length===0){
@@ -1346,7 +1352,7 @@ function renderRutina(){
       <div class="ex-btns">
         ${ex.tip?`<button class="btip" onclick="toggleExp(${a.id},${i})">${isExp?'Ocultar':'Ver técnica'}</button>`:''}
         ${ex.video?`<a class="bvid" href="${ex.video}" target="_blank">▶ Video</a>`:''}
-        <button class="brep" title="Reportar problema" onclick="event.stopPropagation();reportarProblema(${a.id},${i},decodeURIComponent('${encodeURIComponent(ex.nombre)}'))">⚑</button>
+        <button class="brep" onclick="event.stopPropagation();reportarProblema(${a.id},${i},decodeURIComponent('${encodeURIComponent(ex.nombre)}'))">⚑ Reportar</button>
         <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       </div>
       <div class="peso-row">
