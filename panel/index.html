@@ -356,6 +356,8 @@
       <div><label>Días/semana</label><select id="ea-dias"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
     <label>Notas personales</label><textarea id="ea-notas"></textarea>
+    <label style="display:flex;align-items:center;gap:5px;">🔒 Notas privadas <span style="font-size:10px;color:var(--tm);font-weight:400;">(solo visible en el panel)</span></label>
+    <textarea id="ea-np" placeholder="Ej: tiene competencia en mayo, bajó el ritmo por trabajo..."></textarea>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" onclick="saveEditA()">Guardar</button>
       <button class="btn" onclick="closeEditA()">Cancelar</button>
@@ -839,13 +841,14 @@ function openEditA(id){
   document.getElementById('ea-tipo').value=a.tipo;
   document.getElementById('ea-dias').value=a.dias;
   document.getElementById('ea-notas').value=a.notas||'';
+  document.getElementById('ea-np').value=a.notas_privadas||'';
   document.getElementById('ea-msg').textContent='';
   document.getElementById('modal-edit-a').style.display='flex';
 }
 function closeEditA(){document.getElementById('modal-edit-a').style.display='none';S.editAId=null;}
 async function saveEditA(){
   const a=getA(S.editAId);if(!a)return;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim()};
+  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
   catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
@@ -1212,6 +1215,7 @@ function rAlumnas(){
       <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
     </div>
     ${a.notas?`<div class="nota">${a.notas}</div>`:''}
+    ${a.notas_privadas?`<div style="background:var(--p);border-radius:var(--rs);padding:.5rem .85rem;font-size:12px;color:var(--pd);margin-bottom:.5rem;">🔒 ${a.notas_privadas}</div>`:''}
 
     ${ficha ? `
     <div style="margin-bottom:10px;">
@@ -1249,6 +1253,30 @@ function rAlumnas(){
     </div>
   </div>`;
   }).join('')}`;
+}
+
+async function duplicarRutina(){
+  const fromAId=S._dupSrcA;
+  if(!fromAId){S.msg='Seleccioná una alumna fuente';render();return;}
+  // Try to find any ciclo with data from source
+  const srcR=DB.rutinas[fromAId]||{};
+  const srcCiclos=Object.keys(srcR).map(Number).filter(c=>c>0);
+  if(!srcCiclos.length){S.msg='Esa alumna no tiene rutinas';render();return;}
+  const fromCiclo=srcCiclos[0]; // use first available ciclo
+  const fromR=srcR[fromCiclo];
+  S.msg='Copiando...';render();
+  const ops=[];
+  Object.entries(fromR).forEach(([sem,dias])=>{
+    dias.forEach(d=>ops.push(sbUpsert('rutinas',{
+      alumna_id:S.selA,ciclo:S.selCiclo,semana:parseInt(sem),dia:d.dia,ejercicios:d.ejercicios
+    })));
+  });
+  try{
+    await Promise.all(ops);
+    await loadAll();
+    S._dupMode=false;S.msg='¡Rutina copiada!';render();
+    setTimeout(()=>{S.msg='';render();},2500);
+  }catch(e){S.msg='Error: '+e.message;render();}
 }
 
 function rRutinas(){
@@ -1297,8 +1325,22 @@ function rRutinas(){
           </span>`;
         }).join('');
       })()}
+      <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S.msg='';render()">📋 Copiar rutina</button>
       <button class="btn btn-s" style="margin-left:auto;" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
     </div>
+    ${S._dupMode?(()=>{
+      const otras=DB.alumnas.filter(al=>al.id!==S.selA);
+      const opts=otras.map(al=>'<option value="'+al.id+'">'+al.nombre+'</option>').join('');
+      return'<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid rgba(60,52,137,.15);">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--pd);margin-bottom:6px;">Copiar rutina de:</div>'
+        +'<select onchange="S._dupSrcA=parseInt(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;background:var(--s);color:var(--t);margin-bottom:6px;">'
+        +'<option value="">— Elegir alumna —</option>'+opts+'</select>'
+        +'<div style="display:flex;gap:6px;align-items:center;">'
+        +'<button class="btn btn-p btn-s" onclick="duplicarRutina()">Copiar al Ciclo '+S.selCiclo+'</button>'
+        +'<button class="btn btn-s" onclick="S._dupMode=false;render()">Cancelar</button>'
+        +(S.msg?'<span style="font-size:11px;color:var(--vd);">'+S.msg+'</span>':'')
+        +'</div></div>';
+    })():''}
 
     <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Semana</div>
     <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
