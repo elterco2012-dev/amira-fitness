@@ -1170,23 +1170,6 @@ async function enviarCom(aId){
 }
 
 // ── Renders ───────────────────────────────────────────────────
-function getProximoDia(a){
-  const ciclos=getCiclos(a.id);
-  const maxDias=parseInt(a.dias)||3;
-  for(const c of ciclos){
-    const sems=getSemanas(a.id,c);
-    for(const s of (sems.length>0?sems:[1,2,3,4])){
-      for(let d=1;d<=maxDias;d++){
-        const exs=getExs(a.id,c,s,d);
-        if(exs.length===0) continue;
-        const allDone=exs.every((_,i)=>done[dKey(a.id,s,d,i)]);
-        if(!allDone) return {ciclo:c,sem:s,dia:d};
-      }
-    }
-  }
-  return null;
-}
-
 function renderRutina(){
   const scr=document.getElementById('screen-rutina');
   if(!scr) return; // Seguridad: si el elemento no existe, salir
@@ -1280,23 +1263,6 @@ function renderRutina(){
   // Selector de días
   html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
-  // Banner "Próximo entrenamiento" — solo si hay un día incompleto distinto al actual
-  const _prox=getProximoDia(a);
-  if(_prox && !(_prox.ciclo===selCiclo && _prox.sem===selSem && _prox.dia===selDia)){
-    html+=`<div style="
-      display:flex;align-items:center;justify-content:space-between;
-      background:var(--s2);border-left:3px solid var(--v);
-      border-radius:var(--rs);padding:.65rem .9rem;margin:.5rem 0;font-size:12px;
-    ">
-      <span style="color:var(--tm);">Próximo entrenamiento — Sem ${_prox.sem} · Día ${_prox.dia}</span>
-      <button onclick="selCiclo=${_prox.ciclo};selSem=${_prox.sem};selDia=${_prox.dia};renderRutina()" style="
-        background:var(--v);color:white;border:none;border-radius:20px;
-        padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;
-        font-family:'DM Sans',sans-serif;
-      ">Ir →</button>
-    </div>`;
-  }
-
   // Progreso del día
   html+=`<div class="prog-wrap">
     <div class="prog-top"><span>${comp} de ${total} ejercicios</span><span>${pct}%</span></div>
@@ -1305,21 +1271,10 @@ function renderRutina(){
   <div class="dlbl">Ciclo ${selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
 
   if(exs.length===0){
-    // Intentar encontrar un día/semana con datos y navegar ahí automáticamente
-    let encontrado=false;
-    outer: for(const c of ciclos){
-      const sems=getSemanas(a.id,c);
-      for(const s of (sems.length>0?sems:[1,2,3,4])){
-        for(const d of [1,2,3,4,5].slice(0,parseInt(a.dias)||3)){
-          if(getExs(a.id,c,s,d).length>0){
-            selCiclo=c; selSem=s; selDia=d; encontrado=true; break outer;
-          }
-        }
-      }
-    }
-    if(encontrado){ scr.innerHTML=''; renderRutina(); return; }
-    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.25rem;text-align:center;color:var(--tm);font-size:13px;margin-top:.5rem;">
-      Sin ejercicios para esta semana.<br><span style="font-size:11px;">Amira los estará cargando pronto.</span>
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.75rem 1.25rem;text-align:center;margin-top:.25rem;">
+      <div style="font-size:1.75rem;margin-bottom:.5rem;">📋</div>
+      <div style="font-size:14px;font-weight:500;color:var(--t);margin-bottom:.35rem;">Este día todavía no tiene ejercicios</div>
+      <div style="font-size:12px;color:var(--tm);line-height:1.6;">Amira está preparando tu entrenamiento.<br>¡Ya llega, seguí entrenando!</div>
     </div>`;
   }
 
@@ -1565,16 +1520,6 @@ async function init(){
     // 4. Guardar snapshot actualizado para la próxima vez sin conexión
     saveCache();
     window._cargando = false; // Carga completa
-    // Auto-avanzar si el día guardado ya está 100% completado
-    const _a=getAlumna();
-    if(_a){
-      const _exs=getExs(_a.id,selCiclo,selSem,selDia);
-      const _allDone=_exs.length>0 && _exs.every((_,i)=>done[dKey(_a.id,selSem,selDia,i)]);
-      if(_allDone){
-        const _prox=getProximoDia(_a);
-        if(_prox){selCiclo=_prox.ciclo;selSem=_prox.sem;selDia=_prox.dia;}
-      }
-    }
     renderRutina();
 
   }catch(e){

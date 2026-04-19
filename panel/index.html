@@ -563,12 +563,44 @@ function abrirNuevoCiclo(){
   // Sugerir el próximo mes como nombre
   const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const hoy=new Date();
-  const sugerido=`${meses[(hoy.getMonth()+1)%12]} ${hoy.getMonth()===11?hoy.getFullYear()+1:hoy.getFullYear()}`;
+  const sugerido=`${meses[(hoy.getMonth()+1)%12]}`;
   document.getElementById('ciclo-nombre').value=sugerido;
   document.getElementById('ciclo-msg').textContent='';
   document.getElementById('modal-ciclo').style.display='flex';
 }
 function closeCicloModal(){document.getElementById('modal-ciclo').style.display='none';}
+
+async function renombrarCiclo(c){
+  const a=getA(S.selA); if(!a) return;
+  const actual=a.ciclos_nombres?.[c]||`Ciclo ${c}`;
+  const nuevo=prompt(`Nuevo nombre para Ciclo ${c}:`, actual);
+  if(!nuevo||nuevo.trim()===actual) return;
+  const ciclosNombres={...(a.ciclos_nombres||{})};
+  ciclosNombres[c]=nuevo.trim();
+  await sbPatch('alumnas',`id=eq.${a.id}`,{ciclos_nombres:ciclosNombres});
+  a.ciclos_nombres=ciclosNombres;
+  render();
+}
+
+async function eliminarCiclo(c){
+  const a=getA(S.selA); if(!a) return;
+  const nombre=a.ciclos_nombres?.[c]||`Ciclo ${c}`;
+  if(!confirm(`¿Eliminar "${nombre}" y todos sus ejercicios? Esta acción no se puede deshacer.`)) return;
+  try{
+    await sbDelete('rutinas',`alumna_id=eq.${a.id}&ciclo=eq.${c}`);
+    const ciclosNombres={...(a.ciclos_nombres||{})};
+    delete ciclosNombres[c];
+    let nuevoCicloActual=parseInt(a.ciclo_actual)||1;
+    if(nuevoCicloActual===c) nuevoCicloActual=c>1?c-1:1;
+    await sbPatch('alumnas',`id=eq.${a.id}`,{ciclo_actual:nuevoCicloActual,ciclos_nombres:ciclosNombres});
+    a.ciclo_actual=nuevoCicloActual;
+    a.ciclos_nombres=ciclosNombres;
+    if(DB.rutinas[a.id]) DB.rutinas[a.id]=DB.rutinas[a.id].filter(r=>r.ciclo!==c);
+    if(S.selCiclo===c){S.selCiclo=nuevoCicloActual;S.selSem=1;S.selDia=1;}
+    S._maxCiclo=Math.max(1,nuevoCicloActual);
+    render();
+  }catch(e){alert('Error al eliminar el ciclo');}
+}
 
 async function confirmarNuevoCiclo(){
   const a=getA(S.selA);if(!a)return;
@@ -1195,7 +1227,10 @@ function rRutinas(){
         return Array.from({length:total},(_,i)=>i+1).map(c=>{
           const activo = parseInt(S.selCiclo)===c;
           const nombre=a.ciclos_nombres?.[c]||`Ciclo ${c}`;
-          return `<button class="btn btn-s${activo?' btn-purple':''}" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()" title="Ciclo ${c}">${nombre}</button>`;
+          return `<span style="display:inline-flex;align-items:center;gap:2px;">
+            <button class="btn btn-s${activo?' btn-purple':''}" ondblclick="renombrarCiclo(${c})" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()" title="Doble clic para renombrar">${nombre}</button>
+            ${total>1?`<button onclick="eliminarCiclo(${c})" title="Eliminar ciclo" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 2px;font-size:13px;line-height:1;">×</button>`:''}
+          </span>`;
         }).join('');
       })()}
       <button class="btn btn-s" style="margin-left:auto;" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
