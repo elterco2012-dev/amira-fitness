@@ -372,7 +372,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,msg:'',err:'',sbOk:false};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
 let bibSelEx=null;
@@ -693,6 +693,7 @@ async function saveManual(){
   document.getElementById('manual-msg').textContent = 'Guardando...';
 
   const nuevoEx = {
+    id: Date.now(),
     nombre,
     descripcion: document.getElementById('m-tip').value.trim(),
     video: document.getElementById('m-video').value.trim(),
@@ -877,6 +878,7 @@ function verPlantilla(id){
   const p=DB.plantillas.find(x=>x.id===id); if(!p)return;
   S._editPlantId=id;
   S._editPlantDia=1;
+  S._plantBibMode=false;
   S._editPlantBackup=JSON.parse(JSON.stringify(p.estructura));
   renderModalPlantilla();
   document.getElementById('modal-edit-plant').style.display='flex';
@@ -886,6 +888,7 @@ function closePlantillaModal(){
   const p=DB.plantillas.find(x=>x.id===S._editPlantId);
   if(p&&S._editPlantBackup!==null)p.estructura=S._editPlantBackup;
   S._editPlantBackup=null;
+  S._plantBibMode=false;
   document.getElementById('modal-edit-plant').style.display='none';
 }
 
@@ -919,6 +922,39 @@ function renderModalPlantilla(){
       <button class="btn btn-s btn-d" onclick="deletePlantEx(${i})" style="flex-shrink:0;">×</button>
     </div>`).join('');
   document.getElementById('plant-exs-list').innerHTML=exsHtml||'<div class="empty">Sin ejercicios. Agregá desde abajo.</div>';
+  // Biblioteca picker
+  const bibWrap=document.getElementById('plant-bib-wrap');
+  if(bibWrap){
+    if(S._plantBibMode){
+      bibWrap.innerHTML=`<div style="border-top:1px solid var(--b);padding-top:.75rem;margin-top:.5rem;">
+        <input type="text" id="plant-bib-q" placeholder="Buscar ejercicio..." style="width:100%;padding:8px;font-size:13px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);color:var(--t);margin-bottom:8px;" oninput="renderPlantBibPicker()">
+        <div id="plant-bib-list" style="max-height:160px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:5px;"></div>
+      </div>`;
+      renderPlantBibPicker();
+    } else {
+      bibWrap.innerHTML='';
+    }
+  }
+}
+
+function renderPlantBibPicker(){
+  const q=(document.getElementById('plant-bib-q')?.value||'').toLowerCase();
+  const filtered=DB.biblioteca.filter(e=>!q||e.nombre.toLowerCase().includes(q)||(e.grupo_muscular||'').toLowerCase().includes(q));
+  const list=document.getElementById('plant-bib-list');
+  if(!list)return;
+  list.innerHTML=filtered.map(e=>`<div onclick="addPlantExFromBib(${e.id})" style="cursor:pointer;padding:7px 9px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);font-size:11px;">
+    <div style="font-weight:500;color:var(--t);">${e.nombre}</div>
+    <div style="color:var(--tm);font-size:10px;">${e.grupo_muscular||''}</div>
+  </div>`).join('')||`<div style="grid-column:1/-1;font-size:12px;color:var(--tm);">Sin resultados</div>`;
+}
+
+function addPlantExFromBib(bibId){
+  const bib=DB.biblioteca.find(e=>e.id===bibId); if(!bib)return;
+  const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
+  if(!p.estructura[S._editPlantDia])p.estructura[S._editPlantDia]=[];
+  p.estructura[S._editPlantDia].push({nombre:bib.nombre,series:'3',reps:'10',tip:bib.descripcion||'',video:bib.video||'',grupo:bib.grupo_muscular||''});
+  S._plantBibMode=false;
+  renderModalPlantilla();
 }
 
 function updatePlantEx(idx,field,val){
@@ -980,7 +1016,7 @@ function go(v){
   S.view=v;
   if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';}
   if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
-  if(v==='historial' && S.selA){
+  if(v==='historial'){
     // Cargar progreso de todas las alumnas al entrar al historial
     DB.alumnas.forEach(a=>loadHistorial(a.id));
   }
@@ -1532,10 +1568,14 @@ initAuth();
     <h3 id="modal-plant-title">Editar plantilla</h3>
     <div class="dtabs" id="plant-dia-tabs" style="margin-bottom:1rem;"></div>
     <div style="margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:12px;color:var(--tm);">Editá los ejercicios de este día. Los cambios se guardan al presionar "Guardar plantilla".</div>
-      <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Ejercicio</button>
+      <div style="font-size:12px;color:var(--tm);">Ejercicios del día. Guardá al terminar.</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-s" onclick="S._plantBibMode=!S._plantBibMode;renderModalPlantilla()">+ Desde biblioteca</button>
+        <button class="btn btn-p btn-s" onclick="addPlantEx()">+ Manual</button>
+      </div>
     </div>
-    <div id="plant-exs-list" style="max-height:340px;overflow-y:auto;padding-right:4px;"></div>
+    <div id="plant-exs-list" style="max-height:260px;overflow-y:auto;padding-right:4px;"></div>
+    <div id="plant-bib-wrap"></div>
     <div style="display:flex;gap:8px;margin-top:1rem;">
       <button class="btn btn-p" onclick="savePlantilla()">Guardar plantilla</button>
       <button class="btn" onclick="closePlantillaModal()">Cancelar</button>

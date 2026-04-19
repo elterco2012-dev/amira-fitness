@@ -1256,7 +1256,7 @@ function renderRutina(){
   </div></div>`;
 
   // Selector de días
-  html+=`<div class="dtabs">${[1,2,3].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+  html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
   // Progreso del día
   html+=`<div class="prog-wrap">
@@ -1271,7 +1271,7 @@ function renderRutina(){
     outer: for(const c of ciclos){
       const sems=getSemanas(a.id,c);
       for(const s of (sems.length>0?sems:[1,2,3,4])){
-        for(const d of [1,2,3].slice(0,parseInt(a.dias)||3)){
+        for(const d of [1,2,3,4,5].slice(0,parseInt(a.dias)||3)){
           if(getExs(a.id,c,s,d).length>0){
             selCiclo=c; selSem=s; selDia=d; encontrado=true; break outer;
           }
@@ -1368,7 +1368,7 @@ function renderProgreso(){
     calHtml+=`<div style="font-size:10px;color:var(--th);margin-bottom:4px;margin-top:8px;">Ciclo ${cic}</div>`;
     calHtml+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';
     [1,2,3,4].forEach(sem=>{
-      [1,2,3].slice(0,parseInt(a.dias)||3).forEach(dia=>{
+      [1,2,3,4,5].slice(0,parseInt(a.dias)||3).forEach(dia=>{
         const key=`c${cic}-${sem}-${dia}`;
         const hecho=diasHechos.has(key);
         const title=`Ciclo ${cic} · Sem ${sem} · Día ${dia}`;
