@@ -2,62 +2,273 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1D9E75">
   <title>Amira Fitness — Entrenamiento personalizado</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    :root{--v:#1D9E75;--vl:#E1F5EE;--vd:#0F6E56;--bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;--t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;--b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);--r:16px;--rs:10px;--rp:30px;}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;display:flex;flex-direction:column;}
-    .header{background:var(--s);border-bottom:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:10px;}
-    .logo{width:36px;height:36px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;color:var(--vd);flex-shrink:0;}
-    .header-txt h1{font-size:15px;font-weight:500;color:var(--t);}
-    .header-txt p{font-size:11px;color:var(--tm);}
-    .header-panel{margin-left:auto;font-size:12px;color:var(--tm);text-decoration:none;padding:5px 12px;border:1px solid var(--bm);border-radius:var(--rp);}
-    .header-panel:hover{background:var(--s2);}
-    .hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 1.5rem 2rem;max-width:520px;margin:0 auto;width:100%;}
-    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--vl);color:var(--vd);border-radius:var(--rp);padding:5px 14px;font-size:12px;font-weight:500;margin-bottom:1.5rem;}
-    .hero h2{font-family:'DM Serif Display',serif;font-size:2.4rem;line-height:1.2;margin-bottom:1rem;color:var(--t);}
-    .hero h2 em{font-style:italic;color:var(--vd);}
-    .hero p{font-size:15px;color:var(--tm);line-height:1.75;margin-bottom:2rem;max-width:400px;}
-    .cta-group{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;}
-    .btn-main{display:block;background:var(--v);color:white;text-decoration:none;padding:14px 24px;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;transition:background .15s;text-align:center;}
-    .btn-main:hover{background:var(--vd);}
-    .btn-wa{display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;text-decoration:none;padding:14px 24px;border-radius:var(--rp);font-size:14px;font-weight:500;transition:background .15s;}
+    :root{
+      --verde:#1D9E75;--verde-l:#E1F5EE;--verde-m:#5DCAA5;--verde-d:#0F6E56;
+      --amber:#FAEEDA;--amber-d:#633806;
+      --txt:#1a1a1a;--txt-m:#6b7280;--txt-h:#9ca3af;
+      --surf:#f8f8f6;--white:#fff;
+      --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.12);
+      --r:16px;--rs:10px;--rp:30px;
+    }
+    html{scroll-behavior:smooth;}
+    body{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--txt);line-height:1.6;}
+
+    /* Nav */
+    nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;}
+    .nav-brand{display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;text-decoration:none;color:var(--txt);}
+    .nav-logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
+    .nav-links{display:flex;align-items:center;gap:1.5rem;}
+    .nav-links a{font-size:13px;color:var(--txt-m);text-decoration:none;transition:color .15s;}
+    .nav-links a:hover{color:var(--txt);}
+    .nav-cta{background:var(--verde);color:white;padding:8px 18px;border-radius:var(--rp);font-size:13px;font-weight:500;text-decoration:none;transition:background .15s;}
+    .nav-cta:hover{background:var(--verde-d);}
+
+    /* Hero */
+    .hero{max-width:1100px;margin:0 auto;padding:6rem 2rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
+    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--verde-l);color:var(--verde-d);font-size:12px;font-weight:500;padding:5px 14px;border-radius:var(--rp);margin-bottom:1.5rem;}
+    .hero h1{font-family:'DM Serif Display',serif;font-size:3.2rem;line-height:1.1;margin-bottom:1.25rem;color:var(--txt);}
+    .hero h1 em{font-style:italic;color:var(--verde);}
+    .hero p{font-size:1rem;color:var(--txt-m);margin-bottom:2rem;max-width:420px;line-height:1.75;}
+    .hero-btns{display:flex;gap:12px;flex-wrap:wrap;}
+    .btn-hero{padding:13px 28px;border-radius:var(--rp);font-size:14px;font-weight:500;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+    .btn-primary{background:var(--verde);color:white;}
+    .btn-primary:hover{background:var(--verde-d);}
+    .btn-wa{background:#25D366;color:white;}
     .btn-wa:hover{background:#1da851;}
-    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 1.5rem 3rem;max-width:520px;margin:0 auto;width:100%;}
-    .feature{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;text-align:center;}
-    .feature-icon{font-size:1.75rem;margin-bottom:.5rem;}
-    .feature-title{font-size:12px;font-weight:500;color:var(--t);margin-bottom:3px;}
-    .feature-desc{font-size:11px;color:var(--tm);line-height:1.5;}
-    .footer{text-align:center;padding:1.5rem;font-size:11px;color:var(--th);border-top:1px solid var(--b);}
-    @media(max-width:400px){.hero h2{font-size:1.9rem;}.features{grid-template-columns:1fr;}}
+    .btn-secondary{background:var(--surf);color:var(--txt);border:1px solid var(--border-m);}
+    .btn-secondary:hover{background:#eee;}
+    .hero-img{background:var(--surf);border-radius:24px;aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);overflow:hidden;position:relative;}
+    .hero-img-placeholder{text-align:center;padding:2rem;}
+    .hero-img-placeholder .big{font-size:5rem;margin-bottom:1rem;}
+    .hero-img-placeholder p{font-size:13px;color:var(--txt-m);}
+    .hero-stats{display:flex;gap:2rem;margin-top:2rem;}
+    .stat-num{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--txt);display:block;}
+    .stat-lbl{font-size:12px;color:var(--txt-m);}
+
+    /* Section base */
+    section{padding:5rem 2rem;}
+    .container{max-width:1100px;margin:0 auto;}
+    .section-tag{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;}
+    .section-title{font-family:'DM Serif Display',serif;font-size:2.4rem;margin-bottom:1rem;color:var(--txt);}
+    .section-sub{font-size:1rem;color:var(--txt-m);max-width:520px;line-height:1.75;}
+
+    /* Servicios */
+    .servicios{background:var(--surf);}
+    .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem;}
+    .service-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem;}
+    .service-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:1.25rem;}
+    .icon-green{background:var(--verde-l);}
+    .icon-amber{background:var(--amber);}
+    .icon-purple{background:#EEEDFE;}
+    .service-card h3{font-size:16px;font-weight:500;margin-bottom:.5rem;color:var(--txt);}
+    .service-card p{font-size:13px;color:var(--txt-m);line-height:1.7;}
+    .service-card .tag{margin-top:1rem;font-size:12px;font-weight:500;color:var(--verde-d);background:var(--verde-l);display:inline-block;padding:3px 10px;border-radius:var(--rp);}
+
+    /* Cómo funciona */
+    .como-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;margin-top:3rem;}
+    .como-step{text-align:center;}
+    .step-num{width:44px;height:44px;border-radius:50%;background:var(--verde);color:white;font-family:'DM Serif Display',serif;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+    .como-step h4{font-size:14px;font-weight:500;margin-bottom:.4rem;color:var(--txt);}
+    .como-step p{font-size:12px;color:var(--txt-m);line-height:1.6;}
+
+    /* App preview */
+    .app-preview{background:var(--verde-d);color:white;}
+    .app-preview .section-title{color:white;}
+    .app-preview .section-sub{color:rgba(255,255,255,0.7);}
+    .app-preview .section-tag{color:var(--verde-m);}
+    .app-features{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:2rem;max-width:500px;}
+    .app-feat{display:flex;align-items:flex-start;gap:10px;}
+    .feat-check{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px;}
+    .feat-txt{font-size:13px;color:rgba(255,255,255,0.85);line-height:1.5;}
+    .app-preview-inner{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;}
+    .phone-mockup{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:2rem;text-align:center;}
+    .phone-mockup .big{font-size:4rem;margin-bottom:1rem;}
+    .phone-mockup p{font-size:13px;color:rgba(255,255,255,0.6);}
+
+    /* CTA final */
+    .cta-final{background:var(--surf);text-align:center;}
+    .cta-final .section-title{margin-bottom:1rem;}
+    .cta-final .section-sub{margin:0 auto 2rem;}
+
+    /* Footer */
+    footer{background:var(--txt);color:rgba(255,255,255,0.4);padding:2rem;text-align:center;font-size:12px;line-height:1.8;}
+    footer strong{color:rgba(255,255,255,0.85);}
+    footer a{color:rgba(255,255,255,0.4);text-decoration:none;}
+    footer a:hover{color:rgba(255,255,255,0.7);}
+
+    @media(max-width:768px){
+      .hero{grid-template-columns:1fr;padding:3rem 1.5rem;gap:2rem;}
+      .hero h1{font-size:2.2rem;}
+      .hero-img{display:none;}
+      .cards-grid{grid-template-columns:1fr;}
+      .como-grid{grid-template-columns:1fr 1fr;}
+      .app-preview-inner{grid-template-columns:1fr;}
+      .phone-mockup{display:none;}
+      nav{padding:.75rem 1.25rem;}
+      .nav-links{display:none;}
+      section{padding:3rem 1.25rem;}
+    }
   </style>
 </head>
 <body>
-<div class="header">
-  <div class="logo">A</div>
-  <div class="header-txt"><h1>Amira Fitness</h1><p>Entrenamiento personalizado</p></div>
-  <a href="/panel" class="header-panel">Panel →</a>
-</div>
-<div class="hero">
-  <div class="hero-badge">✦ Entrenamiento 100% personalizado</div>
-  <h2>Tu rutina, <em>donde estés</em></h2>
-  <p>Entrenamiento adaptado a tus objetivos, tu nivel y tu cuerpo. Con seguimiento real, videos y técnica incluidos.</p>
-  <div class="cta-group">
-    <a href="/registro" class="btn-main">Quiero empezar →</a>
-    <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" class="btn-wa" target="_blank">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
-      Escribirle a Amira
-    </a>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <div class="nav-logo">A</div>
+    Amira Fitness
+  </a>
+  <div class="nav-links">
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#la-app">La app</a>
+    <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank">WhatsApp</a>
+    <a href="/registro" class="nav-cta">Quiero empezar</a>
   </div>
-</div>
-<div class="features">
-  <div class="feature"><div class="feature-icon">💪</div><div class="feature-title">Rutina del día</div><div class="feature-desc">Ejercicios claros con video y técnica para cada movimiento</div></div>
-  <div class="feature"><div class="feature-icon">📈</div><div class="feature-title">Seguimiento real</div><div class="feature-desc">Registrá tus pesos y ve tu progreso semana a semana</div></div>
-  <div class="feature"><div class="feature-icon">💬</div><div class="feature-title">Contacto directo</div><div class="feature-desc">Mandale notas a Amira desde la app sin salir de la rutina</div></div>
-</div>
-<div class="footer">© 2025 Amira Fitness · Entrenamiento personalizado</div>
+</nav>
+
+<!-- Hero -->
+<section style="padding:0;">
+  <div class="hero">
+    <div>
+      <div class="hero-badge">💪 Entrenamiento 100% personalizado</div>
+      <h1>Tu cuerpo, tu ritmo, <em>tus resultados</em></h1>
+      <p>Entrenamiento personalizado adaptado a tus objetivos, tu cuerpo y tu vida. Presencial en Buenos Aires o a distancia desde donde estés, con seguimiento real semana a semana.</p>
+      <div class="hero-btns">
+        <a href="/registro" class="btn-hero btn-primary">Quiero empezar</a>
+        <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn-hero btn-wa">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+          Escribirle a Amira
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div><span class="stat-num">100%</span><span class="stat-lbl">Personalizado</span></div>
+        <div><span class="stat-num">2</span><span class="stat-lbl">Modalidades</span></div>
+        <div><span class="stat-num">∞</span><span class="stat-lbl">Seguimiento real</span></div>
+      </div>
+    </div>
+    <div class="hero-img">
+      <!-- Reemplazá este bloque con: <img src="foto-amira.jpg" alt="Amira" style="width:100%;height:100%;object-fit:cover;"> -->
+      <div class="hero-img-placeholder">
+        <div class="big">🏋️‍♀️</div>
+        <p style="font-size:12px;color:var(--txt-h);">Agregá una foto de Amira<br>entrenando o con una alumna</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Cómo funciona -->
+<section class="servicios" id="como-funciona">
+  <div class="container">
+    <div class="section-tag">El proceso</div>
+    <h2 class="section-title">Cómo funciona</h2>
+    <p class="section-sub">Desde que te registrás hasta que empezás a entrenar, todo está pensado para que sea simple y sin vueltas.</p>
+    <div class="como-grid" style="margin-top:3rem;">
+      <div class="como-step">
+        <div class="step-num">1</div>
+        <h4>Te registrás</h4>
+        <p>Completás un formulario con tus objetivos, disponibilidad y si tenés alguna lesión o condición a tener en cuenta.</p>
+      </div>
+      <div class="como-step">
+        <div class="step-num">2</div>
+        <h4>Amira te contacta</h4>
+        <p>En menos de 24hs Amira revisa tu perfil, te escribe por WhatsApp y acuerdan el plan que mejor se adapta a vos.</p>
+      </div>
+      <div class="como-step">
+        <div class="step-num">3</div>
+        <h4>Recibís tu rutina</h4>
+        <p>Te llega tu link personal con tu rutina completa: ejercicios, series, videos de referencia y notas de técnica.</p>
+      </div>
+      <div class="como-step">
+        <div class="step-num">4</div>
+        <h4>Entrenás y evolucionás</h4>
+        <p>Seguís tu progreso en la app, registrás pesos, dejás comentarios y Amira ajusta la rutina semana a semana.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Qué incluye -->
+<section id="que-incluye">
+  <div class="container">
+    <div class="section-tag">El servicio</div>
+    <h2 class="section-title">¿Qué incluye?</h2>
+    <p class="section-sub">Cada alumna tiene un plan único. No hay rutinas genéricas ni programas enlatados.</p>
+    <div class="cards-grid">
+      <div class="service-card">
+        <div class="service-icon icon-green">📋</div>
+        <h3>Rutina 100% personalizada</h3>
+        <p>Armada específicamente para vos: tus objetivos, tu nivel, tu equipamiento y tu disponibilidad de tiempo. Cambia y evoluciona con vos.</p>
+        <span class="tag">Presencial o a distancia</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon icon-amber">📊</div>
+        <h3>Seguimiento semanal real</h3>
+        <p>Amira revisa tu progreso, tus pesos y tus comentarios semana a semana. La rutina se ajusta según cómo evolucionás, no según un plan fijo.</p>
+        <span class="tag">Incluido siempre</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon icon-purple">💬</div>
+        <h3>Contacto directo</h3>
+        <p>Podés escribirle a Amira desde la app, dejar notas en cada ejercicio y hacer preguntas. Atención personalizada, no respuestas automáticas.</p>
+        <span class="tag">WhatsApp + app</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- App preview -->
+<section class="app-preview" id="la-app">
+  <div class="container">
+    <div class="app-preview-inner">
+      <div>
+        <div class="section-tag">La app</div>
+        <h2 class="section-title">Tu entrenamiento, siempre en el celu</h2>
+        <p class="section-sub">Cada alumna recibe un link personal con su rutina completa. Sin descargas, sin registros complicados.</p>
+        <div class="app-features">
+          <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Videos de referencia por ejercicio</div></div>
+          <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Registro de pesos y progreso</div></div>
+          <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Temporizador de descanso</div></div>
+          <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Notas de técnica por ejercicio</div></div>
+          <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Modo oscuro para el gimnasio</div></div>
+          <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Comunicación directa con Amira</div></div>
+        </div>
+      </div>
+      <div class="phone-mockup">
+        <div class="big">📱</div>
+        <p>Tu rutina personalizada<br>siempre a mano</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section class="cta-final">
+  <div class="container">
+    <div class="section-tag">¿Lista para empezar?</div>
+    <h2 class="section-title">Empezá tu transformación hoy</h2>
+    <p class="section-sub">Completá el formulario en menos de 2 minutos. Amira te contacta en menos de 24 horas para armar tu plan personalizado.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="/registro" class="btn-hero btn-primary">Quiero empezar ahora</a>
+      <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn-hero btn-wa">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+        Consultá por WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>Amira Fitness</strong> · Entrenamiento personalizado · Buenos Aires, Argentina<br>
+  <span style="margin-top:6px;display:block;">
+    <a href="/panel">Panel</a> · © 2025
+  </span>
+</footer>
+
 </body>
 </html>
