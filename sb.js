@@ -46,6 +46,16 @@ async function sbUpsert(table, body) {
   return r.json();
 }
 
+async function sbInsert(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: getSBH({ 'Prefer': 'return=representation' }),
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.text(); throw new Error(`INSERT ${table}: ${e}`); }
+  return r.json();
+}
+
 async function sbPatch(table, filter, body) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
     method: 'PATCH',
