@@ -1136,7 +1136,8 @@ function rInicio(){
   if(recentFb.length>0){
     const fbRows=recentFb.map(f=>{
       const al=DB.alumnas.find(a=>a.id===f.alumna_id);
-      const diaStr=f.ciclo?'C'+f.ciclo+'·S'+f.semana+'·D'+f.dia:'';
+      const cicloNombre=al&&al.ciclos_nombres&&al.ciclos_nombres[f.ciclo]?al.ciclos_nombres[f.ciclo]:'C'+f.ciclo;
+      const diaStr=f.ciclo?cicloNombre+'·S'+f.semana+'·D'+f.dia:'';
       const exNom=f.ejercicio_nombre?' · '+f.ejercicio_nombre:'';
       const nota=f.nota?'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+f.nota+'"</div>':'';
       const cuando=f.created_at?fmtWhen(f.created_at):'';
@@ -1199,7 +1200,11 @@ function rAlumnas(){
     return`
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:.75rem;">
-      <div class="av av-${a.color}">${avH(a)}</div>
+      <div class="av av-${a.color}" style="cursor:pointer;position:relative;flex-shrink:0;" onclick="document.getElementById('fp-p-${a.id}').click()" title="Cambiar foto de perfil">
+        ${avH(a)}
+        <div style="position:absolute;bottom:-1px;right:-1px;background:var(--v);border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:7px;color:white;border:2px solid var(--s);">✎</div>
+      </div>
+      <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1">
         <div class="aname">${a.nombre}</div>
         <div class="asub"><span class="badge ${a.tipo==='gym'?'bg':'bd'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem · ${a.tel||'<span style="color:var(--rd)">Sin WhatsApp</span>'} · <strong style="color:var(--pd)">Ciclo ${a.ciclo_actual||1}</strong></div>
@@ -1236,10 +1241,6 @@ function rAlumnas(){
       </div>` : ''}
     </div>` : `<div style="font-size:11px;color:var(--th);margin-bottom:10px;">Sin ficha de salud todavía · <a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar link de ficha</a></div>`}
 
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-      <div class="av av-${a.color}" style="width:52px;height:52px;font-size:18px;">${avH(a)}</div>
-      <div><div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Foto de perfil</div><input type="file" accept="image/*" style="font-size:11px;" onchange="handleFoto(${a.id},this)"></div>
-    </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
