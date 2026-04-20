@@ -358,6 +358,11 @@
     <label>Notas personales</label><textarea id="ea-notas"></textarea>
     <label style="display:flex;align-items:center;gap:5px;">🔒 Notas privadas <span style="font-size:10px;color:var(--tm);font-weight:400;">(solo visible en el panel)</span></label>
     <textarea id="ea-np" placeholder="Ej: tiene competencia en mayo, bajó el ritmo por trabajo..."></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div><label>💰 Precio mensual ($)</label><input type="number" id="ea-precio" placeholder="0" min="0" step="100"></div>
+      <div><label>📅 Inicio membresía</label><input type="date" id="ea-fecha-inicio"></div>
+      <div><label>Día de cobro</label><input type="number" id="ea-dia-cobro" placeholder="1" min="1" max="31"></div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" onclick="saveEditA()">Guardar</button>
       <button class="btn" onclick="closeEditA()">Cancelar</button>
@@ -373,7 +378,7 @@ if(!localStorage.getItem('af-amira-ph')){
   localStorage.setItem('af-amira-ph','5492226500790');
 }
 const COLORS=['teal','purple','amber','coral'];
-let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[]};
+let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[]};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
@@ -415,6 +420,10 @@ async function login(){
     });
     const data=await r.json();
     if(!r.ok)throw new Error(data.error_description||data.msg||'Error');
+    if(data.user?.email!=='amiralezcano@gmail.com'){
+      await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${data.access_token}`}}).catch(()=>{});
+      throw new Error('Acceso no autorizado para este usuario');
+    }
     _saveSession(data);showPanel();
   }catch(e){
     lerr.textContent='Email o contraseña incorrectos';lerr.style.display='block';
@@ -472,6 +481,7 @@ async function loadAll(){
     // feedbacks in separate try-catch (table may not exist yet until migration is run)
     try{DB.feedbacks=await sbGet('feedbacks','order=created_at.desc&limit=50');}catch(e){DB.feedbacks=[];}
     try{DB.pushSubs=await sbGet('push_subscriptions','select=alumna_id');}catch(e){DB.pushSubs=[];}
+    try{DB.pagos=await sbGet('pagos','order=fecha_pago.desc');}catch(e){DB.pagos=[];}
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -843,13 +853,19 @@ function openEditA(id){
   document.getElementById('ea-dias').value=a.dias;
   document.getElementById('ea-notas').value=a.notas||'';
   document.getElementById('ea-np').value=a.notas_privadas||'';
+  document.getElementById('ea-precio').value=a.precio||'';
+  document.getElementById('ea-fecha-inicio').value=a.fecha_inicio||'';
+  document.getElementById('ea-dia-cobro').value=a.dia_cobro||'';
   document.getElementById('ea-msg').textContent='';
   document.getElementById('modal-edit-a').style.display='flex';
 }
 function closeEditA(){document.getElementById('modal-edit-a').style.display='none';S.editAId=null;}
 async function saveEditA(){
   const a=getA(S.editAId);if(!a)return;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null};
+  const precioVal=parseFloat(document.getElementById('ea-precio').value)||null;
+  const fechaVal=document.getElementById('ea-fecha-inicio').value||null;
+  const diaCobroVal=parseInt(document.getElementById('ea-dia-cobro').value)||null;
+  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null,precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
   catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
@@ -1062,6 +1078,32 @@ async function resetearProgreso(id){
   }catch(e){alert('Error: '+e.message);}
 }
 
+// ── Pagos ─────────────────────────────────────────────────────
+function mesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function hasPagado(aId){const mes=mesActual();return DB.pagos.some(p=>p.alumna_id===aId&&p.mes===mes);}
+function pagosDe(aId){return DB.pagos.filter(p=>p.alumna_id===aId).sort((a,b)=>b.mes.localeCompare(a.mes));}
+
+async function marcarPago(aId){
+  const a=getA(aId);if(!a)return;
+  const mes=mesActual();
+  if(hasPagado(aId)){if(!confirm(`${a.nombre.split(' ')[0]} ya tiene pago registrado este mes (${mes}). ¿Registrar igualmente?`))return;}
+  try{
+    const r=await sbUpsert('pagos',{alumna_id:aId,mes,monto:a.precio||null});
+    DB.pagos.push(Array.isArray(r)?r[0]:r);
+    S.msg='✓ Pago registrado';render();setTimeout(()=>{S.msg='';render();},2500);
+  }catch(e){alert('Error al registrar pago: '+e.message);}
+}
+
+async function deshacerPago(aId){
+  const mes=mesActual();
+  if(!confirm('¿Deshacer el pago de este mes?'))return;
+  try{
+    await sbDelete('pagos',`alumna_id=eq.${aId}&mes=eq.${mes}`);
+    DB.pagos=DB.pagos.filter(p=>!(p.alumna_id===aId&&p.mes===mes));
+    render();
+  }catch(e){alert('Error: '+e.message);}
+}
+
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
 function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen semanal:\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Seguís creciendo! — Amira 💚`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
@@ -1236,6 +1278,28 @@ function rAlumnas(){
     </div>
     ${a.notas?`<div class="nota">${a.notas}</div>`:''}
     ${a.notas_privadas?`<div style="background:var(--p);border-radius:var(--rs);padding:.5rem .85rem;font-size:12px;color:var(--pd);margin-bottom:.5rem;">🔒 ${a.notas_privadas}</div>`:''}
+
+    ${(()=>{
+      const pagado=hasPagado(a.id);
+      const mes=mesActual();
+      const hist=pagosDe(a.id);
+      const histOpen=S[`hist_pago_${a.id}`];
+      const desde=a.fecha_inicio?new Date(a.fecha_inicio).toLocaleDateString('es-AR',{month:'short',year:'numeric'}):'';
+      return`<div style="background:${pagado?'#f0fdf4':'var(--rl)'};border:1px solid ${pagado?'#86efac':'var(--rd)'};border-radius:var(--rs);padding:.6rem .85rem;margin-bottom:.5rem;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${a.precio?`<span style="font-size:12px;font-weight:600;color:var(--t);">💰 $${a.precio}/mes</span>`:''}
+          ${desde?`<span style="font-size:11px;color:var(--tm);">desde ${desde}</span>`:''}
+          <span style="flex:1;"></span>
+          <span style="font-size:11px;font-weight:700;color:${pagado?'#16a34a':'var(--rd)'};">${pagado?'✓ Pagó '+mes:'Debe '+mes}</span>
+          ${pagado
+            ?`<button class="btn btn-s" style="font-size:11px;padding:2px 8px;" onclick="deshacerPago(${a.id})">Deshacer</button>`
+            :`<button class="btn btn-s" style="font-size:11px;padding:3px 10px;background:var(--v);color:white;border-color:var(--v);" onclick="marcarPago(${a.id})">✓ Marcar pagó</button>`
+          }
+          ${hist.length>0?`<button class="btn btn-s" style="font-size:11px;padding:2px 8px;" onclick="S['hist_pago_${a.id}']=!S['hist_pago_${a.id}'];render()">${histOpen?'▲':'Historial ▼'}</button>`:''}
+        </div>
+        ${histOpen&&hist.length>0?`<div style="margin-top:.5rem;border-top:1px solid rgba(0,0,0,.08);padding-top:.5rem;display:flex;flex-direction:column;gap:3px;">${hist.map(p=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t);"><span>${p.mes}</span><span style="color:var(--tm);">${p.monto?'$'+p.monto:''}</span><span style="color:var(--tm);">${new Date(p.fecha_pago).toLocaleDateString('es-AR')}</span></div>`).join('')}</div>`:''}
+      </div>`;
+    })()}
 
     ${ficha ? `
     <div style="margin-bottom:10px;">
