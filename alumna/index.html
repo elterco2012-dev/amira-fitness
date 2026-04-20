@@ -601,7 +601,7 @@ function obCerrar(){
   localStorage.setItem('af-onboarding-done', '1');
 }
 
-let DB = {alumnas:[], rutinas:{}, comentarios:[]};
+let DB = {alumnas:[], rutinas:{}, comentarios:[], avisos:[]};
 let selSem = 1, selDia = 1, selCiclo = 1;
 let done = {}, expanded = {}, pesos = {};
 // Duración preferida por la alumna (persistida en localStorage)
@@ -798,6 +798,59 @@ async function guardarSuscripcion(alumnaId, sub){
     });
     console.log('Suscripción guardada ✓');
   }catch(e){ console.warn('Error guardando suscripción:', e); }
+}
+
+// ── Avisos de Amira ───────────────────────────────────────────
+function mostrarAvisos(a){
+  // Remover banners anteriores
+  document.querySelectorAll('.aviso-banner').forEach(el=>el.remove());
+  const slug_=a?.slug||slug;
+  const relevantes=(DB.avisos||[]).filter(av=>av.activo&&(av.para==='todas'||av.para===slug_));
+  if(!relevantes.length) return;
+  const dismissed=JSON.parse(localStorage.getItem('af-avisos-dismissed')||'[]');
+  const nuevos=relevantes.filter(av=>!dismissed.includes(av.id));
+  if(!nuevos.length) return;
+  const av=nuevos[0]; // Mostrar el más reciente
+  const banner=document.createElement('div');
+  banner.className='aviso-banner';
+  banner.style.cssText=`
+    position:fixed;top:70px;left:0;right:0;max-width:430px;margin:0 auto;
+    background:var(--a);border-bottom:2px solid var(--ad);
+    padding:.75rem 1.25rem;z-index:30;display:flex;gap:10px;align-items:flex-start;
+  `;
+  banner.innerHTML=`
+    <div style="font-size:18px;flex-shrink:0;">📢</div>
+    <div style="flex:1;font-size:12px;color:var(--ad);line-height:1.5;">${av.texto}</div>
+    <button onclick="cerrarAviso(${av.id})" style="
+      background:none;border:none;font-size:16px;color:var(--ad);cursor:pointer;
+      padding:0 0 0 4px;line-height:1;flex-shrink:0;font-family:'DM Sans',sans-serif;
+    ">✕</button>
+  `;
+  document.body.insertBefore(banner, document.body.firstChild);
+}
+
+function cerrarAviso(id){
+  const dismissed=JSON.parse(localStorage.getItem('af-avisos-dismissed')||'[]');
+  if(!dismissed.includes(id)){dismissed.push(id);localStorage.setItem('af-avisos-dismissed',JSON.stringify(dismissed));}
+  document.querySelectorAll('.aviso-banner').forEach(el=>el.remove());
+}
+
+// ── Racha semanal ─────────────────────────────────────────────
+function calcRacha(alumnaId, ciclo){
+  // Semanas con al menos un ejercicio hecho en el ciclo actual
+  const hechas=new Set();
+  for(const k of Object.keys(done)){
+    // formato: ${alumnaId}-c${ciclo}-${semana}-${dia}-${exIdx}
+    const m=k.match(new RegExp(`^${alumnaId}-c(\\d+)-(\\d+)-\\d+-\\d+$`));
+    if(m&&parseInt(m[1])===ciclo) hechas.add(parseInt(m[2]));
+  }
+  // Contar consecutivas desde semana 1
+  let racha=0;
+  for(let s=1;s<=4;s++){
+    if(hechas.has(s)) racha=s;
+    else break;
+  }
+  return racha;
 }
 
 // ── Toast de confirmación ─────────────────────────────────────
@@ -1369,7 +1422,7 @@ function renderRutina(){
       <input type="file" id="fp-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
       <div>
         <h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2>
-        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana</p>
+        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana${(()=>{const r=calcRacha(a.id,selCiclo);return r>=2?` · 🔥 ${r} sem seguidas`:'';})()}</p>
       </div>
     </div>
 
@@ -1662,11 +1715,14 @@ async function init(){
     if(a){
       selCiclo=parseInt(a.ciclo_actual)||1;
       localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
-      const [coms,prog]=await Promise.all([
+      const [coms,prog,avs]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
-        sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`)
+        sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`),
+        sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[])
       ]);
       DB.comentarios=coms;
+      DB.avisos=avs;
+      mostrarAvisos(a);
       // Si el panel reseteó el progreso, limpiar caché local antes de cargar
       const lastReset=localStorage.getItem('af-last-reset');
       if(a.progreso_reset_at && (!lastReset || new Date(a.progreso_reset_at)>new Date(lastReset))){
