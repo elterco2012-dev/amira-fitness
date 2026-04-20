@@ -7,11 +7,13 @@ CREATE TABLE IF NOT EXISTS avisos (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Row Level Security: cualquier autenticado puede leer (alumnas necesitan ver sus avisos)
+-- Row Level Security
 ALTER TABLE avisos ENABLE ROW LEVEL SECURITY;
 
+-- Cualquier usuario autenticado puede leer los avisos (alumnas y panel)
 CREATE POLICY "avisos_read" ON avisos
   FOR SELECT USING (true);
 
+-- Cualquier usuario autenticado puede escribir (panel de Amira usa JWT autenticado)
 CREATE POLICY "avisos_write" ON avisos
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (auth.role() = 'authenticated');
