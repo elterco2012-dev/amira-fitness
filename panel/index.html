@@ -1068,16 +1068,20 @@ function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace
 
 async function enviarPush(aId){
   const body=aId?JSON.stringify({alumna_id:aId}):'{}';
-  const token=localStorage.getItem('af-access-token')||SB_KEY;
   try{
     const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_KEY},
+      headers:getSBH(),
       body
     });
-    const d=await r.json();
-    S.msg=d.sent!==undefined?`✓ ${d.sent} notificación${d.sent!==1?'es':''} enviada${d.sent!==1?'s':''}`:('Error: '+(d.error||'desconocido'));
-    render();setTimeout(()=>{S.msg='';render();},3000);
+    const txt=await r.text();
+    let d={};try{d=JSON.parse(txt);}catch{}
+    if(d.sent!==undefined){
+      S.msg=`✓ ${d.sent} notificación${d.sent!==1?'es':''} enviada${d.sent!==1?'s':''}`;
+    }else{
+      S.msg='Error: '+(d.error||d.message||txt||'desconocido');
+    }
+    render();setTimeout(()=>{S.msg='';render();},4000);
   }catch(e){S.msg='Error: '+e.message;render();}
 }
 
@@ -1226,7 +1230,7 @@ function rAlumnas(){
       <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1">
         <div class="aname">${a.nombre}</div>
-        <div class="asub"><span class="badge ${a.tipo==='gym'?'bg':'bd'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem · ${a.tel||'<span style="color:var(--rd)">Sin WhatsApp</span>'} · <strong style="color:var(--pd)">Ciclo ${a.ciclo_actual||1}</strong></div>
+        <div class="asub"><span class="badge ${a.tipo==='gym'?'bg':'bd'}">${a.tipo==='gym'?'Gimnasio':'A distancia'}</span> · ${a.dias} días/sem · ${a.tel||'<span style="color:var(--rd)">Sin WhatsApp</span>'} · <strong style="color:var(--pd)">${a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1))}</strong></div>
       </div>
       <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
     </div>
@@ -1298,11 +1302,20 @@ async function duplicarRutina(){
 async function delDia(){
   const a=getA(S.selA);if(!a)return;
   const cNom=a.ciclos_nombres?.[S.selCiclo]||('Ciclo '+S.selCiclo);
-  if(!confirm(`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nSolo se borra este ciclo — el historial de otros ciclos queda intacto.`))return;
+  const esDiaMax=S.selDia===parseInt(a.dias);
+  const msg=esDiaMax
+    ?`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nEsto también reducirá los días/semana de ${a.nombre.split(' ')[0]} de ${a.dias} a ${a.dias-1}.`
+    :`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nSolo se borran los ejercicios de este día en este ciclo.`;
+  if(!confirm(msg))return;
   try{
     await sbDelete('rutinas',`alumna_id=eq.${S.selA}&ciclo=eq.${S.selCiclo}&semana=eq.${S.selSem}&dia=eq.${S.selDia}`);
     if(DB.rutinas?.[S.selA]?.[S.selCiclo]?.[S.selSem]){
       DB.rutinas[S.selA][S.selCiclo][S.selSem]=DB.rutinas[S.selA][S.selCiclo][S.selSem].filter(d=>d.dia!==S.selDia);
+    }
+    if(esDiaMax){
+      const nuevosDias=Math.max(1,parseInt(a.dias)-1);
+      await sbPatch('alumnas',`id=eq.${S.selA}`,{dias:nuevosDias});
+      a.dias=nuevosDias;
     }
     S.selDia=Math.max(1,S.selDia-1);
     S.msg='Día eliminado ✓';render();setTimeout(()=>{S.msg='';render();},2000);
