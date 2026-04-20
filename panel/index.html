@@ -870,10 +870,19 @@ async function saveEditA(){
   const precioVal=parseFloat(document.getElementById('ea-precio').value)||null;
   const fechaVal=document.getElementById('ea-fecha-inicio').value||null;
   const diaCobroVal=parseInt(document.getElementById('ea-dia-cobro').value)||null;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null,lesiones:document.getElementById('ea-lesiones').value.trim()||null,precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal};
+  const lesionesVal=document.getElementById('ea-lesiones').value.trim()||null;
+  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null,precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal};
   document.getElementById('ea-msg').textContent='Guardando...';
-  try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
-  catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
+  try{
+    // Intentar guardar con lesiones; si la columna no existe en DB, guardar sin ella
+    try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
+    catch(e){
+      if(String(e.message).includes('lesiones')){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
+      else throw e;
+    }
+    Object.assign(a,updates,{lesiones:lesionesVal});
+    closeEditA();render();
+  }catch(e){document.getElementById('ea-msg').textContent='Error: '+e.message;}
 }
 
 // ── CRUD Alumnas ──────────────────────────────────────────────
@@ -897,7 +906,7 @@ async function addAlumna(){
   const a={id,slug,nombre:n,email:document.getElementById('na-email')?.value?.trim()||null,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
   S.msg='Guardando...';render();
   try{await sbUpsert('alumnas',a);DB.alumnas.push(a);if(!S.selA)S.selA=id;S.addA=false;S.msg='Alumna creada ✓';render();setTimeout(()=>{S.msg='';render();},2000);}
-  catch(e){S.err='Error al guardar';render();}
+  catch(e){S.msg='';S.err='Error: '+e.message;render();console.error('addAlumna error:',e);}
 }
 
 function openEditBib(id){
