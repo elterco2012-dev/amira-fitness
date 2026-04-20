@@ -1169,6 +1169,42 @@ function initMaxPesos(aId){
   localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
 }
 
+// ── Android install prompt ────────────────────────────────────
+let _androidPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _androidPrompt=e;
+  if(!localStorage.getItem('af-android-dismissed')&&
+     !window.matchMedia('(display-mode: standalone)').matches){
+    setTimeout(mostrarBannerAndroid,3000);
+  }
+});
+
+function mostrarBannerAndroid(){
+  if(!_androidPrompt||document.getElementById('android-banner')) return;
+  const b=document.createElement('div');
+  b.id='android-banner';
+  b.style.cssText='position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border:1px solid var(--bm);border-top:2px solid var(--v);border-radius:var(--r) var(--r) 0 0;padding:1rem 1.25rem;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,.15);font-family:\'DM Sans\',sans-serif;';
+  b.innerHTML='<div style="display:flex;align-items:start;gap:10px;">'
+    +'<div style="font-size:26px;line-height:1;">📲</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:4px;">Instalá la app en tu Android</div>'
+    +'<div style="font-size:12px;color:var(--tm);line-height:1.6;margin-bottom:10px;">Agregá Amira Fitness a tu pantalla de inicio para acceso rápido, sin browser.</div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button id="android-install-btn" style="flex:1;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Instalar</button>'
+    +'<button onclick="document.getElementById(\'android-banner\').remove();localStorage.setItem(\'af-android-dismissed\',\'1\')" style="background:none;border:1px solid var(--bm);border-radius:var(--rp);padding:8px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:\'DM Sans\',sans-serif;">Ahora no</button>'
+    +'</div></div></div>';
+  document.body.appendChild(b);
+  document.getElementById('android-install-btn').onclick=async()=>{
+    b.remove();
+    _androidPrompt.prompt();
+    const result=await _androidPrompt.userChoice;
+    localStorage.setItem('af-android-dismissed','1');
+    _androidPrompt=null;
+    if(result.outcome==='accepted') mostrarToast('✓ ¡App instalada!');
+  };
+}
+
 function mostrarBannerIOS(){
   const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
   const isSafari=/safari/i.test(navigator.userAgent)&&!/chrome|crios|fxios/i.test(navigator.userAgent);

@@ -1087,8 +1087,12 @@ async function marcarPago(aId){
   const a=getA(aId);if(!a)return;
   const mes=mesActual();
   if(hasPagado(aId)){if(!confirm(`${a.nombre.split(' ')[0]} ya tiene pago registrado este mes (${mes}). ¿Registrar igualmente?`))return;}
+  const montoDefault=a.precio?String(a.precio):'';
+  const montoStr=prompt(`¿Cuánto pagó ${a.nombre.split(' ')[0]}? (dejá vacío si no querés registrar monto)`,montoDefault);
+  if(montoStr===null)return;
+  const monto=montoStr.trim()?parseFloat(montoStr):null;
   try{
-    const r=await sbUpsert('pagos',{alumna_id:aId,mes,monto:a.precio||null});
+    const r=await sbUpsert('pagos',{alumna_id:aId,mes,monto});
     DB.pagos.push(Array.isArray(r)?r[0]:r);
     S.msg='✓ Pago registrado';render();setTimeout(()=>{S.msg='';render();},2500);
   }catch(e){alert('Error al registrar pago: '+e.message);}
@@ -1234,7 +1238,7 @@ function rInicio(){
   </div>
   ${fbSec}
   ${(()=>{
-    const deben=DB.alumnas.filter(a=>!hasPagado(a.id)&&(a.precio||a.fecha_inicio));
+    const deben=DB.alumnas.filter(a=>!hasPagado(a.id));
     if(!deben.length)return'';
     const rows=deben.map(a=>`<div class="arow">
       <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
