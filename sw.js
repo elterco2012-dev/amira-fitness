@@ -1,16 +1,17 @@
-const CACHE = 'amira-v4';
+const CACHE = 'amira-v5';
 const STATIC = [
   '/',
   '/api/sb.js',
-  '/api/manifest.json',
   'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js'
 ];
 
-// Instalar: cachear estáticos
+// Instalar: cachear estáticos ignorando fallos individuales
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c => Promise.allSettled(STATIC.map(url => c.add(url))))
+      .then(() => self.skipWaiting())
   );
 });
 
