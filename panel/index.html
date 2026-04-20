@@ -380,7 +380,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
 let bibSelEx=null;
@@ -1822,6 +1822,21 @@ function rRecordatorios(){
     <div class="ctitle">Resumen semanal</div>
     ${DB.alumnas.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div><button class="btn btn-s" onclick="envRes(${a.id})">Enviar resumen</button></div>`).join('')}
     ${DB.alumnas.length>1?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn" onclick="envResumenGeneral()">📊 Resumen general (todas)</button></div>`:''}
+  </div>
+  <div class="card">
+    <div class="ctitle">Templates de WhatsApp</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Mensajes pre-escritos — elegí uno y envialo con un click</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.9rem;">
+      ${WA_TPLS.map(t=>`<button class="btn btn-s${S._tplSel===t.key?' btn-p':''}" onclick="S._tplSel=S._tplSel==='${t.key}'?null:'${t.key}';render()">${t.label}</button>`).join('')}
+    </div>
+    ${S._tplSel?(()=>{
+      const tpl=WA_TPLS.find(t=>t.key===S._tplSel);
+      const conWA=DB.alumnas.filter(a=>a.tel);
+      const sinWA=DB.alumnas.filter(a=>!a.tel);
+      return`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;font-size:12px;color:var(--tm);margin-bottom:.75rem;line-height:1.6;font-style:italic;">"${tpl.msg}"</div>
+      ${conWA.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre.split(' ')[0]}</div><button class="btn btn-s" onclick="envTemplate(${a.id},'${S._tplSel}')">💬 Enviar</button></div>`).join('')}
+      ${sinWA.length?`<div style="font-size:11px;color:var(--th);margin-top:.5rem;">Sin WhatsApp: ${sinWA.map(a=>a.nombre.split(' ')[0]).join(', ')}</div>`:''}`;
+    })():`<div style="font-size:12px;color:var(--th);">Seleccioná un template para ver la vista previa.</div>`}
   </div>`;
 }
 
@@ -1841,6 +1856,21 @@ function envResumenGeneral(){
   });
   const msg=`Resumen semanal — ${new Date().toLocaleDateString('es-AR')}\n${lineas.join(' | ')}`;
   window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+const WA_TPLS=[
+  {key:'mot',  label:'🔥 Motivación',  msg:'Hola [nombre]! 💪 ¿Cómo vas con los entrenamientos esta semana? ¡Seguí así, cada día cuenta!'},
+  {key:'rec',  label:'📅 Recordatorio',msg:'Hola [nombre]! 😊 Te recuerdo que esta semana tenés tu rutina lista. Cualquier duda me avisás.'},
+  {key:'pago', label:'💰 Pago',         msg:'Hola [nombre]! 🙏 Te recuerdo el pago mensual de tu plan. Cualquier consulta me escribís.'},
+  {key:'ciclo',label:'🚀 Nuevo ciclo', msg:'Hola [nombre]! 🎯 Arrancamos un ciclo nuevo, ¡preparate para ver cambios importantes!'},
+  {key:'check',label:'📋 Check-in',    msg:'Hola [nombre]! ¿Cómo te sentiste esta semana con los entrenamientos? ¿Algo que ajustar? 💬'},
+];
+
+function envTemplate(aId, key){
+  const a=getA(aId); if(!a||!a.tel){S.msg='Esta alumna no tiene WhatsApp.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
+  const tpl=WA_TPLS.find(t=>t.key===key); if(!tpl)return;
+  const msg=tpl.msg.replace('[nombre]',a.nombre.split(' ')[0]);
+  window.open(`https://wa.me/${a.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 async function envRes(aId){
