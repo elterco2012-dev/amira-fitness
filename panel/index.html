@@ -1233,6 +1233,19 @@ function rInicio(){
     ${semHtml}
   </div>
   ${fbSec}
+  ${(()=>{
+    const deben=DB.alumnas.filter(a=>!hasPagado(a.id)&&(a.precio||a.fecha_inicio));
+    if(!deben.length)return'';
+    const rows=deben.map(a=>`<div class="arow">
+      <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${a.nombre.split(' ')[0]}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
+      <button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>
+    </div>`).join('');
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid #dc2626;">
+      <div class="ctitle" style="margin-bottom:.6rem;">💰 Cobros pendientes — ${mesActual()}</div>
+      ${rows}
+    </div>`;
+  })()}
   ${S.msg?`<div class="sm">${S.msg}</div>`:''}`;
 }
 
@@ -1285,20 +1298,19 @@ function rAlumnas(){
       const hist=pagosDe(a.id);
       const histOpen=S[`hist_pago_${a.id}`];
       const desde=a.fecha_inicio?new Date(a.fecha_inicio).toLocaleDateString('es-AR',{month:'short',year:'numeric'}):'';
-      return`<div style="background:${pagado?'#f0fdf4':'var(--rl)'};border:1px solid ${pagado?'#86efac':'var(--rd)'};border-radius:var(--rs);padding:.6rem .85rem;margin-bottom:.5rem;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          ${a.precio?`<span style="font-size:12px;font-weight:600;color:var(--t);">💰 $${a.precio}/mes</span>`:''}
-          ${desde?`<span style="font-size:11px;color:var(--tm);">desde ${desde}</span>`:''}
-          <span style="flex:1;"></span>
-          <span style="font-size:11px;font-weight:700;color:${pagado?'#16a34a':'var(--rd)'};">${pagado?'✓ Pagó '+mes:'Debe '+mes}</span>
-          ${pagado
-            ?`<button class="btn btn-s" style="font-size:11px;padding:2px 8px;" onclick="deshacerPago(${a.id})">Deshacer</button>`
-            :`<button class="btn btn-s" style="font-size:11px;padding:3px 10px;background:var(--v);color:white;border-color:var(--v);" onclick="marcarPago(${a.id})">✓ Marcar pagó</button>`
-          }
-          ${hist.length>0?`<button class="btn btn-s" style="font-size:11px;padding:2px 8px;" onclick="S['hist_pago_${a.id}']=!S['hist_pago_${a.id}'];render()">${histOpen?'▲':'Historial ▼'}</button>`:''}
+      const histRows=histOpen&&hist.length>0?`<div style="padding:.5rem 0 0;margin-top:.4rem;border-top:1px solid var(--b);">${hist.map(p=>`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"><span style="font-weight:500;color:var(--t);">${p.mes}</span>${p.monto?`<span style="color:var(--tm);">$${p.monto}</span>`:'<span></span>'}<span style="color:var(--th);">${new Date(p.fecha_pago).toLocaleDateString('es-AR')}</span></div>`).join('')}</div>`:'';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:.55rem 0;border-top:1px solid var(--b);flex-wrap:wrap;">
+        <div style="display:flex;align-items:baseline;gap:5px;flex:1;min-width:120px;">
+          ${a.precio?`<span style="font-size:14px;font-weight:700;color:var(--t);">$${a.precio}</span><span style="font-size:11px;color:var(--tm);">/mes</span>`:'<span style="font-size:11px;color:var(--th);">Sin precio</span>'}
+          ${desde?`<span style="font-size:11px;color:var(--th);">· desde ${desde}</span>`:''}
         </div>
-        ${histOpen&&hist.length>0?`<div style="margin-top:.5rem;border-top:1px solid rgba(0,0,0,.08);padding-top:.5rem;display:flex;flex-direction:column;gap:3px;">${hist.map(p=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t);"><span>${p.mes}</span><span style="color:var(--tm);">${p.monto?'$'+p.monto:''}</span><span style="color:var(--tm);">${new Date(p.fecha_pago).toLocaleDateString('es-AR')}</span></div>`).join('')}</div>`:''}
-      </div>`;
+        <span style="background:${pagado?'#dcfce7':'#fee2e2'};color:${pagado?'#15803d':'#dc2626'};border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;">${pagado?'✓ Pagó':'Debe'}</span>
+        ${pagado
+          ?`<button class="btn btn-s" style="font-size:10px;color:var(--tm);" onclick="deshacerPago(${a.id})">Deshacer</button>`
+          :`<button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>`
+        }
+        ${hist.length>0?`<button class="btn btn-s" style="font-size:11px;padding:3px 8px;" onclick="S['hist_pago_${a.id}']=!S['hist_pago_${a.id}'];render()">📋</button>`:''}
+      </div>${histRows}`;
     })()}
 
     ${ficha ? `
