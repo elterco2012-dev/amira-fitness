@@ -14,14 +14,15 @@ const CORS = {
 webpush.setVapidDetails("mailto:hola@amira.fitness", VAPID_PUBLIC, VAPID_PRIVATE);
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
 
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405, headers: CORS });
   }
 
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) {
+  // Accept any request with the apikey header (JWT verification disabled in settings)
+  const apikey = req.headers.get("apikey") ?? req.headers.get("x-api-key") ?? "";
+  if (!apikey) {
     return new Response("Unauthorized", { status: 401, headers: CORS });
   }
 
