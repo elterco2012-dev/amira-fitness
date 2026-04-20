@@ -1115,22 +1115,27 @@ function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace
 function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen semanal:\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Seguís creciendo! — Amira 💚`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
 
 async function enviarPush(aId){
-  const body=aId?JSON.stringify({alumna_id:aId}):'{}';
+  const pushBody=aId?JSON.stringify({alumna_id:aId}):'{}';
+  S.msg='Enviando...';render();
   try{
     const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
       method:'POST',
-      headers:getSBH(),
-      body
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`,
+        'apikey':SB_KEY
+      },
+      body:pushBody
     });
     const txt=await r.text();
     let d={};try{d=JSON.parse(txt);}catch{}
     if(d.sent!==undefined){
       S.msg=`✓ ${d.sent} notificación${d.sent!==1?'es':''} enviada${d.sent!==1?'s':''}`;
     }else{
-      S.msg='Error: '+(d.error||d.message||txt||'desconocido');
+      S.msg=`Error HTTP ${r.status}: `+(d.error||d.message||txt||'sin detalle');
     }
-    render();setTimeout(()=>{S.msg='';render();},4000);
-  }catch(e){S.msg='Error: '+e.message;render();}
+    render();setTimeout(()=>{S.msg='';render();},5000);
+  }catch(e){S.msg='Red: '+e.message;render();}
 }
 
 // ── Registros ─────────────────────────────────────────────────
