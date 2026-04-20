@@ -184,6 +184,16 @@
     .brep{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;padding:5px 9px;line-height:1;transition:all .15s;}
     .brep:hover{color:var(--rd);border-color:var(--rd);background:var(--rl);}
 
+    /* Celebración */
+    .cel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1.5rem;animation:fadeIn .25s ease;}
+    .cel-card{background:var(--s);border-radius:24px;padding:2.25rem 1.75rem 1.75rem;text-align:center;max-width:320px;width:100%;animation:celPop .45s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes celPop{from{transform:scale(.65);opacity:0;}to{transform:scale(1);opacity:1;}}
+    .cel-emoji{font-size:3.5rem;display:block;margin-bottom:.6rem;}
+    .cel-title{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);margin-bottom:.5rem;}
+    .cel-msg{font-size:13px;color:var(--tm);margin-bottom:1.25rem;line-height:1.6;}
+    .cel-badge{display:inline-block;background:var(--vl);color:var(--vd);font-size:12px;font-weight:500;border-radius:var(--rp);padding:5px 14px;margin-bottom:1.25rem;}
+    .cel-btn{width:100%;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;}
+
     /* Progreso */
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
     .stat-card{background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.85rem 1rem;}
@@ -1076,6 +1086,35 @@ function skipTimer(){
 }
 
 // ── Confetti ──────────────────────────────────────────────────
+const CEL_EMOJIS = ['🎉','🏆','💪','⭐','🔥'];
+const CEL_MSGS = [
+  '¡Cada entrenamiento te acerca a tu mejor versión!',
+  '¡La constancia es tu superpoder!',
+  '¡Hoy diste lo mejor de vos!',
+  '¡Así se construye el cuerpo que querés!',
+  '¡Un día más, una versión mejor!',
+];
+
+function mostrarCelebracion(aId, nombre, racha){
+  const celK=`af-cel-${aId}-c${selCiclo}-s${selSem}-d${selDia}`;
+  if(localStorage.getItem(celK)) return;
+  localStorage.setItem(celK,'1');
+  launchConfetti();
+  const emoji=CEL_EMOJIS[Math.floor(Math.random()*CEL_EMOJIS.length)];
+  const msg=CEL_MSGS[Math.floor(Math.random()*CEL_MSGS.length)];
+  const ov=document.createElement('div');
+  ov.className='cel-overlay';
+  ov.innerHTML=`<div class="cel-card">
+    <span class="cel-emoji">${emoji}</span>
+    <div class="cel-title">¡Lo lograste, ${nombre}!</div>
+    <div class="cel-msg">${msg}</div>
+    ${racha>=2?`<div class="cel-badge">🔥 ${racha} semanas seguidas</div><br>`:''}
+    <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Vamos! →</button>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
 function launchConfetti(){
   const c=document.getElementById('cc');
   c.style.display='block';
@@ -1149,10 +1188,18 @@ async function toggleDone(aId,i,nextName){
   // (solo si hay animación — 420ms para check, 350ms para uncheck)
   const delay = done[k] ? 400 : 320;
   setTimeout(()=>{
-    // Timer: matar siempre primero, luego arrancar solo si se marcó como hecho
     skipTimer();
     if(done[k] && !wasDone) startTimer(nextName);
     renderRutina();
+    // Celebración al completar el último ejercicio
+    if(done[k] && !wasDone){
+      const currExs=getExs(aId,selCiclo,selSem,selDia);
+      const allDone=currExs.length>0&&currExs.every((_,idx)=>done[dKey(aId,selSem,selDia,idx)]);
+      if(allDone){
+        const alm=getAlumna();
+        if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
+      }
+    }
   }, delay);
   // Sync Supabase en background — si falla, encolar para reintento
   const progresoData = {
@@ -1513,7 +1560,6 @@ function renderRutina(){
 
   if(justDone){
     html+=`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉</div>`;
-    setTimeout(()=>{if(document.querySelector('.done-banner'))launchConfetti();},100);
     const _fbK=fbKey(a.id,selCiclo,selSem,selDia);
     const _fbDado=localStorage.getItem(_fbK);
     if(!_fbDado){
