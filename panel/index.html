@@ -216,6 +216,7 @@
     <button class="nav" onclick="go('comentarios')"><span class="ni">💬</span>Comentarios<span class="nbadge" id="nb-com"></span></button>
     <button class="nav" onclick="go('registros')"><span class="ni">📥</span>Registros<span class="nbadge" id="nb-reg"></span></button>
     <button class="nav" onclick="go('recordatorios')"><span class="ni">⏰</span>Recordatorios</button>
+    <button class="nav" onclick="go('avisos')"><span class="ni">📢</span>Avisos</button>
     <button class="nav" onclick="go('links')"><span class="ni">🔗</span>Links</button>
     <button class="nav" onclick="go('config')"><span class="ni">⚙️</span>Config</button>
 
@@ -378,7 +379,7 @@ if(!localStorage.getItem('af-amira-ph')){
   localStorage.setItem('af-amira-ph','5492226500790');
 }
 const COLORS=['teal','purple','amber','coral'];
-let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[]};
+let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[]};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=0,prevReg=0;
@@ -482,6 +483,7 @@ async function loadAll(){
     try{DB.feedbacks=await sbGet('feedbacks','order=created_at.desc&limit=50');}catch(e){DB.feedbacks=[];}
     try{DB.pushSubs=await sbGet('push_subscriptions','select=alumna_id');}catch(e){DB.pushSubs=[];}
     try{DB.pagos=await sbGet('pagos','order=fecha_pago.desc');}catch(e){DB.pagos=[];}
+    try{DB.avisos=await sbGet('avisos','order=created_at.desc');}catch(e){DB.avisos=[];}
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1151,7 +1153,7 @@ function go(v){
 
 function render(){
   const m=document.getElementById('main');
-  const vs={inicio:rInicio,alumnas:rAlumnas,rutinas:rRutinas,historial:rHistorial,biblioteca:rBiblioteca,plantillas:rPlantillas,comentarios:rComentarios,registros:rRegistros,recordatorios:rRecordatorios,links:rLinks,config:rConfig};
+  const vs={inicio:rInicio,alumnas:rAlumnas,rutinas:rRutinas,historial:rHistorial,biblioteca:rBiblioteca,plantillas:rPlantillas,comentarios:rComentarios,registros:rRegistros,recordatorios:rRecordatorios,avisos:rAvisos,links:rLinks,config:rConfig};
   m.innerHTML=(vs[S.view]||rInicio)();
 }
 
@@ -1814,7 +1816,106 @@ function rRecordatorios(){
   <div class="card">
     <div class="ctitle">Resumen semanal</div>
     ${DB.alumnas.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div><button class="btn btn-s" onclick="envRes(${a.id})">Enviar resumen</button></div>`).join('')}
+    ${DB.alumnas.length>1?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn" onclick="envResumenGeneral()">📊 Resumen general (todas)</button></div>`:''}
   </div>`;
+}
+
+function envResumenGeneral(){
+  // Abre WhatsApp con resumen de progreso de esta semana para todas las alumnas
+  // Usa la data de progreso que ya fue cargada en historial
+  const ph=localStorage.getItem('af-amira-ph')||'';
+  if(!ph){alert('Guardá el WhatsApp de Amira en Configuración primero.');return;}
+  const lineas=DB.alumnas.map(a=>{
+    const rows=(DB.progreso?.[a.id])||[];
+    const ciclo=parseInt(a.ciclo_actual)||1;
+    // Semanas con al menos un día hecho en ciclo actual
+    const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
+    const totalSems=4; const hechas=semanasHechas.size;
+    const icon=hechas>=totalSems?'✅':hechas>0?'⚠️':'❌';
+    return`${a.nombre.split(' ')[0]}: ${hechas}/${totalSems} sem ${icon}`;
+  });
+  const msg=`Resumen semanal — ${new Date().toLocaleDateString('es-AR')}\n${lineas.join(' | ')}`;
+  window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+async function envRes(aId){
+  const a=getA(aId); if(!a)return;
+  // Asegurar que tenemos el historial cargado
+  if(!DB.progreso?.[aId]){
+    S.msg='Cargando historial...';render();
+    await loadHistorial(aId);
+  }
+  const rows=(DB.progreso?.[aId])||[];
+  const ciclo=parseInt(a.ciclo_actual)||1;
+  const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
+  const diasHechos=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>`${r.semana}-${r.dia}`)).size;
+  const nombre=a.nombre.split(' ')[0];
+  const cicloNom=a.ciclos_nombres?.[ciclo]||('Ciclo '+ciclo);
+  const icon=semanasHechas.size>=4?'🏆':semanasHechas.size>=2?'💪':'💡';
+  const msg=`${icon} Resumen de ${nombre} — ${cicloNom}\n`
+    +`✅ Semanas entrenadas: ${semanasHechas.size}/4\n`
+    +`💪 Días completados: ${diasHechos}\n`
+    +`¡Seguimos la próxima semana! 🔥`;
+  const tel=a.tel?a.tel.replace(/\D/g,''):'';
+  if(!tel){S.msg='Esta alumna no tiene WhatsApp cargado.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function rAvisos(){
+  const activos=DB.avisos.filter(av=>av.activo);
+  const archivados=DB.avisos.filter(av=>!av.activo);
+  return`<div class="ptitle">Avisos para las alumnas</div>
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Nuevo aviso</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Las alumnas ven este mensaje en su app como un banner amarillo.</div>
+    <textarea id="av-texto" style="height:80px;width:100%;border:1px solid var(--bm);border-radius:var(--rs);padding:.65rem .9rem;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);resize:vertical;" placeholder="Ej: Esta semana trabajamos con carga reducida por la competencia. ¡A disfrutar!"></textarea>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:.65rem;">
+      <select id="av-para" style="flex:1;border:1px solid var(--bm);border-radius:var(--rs);padding:.55rem .9rem;font-size:12px;background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;">
+        <option value="todas">Para todas las alumnas</option>
+        ${DB.alumnas.map(a=>`<option value="${a.slug}">${a.nombre.split(' ')[0]} (solo ella)</option>`).join('')}
+      </select>
+      <button class="btn btn-p" onclick="addAviso()">Publicar</button>
+    </div>
+    ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}
+  </div>
+  ${activos.length>0?`<div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle">Activos (${activos.length})</div>
+    ${activos.map(av=>`<div style="background:var(--a);border-radius:var(--rs);padding:.65rem .9rem;margin-bottom:.5rem;display:flex;gap:10px;align-items:flex-start;">
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--t);line-height:1.5;">${av.texto}</div>
+        <div style="font-size:10px;color:var(--th);margin-top:3px;">${av.para==='todas'?'Para todas':av.para} · ${av.created_at?new Date(av.created_at).toLocaleDateString('es-AR'):''}</div>
+      </div>
+      <button class="btn btn-s btn-d" onclick="delAviso(${av.id})">Archivar</button>
+    </div>`).join('')}
+  </div>`:'<div class="card" style="margin-bottom:1rem;"><div class="empty">Sin avisos activos.</div></div>'}
+  ${archivados.length>0?`<div class="card">
+    <div class="ctitle" style="color:var(--th);">Archivados</div>
+    ${archivados.map(av=>`<div style="opacity:.5;font-size:12px;padding:.4rem 0;border-bottom:1px solid var(--b);">${av.texto} <span style="color:var(--th);font-size:10px;">· ${av.created_at?new Date(av.created_at).toLocaleDateString('es-AR'):''}</span></div>`).join('')}
+  </div>`:''}`;
+}
+
+async function addAviso(){
+  const texto=(document.getElementById('av-texto')?.value||'').trim();
+  if(!texto){S.msg='Escribí el aviso primero.';render();return;}
+  const para=document.getElementById('av-para')?.value||'todas';
+  S.msg='Publicando...';render();
+  try{
+    const res=await sbInsert('avisos',{texto,para,activo:true});
+    const nuevo=Array.isArray(res)?res[0]:res;
+    DB.avisos.unshift(nuevo);
+    document.getElementById('av-texto').value='';
+    S.msg='Aviso publicado ✓';render();
+    setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){S.msg='Error al publicar.';render();}
+}
+
+async function delAviso(id){
+  try{
+    await sbPatch('avisos',`id=eq.${id}`,{activo:false});
+    const av=DB.avisos.find(x=>x.id===id);
+    if(av)av.activo=false;
+    render();
+  }catch(e){S.msg='Error al archivar.';render();}
 }
 
 function rLinks(){
