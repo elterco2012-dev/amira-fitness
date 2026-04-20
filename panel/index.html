@@ -1068,10 +1068,11 @@ function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace
 
 async function enviarPush(aId){
   const body=aId?JSON.stringify({alumna_id:aId}):'{}';
+  const token=localStorage.getItem('af-access-token')||SB_KEY;
   try{
     const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_KEY},
       body
     });
     const d=await r.json();
@@ -1294,6 +1295,20 @@ async function duplicarRutina(){
   }catch(e){S.msg='Error: '+e.message;render();}
 }
 
+async function delDia(){
+  const a=getA(S.selA);if(!a)return;
+  const cNom=a.ciclos_nombres?.[S.selCiclo]||('Ciclo '+S.selCiclo);
+  if(!confirm(`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nSolo se borra este ciclo — el historial de otros ciclos queda intacto.`))return;
+  try{
+    await sbDelete('rutinas',`alumna_id=eq.${S.selA}&ciclo=eq.${S.selCiclo}&semana=eq.${S.selSem}&dia=eq.${S.selDia}`);
+    if(DB.rutinas?.[S.selA]?.[S.selCiclo]?.[S.selSem]){
+      DB.rutinas[S.selA][S.selCiclo][S.selSem]=DB.rutinas[S.selA][S.selCiclo][S.selSem].filter(d=>d.dia!==S.selDia);
+    }
+    S.selDia=Math.max(1,S.selDia-1);
+    S.msg='Día eliminado ✓';render();setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){S.msg='Error: '+e.message;render();}
+}
+
 function rRutinas(){
   const a=getA(S.selA);
   if(!a)return`<div class="ptitle">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
@@ -1360,8 +1375,11 @@ function rRutinas(){
     <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Semana</div>
     <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
 
-    <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Día</div>
-    <div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
+      <div style="font-size:11px;color:var(--tm);min-width:36px;">Día</div>
+      <div class="dtabs" style="margin-bottom:0;">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
+      <button class="btn btn-s btn-d" onclick="delDia()" title="Eliminar este día del ciclo actual" style="font-size:11px;padding:4px 8px;">🗑️ Día</button>
+    </div>
 
     <div class="shd">
       <div class="shdt">Ejercicios (${exs.length})</div>
@@ -1628,9 +1646,9 @@ function rHistorial(){
       Si la alumna usó la app sin conexión, los datos quedan pendientes de sincronización — pedile que abra la app con señal para que se guarden.
     </div>
   </div>`:
-  `${Object.entries(porCiclo).sort(([a],[b])=>b-a).map(([ciclo,rs])=>`
+  `${Object.entries(porCiclo).sort(([a],[b])=>b-a).map(([ciclo,rs])=>{const cNom=a.ciclos_nombres?.[parseInt(ciclo)]||('Ciclo '+ciclo);return`
   <div class="card" style="margin-bottom:1rem;">
-    <div class="ctitle">Ciclo ${ciclo}</div>
+    <div class="ctitle">${cNom}</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.75rem;">
       <div class="metric" style="padding:.75rem;"><div class="mlabel">Días completados</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.filter(r=>r.hecho).map(r=>r.semana+'-'+r.dia)).size}</div></div>
       <div class="metric" style="padding:.75rem;"><div class="mlabel">Ejercicios hechos</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.hecho).length}</div></div>
@@ -1647,7 +1665,7 @@ function rHistorial(){
         return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${exNombre}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
       }).join('')}</tbody>
     </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
-  </div>`).join('')}
+  </div>`}).join('')}
   `}`;
 }
 
