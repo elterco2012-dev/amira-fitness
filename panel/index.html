@@ -359,6 +359,8 @@
     <label>Notas personales</label><textarea id="ea-notas"></textarea>
     <label style="display:flex;align-items:center;gap:5px;">🔒 Notas privadas <span style="font-size:10px;color:var(--tm);font-weight:400;">(solo visible en el panel)</span></label>
     <textarea id="ea-np" placeholder="Ej: tiene competencia en mayo, bajó el ritmo por trabajo..."></textarea>
+    <label style="display:flex;align-items:center;gap:5px;">⚠️ Lesiones actuales <span style="font-size:10px;color:var(--tm);font-weight:400;">(se muestra como alerta en la rutina)</span></label>
+    <textarea id="ea-lesiones" placeholder="Ej: hombro derecho (evitar press), rodilla izquierda..."></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><label>💰 Precio mensual ($)</label><input type="number" id="ea-precio" placeholder="0" min="0" step="100"></div>
       <div><label>📅 Inicio membresía</label><input type="date" id="ea-fecha-inicio"></div>
@@ -855,6 +857,7 @@ function openEditA(id){
   document.getElementById('ea-dias').value=a.dias;
   document.getElementById('ea-notas').value=a.notas||'';
   document.getElementById('ea-np').value=a.notas_privadas||'';
+  document.getElementById('ea-lesiones').value=a.lesiones||'';
   document.getElementById('ea-precio').value=a.precio||'';
   document.getElementById('ea-fecha-inicio').value=a.fecha_inicio||'';
   document.getElementById('ea-dia-cobro').value=a.dia_cobro||'';
@@ -867,7 +870,7 @@ async function saveEditA(){
   const precioVal=parseFloat(document.getElementById('ea-precio').value)||null;
   const fechaVal=document.getElementById('ea-fecha-inicio').value||null;
   const diaCobroVal=parseInt(document.getElementById('ea-dia-cobro').value)||null;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null,precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal};
+  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null,lesiones:document.getElementById('ea-lesiones').value.trim()||null,precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);Object.assign(a,updates);closeEditA();render();}
   catch(e){document.getElementById('ea-msg').textContent='Error al guardar.';}
@@ -1257,6 +1260,52 @@ function rInicio(){
       ${rows}
     </div>`;
   })()}
+  ${(()=>{
+    // Dashboard de ingresos
+    const mesAct=mesActual();
+    const d=new Date();d.setMonth(d.getMonth()-1);
+    const mesAnt=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const pagosMes=DB.pagos.filter(p=>p.mes===mesAct);
+    const pagosMesAnt=DB.pagos.filter(p=>p.mes===mesAnt);
+    const ingresosMes=pagosMes.reduce((s,p)=>s+(p.monto||(DB.alumnas.find(a=>a.id===p.alumna_id)?.precio)||0),0);
+    const ingresosMesAnt=pagosMesAnt.reduce((s,p)=>s+(p.monto||(DB.alumnas.find(a=>a.id===p.alumna_id)?.precio)||0),0);
+    const diff=ingresosMes-ingresosMesAnt;
+    const pct=ingresosMesAnt>0?Math.round((diff/ingresosMesAnt)*100):null;
+    const activas=DB.alumnas.filter(a=>{if(!a.last_active_at)return false;return Math.floor((now-new Date(a.last_active_at))/86400000)<7;}).length;
+    const retencion=DB.alumnas.length>0?Math.round((activas/DB.alumnas.length)*100):0;
+    if(!ingresosMes&&!DB.alumnas.filter(a=>a.precio).length)return'';
+    return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
+      <div class="card" style="margin-bottom:0;padding:1rem;">
+        <div class="mlabel">Ingresos ${mesAct.slice(5)}</div>
+        <div class="mval g" style="font-size:1.6rem;">${ingresosMes?'$'+ingresosMes.toLocaleString('es-AR'):DB.alumnas.filter(a=>hasPagado(a.id)&&a.precio).reduce((s,a)=>s+(a.precio||0),0)?'$'+DB.alumnas.filter(a=>hasPagado(a.id)&&a.precio).reduce((s,a)=>s+(a.precio||0),0).toLocaleString('es-AR'):'—'}</div>
+        ${pct!==null?`<div style="font-size:10px;color:${diff>=0?'var(--vd)':'var(--rd)'};margin-top:3px;">${diff>=0?'↑':'↓'} ${Math.abs(pct)}% vs mes anterior</div>`:''}
+      </div>
+      <div class="card" style="margin-bottom:0;padding:1rem;">
+        <div class="mlabel">Retención 7 días</div>
+        <div class="mval" style="font-size:1.6rem;color:${retencion>=70?'var(--vd)':retencion>=40?'var(--ad)':'var(--rd)'};">${retencion}%</div>
+        <div style="font-size:10px;color:var(--tm);margin-top:3px;">${activas}/${DB.alumnas.length} alumnas activas</div>
+      </div>
+    </div>`;
+  })()}
+  ${(()=>{
+    // Renovación automática — alumnas que completaron ciclo (si progreso está cargado)
+    const completaron=DB.alumnas.filter(a=>{
+      const rows=DB.progreso?.[a.id]||[];
+      if(!rows.length)return false;
+      const ciclo=a.ciclo_actual||1;
+      const semsHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
+      return semsHechas.size>=4;
+    });
+    if(!completaron.length)return'';
+    return`<div class="card" style="margin-bottom:1rem;background:var(--vl);border-color:var(--vm);">
+      <div class="ctitle" style="margin-bottom:.5rem;color:var(--vd);">🎉 Completaron el ciclo</div>
+      ${completaron.map(a=>`<div class="arow" style="cursor:pointer;" onclick="S.selA=${a.id};go('rutinas')">
+        <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+        <div style="flex:1;font-size:13px;font-weight:500;color:var(--vd);">${a.nombre.split(' ')[0]}</div>
+        <span style="font-size:11px;color:var(--vd);">Crear nuevo ciclo →</span>
+      </div>`).join('')}
+    </div>`;
+  })()}
   ${S.msg?`<div class="sm">${S.msg}</div>`:''}`;
 }
 
@@ -1302,6 +1351,7 @@ function rAlumnas(){
     </div>
     ${a.notas?`<div class="nota">${a.notas}</div>`:''}
     ${a.notas_privadas?`<div style="background:var(--p);border-radius:var(--rs);padding:.5rem .85rem;font-size:12px;color:var(--pd);margin-bottom:.5rem;">🔒 ${a.notas_privadas}</div>`:''}
+    ${a.lesiones?`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .85rem;font-size:12px;color:var(--rd);margin-bottom:.5rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`:''}
 
     ${(()=>{
       const pagado=hasPagado(a.id);
@@ -1421,6 +1471,7 @@ function rRutinas(){
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
     ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
+  ${a.lesiones?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${a.lesiones}</div>`:''}
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1720,6 +1771,20 @@ async function loadHistorial(aId){
   }catch(e){console.error('historial error',e);}
 }
 
+function exportarCSV(aId){
+  const a=getA(aId);
+  const rows=DB.progreso?.[aId]||[];
+  if(!rows.length){S.msg='Sin datos para exportar';render();return;}
+  const header=['Ciclo','Semana','Día','Ejercicio','Hecho','Peso (kg)','Fecha'];
+  const data=rows.map(r=>[r.ciclo,r.semana,r.dia,r.ejercicio_nombre||('ex_'+r.ejercicio_idx),r.hecho?'Sí':'No',r.peso_kg||'',r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):'']);
+  const csv=[header,...data].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;link.download=`historial-${(a?.nombre||'alumna').replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();URL.revokeObjectURL(url);
+}
+
 function rHistorial(){
   const a=getA(S.selA);
   const rows = DB.progreso?.[a?.id]||[];
@@ -1733,10 +1798,42 @@ function rHistorial(){
   // También leer pesos del localStorage de la alumna (si están)
   const lsPesos = Object.entries(localStorage).filter(([k])=>k.startsWith('p-'+(a?.id||'')));
   
+  // Progresión de carga sugerida
+  const pesosPorEj={};
+  rows.filter(r=>r.peso_kg&&r.ejercicio_nombre).forEach(r=>{
+    const k=r.ejercicio_nombre;
+    if(!pesosPorEj[k])pesosPorEj[k]=[];
+    pesosPorEj[k].push({semana:r.semana,ciclo:r.ciclo||1,peso:parseFloat(r.peso_kg)});
+  });
+  const sugerencias=Object.entries(pesosPorEj)
+    .map(([nombre,registros])=>{
+      const sorted=[...registros].sort((a,b)=>a.ciclo-b.ciclo||a.semana-b.semana);
+      if(sorted.length<2)return null;
+      const ultimos=sorted.slice(-3);
+      const pesos=ultimos.map(r=>r.peso);
+      const todoIgual=pesos.every(p=>p===pesos[0]);
+      if(!todoIgual)return null;
+      const actual=pesos[0];
+      const sugerido=Math.round(actual*1.05*2)/2;
+      return{nombre,actual,sugerido,semanas:ultimos.length};
+    }).filter(Boolean);
+
   return`<div class="ptitle">Historial de progreso</div>
-  <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+    </div>
+    ${a&&rows.length>0?`<button class="btn btn-s" onclick="exportarCSV(${a.id})" title="Descargar historial en Excel">⬇ CSV</button>`:''}
   </div>
+  ${sugerencias.length>0?`<div class="card" style="margin-bottom:1rem;background:var(--a);border-color:transparent;">
+    <div class="ctitle" style="color:var(--ad);margin-bottom:.6rem;">💡 Progresión sugerida — mismo peso ${sugerencias[0]?.semanas||2}+ semanas</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+      ${sugerencias.map(s=>`<div style="background:var(--s);border-radius:var(--rs);padding:.6rem .75rem;font-size:12px;">
+        <div style="font-weight:500;color:var(--t);margin-bottom:3px;">${s.nombre}</div>
+        <div style="color:var(--tm);">${s.actual} kg → <strong style="color:var(--ad);">${s.sugerido} kg</strong> <span style="font-size:10px;">(+5%)</span></div>
+      </div>`).join('')}
+    </div>
+  </div>`:''}
   ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
   rows.length===0&&lsPesos.length===0?
   `<div class="card" style="background:var(--a);border-color:transparent;">
