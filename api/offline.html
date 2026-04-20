@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1D9E75">
+  <title>Sin conexión — Amira Fitness</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:#f8f8f6;color:#1a1a1a;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+    .card{background:white;border-radius:20px;padding:2.5rem 2rem;text-align:center;max-width:320px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,.08);}
+    .icon{font-size:3.5rem;margin-bottom:1.25rem;}
+    h1{font-family:'DM Serif Display',serif;font-size:1.6rem;color:#1a1a1a;margin-bottom:.6rem;}
+    p{font-size:13px;color:#6b7280;line-height:1.75;margin-bottom:1.5rem;}
+    button{background:#1D9E75;color:white;border:none;border-radius:99px;padding:12px 28px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;}
+    button:active{background:#0F6E56;}
+    .sub{font-size:11px;color:#9ca3af;margin-top:1rem;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📵</div>
+    <h1>Sin conexión</h1>
+    <p>No hay señal en este momento. Si ya entraste a la app antes, tus datos están guardados y podés seguir entrenando.</p>
+    <button onclick="location.reload()">Reintentar</button>
+    <div class="sub">Si ya cargaste tu rutina antes, volvé a la pantalla principal.</div>
+  </div>
+  <script>
+    // Redirect to alumna app if we know the URL
+    const slug = localStorage.getItem('af-slug');
+    if(slug && location.pathname === '/api/offline.html') {
+      document.querySelector('.sub').textContent = 'Intentando cargar tu rutina guardada...';
+      setTimeout(() => { location.href = '/alumna/' + slug; }, 1500);
+    }
+  </script>
+</body>
+</html>

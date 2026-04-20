@@ -2,9 +2,11 @@
 <html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta name="theme-color" content="#1D9E75">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1D9E75" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Amira Fitness">
   <link rel="manifest" href="/api/manifest.json">
   <link rel="apple-touch-icon" href="/api/icon-192.svg">
@@ -13,7 +15,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <script src="/sb.js"></script>
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html{overscroll-behavior:none;}
     :root{
       --v:#1D9E75;--vl:#E1F5EE;--vm:#5DCAA5;--vd:#0F6E56;
       --p:#EEEDFE;--pd:#3C3289;--a:#FAEEDA;--ad:#633806;
@@ -30,8 +33,9 @@
       --vl:#0a2e20;--vm:#1a6b50;--p:#1e1c3a;--pd:#a5a0e8;
       --a:#2a200a;--ad:#d4a854;--rl:#2a1010;--rd:#f09595;
     }
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;overscroll-behavior:none;}
-    .app{max-width:430px;margin:0 auto;padding-bottom:5.5rem;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;overscroll-behavior:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;-webkit-user-select:none;user-select:none;}
+    input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text;}
+    .app{max-width:430px;margin:0 auto;padding-bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);}
 
     .header{background:var(--s);border-bottom:1px solid var(--b);padding:.9rem 1.25rem;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;}
     .hlogo{width:34px;height:34px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--vd);flex-shrink:0;}
@@ -40,7 +44,7 @@
     .htxt p{font-size:11px;color:var(--tm);}
     .hbtn{background:none;border:1px solid var(--bm);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;}
 
-    .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);display:flex;z-index:25;max-width:430px;margin:0 auto;}
+    .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);display:flex;z-index:25;max-width:430px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom,0px);}
     .bitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;border:none;background:none;font-family:'DM Sans',sans-serif;}
     .bitem span:first-child{font-size:18px;}
     .bitem span:last-child{font-size:10px;color:var(--tm);}
@@ -743,8 +747,10 @@ if('serviceWorker' in navigator){
     try{
       swReg = await navigator.serviceWorker.register('/sw.js');
       console.log('SW registrado ✓');
-      // Pedir permiso de notificaciones después de que cargue la alumna
-      // (se llama desde init() una vez que sabemos el id)
+      // Escuchar mensajes del SW (ej: SYNC_NOW desde background sync)
+      navigator.serviceWorker.addEventListener('message', e => {
+        if(e.data?.type === 'SYNC_NOW') flushSyncQueue();
+      });
     }catch(e){ console.warn('SW error:', e); }
   });
 }
@@ -1032,9 +1038,10 @@ let syncQueue = JSON.parse(localStorage.getItem('af-sync-queue')||'[]');
 
 function queueSync(op){
   syncQueue.push({...op, ts: Date.now()});
-  // Máximo 50 operaciones en cola para no llenar el storage
   if(syncQueue.length > 50) syncQueue = syncQueue.slice(-50);
   localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
+  // Registrar background sync para reintento automático
+  if(swReg && 'sync' in swReg) swReg.sync.register('sync-progreso').catch(()=>{});
 }
 
 async function flushSyncQueue(){
