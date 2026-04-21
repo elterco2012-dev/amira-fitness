@@ -256,9 +256,10 @@
       </div>
       <div style="margin-top:8px;"><label>Nota específica para esta alumna (opcional)</label><input type="text" id="bib-nota" placeholder="Ej: empezá sin peso las primeras 2 semanas" style="margin-bottom:0;"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:1rem;">
+    <div style="display:flex;gap:8px;margin-top:1rem;align-items:center;">
       <button class="btn btn-p" id="bib-add-btn" onclick="addFromBib()" style="display:none;">Agregar a la rutina</button>
       <button class="btn" onclick="closeBib()">Cancelar</button>
+      <span id="bib-msg" style="font-size:12px;color:var(--rd);"></span>
     </div>
   </div>
 </div>
@@ -618,7 +619,7 @@ async function eliminarCiclo(c){
     await sbPatch('alumnas',`id=eq.${a.id}`,{ciclo_actual:nuevoCicloActual,ciclos_nombres:ciclosNombres});
     a.ciclo_actual=nuevoCicloActual;
     a.ciclos_nombres=ciclosNombres;
-    if(DB.rutinas[a.id]) DB.rutinas[a.id]=DB.rutinas[a.id].filter(r=>r.ciclo!==c);
+    if(DB.rutinas[a.id]) delete DB.rutinas[a.id][c];
     if(S.selCiclo===c){S.selCiclo=nuevoCicloActual;S.selSem=1;S.selDia=1;}
     S._maxCiclo=Math.max(1,nuevoCicloActual);
     render();
@@ -631,15 +632,17 @@ async function confirmarNuevoCiclo(){
   const nuevoCiclo=cicloActual+1;
   document.getElementById('ciclo-msg').textContent='Creando nuevo ciclo...';
   try{
-    // Copiar rutinas del ciclo actual al nuevo
+    // Copiar rutinas del ciclo actual al nuevo en paralelo
     const diasExistentes=DB.rutinas[a.id]?.[cicloActual]||{};
+    const ops=[];
     for(const sem of Object.keys(diasExistentes)){
       for(const dayObj of diasExistentes[sem]){
         if(dayObj.ejercicios.length>0){
-          await sbUpsert('rutinas',{alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem),dia:dayObj.dia,ejercicios:JSON.parse(JSON.stringify(dayObj.ejercicios)),updated_at:new Date().toISOString()});
+          ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem),dia:dayObj.dia,ejercicios:JSON.parse(JSON.stringify(dayObj.ejercicios)),updated_at:new Date().toISOString()}));
         }
       }
     }
+    await Promise.all(ops);
     // Guardar nombre del ciclo si se proporcionó
     const nombreCiclo=document.getElementById('ciclo-nombre').value.trim();
     const ciclosNombres={...(a.ciclos_nombres||{})};
@@ -669,20 +672,23 @@ async function aplicarPlantilla(plantId){
   const plant=DB.plantillas.find(p=>p.id===plantId);if(!plant)return;
   if(!confirm(`¿Aplicar la plantilla "${plant.nombre}" a ${a.nombre.split(' ')[0]}? Esto reemplaza el día/semana actual.`))return;
   const estructura=plant.estructura;
-  S.msg='Aplicando plantilla...';render();
+  S.msg='Aplicando plantilla...';S.err='';render();
   try{
+    // 1. Guardar todo en Supabase en paralelo — si falla alguno, no toca el estado local
+    await Promise.all(Object.keys(estructura).map(dia=>{
+      const exsCopy=JSON.parse(JSON.stringify(estructura[dia]));
+      return sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:parseInt(dia),ejercicios:exsCopy,updated_at:new Date().toISOString()});
+    }));
+    // 2. Solo si todo OK actualizar estado local
+    ensureLocal(a.id,S.selCiclo,S.selSem);
     for(const dia of Object.keys(estructura)){
       const exsCopy=JSON.parse(JSON.stringify(estructura[dia]));
-      await sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:parseInt(dia),ejercicios:exsCopy,updated_at:new Date().toISOString()});
-      if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
-      if(!DB.rutinas[a.id][S.selCiclo])DB.rutinas[a.id][S.selCiclo]={};
-      if(!DB.rutinas[a.id][S.selCiclo][S.selSem])DB.rutinas[a.id][S.selCiclo][S.selSem]=[];
       const existing=DB.rutinas[a.id][S.selCiclo][S.selSem].find(d=>d.dia===parseInt(dia));
       if(existing)existing.ejercicios=exsCopy;
       else DB.rutinas[a.id][S.selCiclo][S.selSem].push({dia:parseInt(dia),ejercicios:exsCopy});
     }
     S.msg='Plantilla aplicada ✓';render();setTimeout(()=>{S.msg='';render();},2000);
-  }catch(e){S.err='Error al aplicar plantilla';render();}
+  }catch(e){S.err='Error al aplicar plantilla: '+e.message;S.msg='';render();}
 }
 
 // ── Biblioteca modal ──────────────────────────────────────────
@@ -722,25 +728,27 @@ function selectBibEx(id){
 }
 
 async function addFromBib(){
-  if(!bibSelEx) return;
-
-  const a = getA(S.selA);
-  if(!a) return;
-
-  const day = getOrCreateDay(a.id, S.selCiclo, S.selSem, S.selDia);
-  const nota = document.getElementById('bib-nota').value.trim();
-
-  day.ejercicios.push({
-    nombre: bibSelEx.nombre,
-    series: document.getElementById('bib-series').value,
-    reps: document.getElementById('bib-reps').value,
-    tip: nota || bibSelEx.descripcion || '',
-    video: bibSelEx.video || '',
-    grupo: bibSelEx.grupo_muscular || ''
-  });
-
-  closeBib();
-  await saveDay();
+  if(!bibSelEx)return;
+  const a=getA(S.selA);if(!a)return;
+  const msgEl=document.getElementById('bib-msg');
+  if(msgEl)msgEl.textContent='';
+  const day=getOrCreateDay(a.id,S.selCiclo,S.selSem,S.selDia);
+  const newEx={
+    nombre:bibSelEx.nombre,
+    series:document.getElementById('bib-series').value,
+    reps:document.getElementById('bib-reps').value,
+    tip:document.getElementById('bib-nota').value.trim()||bibSelEx.descripcion||'',
+    video:bibSelEx.video||'',
+    grupo:bibSelEx.grupo_muscular||''
+  };
+  day.ejercicios.push(newEx);
+  try{
+    await saveDay();
+    closeBib();           // solo cerramos si guardó bien
+  }catch(e){
+    day.ejercicios.pop(); // rollback: sacar el ejercicio que no se guardó
+    if(msgEl)msgEl.textContent='Error al guardar — intentá de nuevo';
+  }
 }
 
 // ── Manual nuevo ejercicio ────────────────────────────────────
@@ -757,7 +765,6 @@ async function saveManual(){
   document.getElementById('manual-msg').textContent = 'Guardando...';
 
   const nuevoEx = {
-    id: Date.now(),
     nombre,
     descripcion: document.getElementById('m-tip').value.trim(),
     video: document.getElementById('m-video').value.trim(),
@@ -766,8 +773,7 @@ async function saveManual(){
   };
 
   try{
-    const res = await sbUpsert('ejercicios_biblioteca', nuevoEx);
-    const saved = Array.isArray(res) ? res[0] : res;
+    const saved = await sbInsert('ejercicios_biblioteca', nuevoEx);
     DB.biblioteca.push(saved);
 
     const a = getA(S.selA);
@@ -1065,10 +1071,12 @@ function renderPlantBibPicker(){
 }
 
 function addPlantExFromBib(bibId){
-  const bib=DB.biblioteca.find(e=>e.id===bibId); if(!bib)return;
-  const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
-  if(!p.estructura[S._editPlantDia])p.estructura[S._editPlantDia]=[];
-  p.estructura[S._editPlantDia].push({nombre:bib.nombre,series:'3',reps:'10',tip:bib.descripcion||'',video:bib.video||'',grupo:bib.grupo_muscular||''});
+  const diaNum=parseInt(S._editPlantDia);
+  if(!diaNum||diaNum<1){alert('Seleccioná un día primero.');return;}
+  const bib=DB.biblioteca.find(e=>e.id===bibId);if(!bib)return;
+  const p=DB.plantillas.find(x=>x.id===S._editPlantId);if(!p)return;
+  if(!p.estructura[diaNum])p.estructura[diaNum]=[];
+  p.estructura[diaNum].push({nombre:bib.nombre,series:'3',reps:'10',tip:bib.descripcion||'',video:bib.video||'',grupo:bib.grupo_muscular||''});
   S._plantBibMode=false;
   renderModalPlantilla();
 }
@@ -1086,9 +1094,11 @@ function deletePlantEx(idx){
 }
 
 function addPlantEx(){
-  const p=DB.plantillas.find(x=>x.id===S._editPlantId); if(!p)return;
-  if(!p.estructura[S._editPlantDia]) p.estructura[S._editPlantDia]=[];
-  p.estructura[S._editPlantDia].push({nombre:'',series:'3',reps:'10',tip:'',video:''});
+  const diaNum=parseInt(S._editPlantDia);
+  if(!diaNum||diaNum<1){alert('Seleccioná un día primero.');return;}
+  const p=DB.plantillas.find(x=>x.id===S._editPlantId);if(!p)return;
+  if(!p.estructura[diaNum])p.estructura[diaNum]=[];
+  p.estructura[diaNum].push({nombre:'',series:'3',reps:'10',tip:'',video:''});
   renderModalPlantilla();
 }
 
@@ -1655,20 +1665,12 @@ async function addVariante(variante){
 }
 
 function getOrCreateDay(aId, ciclo, sem, dia){
-  ensureLocal(aId, ciclo, sem);
-
-  const week = DB.rutinas[aId][ciclo][sem];
-  let dayObj = week.find(d => parseInt(d.dia) === parseInt(dia));
-
-  if(!dayObj){
-    dayObj = { dia: parseInt(dia), ejercicios: [] };
-    week.push(dayObj);
-  }
-
-  if(!Array.isArray(dayObj.ejercicios)){
-    dayObj.ejercicios = [];
-  }
-
+  const c=parseInt(ciclo)||1, s=parseInt(sem)||1, d=parseInt(dia)||1;
+  ensureLocal(aId,c,s);
+  const week=DB.rutinas[aId][c][s];
+  let dayObj=week.find(x=>x.dia===d);
+  if(!dayObj){dayObj={dia:d,ejercicios:[]};week.push(dayObj);}
+  if(!Array.isArray(dayObj.ejercicios))dayObj.ejercicios=[];
   return dayObj;
 }
 
