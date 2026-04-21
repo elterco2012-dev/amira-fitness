@@ -52,6 +52,17 @@ async function sbPatch(table, filter, body) {
   return r.json();
 }
 
+async function sbInsert(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { ...SB_H, 'Prefer': 'return=representation' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.text(); throw new Error(`INSERT ${table}: ${e}`); }
+  const rows = await r.json();
+  return Array.isArray(rows) ? rows[0] : rows;
+}
+
 async function sbDelete(table, filter) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
     method: 'DELETE', headers: SB_H
