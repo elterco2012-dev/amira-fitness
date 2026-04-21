@@ -1898,9 +1898,14 @@ function rRegistros(){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
       <div><span style="color:var(--tm);">WhatsApp:</span> ${r.tel||'—'}</div><div><span style="color:var(--tm);">Mail:</span> ${r.mail||'—'}</div>
+      <div><span style="color:var(--tm);">Nacimiento:</span> ${r.nacimiento||'—'}</div><div><span style="color:var(--tm);">Género:</span> ${r.genero||'—'}</div>
       <div><span style="color:var(--tm);">Objetivos:</span> ${r.objetivos||'—'}</div><div><span style="color:var(--tm);">Modalidad:</span> ${r.modalidad||'—'}</div>
+      <div><span style="color:var(--tm);">Lugar entrena:</span> ${r.lugar_entrenamiento||'—'}</div><div><span style="color:var(--tm);">¿Fumá?:</span> ${r.fuma||'—'}</div>
+      <div><span style="color:var(--tm);">Peso:</span> ${r.peso&&r.peso!=='—'?r.peso+'kg':'—'}</div><div><span style="color:var(--tm);">Altura:</span> ${r.altura&&r.altura!=='—'?r.altura+'cm':'—'}</div>
+      <div><span style="color:var(--tm);">Experiencia:</span> ${r.exp||'—'}</div><div><span style="color:var(--tm);">Días/sem:</span> ${r.dias||'—'}</div>
     </div>
-    ${r.lesiones&&r.lesiones!=='—'?`<div class="nota" style="margin-top:.75rem;margin-bottom:0;">⚠️ ${r.lesiones}</div>`:''}
+    ${r.extra&&r.extra!=='—'?`<div class="nota" style="margin-top:.75rem;margin-bottom:.4rem;">💬 ${r.extra}</div>`:''}
+    ${r.lesiones&&r.lesiones!=='—'?`<div class="nota" style="margin-top:.4rem;margin-bottom:0;background:var(--rl);color:var(--rd);">⚠️ ${r.lesiones}</div>`:''}
   </div>`).join('')}
   ${otros.length>0?`<div class="ctitle" style="margin:.75rem 0 .5rem;">Historial</div>${otros.map(r=>`<div class="card" style="opacity:.7;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''}</div></div><span class="badge" style="background:${r.estado==='aprobado'?'var(--vl)':'var(--rl)'};color:${r.estado==='aprobado'?'var(--vd)':'var(--rd)'};">${r.estado}</span></div></div>`).join('')}`:''}`;
 }

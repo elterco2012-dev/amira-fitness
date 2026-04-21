@@ -112,6 +112,19 @@
     </div>
     <div class="field"><label>WhatsApp</label><input type="tel" id="f-tel" placeholder="Ej: 1123456789"></div>
     <div class="field"><label>Mail</label><input type="email" id="f-mail" placeholder="tu@mail.com"></div>
+    <div class="frow">
+      <div class="field"><label>Fecha de nacimiento</label><input type="date" id="f-nacimiento"></div>
+      <div class="field">
+        <label>Género</label>
+        <select id="f-genero">
+          <option value="">Seleccioná...</option>
+          <option>Mujer</option>
+          <option>Hombre</option>
+          <option>No binario</option>
+          <option>Prefiero no decir</option>
+        </select>
+      </div>
+    </div>
     <div class="field">
       <label>¿Dónde estás?</label>
       <select id="f-ubicacion">
@@ -169,6 +182,26 @@
   <div class="step-panel" id="step-3">
     <div class="step-title">Un poco más sobre vos 🩺</div>
     <div class="step-sub">Esta info ayuda a Amira a adaptar el entrenamiento y evitar cualquier molestia.</div>
+    <div class="field">
+      <label>¿Dónde vas a entrenar?</label>
+      <div class="chips" id="chips-lugar">
+        <div class="chip" onclick="selectLugar(this,'En casa')">En casa</div>
+        <div class="chip" onclick="selectLugar(this,'Gimnasio')">Gimnasio</div>
+        <div class="chip" onclick="selectLugar(this,'Otro')">Otro</div>
+      </div>
+      <input type="text" id="f-otro-lugar" placeholder="¿Cuál lugar?" style="display:none;margin-top:8px;">
+    </div>
+    <div class="field">
+      <label>¿Fumás?</label>
+      <div class="chips" id="chips-fuma">
+        <div class="chip" onclick="toggleChipSingle(this,'chips-fuma')">No</div>
+        <div class="chip" onclick="toggleChipSingle(this,'chips-fuma')">Sí</div>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>Peso actual (kg, opcional)</label><input type="number" id="f-peso" placeholder="Ej: 65" min="30" max="200"></div>
+      <div class="field"><label>Altura (cm, opcional)</label><input type="number" id="f-altura" placeholder="Ej: 165" min="100" max="220"></div>
+    </div>
     <div class="field">
       <label>¿Tenés alguna lesión, dolor crónico o condición médica a tener en cuenta?</label>
       <textarea id="f-lesiones" placeholder="Ej: dolor de rodilla, hernia de disco, embarazo... O escribí 'Ninguna'"></textarea>
@@ -259,15 +292,34 @@ function goToStep(n){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+function getLugar(){
+  const chip=document.querySelector('#chips-lugar .chip.selected');
+  if(!chip)return '—';
+  if(chip.textContent==='Otro'){const v=document.getElementById('f-otro-lugar').value.trim();return v?`Otro: ${v}`:'Otro';}
+  return chip.textContent;
+}
+
+function selectLugar(el,val){
+  toggleChipSingle(el,'chips-lugar');
+  document.getElementById('f-otro-lugar').style.display=(val==='Otro'&&el.classList.contains('selected'))?'block':'none';
+}
+
 function buildResumen(){
+  const peso=document.getElementById('f-peso').value;
+  const altura=document.getElementById('f-altura').value;
   const rows=[
     ['Nombre',`${document.getElementById('f-nombre').value} ${document.getElementById('f-apellido').value}`],
     ['WhatsApp',document.getElementById('f-tel').value],
     ['Mail',document.getElementById('f-mail').value],
+    ['Nacimiento',document.getElementById('f-nacimiento').value||'—'],
+    ['Género',document.getElementById('f-genero').value||'—'],
     ['Ubicación',document.getElementById('f-ubicacion').value],
     ['Objetivos',getChips('chips-objetivo')],
     ['Modalidad',getChips('chips-modalidad')],
     ['Días/semana',getChips('chips-dias')],
+    ['Lugar de entrenamiento',getLugar()],
+    ['¿Fumás?',getChips('chips-fuma')||'—'],
+    ['Peso / Altura',`${peso?peso+'kg':'—'} / ${altura?altura+'cm':'—'}`],
     ['Lesiones',document.getElementById('f-lesiones').value||'—'],
     ['Experiencia',getChips('chips-exp')],
     ['Notas extra',document.getElementById('f-extra').value||'—'],
@@ -281,10 +333,16 @@ async function enviarRegistro(){
   const apellido=document.getElementById('f-apellido').value.trim();
   const tel=document.getElementById('f-tel').value.trim();
   const mail=document.getElementById('f-mail').value.trim();
+  const nacimiento=document.getElementById('f-nacimiento').value||'—';
+  const genero=document.getElementById('f-genero').value||'—';
   const ubicacion=document.getElementById('f-ubicacion').value;
   const objetivos=getChips('chips-objetivo');
   const modalidad=getChips('chips-modalidad');
   const dias=getChips('chips-dias');
+  const lugar=getLugar();
+  const fuma=getChips('chips-fuma')||'—';
+  const peso=document.getElementById('f-peso').value||'—';
+  const altura=document.getElementById('f-altura').value||'—';
   const lesiones=document.getElementById('f-lesiones').value||'—';
   const exp=getChips('chips-exp');
   const extra=document.getElementById('f-extra').value||'—';
@@ -292,8 +350,8 @@ async function enviarRegistro(){
   // Guardar en localStorage para que el panel lo vea
   const registros=JSON.parse(localStorage.getItem('amira-registros')||'[]');
   const nuevo={
-    id:Date.now(),nombre:`${nombre} ${apellido}`,tel,mail,ubicacion,
-    objetivos,modalidad,dias,lesiones,exp,extra,
+    id:Date.now(),nombre:`${nombre} ${apellido}`,tel,mail,nacimiento,genero,ubicacion,
+    objetivos,modalidad,dias,lugar_entrenamiento:lugar,fuma,peso,altura,lesiones,exp,extra,
     fecha:new Date().toLocaleDateString('es-AR'),
     estado:'pendiente'
   };
@@ -308,11 +366,15 @@ async function enviarRegistro(){
 👤 *${nombre} ${apellido}*
 📱 ${tel}
 📧 ${mail}
+🎂 Nacimiento: ${nacimiento} · ${genero}
 📍 ${ubicacion}
 
 🎯 Objetivos: ${objetivos}
 🏋️ Modalidad: ${modalidad}
 📅 Días/semana: ${dias}
+🏠 Lugar de entrenamiento: ${lugar}
+🚬 Fumadora: ${fuma}
+⚖️ Peso: ${peso} · Altura: ${altura}
 🩺 Lesiones: ${lesiones}
 💪 Experiencia: ${exp}
 💬 Notas: ${extra}
