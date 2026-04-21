@@ -382,9 +382,9 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null};
 let dark=localStorage.getItem('af-dark')==='1';
-let charts={},pollT=null,prevCom=0,prevReg=0;
+let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
 
 if(dark)document.documentElement.setAttribute('data-theme','dark');
@@ -521,7 +521,11 @@ async function loadAll(){
     DB.registros=regs;
     DB.biblioteca=bib;
     DB.plantillas=plants;
-    prevCom=coms.length;prevReg=regs.filter(r=>r.estado==='pendiente').length;
+    // prevCom debe ser el max id de los comentarios ya cargados (no el count)
+    // así el badge solo aparece cuando llega uno NUEVO después de esta sesión
+    prevCom=coms.length?Math.max(...coms.map(c=>+c.id)):0;
+    localStorage.setItem('af-prevCom',String(prevCom));
+    prevReg=regs.filter(r=>r.estado==='pendiente').length;
     if(!S.selA&&DB.alumnas.length>0){S.selA=DB.alumnas[0].id;S.selCiclo=DB.alumnas[0].ciclo_actual||1;}
     sbSt(true,'Conectado ✓');
     render();startPoll();
@@ -898,18 +902,49 @@ function handleFoto(aId,input){
   reader.readAsDataURL(file);
 }
 
+function pinDesdeNacimiento(nac){
+  // "1988-04-19" → "190488"  (ddmmaa)
+  if(!nac) return null;
+  const [year,month,day]=nac.split('-');
+  if(!year||!month||!day) return null;
+  return day+month+year.slice(-2);
+}
+
+async function crearAuthUser(email, password){
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/signup`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body:JSON.stringify({email,password})
+    });
+    const data=await r.json();
+    if(!r.ok) console.warn('Auth signup:',data);
+    return data;
+  }catch(e){console.warn('Auth signup failed:',e);}
+}
+
 async function addAlumna(){
   const n=document.getElementById('na-nombre')?.value?.trim();
   if(!n)return;
+  const email=document.getElementById('na-email')?.value?.trim()||null;
+  const nac=document.getElementById('na-nacimiento')?.value||null;
   const slug=slugify(n.split(' ')[0]);
-  const a={slug,nombre:n,email:document.getElementById('na-email')?.value?.trim()||null,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
+  const a={slug,nombre:n,email,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
   S.msg='Guardando...';render();
   try{
     const saved=await sbInsert('alumnas',a);
     DB.alumnas.push(saved);
     if(!S.selA)S.selA=saved.id;
-    S.addA=false;S.msg='Alumna creada ✓';render();
-    setTimeout(()=>{S.msg='';render();},2000);
+    // Crear usuario de acceso si hay email
+    const pin=pinDesdeNacimiento(nac);
+    if(email&&pin){
+      S.msg='Creando acceso...';render();
+      await crearAuthUser(email, pin);
+      S.addA=false;S.msg=`Alumna creada ✓ · PIN: ${pin}`;render();
+    } else {
+      S.addA=false;S.msg='Alumna creada ✓'+(email&&!pin?' (sin PIN: falta fecha de nacimiento)':'');render();
+    }
+    setTimeout(()=>{S.msg='';render();},4000);
   }catch(e){S.msg='';S.err='Error: '+e.message;render();console.error('addAlumna error:',e);}
 }
 
@@ -1161,7 +1196,7 @@ async function rechazar(id){if(!confirm('¿Rechazás?'))return;await sbPatch('re
 // ── View ──────────────────────────────────────────────────────
 function go(v){
   S.view=v;
-  if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';}
+  if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';localStorage.setItem('af-prevCom',String(prevCom));}
   if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
   if(v==='historial'){
     // Cargar progreso de todas las alumnas al entrar al historial
@@ -1332,6 +1367,7 @@ function rAlumnas(){
     <div class="ctitle">Nueva alumna</div>
     <label>Nombre completo</label><input type="text" id="na-nombre" placeholder="Ej: Laura Gómez">
     <label>Email (acceso alumna)</label><input type="email" id="na-email" placeholder="laura@gmail.com">
+    <label>Fecha de nacimiento <span style="color:var(--tm);font-weight:400;">(PIN automático)</span></label><input type="date" id="na-nacimiento">
     <label>WhatsApp</label><input type="tel" id="na-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="na-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
@@ -1940,12 +1976,29 @@ function rRecordatorios(){
   </div>
   <div class="card">
     <div class="ctitle">Templates de WhatsApp</div>
-    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Mensajes pre-escritos — elegí uno y envialo con un click</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.9rem;">
-      ${WA_TPLS.map(t=>`<button class="btn btn-s${S._tplSel===t.key?' btn-p':''}" onclick="S._tplSel=S._tplSel==='${t.key}'?null:'${t.key}';render()">${t.label}</button>`).join('')}
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Mensajes pre-escritos — elegí uno y envialo con un click · <strong>Tip:</strong> sin emojis para mejor compatibilidad</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.9rem;">
+      ${getTpls().map(t=>`<div style="display:inline-flex;align-items:center;gap:1px;margin:0 4px 4px 0;">
+        <button class="btn btn-s${S._tplSel===t.key?' btn-p':''}" style="border-radius:var(--rp) 0 0 var(--rp);" onclick="S._tplSel=S._tplSel==='${t.key}'?null:'${t.key}';S._tplEdit=null;render()">${t.label}</button>
+        <button class="btn btn-s" title="Editar" style="border-radius:0 var(--rp) var(--rp) 0;padding:6px 8px;font-size:11px;" onclick="editTpl('${t.key}')">✎</button>
+      </div>`).join('')}
+      <button class="btn btn-s" style="margin-bottom:4px;" onclick="nuevaTpl()">＋ Nuevo</button>
     </div>
-    ${S._tplSel?(()=>{
-      const tpl=WA_TPLS.find(t=>t.key===S._tplSel);
+    ${S._tplEdit?(()=>{
+      const isCustom=!WA_TPLS_DEFAULTS.find(t=>t.key===S._tplEdit.key);
+      return`<div style="background:var(--s2);border-radius:var(--rs);padding:.8rem;border:1px solid var(--bm);margin-bottom:.75rem;">
+        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando template — usá [nombre] para el nombre de la alumna</div>
+        <input type="text" id="tpl-label" value="${S._tplEdit.label.replace(/"/g,'&quot;')}" placeholder="Nombre del template (ej: 🔥 Motivación)" style="margin-bottom:6px;">
+        <textarea id="tpl-msg" style="height:80px;">${S._tplEdit.msg}</textarea>
+        <div style="display:flex;gap:6px;margin-top:.6rem;flex-wrap:wrap;">
+          <button class="btn btn-p btn-s" onclick="saveTpl('${S._tplEdit.key}')">Guardar</button>
+          <button class="btn btn-s" onclick="S._tplEdit=null;render()">Cancelar</button>
+          ${isCustom?`<button class="btn btn-s btn-d" onclick="deleteTpl('${S._tplEdit.key}')">Eliminar</button>`:''}
+        </div>
+      </div>`;
+    })():''}
+    ${S._tplSel&&!S._tplEdit?(()=>{
+      const tpl=getTpls().find(t=>t.key===S._tplSel);
       const conWA=DB.alumnas.filter(a=>a.tel);
       const sinWA=DB.alumnas.filter(a=>!a.tel);
       return`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;font-size:12px;color:var(--tm);margin-bottom:.75rem;line-height:1.6;font-style:italic;">"${tpl.msg}"</div>
@@ -1973,17 +2026,47 @@ function envResumenGeneral(){
   window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-const WA_TPLS=[
-  {key:'mot',  label:'🔥 Motivación',  msg:'Hola [nombre]! 💪 ¿Cómo vas con los entrenamientos esta semana? ¡Seguí así, cada día cuenta!'},
-  {key:'rec',  label:'📅 Recordatorio',msg:'Hola [nombre]! 😊 Te recuerdo que esta semana tenés tu rutina lista. Cualquier duda me avisás.'},
-  {key:'pago', label:'💰 Pago',         msg:'Hola [nombre]! 🙏 Te recuerdo el pago mensual de tu plan. Cualquier consulta me escribís.'},
-  {key:'ciclo',label:'🚀 Nuevo ciclo', msg:'Hola [nombre]! 🎯 Arrancamos un ciclo nuevo, ¡preparate para ver cambios importantes!'},
-  {key:'check',label:'📋 Check-in',    msg:'Hola [nombre]! ¿Cómo te sentiste esta semana con los entrenamientos? ¿Algo que ajustar? 💬'},
+const WA_TPLS_DEFAULTS=[
+  {key:'mot',  label:'🔥 Motivación',  msg:'Hola [nombre]! Como vas con los entrenamientos esta semana? Segui asi, cada dia cuenta!'},
+  {key:'rec',  label:'📅 Recordatorio',msg:'Hola [nombre]! Te recuerdo que esta semana tenes tu rutina lista. Cualquier duda me avisas.'},
+  {key:'pago', label:'💰 Pago',         msg:'Hola [nombre]! Te recuerdo el pago mensual de tu plan. Cualquier consulta me escribis.'},
+  {key:'ciclo',label:'🚀 Nuevo ciclo', msg:'Hola [nombre]! Arrancamos un ciclo nuevo, preparate para ver cambios importantes!'},
+  {key:'check',label:'📋 Check-in',    msg:'Hola [nombre]! Como te sentiste esta semana con los entrenamientos? Algo que ajustar?'},
 ];
+let _tplsCache=null;
+
+function getTpls(){
+  if(_tplsCache)return _tplsCache;
+  const s=localStorage.getItem('af-tpls');
+  _tplsCache=s?JSON.parse(s):WA_TPLS_DEFAULTS.map(t=>({...t}));
+  return _tplsCache;
+}
+
+function saveTpls(tpls){_tplsCache=tpls;localStorage.setItem('af-tpls',JSON.stringify(tpls));}
+
+function editTpl(key){const t=getTpls().find(t=>t.key===key);if(!t)return;S._tplSel=null;S._tplEdit={...t};render();}
+
+function nuevaTpl(){S._tplSel=null;S._tplEdit={key:'c_'+Date.now(),label:'Nuevo',msg:'Hola [nombre]!'};render();}
+
+function saveTpl(key){
+  const label=document.getElementById('tpl-label')?.value?.trim();
+  const msg=document.getElementById('tpl-msg')?.value?.trim();
+  if(!label||!msg)return;
+  const tpls=getTpls().slice();
+  const idx=tpls.findIndex(t=>t.key===key);
+  if(idx>=0)tpls[idx]={key,label,msg};else tpls.push({key,label,msg});
+  saveTpls(tpls);S._tplEdit=null;render();
+}
+
+function deleteTpl(key){
+  if(!confirm('¿Eliminar este template?'))return;
+  saveTpls(getTpls().filter(t=>t.key!==key));
+  S._tplEdit=null;S._tplSel=null;render();
+}
 
 function envTemplate(aId, key){
   const a=getA(aId); if(!a||!a.tel){S.msg='Esta alumna no tiene WhatsApp.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
-  const tpl=WA_TPLS.find(t=>t.key===key); if(!tpl)return;
+  const tpl=getTpls().find(t=>t.key===key); if(!tpl)return;
   const msg=tpl.msg.replace('[nombre]',a.nombre.split(' ')[0]);
   window.open(`https://wa.me/${a.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');
 }
@@ -2070,7 +2153,7 @@ async function delAviso(id){
 
 function rLinks(){
   return`<div class="ptitle">Links por alumna</div>
-  ${DB.alumnas.map(a=>`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;"><div class="av av-${a.color}">${avH(a)}</div><div><div class="aname">${a.nombre}</div></div></div><div class="lbox"><span>${BASE}/alumna/${a.slug}</span><button class="cbtn" onclick="copyL('${a.slug}')">Copiar</button></div></div>`).join('')}
+  ${DB.alumnas.map(a=>`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;"><div class="av av-${a.color}">${avH(a)}</div><div><div class="aname">${a.nombre}</div></div></div><div class="lbox"><a href="${BASE}/alumna/${a.slug}" target="_blank" style="color:var(--vd);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${BASE}/alumna/${a.slug}</a><button class="cbtn" onclick="copyL('${a.slug}')">Copiar</button></div></div>`).join('')}
   ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}`;
 }
 
