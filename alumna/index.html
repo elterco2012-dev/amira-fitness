@@ -197,6 +197,7 @@
     .cel-msg{font-size:13px;color:var(--tm);margin-bottom:1.25rem;line-height:1.6;}
     .cel-badge{display:inline-block;background:var(--vl);color:var(--vd);font-size:12px;font-weight:500;border-radius:var(--rp);padding:5px 14px;margin-bottom:1.25rem;}
     .cel-btn{width:100%;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;}
+    .cel-btn-sec{width:100%;background:transparent;color:var(--tm);border:1.5px solid var(--b);border-radius:var(--rp);padding:11px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;}
 
     /* Progreso */
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
@@ -414,13 +415,24 @@
       </div>
     </div>
 
-    <!-- Slide 4: Notas y listo -->
+    <!-- Slide 4: Notas -->
     <div class="ob-slide" id="ob-s4">
       <div class="ob-icon">💬</div>
       <div class="ob-title">Mandále notas<br>a Amira</div>
       <div class="ob-body">
         En la pestaña <strong>Notas</strong> podés escribirle cómo te fue, cómo te sentiste o cualquier duda.<br><br>
         Ella las ve en su panel y te responde por WhatsApp.
+      </div>
+    </div>
+
+    <!-- Slide 5: Extras -->
+    <div class="ob-slide" id="ob-s5">
+      <div class="ob-icon">⚑</div>
+      <div class="ob-title">Reportá, compartí<br>y check-in</div>
+      <div class="ob-body">
+        Si encontrás un error en un ejercicio, tocá <strong>⚑ Reportar</strong> para avisarle a Amira directamente.<br><br>
+        Cada semana aparece una tarjeta para <strong>contarle cómo te sentiste</strong>.<br><br>
+        Al terminar el día podés <strong>compartir tu progreso por WhatsApp</strong> con un toque.
       </div>
       <div class="ob-pill">🚀 ¡Todo listo para empezar!</div>
     </div>
@@ -433,6 +445,7 @@
       <div class="ob-dot" id="od2"></div>
       <div class="ob-dot" id="od3"></div>
       <div class="ob-dot" id="od4"></div>
+      <div class="ob-dot" id="od5"></div>
     </div>
     <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
     <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
@@ -573,7 +586,7 @@ async function checkAlumnaAuth(){
 
 // ── Onboarding ────────────────────────────────────────────────
 let obStep = 1;
-const OB_TOTAL = 4;
+const OB_TOTAL = 5;
 
 function obMostrar(nombre){
   // Solo la primera vez
@@ -1155,6 +1168,20 @@ const CEL_MSGS = [
   '¡Un día más, una versión mejor!',
 ];
 
+function compartirDia(){
+  const a=getAlumna(); if(!a)return;
+  const exs=getExs(a.id,selCiclo,selSem,selDia);
+  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mes=meses[new Date().getMonth()];
+  const lineas=exs.map((ex,i)=>{
+    const p=pesos[pKey(a.id,selSem,selDia,i)];
+    return`• ${ex.nombre}${p?` — ${p}kg`:''}`;
+  }).join('\n');
+  const text=`💪 Completé el Día ${selDia} — ${mes} de mi rutina Amira Fitness!\n\n${lineas}\n\n¡Gracias a mi coach por armar mi plan! 🏋️‍♀️`;
+  if(navigator.share){navigator.share({text}).catch(()=>{});}
+  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
+}
+
 function mostrarCelebracion(aId, nombre, racha){
   const celK=`af-cel-${aId}-c${selCiclo}-s${selSem}-d${selDia}`;
   if(localStorage.getItem(celK)) return;
@@ -1182,6 +1209,7 @@ function mostrarCelebracion(aId, nombre, racha){
     <div class="cel-title">¡Lo lograste, ${nombre}!</div>
     <div class="cel-msg">${msg}</div>
     ${racha>=2?`<div class="cel-badge">🔥 ${racha} semanas seguidas</div><br>`:''}
+    <button class="cel-btn-sec" onclick="compartirDia()">📤 Compartir por WhatsApp</button>
     <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Vamos! →</button>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -1949,6 +1977,7 @@ async function init(){
       ?await sbGet('rutinas',`alumna_id=eq.${a0.id}&order=ciclo.asc,semana.asc,dia.asc`)
       :[];
     DB.alumnas=alumnas;
+    loadFotosCache(); // inyectar foto cacheada antes de cualquier render para evitar parpadeo
     DB.rutinas={};
     rutinas.forEach(r=>{
       const aId=r.alumna_id, c=parseInt(r.ciclo)||1, s=parseInt(r.semana);
