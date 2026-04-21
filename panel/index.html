@@ -901,12 +901,16 @@ function handleFoto(aId,input){
 async function addAlumna(){
   const n=document.getElementById('na-nombre')?.value?.trim();
   if(!n)return;
-  const id=Date.now();
   const slug=slugify(n.split(' ')[0]);
-  const a={id,slug,nombre:n,email:document.getElementById('na-email')?.value?.trim()||null,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
+  const a={slug,nombre:n,email:document.getElementById('na-email')?.value?.trim()||null,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
   S.msg='Guardando...';render();
-  try{await sbUpsert('alumnas',a);DB.alumnas.push(a);if(!S.selA)S.selA=id;S.addA=false;S.msg='Alumna creada ✓';render();setTimeout(()=>{S.msg='';render();},2000);}
-  catch(e){S.msg='';S.err='Error: '+e.message;render();console.error('addAlumna error:',e);}
+  try{
+    const saved=await sbInsert('alumnas',a);
+    DB.alumnas.push(saved);
+    if(!S.selA)S.selA=saved.id;
+    S.addA=false;S.msg='Alumna creada ✓';render();
+    setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){S.msg='';S.err='Error: '+e.message;render();console.error('addAlumna error:',e);}
 }
 
 function openEditBib(id){
