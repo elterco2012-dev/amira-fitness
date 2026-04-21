@@ -1085,6 +1085,11 @@ window.addEventListener('online', ()=>{
   flushSyncQueue();
 });
 
+// Si ya hay conexión al iniciar y quedan ops pendientes, sincronizar ahora
+if(navigator.onLine && syncQueue.length){
+  setTimeout(flushSyncQueue, 3000); // esperar que init() termine primero
+}
+
 // ── Tabs ──────────────────────────────────────────────────────
 function switchTab(t){
   const screens={r:'rutina',p:'progreso',n:'notas'};
