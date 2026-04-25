@@ -80,7 +80,7 @@
 
     @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   </style>
-<script src="/api/supabase.js"></script>
+<script src="/sb.js"></script>
 </head>
 <body>
 
@@ -387,7 +387,7 @@ Revisá su perfil en el panel para aprobar y asignarle una rutina.`);
   const btn=document.querySelector('#step-4 .btn-p');
   if(btn){btn.textContent='Enviando...';btn.disabled=true;}
   try {
-    await sbUpsert('registros', nuevo);
+    await sbInsert('registros', nuevo);
   } catch(e) {
     console.error('Error al guardar registro:', e);
     if(btn){btn.textContent='Enviar registro 🚀';btn.disabled=false;}
