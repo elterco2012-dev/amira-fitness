@@ -1,6 +1,6 @@
 // supabase.js — cliente compartido
 const SB_URL = 'https://aywkeoxwybzcexaichtv.supabase.co';
-const SB_KEY = 'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5d2tlb3h3eWJ6Y2V4YWljaHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzcyMDIsImV4cCI6MjA5MTUxMzIwMn0.BTcWM5GFj3r7hRFF-DXH9tSvoFLRjxELKZ-UQCvnUo0';
 
 const SB_HEADERS = {
   'Content-Type': 'application/json',
@@ -49,9 +49,12 @@ async function sbDelete(table, filter) {
 async function sbUpsert(table, body) {
   const res = await fetch(`${SB_URL}/rest/v1/${table}`, {
     method: 'POST',
-    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    headers: { ...SB_HEADERS, 'Prefer': 'return=representation' },
     body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error(`sbUpsert ${table} failed: ${res.status}`);
+  if (!res.ok) {
+    const e = await res.text();
+    throw new Error(`sbUpsert ${table} failed: ${res.status} — ${e}`);
+  }
   return res.json();
 }

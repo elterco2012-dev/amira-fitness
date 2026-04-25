@@ -347,16 +347,13 @@ async function enviarRegistro(){
   const exp=getChips('chips-exp');
   const extra=document.getElementById('f-extra').value||'—';
 
-  // Guardar en localStorage para que el panel lo vea
-  const registros=JSON.parse(localStorage.getItem('amira-registros')||'[]');
+  // Objeto a guardar — sin id, la DB lo genera automáticamente
   const nuevo={
-    id:Date.now(),nombre:`${nombre} ${apellido}`,tel,mail,nacimiento,genero,ubicacion,
+    nombre:`${nombre} ${apellido}`,tel,mail,nacimiento,genero,ubicacion,
     objetivos,modalidad,dias,lugar_entrenamiento:lugar,fuma,peso,altura,lesiones,exp,extra,
     fecha:new Date().toLocaleDateString('es-AR'),
     estado:'pendiente'
   };
-  registros.push(nuevo);
-  localStorage.setItem('amira-registros',JSON.stringify(registros));
 
   // Armar mensaje de WhatsApp para Amira
   const amiraPhone=localStorage.getItem('af-amira-phone')||'';
@@ -386,14 +383,21 @@ Revisá su perfil en el panel para aprobar y asignarle una rutina.`);
     ?`https://wa.me/${amiraPhone}?text=${msg}`
     :`https://wa.me/?text=${msg}`;
 
+  // Guardar en Supabase primero
+  const btn=document.querySelector('#step-4 .btn-p');
+  if(btn){btn.textContent='Enviando...';btn.disabled=true;}
+  try {
+    await sbUpsert('registros', nuevo);
+  } catch(e) {
+    console.error('Error al guardar registro:', e);
+    if(btn){btn.textContent='Enviar registro 🚀';btn.disabled=false;}
+    alert('Hubo un error al enviar tu registro. Revisá tu conexión e intentá de nuevo.');
+    return;
+  }
+
   document.getElementById('wizard').style.display='none';
   document.getElementById('success').style.display='block';
   document.getElementById('wa-link').href=waLink;
-
-  // Guardar en Supabase
-  try {
-    await sbUpsert('registros', nuevo);
-  } catch(e) { console.log('Supabase no disponible, guardado local'); }
 
   // Auto-abrir WhatsApp si hay número configurado
   if(amiraPhone)setTimeout(()=>window.open(waLink,'_blank'),1000);
