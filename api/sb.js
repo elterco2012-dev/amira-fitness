@@ -18,6 +18,7 @@ const ON_CONFLICT = {
   progreso:             'alumna_id,ciclo,semana,dia,ejercicio_idx',
   registros:            'id',
   comentarios:          'id',
+  pagos:                'alumna_id,mes',
 };
 
 async function sbGet(table, qs = '') {

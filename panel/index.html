@@ -547,7 +547,7 @@ function startPoll(){
 
 // ── Rutinas ───────────────────────────────────────────────────
 function ensureLocal(aId,ciclo,sem){
-  const c=parseInt(ciclo)||1,s=parseInt(sem);
+  const c=parseInt(ciclo)||1,s=parseInt(sem)||1;
   if(!DB.rutinas[aId])DB.rutinas[aId]={};
   if(!DB.rutinas[aId][c])DB.rutinas[aId][c]={};
   if(!DB.rutinas[aId][c][s])DB.rutinas[aId][c][s]=[1,2,3,4,5].slice(0,parseInt(getA(aId)?.dias)||3).map(d=>({dia:d,ejercicios:[]}));
@@ -562,20 +562,14 @@ async function saveDay(){
   S.msg='Guardando...';S.err='';render();
   try{
     await sbUpsert('rutinas',{alumna_id:S.selA,ciclo,semana,dia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
-    S.msg='Guardado ✓';S.err='';
-  }catch(e){S.err='Error';S.msg='';}
-  render();setTimeout(()=>{S.msg='';render();},2000);
+    S.msg='Guardado ✓';S.err='';render();
+    setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){
+    S.err='Error al guardar';S.msg='';render();
+    throw e;
+  }
 }
 
-function copiarSem(aId,ciclo,sem){
-  if(sem<=1)return false;
-  const prev=DB.rutinas[aId]?.[ciclo]?.[sem-1];
-  if(!prev)return false;
-  ensureLocal(aId,ciclo,sem);
-  let ok=false;
-  DB.rutinas[aId][ciclo][sem].forEach(d=>{const prevDay=prev.find(pd=>pd.dia===d.dia);if(d.ejercicios.length===0&&prevDay?.ejercicios?.length>0){d.ejercicios=JSON.parse(JSON.stringify(prevDay.ejercicios));ok=true;}});
-  return ok;
-}
 
 // ── Nuevo ciclo ───────────────────────────────────────────────
 function abrirNuevoCiclo(){
@@ -752,7 +746,8 @@ async function addFromBib(){
 }
 
 // ── Manual nuevo ejercicio ────────────────────────────────────
-function openManual(){document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('modal-manual').style.display='flex';}
+let _manualBibOnly=false;
+function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('modal-manual').style.display='flex';}
 function closeManual(){document.getElementById('modal-manual').style.display='none';}
 
 async function saveManual(){
@@ -776,32 +771,24 @@ async function saveManual(){
     const saved = await sbInsert('ejercicios_biblioteca', nuevoEx);
     DB.biblioteca.push(saved);
 
-    const a = getA(S.selA);
-    if(a){
-      ensureLocal(a.id, S.selCiclo, S.selSem);
-
-      const week = DB.rutinas[a.id][S.selCiclo][S.selSem];
-      let day = week.find(d => parseInt(d.dia) === parseInt(S.selDia));
-
-      if(!day){
-        day = { dia: parseInt(S.selDia), ejercicios: [] };
-        week.push(day);
+    if(!_manualBibOnly){
+      const a = getA(S.selA);
+      if(a){
+        ensureLocal(a.id, S.selCiclo, S.selSem);
+        const week = DB.rutinas[a.id][S.selCiclo][S.selSem];
+        let day = week.find(d => parseInt(d.dia) === parseInt(S.selDia));
+        if(!day){ day = { dia: parseInt(S.selDia), ejercicios: [] }; week.push(day); }
+        if(!Array.isArray(day.ejercicios)) day.ejercicios = [];
+        day.ejercicios.push({
+          nombre,
+          series: document.getElementById('m-series').value,
+          reps: document.getElementById('m-reps').value,
+          tip: document.getElementById('m-tip').value.trim(),
+          video: document.getElementById('m-video').value.trim(),
+          grupo: document.getElementById('m-grupo').value
+        });
+        await saveDay();
       }
-
-      if(!Array.isArray(day.ejercicios)){
-        day.ejercicios = [];
-      }
-
-      day.ejercicios.push({
-        nombre,
-        series: document.getElementById('m-series').value,
-        reps: document.getElementById('m-reps').value,
-        tip: document.getElementById('m-tip').value.trim(),
-        video: document.getElementById('m-video').value.trim(),
-        grupo: document.getElementById('m-grupo').value
-      });
-
-      await saveDay();
     }
 
     closeManual();
@@ -834,6 +821,8 @@ async function saveEditEx(){
   const day=DB.rutinas[a.id]?.[S.selCiclo]?.[S.selSem]?.find(d=>d.dia===S.selDia);
   if(!day)return;
   const ex=day.ejercicios[S.editExIdx];if(!ex)return;
+  // Backup antes de mutar para poder hacer rollback
+  const backup={series:ex.series,reps:ex.reps,tip:ex.tip,video:ex.video};
   ex.series=document.getElementById('ee-series').value;
   ex.reps=document.getElementById('ee-reps').value;
   ex.tip=document.getElementById('ee-tip').value;
@@ -846,14 +835,27 @@ async function saveEditEx(){
     vars.push(variante);localStorage.setItem('af-variantes',JSON.stringify(vars));
     DB.variantes=vars;
   }
-  await saveDay();
-  closeEditEx();render();
+  try{
+    await saveDay();
+    closeEditEx();render();
+  }catch(e){
+    Object.assign(ex,backup);  // rollback
+    render();
+  }
 }
 
 async function delEx(idx){
   const a=getA(S.selA);if(!a)return;
   const day=DB.rutinas[a.id]?.[S.selCiclo]?.[S.selSem]?.find(d=>d.dia===S.selDia);
-  if(day){day.ejercicios.splice(idx,1);render();await saveDay();}
+  if(!day)return;
+  const [removed]=day.ejercicios.splice(idx,1);
+  render();
+  try{
+    await saveDay();
+  }catch(e){
+    day.ejercicios.splice(idx,0,removed);  // rollback
+    S.err='Error al eliminar';render();
+  }
 }
 
 // ── Editar alumna ─────────────────────────────────────────────
@@ -1173,7 +1175,6 @@ async function deshacerPago(aId){
 
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
-function envRes(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`¡Hola ${a.nombre.split(' ')[0]}! 🌟 Resumen semanal:\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Seguís creciendo! — Amira 💚`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
 
 async function enviarPush(aId){
   const pushBody=aId?JSON.stringify({alumna_id:aId}):'{}';
@@ -1200,7 +1201,17 @@ async function enviarPush(aId){
 }
 
 // ── Registros ─────────────────────────────────────────────────
-async function aprobar(id){const reg=DB.registros.find(r=>r.id===id);if(!reg)return;await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});reg.estado='aprobado';S.addA=true;document.getElementById('na-nombre').value=reg.nombre||'';document.getElementById('na-tel').value=reg.tel||'';go('alumnas');}
+async function aprobar(id){
+  const reg=DB.registros.find(r=>r.id===id);if(!reg)return;
+  await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});
+  reg.estado='aprobado';
+  S.addA=true;
+  go('alumnas');  // render corre primero — los inputs existen después de esto
+  const elNombre=document.getElementById('na-nombre');
+  const elTel=document.getElementById('na-tel');
+  if(elNombre)elNombre.value=reg.nombre||'';
+  if(elTel)elTel.value=reg.tel||'';
+}
 async function rechazar(id){if(!confirm('¿Rechazás?'))return;await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});const reg=DB.registros.find(r=>r.id===id);if(reg)reg.estado='rechazado';render();}
 
 // ── View ──────────────────────────────────────────────────────
@@ -1392,7 +1403,8 @@ function rAlumnas(){
   </div>`:''}
   ${DB.alumnas.map(a=>{
     // Buscar ficha de salud asociada a esta alumna
-    const ficha = DB.registros.find(r => r.alumna_id === a.id || (r.nombre && r.nombre.toLowerCase().includes(a.nombre.split(' ')[0].toLowerCase())));
+    const ficha = DB.registros.find(r => r.alumna_id === a.id)
+      || DB.registros.find(r => !r.alumna_id && r.nombre && a.nombre.split(' ')[0].toLowerCase() === r.nombre.split(' ')[0].toLowerCase());
     const fichaAbierta = S[`ficha_open_${a.id}`];
     return`
   <div class="card">
@@ -1634,34 +1646,28 @@ function rRutinas(){
 }
 
 async function addVariante(variante){
-  const a = getA(S.selA);
-  if(!a || !variante) return;
-
-  ensureLocal(a.id, S.selCiclo, S.selSem);
-
-  const week = DB.rutinas[a.id][S.selCiclo][S.selSem];
-  let day = week.find(d => parseInt(d.dia) === parseInt(S.selDia));
-
-  if(!day){
-    day = { dia: parseInt(S.selDia), ejercicios: [] };
-    week.push(day);
-  }
-
-  if(!Array.isArray(day.ejercicios)){
-    day.ejercicios = [];
-  }
-
+  const a=getA(S.selA);
+  if(!a||!variante)return;
+  ensureLocal(a.id,S.selCiclo,S.selSem);
+  const week=DB.rutinas[a.id][S.selCiclo][S.selSem];
+  let day=week.find(d=>parseInt(d.dia)===parseInt(S.selDia));
+  if(!day){day={dia:parseInt(S.selDia),ejercicios:[]};week.push(day);}
+  if(!Array.isArray(day.ejercicios))day.ejercicios=[];
   day.ejercicios.push({
-    nombre: variante.ejercicio_nombre || variante.nombre || '',
-    series: variante.series || '3',
-    reps: variante.reps || '10',
-    tip: variante.tip || '',
-    video: variante.video || '',
-    grupo: variante.grupo || ''
+    nombre:variante.ejercicio_nombre||variante.nombre||'',
+    series:variante.series||'3',
+    reps:variante.reps||'10',
+    tip:variante.tip||'',
+    video:variante.video||'',
+    grupo:variante.grupo||''
   });
-
-  await saveDay();
-  render();
+  try{
+    await saveDay();
+    render();
+  }catch(e){
+    day.ejercicios.pop();  // rollback
+    S.err='Error al agregar variante';render();
+  }
 }
 
 function getOrCreateDay(aId, ciclo, sem, dia){
@@ -1717,8 +1723,8 @@ function rBiblioteca(){
 }
 
 function openManualBib(){
+  _manualBibOnly=true;
   document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';
-  // En modo biblioteca, no agregamos a rutina
   document.getElementById('modal-manual').style.display='flex';
 }
 
@@ -1766,8 +1772,7 @@ async function nuevaPlantilla(){
   const nombre=prompt('Nombre de la nueva plantilla:','');
   if(!nombre||!nombre.trim())return;
   try{
-    const result=await sbUpsert('plantillas',{nombre:nombre.trim(),descripcion:'',estructura:{},tipo:'gym'});
-    const nueva=Array.isArray(result)?result[0]:result;
+    const nueva=await sbInsert('plantillas',{nombre:nombre.trim(),descripcion:'',estructura:{},tipo:'gym'});
     if(nueva){DB.plantillas.push(nueva);verPlantilla(nueva.id);}
     else render();
   }catch(e){alert('Error al crear plantilla: '+e.message);}
@@ -1794,8 +1799,7 @@ async function crearPlantillaDesdeRutina(){
   if(Object.keys(estructura).length===0){alert('La rutina actual no tiene ejercicios. Agregá ejercicios primero.');return;}
   const nueva={nombre,descripcion,dias:parseInt(a.dias)||3,tipo:a.tipo||'gym',estructura};
   try{
-    const res=await sbUpsert('plantillas',nueva);
-    const saved=Array.isArray(res)?res[0]:res;
+    const saved=await sbInsert('plantillas',nueva);
     DB.plantillas.push(saved);
     S.msg='Plantilla creada ✓';go('plantillas');
     setTimeout(()=>{S.msg='';render();},2000);
