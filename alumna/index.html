@@ -1283,6 +1283,23 @@ function launchConfetti(){
 async function toggleDone(aId,i,nextName){
   const k=dKey(aId,selSem,selDia,i);
   const wasDone=!!done[k];
+
+  // Block unmarking if a later week already has done exercises
+  if(wasDone){
+    const laterDone=Object.keys(done).some(k2=>{
+      if(!done[k2])return false;
+      const p=k2.split('-');
+      return p.length>=5&&p[0]===String(aId)&&p[1]===`c${selCiclo}`&&parseInt(p[2])>selSem;
+    });
+    if(laterDone){
+      document.getElementById('undo-toast-el')?.remove();
+      const t=document.createElement('div');t.id='undo-toast-el';t.className='undo-toast';
+      t.innerHTML=`<span>Ya avanzaste de semana — no podés desmarcar esta</span>`;
+      document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+      return;
+    }
+  }
+
   done[k]=!done[k];
   saveDone();
 
