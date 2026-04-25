@@ -1810,8 +1810,15 @@ function renderProgreso(){
   ciclosDisp.forEach(cic=>{
     const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
     const totalCeldas=4*numDias;
+    function isDayDone80(sem,dia){
+      const exs=getExs(a.id,cic,sem,dia);
+      const total=exs.length;
+      if(total===0)return false;
+      let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
+      return cnt/total>=0.8;
+    }
     let completados=0;
-    for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(diasHechos.has(`c${cic}-${s}-${d}`)) completados++;
+    for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
     const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
 
     calHtml+=`<div style="margin-bottom:1.25rem;">
@@ -1828,7 +1835,7 @@ function renderProgreso(){
         ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
         <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
         ${[1,2,3,4].map(sem=>{
-          const hecho=diasHechos.has(`c${cic}-${sem}-${dia}`);
+          const hecho=isDayDone80(sem,dia);
           return`<div title="${cicloNombre} · Sem ${sem} · Día ${dia}" style="
             height:30px;border-radius:6px;
             background:${hecho?'var(--v)':'var(--s2)'};

@@ -383,7 +383,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -530,6 +530,7 @@ async function loadAll(){
     if(!S.selA&&DB.alumnas.length>0){S.selA=DB.alumnas[0].id;S.selCiclo=DB.alumnas[0].ciclo_actual||1;}
     sbSt(true,'Conectado ✓');
     render();startPoll();
+    if(prevReg>0){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=prevReg;}}
   }catch(e){sbSt(false,'Sin conexión');console.error(e);render();}
 }
 
@@ -1205,6 +1206,8 @@ async function aprobar(id){
   const reg=DB.registros.find(r=>r.id===id);if(!reg)return;
   await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});
   reg.estado='aprobado';
+  prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
+  const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
   S.addA=true;
   go('alumnas');  // render corre primero — los inputs existen después de esto
   const elNombre=document.getElementById('na-nombre');
@@ -1212,7 +1215,14 @@ async function aprobar(id){
   if(elNombre)elNombre.value=reg.nombre||'';
   if(elTel)elTel.value=reg.tel||'';
 }
-async function rechazar(id){if(!confirm('¿Rechazás?'))return;await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});const reg=DB.registros.find(r=>r.id===id);if(reg)reg.estado='rechazado';render();}
+async function rechazar(id){
+  if(!confirm('¿Rechazás?'))return;
+  await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});
+  const reg=DB.registros.find(r=>r.id===id);if(reg)reg.estado='rechazado';
+  prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
+  const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
+  render();
+}
 
 // ── View ──────────────────────────────────────────────────────
 function go(v){
@@ -1842,45 +1852,115 @@ function exportarCSV(aId){
 
 function rHistorial(){
   const a=getA(S.selA);
-  const rows = DB.progreso?.[a?.id]||[];
-  // Agrupar por ciclo
-  const porCiclo={};
-  rows.forEach(r=>{
-    const k=r.ciclo||1;
-    if(!porCiclo[k])porCiclo[k]=[];
-    porCiclo[k].push(r);
+  const rows=DB.progreso?.[a?.id]||[];
+
+  // Available cycles
+  const ciclosDisp=[...new Set(rows.map(r=>r.ciclo||1))].sort((a,b)=>a-b);
+  const selCiclo=S.selHistCiclo&&ciclosDisp.includes(S.selHistCiclo)?S.selHistCiclo:(ciclosDisp[ciclosDisp.length-1]||1);
+  if(S.selHistCiclo!==selCiclo)S.selHistCiclo=selCiclo;
+
+  const cicloRows=rows.filter(r=>(r.ciclo||1)===selCiclo);
+  const cNom=a?.ciclos_nombres?.[selCiclo]||('Ciclo '+selCiclo);
+
+  // Calendar: build done map [sem-dia] = {done, total}
+  const dayMap={};
+  cicloRows.forEach(r=>{
+    const k=`${r.semana}-${r.dia}`;
+    if(!dayMap[k])dayMap[k]={done:0,total:0};
+    dayMap[k].total++;
+    if(r.hecho)dayMap[k].done++;
   });
-  // También leer pesos del localStorage de la alumna (si están)
-  const lsPesos = Object.entries(localStorage).filter(([k])=>k.startsWith('p-'+(a?.id||'')));
-  
-  // Progresión de carga sugerida
+  const allSems=[...new Set([
+    ...cicloRows.map(r=>r.semana),
+    ...Object.keys(DB.rutinas?.[a?.id]?.[selCiclo]||{}).map(Number)
+  ])].filter(Boolean).sort((a,b)=>a-b);
+  const allDias=[...new Set([
+    ...cicloRows.map(r=>r.dia),
+    ...allSems.flatMap(s=>(DB.rutinas?.[a?.id]?.[selCiclo]?.[s]||[]).map(x=>x.dia))
+  ])].filter(Boolean).sort((a,b)=>a-b);
+
+  const calHtml=allSems.length===0?'':
+  `<div style="overflow-x:auto;margin-bottom:1rem;">
+    <table style="border-collapse:collapse;">
+      <thead><tr>
+        <th style="font-size:10px;color:var(--tm);padding:4px 10px;font-weight:400;"></th>
+        ${allSems.map(s=>`<th style="font-size:10px;color:var(--tm);padding:4px 10px;font-weight:400;">S${s}</th>`).join('')}
+      </tr></thead>
+      <tbody>${allDias.map(d=>`<tr>
+        <td style="font-size:10px;color:var(--tm);padding:4px 10px;font-weight:400;">D${d}</td>
+        ${allSems.map(s=>{
+          const info=dayMap[`${s}-${d}`];
+          if(!info||info.total===0)return`<td style="padding:4px 6px;"><div style="width:32px;height:32px;border-radius:6px;background:var(--b);"></div></td>`;
+          const done80=info.done/info.total>=0.8;
+          const label=done80?'✓':`${info.done}/${info.total}`;
+          return`<td style="padding:4px 6px;"><div style="width:32px;height:32px;border-radius:6px;background:${done80?'var(--v)':'var(--b)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:${done80?'white':'var(--tm)'};">${label}</div></td>`;
+        }).join('')}
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+
+  // All completed exercises (hecho=true)
+  const hechos=cicloRows.filter(r=>r.hecho).sort((a,b)=>a.semana-b.semana||a.dia-b.dia||a.ejercicio_idx-b.ejercicio_idx);
+  const exTableHtml=hechos.length===0
+    ?`<div class="empty">Sin ejercicios completados en este ciclo.</div>`
+    :`<table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead><tr>${['Sem','Día','Ejercicio','Peso','Fecha'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${hechos.map(r=>{
+        const exNombre=r.ejercicio_nombre||('Ej. '+(r.ejercicio_idx+1));
+        const peso=r.peso_kg?`${r.peso_kg} kg`:'—';
+        const fecha=r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):'';
+        return`<tr><td style="padding:5px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);">${exNombre}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-weight:500;">${peso}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${fecha}</td></tr>`;
+      }).join('')}</tbody>
+    </table>`;
+
+  // Weight progression suggestions (across all cycles)
   const pesosPorEj={};
   rows.filter(r=>r.peso_kg&&r.ejercicio_nombre).forEach(r=>{
     const k=r.ejercicio_nombre;
     if(!pesosPorEj[k])pesosPorEj[k]=[];
     pesosPorEj[k].push({semana:r.semana,ciclo:r.ciclo||1,peso:parseFloat(r.peso_kg)});
   });
-  const sugerencias=Object.entries(pesosPorEj)
-    .map(([nombre,registros])=>{
-      const sorted=[...registros].sort((a,b)=>a.ciclo-b.ciclo||a.semana-b.semana);
-      if(sorted.length<2)return null;
-      const ultimos=sorted.slice(-3);
-      const pesos=ultimos.map(r=>r.peso);
-      const todoIgual=pesos.every(p=>p===pesos[0]);
-      if(!todoIgual)return null;
-      const actual=pesos[0];
-      const sugerido=Math.round(actual*1.05*2)/2;
-      return{nombre,actual,sugerido,semanas:ultimos.length};
-    }).filter(Boolean);
+  const sugerencias=Object.entries(pesosPorEj).map(([nombre,registros])=>{
+    const sorted=[...registros].sort((a,b)=>a.ciclo-b.ciclo||a.semana-b.semana);
+    if(sorted.length<2)return null;
+    const ultimos=sorted.slice(-3);
+    const pesos=ultimos.map(r=>r.peso);
+    if(!pesos.every(p=>p===pesos[0]))return null;
+    const actual=pesos[0];
+    return{nombre,actual,sugerido:Math.round(actual*1.05*2)/2,semanas:ultimos.length};
+  }).filter(Boolean);
 
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
     <div style="display:flex;gap:7px;flex-wrap:wrap;">
-      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
     </div>
     ${a&&rows.length>0?`<button class="btn btn-s" onclick="exportarCSV(${a.id})" title="Descargar historial en Excel">⬇ CSV</button>`:''}
   </div>
-  ${sugerencias.length>0?`<div class="card" style="margin-bottom:1rem;background:var(--a);border-color:transparent;">
+  ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
+  rows.length===0?
+  `<div class="card" style="background:var(--a);border-color:transparent;">
+    <div style="font-size:13px;color:var(--ad);line-height:1.7;">
+      <strong>Sin progreso registrado todavía.</strong><br>
+      Los datos aparecen acá cuando la alumna marca ejercicios como hechos y carga pesos en su app <em>mientras tiene conexión a internet</em>.<br>
+      Si la alumna usó la app sin conexión, los datos quedan pendientes de sincronización — pedile que abra la app con señal para que se guarden.
+    </div>
+  </div>`:
+  `<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <div class="ctitle" style="margin:0;">${cNom}</div>
+      ${ciclosDisp.length>1?`<select class="inp" style="width:auto;padding:4px 10px;font-size:13px;" onchange="S.selHistCiclo=parseInt(this.value);render();">${ciclosDisp.map(c=>`<option value="${c}"${c===selCiclo?' selected':''}>${a?.ciclos_nombres?.[c]||('Ciclo '+c)}</option>`).join('')}</select>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.75rem;">
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Días completados</div><div class="mval" style="font-size:1.5rem;">${new Set(cicloRows.filter(r=>r.hecho).map(r=>r.semana+'-'+r.dia)).size}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Ejercicios hechos</div><div class="mval" style="font-size:1.5rem;">${cicloRows.filter(r=>r.hecho).length}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Con peso registrado</div><div class="mval" style="font-size:1.5rem;">${cicloRows.filter(r=>r.peso_kg).length}</div></div>
+      <div class="metric" style="padding:.75rem;"><div class="mlabel">Semanas</div><div class="mval" style="font-size:1.5rem;">${new Set(cicloRows.map(r=>r.semana)).size}</div></div>
+    </div>
+    ${calHtml}
+    ${exTableHtml}
+  </div>
+  ${sugerencias.length>0?`<div class="card" style="margin-top:1rem;background:var(--a);border-color:transparent;">
     <div class="ctitle" style="color:var(--ad);margin-bottom:.6rem;">💡 Progresión sugerida — mismo peso ${sugerencias[0]?.semanas||2}+ semanas</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
       ${sugerencias.map(s=>`<div style="background:var(--s);border-radius:var(--rs);padding:.6rem .75rem;font-size:12px;">
@@ -1889,35 +1969,6 @@ function rHistorial(){
       </div>`).join('')}
     </div>
   </div>`:''}
-  ${!a?'<div class="card"><div class="empty">Seleccioná una alumna.</div></div>':
-  rows.length===0&&lsPesos.length===0?
-  `<div class="card" style="background:var(--a);border-color:transparent;">
-    <div style="font-size:13px;color:var(--ad);line-height:1.7;">
-      <strong>Sin progreso registrado todavía.</strong><br>
-      Los datos aparecen acá cuando la alumna marca ejercicios como hechos y carga pesos en su app <em>mientras tiene conexión a internet</em>.<br>
-      Si la alumna usó la app sin conexión, los datos quedan pendientes de sincronización — pedile que abra la app con señal para que se guarden.
-    </div>
-  </div>`:
-  `${Object.entries(porCiclo).sort(([a],[b])=>b-a).map(([ciclo,rs])=>{const cNom=a.ciclos_nombres?.[parseInt(ciclo)]||('Ciclo '+ciclo);return`
-  <div class="card" style="margin-bottom:1rem;">
-    <div class="ctitle">${cNom}</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.75rem;">
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Días completados</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.filter(r=>r.hecho).map(r=>r.semana+'-'+r.dia)).size}</div></div>
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Ejercicios hechos</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.hecho).length}</div></div>
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Con peso registrado</div><div class="mval" style="font-size:1.5rem;">${rs.filter(r=>r.peso_kg).length}</div></div>
-      <div class="metric" style="padding:.75rem;"><div class="mlabel">Semanas</div><div class="mval" style="font-size:1.5rem;">${new Set(rs.map(r=>r.semana)).size}</div></div>
-    </div>
-    ${rs.filter(r=>r.peso_kg).length>0?`
-    <table style="width:100%;font-size:12px;border-collapse:collapse;">
-      <thead><tr>${['Sem','Día','Ejercicio','Peso','Fecha'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
-      <tbody>${rs.filter(r=>r.peso_kg).map(r=>{
-        const day=getEx(a.id,parseInt(ciclo),r.semana,r.dia);
-        const ex=Array.isArray(day)&&r.ejercicio_idx<day.length?day[r.ejercicio_idx]:null;
-        const exNombre=r.ejercicio_nombre||(ex?.nombre)||'—';
-        return`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);">${exNombre}</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-weight:500;">${r.peso_kg} kg</td><td style="padding:6px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):''}</td></tr>`;
-      }).join('')}</tbody>
-    </table>`:'<div class="empty">Sin pesos registrados en este ciclo.</div>'}
-  </div>`}).join('')}
   `}`;
 }
 
