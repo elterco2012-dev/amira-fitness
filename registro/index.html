@@ -156,20 +156,13 @@
       </div>
     </div>
     <div class="field">
-      <label>Modalidad de interés</label>
-      <div class="chips" id="chips-modalidad">
-        <div class="chip" onclick="toggleChip(this)">Pilates mat</div>
-        <div class="chip" onclick="toggleChip(this)">Pilates reformer</div>
-        <div class="chip" onclick="toggleChip(this)">Entrenamiento funcional (gym)</div>
-        <div class="chip" onclick="toggleChip(this)">No sé todavía</div>
-      </div>
-    </div>
-    <div class="field">
       <label>¿Cuántos días por semana podés entrenar?</label>
       <div class="chips" id="chips-dias">
-        <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">1-2 días</div>
+        <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">1 día</div>
+        <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">2 días</div>
         <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">3 días</div>
-        <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">4-5 días</div>
+        <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">4 días</div>
+        <div class="chip" onclick="toggleChipSingle(this,'chips-dias')">5 días</div>
       </div>
     </div>
     <div class="step-nav">
@@ -315,7 +308,6 @@ function buildResumen(){
     ['Género',document.getElementById('f-genero').value||'—'],
     ['Ubicación',document.getElementById('f-ubicacion').value],
     ['Objetivos',getChips('chips-objetivo')],
-    ['Modalidad',getChips('chips-modalidad')],
     ['Días/semana',getChips('chips-dias')],
     ['Lugar de entrenamiento',getLugar()],
     ['¿Fumás?',getChips('chips-fuma')||'—'],
@@ -337,7 +329,6 @@ async function enviarRegistro(){
   const genero=document.getElementById('f-genero').value||'—';
   const ubicacion=document.getElementById('f-ubicacion').value;
   const objetivos=getChips('chips-objetivo');
-  const modalidad=getChips('chips-modalidad');
   const dias=getChips('chips-dias');
   const lugar=getLugar();
   const fuma=getChips('chips-fuma')||'—';
@@ -350,7 +341,7 @@ async function enviarRegistro(){
   // Objeto a guardar — sin id, la DB lo genera automáticamente
   const nuevo={
     nombre:`${nombre} ${apellido}`,tel,mail,nacimiento,genero,ubicacion,
-    objetivos,modalidad,dias,lugar_entrenamiento:lugar,fuma,peso,altura,lesiones,exp,extra,
+    objetivos,dias,lugar_entrenamiento:lugar,fuma,peso,altura,lesiones,exp,extra,
     fecha:new Date().toLocaleDateString('es-AR'),
     estado:'pendiente'
   };
@@ -367,7 +358,6 @@ async function enviarRegistro(){
 📍 ${ubicacion}
 
 🎯 Objetivos: ${objetivos}
-🏋️ Modalidad: ${modalidad}
 📅 Días/semana: ${dias}
 🏠 Lugar de entrenamiento: ${lugar}
 🚬 Fumadora: ${fuma}
