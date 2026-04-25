@@ -1210,10 +1210,15 @@ async function aprobar(id){
   const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
   S.addA=true;
   go('alumnas');  // render corre primero — los inputs existen después de esto
-  const elNombre=document.getElementById('na-nombre');
-  const elTel=document.getElementById('na-tel');
-  if(elNombre)elNombre.value=reg.nombre||'';
-  if(elTel)elTel.value=reg.tel||'';
+  const elNombre=document.getElementById('na-nombre');if(elNombre)elNombre.value=reg.nombre||'';
+  const elTel=document.getElementById('na-tel');if(elTel)elTel.value=reg.tel||'';
+  const elEmail=document.getElementById('na-email');if(elEmail)elEmail.value=reg.mail||'';
+  const elNac=document.getElementById('na-nacimiento');
+  if(elNac&&reg.nacimiento&&reg.nacimiento!=='—')elNac.value=reg.nacimiento;
+  const elDias=document.getElementById('na-dias');
+  if(elDias&&reg.dias){const dNum=parseInt(String(reg.dias).replace(/\D/g,''))||3;elDias.value=String(dNum);}
+  const elNotas=document.getElementById('na-notas');
+  if(elNotas&&reg.objetivos&&reg.objetivos!=='—')elNotas.value=reg.objetivos;
 }
 async function rechazar(id){
   if(!confirm('¿Rechazás?'))return;
@@ -1402,7 +1407,7 @@ function rAlumnas(){
     <label>WhatsApp</label><input type="tel" id="na-tel" placeholder="5491123456789">
     <div class="frow">
       <div><label>Tipo</label><select id="na-tipo"><option value="gym">Gimnasio</option><option value="distancia">A distancia</option></select></div>
-      <div><label>Días/semana</label><select id="na-dias"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
+      <div><label>Días/semana</label><select id="na-dias"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
     <label>Notas</label><textarea id="na-notas" placeholder="Lesiones, objetivos..."></textarea>
     <div style="display:flex;gap:8px;align-items:center;">
@@ -1412,9 +1417,8 @@ function rAlumnas(){
     </div>
   </div>`:''}
   ${DB.alumnas.map(a=>{
-    // Buscar ficha de salud asociada a esta alumna
-    const ficha = DB.registros.find(r => r.alumna_id === a.id)
-      || DB.registros.find(r => !r.alumna_id && r.nombre && a.nombre.split(' ')[0].toLowerCase() === r.nombre.split(' ')[0].toLowerCase());
+    // Ficha de salud: solo la que la alumna llenó desde /ficha/[slug] (con alumna_id asignado)
+    const ficha = DB.registros.find(r => r.alumna_id === a.id);
     const fichaAbierta = S[`ficha_open_${a.id}`];
     return`
   <div class="card">
@@ -1900,7 +1904,7 @@ function rHistorial(){
   </div>`;
 
   // All completed exercises (hecho=true)
-  const hechos=cicloRows.filter(r=>r.hecho).sort((a,b)=>a.semana-b.semana||a.dia-b.dia||a.ejercicio_idx-b.ejercicio_idx);
+  const hechos=cicloRows.filter(r=>r.hecho).sort((a,b)=>b.semana-a.semana||b.dia-a.dia||a.ejercicio_idx-b.ejercicio_idx);
   const exTableHtml=hechos.length===0
     ?`<div class="empty">Sin ejercicios completados en este ciclo.</div>`
     :`<table style="width:100%;font-size:12px;border-collapse:collapse;">
