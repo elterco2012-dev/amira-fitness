@@ -1801,34 +1801,44 @@ function renderProgreso(){
     Object.keys(done)
       .filter(k=>k.startsWith(`${a.id}-`)&&done[k])
       .map(k=>{ const p=k.split('-'); return p.length>=4?`${p[1]}-${p[2]}-${p[3]}`:null; })
-
-
       .filter(Boolean)
   );
 
-  // Generar grilla: 4 ciclos × 4 semanas × 3 días = 48 celdas máximo
   const ciclosDisp=getCiclos(a.id);
+  const numDias=parseInt(a.dias)||3;
   let calHtml='';
   ciclosDisp.forEach(cic=>{
-    calHtml+=`<div style="font-size:10px;color:var(--th);margin-bottom:4px;margin-top:8px;">Ciclo ${cic}</div>`;
-    calHtml+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    [1,2,3,4].forEach(sem=>{
-      [1,2,3,4,5].slice(0,parseInt(a.dias)||3).forEach(dia=>{
-        const key=`c${cic}-${sem}-${dia}`;
-        const hecho=diasHechos.has(key);
-        const title=`Ciclo ${cic} · Sem ${sem} · Día ${dia}`;
-        calHtml+=`<div title="${title}" style="
-          width:18px;height:18px;border-radius:4px;
-          background:${hecho?'var(--v)':'var(--s2)'};
-          border:1px solid ${hecho?'var(--vd)':'var(--bm)'};
-          transition:transform .15s;cursor:default;
-          flex-shrink:0;
-        "></div>`;
-      });
-      // Separador entre semanas
-      calHtml+='<div style="width:6px;"></div>';
-    });
-    calHtml+='</div>';
+    const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
+    const totalCeldas=4*numDias;
+    let completados=0;
+    for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(diasHechos.has(`c${cic}-${s}-${d}`)) completados++;
+    const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
+
+    calHtml+=`<div style="margin-bottom:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+        <span style="font-size:13px;font-weight:600;color:var(--t);">${cicloNombre}</span>
+        <span style="font-size:11px;color:var(--tm);">${completados}/${totalCeldas} días</span>
+      </div>
+      <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
+        <div></div>
+        ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
+        ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
+        <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
+        ${[1,2,3,4].map(sem=>{
+          const hecho=diasHechos.has(`c${cic}-${sem}-${dia}`);
+          return`<div title="${cicloNombre} · Sem ${sem} · Día ${dia}" style="
+            height:30px;border-radius:6px;
+            background:${hecho?'var(--v)':'var(--s2)'};
+            border:1px solid ${hecho?'var(--vd)':'var(--b)'};
+            display:flex;align-items:center;justify-content:center;
+            font-size:12px;color:white;font-weight:600;
+          ">${hecho?'✓':''}</div>`;
+        }).join('')}`).join('')}
+      </div>
+    </div>`;
   });
 
   let html=`
@@ -1839,12 +1849,6 @@ function renderProgreso(){
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Constancia</div>
     <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
       ${calHtml}
-      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;">
-        <div style="width:12px;height:12px;border-radius:3px;background:var(--s2);border:1px solid var(--bm);"></div>
-        <span style="font-size:10px;color:var(--th);">Pendiente</span>
-        <div style="width:12px;height:12px;border-radius:3px;background:var(--v);margin-left:8px;"></div>
-        <span style="font-size:10px;color:var(--th);">Completado</span>
-      </div>
     </div>
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Logros</div>
     <div class="badge-row">
