@@ -1198,16 +1198,63 @@ const CEL_MSGS = [
 
 function compartirDia(){
   const a=getAlumna(); if(!a)return;
-  const exs=getExs(a.id,selCiclo,selSem,selDia);
-  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const mes=meses[new Date().getMonth()];
-  const lineas=exs.map((ex,i)=>{
-    const p=pesos[pKey(a.id,selSem,selDia,i)];
-    return`• ${ex.nombre}${p?` — ${p}kg`:''}`;
-  }).join('\n');
-  const text=`💪 Completé el Día ${selDia} — ${mes} de mi rutina Amira Fitness!\n\n${lineas}\n\n¡Gracias a mi coach por armar mi plan! 🏋️‍♀️`;
-  if(navigator.share){navigator.share({text}).catch(()=>{});}
-  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
+  compartirLogro('¡Día '+selDia+' completado!',a.nombre.split(' ')[0]+' · Sem '+selSem,'💪');
+}
+function wrapTextCanvas(ctx,text,maxW){
+  const words=text.split(' ');const lines=[];let cur='';
+  words.forEach(w=>{const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;});
+  if(cur)lines.push(cur);return lines;
+}
+async function generarTarjetaLogro(titulo,subtitulo,emoji){
+  const W=1080,H=1080;
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  const gr=ctx.createLinearGradient(0,0,W,H);
+  gr.addColorStop(0,'#0a2e20');gr.addColorStop(.5,'#0F6E56');gr.addColorStop(1,'#1D9E75');
+  ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.06)';
+  ctx.beginPath();ctx.arc(W*.82,H*.12,300,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(W*.08,H*.88,200,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.18)';
+  ctx.beginPath();ctx.arc(W/2,240,115,0,Math.PI*2);ctx.fill();
+  try{await document.fonts.load('italic 110px "DM Serif Display"');}catch(e){}
+  ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='italic 110px "DM Serif Display",serif';ctx.fillText('A',W/2,248);
+  ctx.font='500 46px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillText('Amira Fitness',W/2,415);
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(W/2-140,456,280,2);
+  ctx.font='128px serif';ctx.textBaseline='alphabetic';ctx.fillText(emoji,W/2,618);
+  ctx.fillStyle='white';ctx.font='bold 72px "DM Sans",sans-serif';ctx.textBaseline='middle';
+  const tLines=wrapTextCanvas(ctx,titulo,W-140);
+  const tY=630+tLines.length*40;
+  tLines.forEach((l,idx)=>ctx.fillText(l,W/2,tY+idx*84));
+  ctx.font='400 50px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.78)';
+  ctx.fillText(subtitulo,W/2,tY+tLines.length*84+56);
+  ctx.font='400 36px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.45)';
+  const d=new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  ctx.fillText(d,W/2,H-72);
+  return new Promise(r=>cv.toBlob(r,'image/png'));
+}
+async function compartirLogro(titulo,subtitulo,emoji){
+  mostrarToast('Generando tarjeta...');
+  const blob=await generarTarjetaLogro(titulo,subtitulo,emoji).catch(()=>null);
+  if(!blob){mostrarToast('No se pudo generar');return;}
+  const file=new File([blob],'amira-fitness-logro.png',{type:'image/png'});
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],text:'Entrenando con Amira Fitness 💪'});return;}catch(e){}
+  }
+  const url=URL.createObjectURL(blob);
+  const txt=encodeURIComponent(titulo+' 💪 '+subtitulo+'\n#AmiraFitness');
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:1.25rem;';
+  ov.innerHTML=`<div style="background:var(--s);border-radius:16px;padding:1.25rem;max-width:340px;width:100%;text-align:center;">
+    <img src="${url}" style="width:100%;border-radius:10px;margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <a href="${url}" download="amira-fitness-logro.png" style="flex:1;padding:10px;background:var(--s2);border-radius:8px;font-size:13px;color:var(--t);text-decoration:none;">⬇ Guardar</a>
+      <a href="https://wa.me/?text=${txt}" target="_blank" style="flex:1;padding:10px;background:#25D366;border-radius:8px;font-size:13px;color:white;text-decoration:none;">📤 WhatsApp</a>
+    </div>
+    <button onclick="URL.revokeObjectURL('${url}');this.closest('[style*=fixed]').remove()" style="width:100%;padding:9px;background:none;border:1px solid var(--b);border-radius:8px;color:var(--tm);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cerrar</button>
+  </div>`;
+  document.body.appendChild(ov);
 }
 
 function mostrarCelebracion(aId, nombre, racha){
@@ -1261,6 +1308,7 @@ function mostrarCierreCiclo(aId, nombre, stats){
       <div class="ciclo-fin-stat"><b>${stats.racha}</b><span>Sem. seguidas</span></div>
     </div>
     <button class="ciclo-fin-btn" onclick="this.closest('.ciclo-fin-ov').remove()">¡Seguir entrenando!</button>
+    <button onclick="compartirLogro('¡Ciclo completo!','${nombre} · ${stats.dias} días entrenados','🏆')" style="margin-top:8px;width:100%;padding:10px;background:rgba(255,255,255,0.15);border:none;border-radius:var(--rp);color:white;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">📤 Compartir logro</button>
   </div>`;
   document.body.appendChild(ov);
 }
@@ -1810,7 +1858,8 @@ function renderRutina(){
   exs.forEach((ex,i)=>{
     const isDone=!!done[dKey(a.id,selSem,selDia,i)];
     const isExp=!!expanded[eKey(a.id,selSem,selDia,i)];
-    const pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
+    let pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
+    if(!pv&&ex.peso_base){pv=String(ex.peso_base);pesos[pKey(a.id,selSem,selDia,i)]=pv;}
     const nextEx=exs[i+1];
     const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
     html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
