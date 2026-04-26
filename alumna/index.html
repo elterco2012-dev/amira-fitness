@@ -487,6 +487,29 @@
   <button class="bitem" id="bn-n" onclick="switchTab('n')"><span>💬</span><span>Notas</span></button>
 </div>
 
+<!-- Modal de reporte de molestia -->
+<div id="modal-reporte" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)cerrarReporte()">
+  <div style="background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;">
+    <div style="font-size:16px;font-weight:600;color:var(--t);margin-bottom:1rem;" id="rep-titulo">¿Qué sentiste?</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
+      <button onclick="enviarReporte('dolor_normal')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
+        <div style="font-size:14px;font-weight:500;">💪 Dolor muscular normal</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px;">Ardor o agujetas — es parte del proceso</div>
+      </button>
+      <button onclick="enviarReporte('dolor_articular')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f59e0b44;background:#fef3c7;cursor:pointer;font-family:'DM Sans',sans-serif;color:#92400e;">
+        <div style="font-size:14px;font-weight:500;">⚠️ Molestia articular</div>
+        <div style="font-size:11px;margin-top:2px;opacity:.8;">Rodilla, hombro, codo — Amira va a revisarlo</div>
+      </button>
+      <button onclick="enviarReporte('dolor_preocupante')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f0959544;background:var(--rl);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--rd);">
+        <div style="font-size:14px;font-weight:500;">🚨 Algo me preocupa</div>
+        <div style="font-size:11px;margin-top:2px;opacity:.8;">Dolor intenso, agudo o raro — Amira recibe alerta inmediata</div>
+      </button>
+    </div>
+    <textarea id="rep-nota" rows="2" placeholder="Contale a Amira qué sentiste (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);resize:none;margin-bottom:.75rem;"></textarea>
+    <button onclick="cerrarReporte()" style="width:100%;padding:10px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--tm);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
+  </div>
+</div>
+
 </div><!-- /app-wrapper -->
 <script>
 // ── Config ────────────────────────────────────────────────────
@@ -1346,7 +1369,10 @@ async function toggleDone(aId,i,nextName){
   const delay = done[k] ? 400 : 320;
   setTimeout(()=>{
     skipTimer();
-    if(done[k] && !wasDone) startTimer(nextName);
+    if(done[k] && !wasDone){
+      startTimer(nextName);
+      localStorage.setItem('af-did-train-'+aId+'-'+new Date().toISOString().split('T')[0],'1');
+    }
     renderRutina();
     // Undo toast cuando se desmarca
     if(!done[k] && wasDone){
@@ -1407,10 +1433,16 @@ function npKey(aId,c,s,d){return`af-np-${aId}-c${c}-${s}-${d}`;}
 function fbKey(aId,c,s,d){return`af-fb-${aId}-c${c}-${s}-${d}`;}
 
 async function marcarNoPude(aId){
-  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),new Date().toISOString());
+  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'nopude|'+new Date().toISOString());
   renderRutina();
   try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'no_pude',ciclo:selCiclo,semana:selSem,dia:selDia});}
   catch(e){console.warn('feedback no_pude:',e);}
+}
+async function marcarDescansoActivo(aId){
+  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'activo|'+new Date().toISOString());
+  renderRutina();
+  try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'descanso_activo',ciclo:selCiclo,semana:selSem,dia:selDia});}
+  catch(e){console.warn('feedback descanso_activo:',e);}
 }
 
 async function guardarFeedbackDia(aId,tipo){
@@ -1440,13 +1472,22 @@ async function enviarCheckin(aId){
   renderNotas();
 }
 
-async function reportarProblema(aId,idx,nombre){
-  const nota=prompt('Contanos qué pasó con "'+nombre+'":');
-  if(!nota)return;
+let _repCtx={aId:null,idx:null,nombre:''};
+function reportarProblema(aId,idx,nombre){
+  _repCtx={aId,idx,nombre};
+  document.getElementById('rep-titulo').textContent='¿Qué sentiste con '+nombre+'?';
+  document.getElementById('rep-nota').value='';
+  document.getElementById('modal-reporte').style.display='flex';
+}
+function cerrarReporte(){document.getElementById('modal-reporte').style.display='none';}
+async function enviarReporte(tipo){
+  const nota=document.getElementById('rep-nota').value.trim();
+  cerrarReporte();
   try{
-    await sbInsert('feedbacks',{alumna_id:aId,tipo:'ejercicio_problema',ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:idx,ejercicio_nombre:nombre,nota});
-    alert('¡Gracias! Amira lo va a revisar.');
-  }catch(e){alert('No se pudo enviar. Gracias por avisar.');}
+    await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':'💪 ¡Gracias! Es parte del proceso.';
+    mostrarToast(msg);
+  }catch(e){mostrarToast('No se pudo enviar, gracias por avisar.');}
 }
 
 function initMaxPesos(aId){
@@ -1675,6 +1716,20 @@ function renderRutina(){
       </div>
     </div>
 
+    ${(()=>{
+      const hor=a.horario_entreno||{};
+      const diasConf=hor.dias||[];
+      if(!diasConf.length)return'';
+      const dow=new Date().getDay();
+      if(!diasConf.includes(dow))return'';
+      const todayKey=new Date().toISOString().split('T')[0];
+      const trainedToday=localStorage.getItem('af-did-train-'+a.id+'-'+todayKey);
+      if(trainedToday)return'';
+      return`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.4rem;">💪</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--vd);">¡Hoy te toca entrenar!</div><div style="font-size:11px;color:var(--vd);opacity:.8;">Abriste la app — eso ya es el primer paso.</div></div>
+      </div>`;
+    })()}
     <div class="warmup">
       <div class="wt">Entrada en calor — hacé esto primero</div>
       ${(DB.calentamiento&&DB.calentamiento.length>0
@@ -1689,6 +1744,16 @@ function renderRutina(){
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
       ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">${a.ciclos_nombres?.[c]||'Ciclo '+c}</button>`).join('')}
     </div></div>`;
+  }
+  // Mensaje de Amira para este ciclo (se muestra una vez hasta que la alumna lo cierra)
+  const _msgCiclo=(a.ciclos_mensajes||{})[selCiclo];
+  const _msgSeenKey=`af-ciclo-msg-seen-${a.id}-c${selCiclo}`;
+  if(_msgCiclo&&!localStorage.getItem(_msgSeenKey)){
+    html+=`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:.75rem;position:relative;">
+      <div style="font-size:10px;font-weight:600;color:var(--vd);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">💬 Mensaje de Amira</div>
+      <div style="font-size:13px;color:var(--t);line-height:1.55;">${_msgCiclo}</div>
+      <button onclick="localStorage.setItem('${_msgSeenKey}','1');renderRutina()" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:16px;color:var(--vd);cursor:pointer;line-height:1;" title="Cerrar">×</button>
+    </div>`;
   }
 
   // Selector de semanas — siempre visible (1-4)
@@ -1712,9 +1777,14 @@ function renderRutina(){
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
   if(exs.length>0&&!justDone&&!_noPude){
-    html+=`<button class="np-btn" onclick="marcarNoPude(${a.id})">😔 No pude entrenar hoy</button>`;
+    html+=`<div style="display:flex;gap:8px;margin-bottom:.5rem;">
+      <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
+      <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
+    </div>`;
   } else if(_noPude&&!justDone){
-    const _npDt=new Date(_noPude);const _npOk=!isNaN(_npDt.getTime());
+    const _npParts=_noPude.split('|');
+    const _npTipo=_npParts[0];
+    const _npDt=new Date(_npParts[1]||_noPude);const _npOk=!isNaN(_npDt.getTime());
     let _npSub='';
     if(_npOk){
       const _diffD=Math.floor((Date.now()-_npDt)/86400000);
@@ -1722,7 +1792,11 @@ function renderRutina(){
       const _mm=_npDt.getMinutes().toString().padStart(2,'0');
       _npSub=' · '+(_diffD===0?'hoy':'ayer')+' a las '+_hh+':'+_mm;
     }
-    html+=`<div class="np-done">😔 No pudiste entrenar${_npSub}</div>`;
+    if(_npTipo==='activo'){
+      html+=`<div class="np-done" style="background:var(--vl);color:var(--vd);border-color:var(--vm);">🚶 Hiciste descanso activo${_npSub} — ¡eso cuenta!</div>`;
+    }else{
+      html+=`<div class="np-done">😔 No pudiste entrenar${_npSub} — mañana es un nuevo día 💪</div>`;
+    }
   }
 
   if(exs.length===0){
@@ -1790,6 +1864,20 @@ function renderRutina(){
   }
   if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
   scr.innerHTML=html;
+}
+
+async function toggleDiaHorario(aId,dia){
+  const a=getAlumna();if(!a)return;
+  const hor={...(a.horario_entreno||{})};
+  const dias=[...(hor.dias||[])];
+  const idx=dias.indexOf(dia);
+  if(idx>=0)dias.splice(idx,1);else dias.push(dia);
+  dias.sort();
+  hor.dias=dias;
+  a.horario_entreno=hor;
+  try{await sbPatch('alumnas',`id=eq.${aId}`,{horario_entreno:hor});}
+  catch(e){console.warn('horario_entreno:',e);}
+  renderNotas();
 }
 
 async function savePesoCorp(aId){
@@ -1970,7 +2058,19 @@ function renderNotas(){
       <div style="font-size:12px;color:var(--pd);">✓ Check-in semana ${selSem}: <strong>${ciLabels[ciDado]||ciDado}</strong></div>
     </div>`;
   }
-  scr.innerHTML=ciHtml+`<div class="csec">
+  // Recordatorios de entrenamiento
+  const _hor=a.horario_entreno||{};
+  const _diasSel=_hor.dias||[];
+  const _diasNom=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const _horHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">🔔 Mis días de entrenamiento</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:.65rem;">Usamos esto para recordarte entrenar cuando abrís la app.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">
+      ${[0,1,2,3,4,5,6].map(d=>`<button onclick="toggleDiaHorario(${a.id},${d})" style="padding:5px 10px;border-radius:20px;font-size:12px;border:1px solid ${_diasSel.includes(d)?'var(--v)':'var(--bm)'};background:${_diasSel.includes(d)?'var(--vl)':'var(--s2)'};color:${_diasSel.includes(d)?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;">${_diasNom[d]}</button>`).join('')}
+    </div>
+    ${_diasSel.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasSel.map(d=>_diasNom[d]).join(', ')}</div>`:'<div style="font-size:11px;color:var(--th);">Sin días seleccionados</div>'}
+  </div>`;
+  scr.innerHTML=ciHtml+_horHtml+`<div class="csec">
     <div class="ctit">Mis notas para Amira</div>
     <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>
     ${coms.length===0?`<div style="font-size:12px;color:var(--tm);margin-bottom:10px;">Todavía no tenés notas. ¡Dejale una a Amira!</div>`:''}

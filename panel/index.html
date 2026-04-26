@@ -338,6 +338,7 @@
     </div>
     <div id="ciclo-info" style="font-size:13px;color:var(--tm);margin-bottom:1rem;line-height:1.6;"></div>
     <div><label>Nombre del nuevo ciclo (opcional)</label><input type="text" id="ciclo-nombre" placeholder="Ej: Mayo 2025, Mes 2, etc."></div>
+    <div><label>Mensaje para la alumna al iniciar este ciclo (opcional)</label><textarea id="ciclo-mensaje-txt" rows="3" placeholder="Ej: Este mes trabajamos fuerza de piernas. El objetivo es que sientas la diferencia en 4 semanas. ¡Vamos!" style="resize:vertical;"></textarea></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" onclick="confirmarNuevoCiclo()">Crear nuevo ciclo</button>
       <button class="btn" onclick="closeCicloModal()">Cancelar</button>
@@ -666,10 +667,14 @@ async function confirmarNuevoCiclo(){
     const nombreCiclo=document.getElementById('ciclo-nombre').value.trim();
     const ciclosNombres={...(a.ciclos_nombres||{})};
     if(nombreCiclo)ciclosNombres[nuevoCiclo]=nombreCiclo;
+    const msgCiclo=document.getElementById('ciclo-mensaje-txt')?.value?.trim()||'';
+    const ciclosMensajes={...(a.ciclos_mensajes||{})};
+    if(msgCiclo)ciclosMensajes[nuevoCiclo]=msgCiclo;
     // Actualizar ciclo_actual en la alumna
-    await sbPatch('alumnas',`id=eq.${a.id}`,{ciclo_actual:nuevoCiclo,ciclos_nombres:ciclosNombres});
+    await sbPatch('alumnas',`id=eq.${a.id}`,{ciclo_actual:nuevoCiclo,ciclos_nombres:ciclosNombres,ciclos_mensajes:ciclosMensajes});
     a.ciclo_actual=nuevoCiclo;
     a.ciclos_nombres=ciclosNombres;
+    a.ciclos_mensajes=ciclosMensajes;
     // Actualizar local
     if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
     DB.rutinas[a.id][nuevoCiclo]=JSON.parse(JSON.stringify(diasExistentes));
@@ -1354,7 +1359,7 @@ function rInicio(){
     }).join('');
 
   // Feedbacks recientes
-  const fbLabels={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió','no_pude':'😔 No pudo entrenar','ejercicio_problema':'⚑ Reporte'};
+  const fbLabels={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió','no_pude':'😔 No pudo entrenar','descanso_activo':'🚶 Descanso activo','ejercicio_problema':'⚑ Reporte','dolor_normal':'💪 Dolor muscular normal','dolor_articular':'⚠️ Molestia articular','dolor_preocupante':'🚨 Dolor preocupante'};
   const recentFb=(DB.feedbacks||[]).slice(0,8);
   let fbSec='';
   if(recentFb.length>0){
@@ -1378,7 +1383,12 @@ function rInicio(){
     fbSec='<div class="card" style="margin-bottom:1rem;"><div class="ctitle" style="margin-bottom:.5rem;">Feedbacks recientes</div>'+fbRows+'</div>';
   }
 
+  const _alertas=(DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante');
   return`<div class="ptitle">Bienvenida, Amira</div>
+  ${_alertas.length>0?`<div class="card" style="background:var(--rl);border-color:var(--rd);margin-bottom:1rem;">
+    <div style="font-size:.95rem;font-weight:600;color:var(--rd);margin-bottom:.4rem;">🚨 ${_alertas.length} alerta${_alertas.length!==1?'s':''} de dolor — revisá antes de continuar</div>
+    ${_alertas.slice(0,3).map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const cNom=al?.ciclos_nombres?.[f.ciclo]||('C'+f.ciclo);return`<div style="font-size:12px;color:var(--rd);padding:3px 0;">${al?al.nombre:'?'} · ${cNom}·S${f.semana}·D${f.dia}${f.ejercicio_nombre?' · '+f.ejercicio_nombre:''}${f.nota?' — <em>'+f.nota+'</em>':''}</div>`;}).join('')}
+  </div>`:''}
   <div class="metrics">
     <div class="metric"><div class="mlabel">Alumnas</div><div class="mval">${DB.alumnas.length}</div></div>
     <div class="metric"><div class="mlabel">Gimnasio</div><div class="mval">${gym}</div></div>
