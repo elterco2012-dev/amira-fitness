@@ -1021,12 +1021,25 @@ async function saveEditA(){
       else throw e;
     }
     Object.assign(a,updates,{lesiones:lesionesVal});
-    // Si hay email + nacimiento, intentar crear usuario auth silenciosamente
+    // Si hay email + nacimiento, crear/confirmar usuario auth y mostrar el PIN
     if(updates.email&&updates.nacimiento){
       const pin=pinDesdeNacimiento(updates.nacimiento);
-      if(pin) crearAuthUser(updates.email,pin).catch(()=>{});
+      if(pin){
+        const authRes=await crearAuthUser(updates.email,pin).catch(()=>null);
+        const ya=(authRes?.msg||authRes?.error_description||authRes?.message||'').toLowerCase();
+        if(ya.includes('already')||ya.includes('registered')){
+          S.msg=`Guardado ✓ · La cuenta ya existía · PIN: ${pin}`;
+        } else {
+          S.msg=`Guardado ✓ · Acceso creado · PIN de ${a.nombre.split(' ')[0]}: ${pin}`;
+        }
+      } else {
+        S.msg='Guardado ✓';
+      }
+    } else {
+      S.msg='Guardado ✓';
     }
     closeEditA();render();
+    setTimeout(()=>{S.msg='';render();},6000);
   }catch(e){document.getElementById('ea-msg').textContent='Error: '+e.message;}
 }
 

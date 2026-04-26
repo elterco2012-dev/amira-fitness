@@ -560,7 +560,14 @@ async function doAlumnaLogin(){
   msg.textContent='Ingresando...';
   try{
     const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({email,password:pin})});
-    if(!r.ok){msg.textContent='Email o PIN incorrecto.';return;}
+    if(!r.ok){
+      const rb=await r.json().catch(()=>({}));
+      const em=(rb.error_description||rb.msg||rb.message||'').toLowerCase();
+      if(em.includes('confirm')){msg.textContent='Tu cuenta necesita confirmación. Usá "Creá tu PIN" para establecer tu acceso.';}
+      else if(em.includes('not found')||em.includes('no user')){msg.textContent='No encontramos una cuenta con ese email.';}
+      else{msg.textContent='Email o PIN incorrecto. Tu PIN es tu fecha de nacimiento en formato DDMMAA (ej: 190488).';}
+      return;
+    }
     _saveAlumnaSess(await r.json());
     await init();
   }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
