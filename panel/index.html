@@ -929,13 +929,14 @@ async function saveEditEx(){
   ex.reps=document.getElementById('ee-reps').value;
   ex.tip=document.getElementById('ee-tip').value;
   ex.video=document.getElementById('ee-video').value;
-  // Guardar variante
+  // Guardar variante (por alumna, sin duplicados)
   if(document.getElementById('ee-guardar-variante').checked){
     const vNombre=document.getElementById('ee-variante-nombre').value.trim()||`${ex.nombre} — ${ex.series}×${ex.reps}`;
     const variante={ejercicio_nombre:ex.nombre,variante_nombre:vNombre,series:ex.series,reps:ex.reps,tip:ex.tip};
-    const vars=JSON.parse(localStorage.getItem('af-variantes')||'[]');
-    vars.push(variante);localStorage.setItem('af-variantes',JSON.stringify(vars));
-    DB.variantes=vars;
+    const storageKey='af-variantes-'+a.id;
+    const vars=JSON.parse(localStorage.getItem(storageKey)||'[]');
+    const duplicate=vars.find(v=>v.ejercicio_nombre===variante.ejercicio_nombre&&v.variante_nombre===vNombre);
+    if(!duplicate){vars.push(variante);localStorage.setItem(storageKey,JSON.stringify(vars));}
   }
   try{
     await saveDay();
@@ -1565,7 +1566,6 @@ function rInicio(){
 }
 
 function rAlumnas(){
-  DB.variantes=JSON.parse(localStorage.getItem('af-variantes')||'[]');
   const filtradas=DB.alumnas.filter(a=>{
     const est=a.estado||'activa';
     if(S.filtroEstado==='todas')return true;
@@ -1842,7 +1842,7 @@ function rRutinas(){
   const cicloActual=a.ciclo_actual||1;
   ensureLocal(a.id,S.selCiclo,S.selSem);
   const exs=getEx(a.id,S.selCiclo,S.selSem,S.selDia);
-  const variantes=DB.variantes||[];
+  const variantes=JSON.parse(localStorage.getItem('af-variantes-'+a.id)||'[]');
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
