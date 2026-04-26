@@ -279,7 +279,7 @@
       <div><label>Grupo muscular</label>
         <select id="m-grupo" style="margin-bottom:0;">
           <option>Core</option><option>Piernas</option><option>Glúteos</option>
-          <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option><option>Otro</option>
+          <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option><option>Calentamiento</option><option>Otro</option>
         </select>
       </div>
       <div><label>Tipo</label>
@@ -362,6 +362,20 @@
     <textarea id="ea-np" placeholder="Ej: tiene competencia en mayo, bajó el ritmo por trabajo..."></textarea>
     <label style="display:flex;align-items:center;gap:5px;">⚠️ Lesiones actuales <span style="font-size:10px;color:var(--tm);font-weight:400;">(se muestra como alerta en la rutina)</span></label>
     <textarea id="ea-lesiones" placeholder="Ej: hombro derecho (evitar press), rodilla izquierda..."></textarea>
+    <div style="font-size:11px;color:var(--tm);margin:.5rem 0 .25rem;font-weight:500;">Datos de perfil</div>
+    <div class="frow">
+      <div><label>Género</label><select id="ea-genero"><option value="">—</option><option>Mujer</option><option>Hombre</option><option>Otro</option></select></div>
+      <div><label>Fecha de nacimiento</label><input type="date" id="ea-nacimiento"></div>
+    </div>
+    <div class="frow">
+      <div><label>Ubicación</label><input type="text" id="ea-ubicacion" placeholder="Ej: Buenos Aires"></div>
+      <div><label>¿Fuma?</label><select id="ea-fuma"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+    </div>
+    <div class="frow">
+      <div><label>Peso (kg)</label><input type="number" id="ea-peso" step="0.1" min="30" max="200"></div>
+      <div><label>Altura (cm)</label><input type="number" id="ea-altura" min="100" max="220"></div>
+    </div>
+    <div><label>Experiencia</label><select id="ea-exp"><option value="">—</option><option>Nunca entrené</option><option>Algo de experiencia</option><option>Experiencia media</option><option>Avanzada</option></select></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><label>💰 Precio mensual ($)</label><input type="number" id="ea-precio" placeholder="0" min="0" step="100"></div>
       <div><label>📅 Inicio membresía</label><input type="date" id="ea-fecha-inicio"></div>
@@ -478,7 +492,7 @@ function getEx(aId,ciclo,sem,dia){
 }
 function copyL(slug){navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{S.msg='Copiado ✓';render();setTimeout(()=>{S.msg='';render();},1200);});}
 function sbSt(ok,msg){S.sbOk=ok;const d=document.getElementById('sbd'),l=document.getElementById('sbl');if(d)d.className='dot '+(ok?'ok':'err');if(l)l.textContent=msg;}
-function grupoColor(g){const m={Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Brazos:'#854F0B'};return m[g]||'#6b7280';}
+function grupoColor(g){const m={Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Brazos:'#854F0B',Calentamiento:'#0891b2'};return m[g]||'#6b7280';}
 
 // ── Load ──────────────────────────────────────────────────────
 async function loadAll(){
@@ -880,6 +894,13 @@ function openEditA(id){
   document.getElementById('ea-notas').value=a.notas||'';
   document.getElementById('ea-np').value=a.notas_privadas||'';
   document.getElementById('ea-lesiones').value=a.lesiones||'';
+  document.getElementById('ea-genero').value=a.genero||'';
+  document.getElementById('ea-nacimiento').value=a.nacimiento||'';
+  document.getElementById('ea-ubicacion').value=a.ubicacion||'';
+  document.getElementById('ea-fuma').value=a.fuma||'';
+  document.getElementById('ea-peso').value=a.peso||'';
+  document.getElementById('ea-altura').value=a.altura||'';
+  document.getElementById('ea-exp').value=a.exp||'';
   document.getElementById('ea-precio').value=a.precio||'';
   document.getElementById('ea-fecha-inicio').value=a.fecha_inicio||'';
   document.getElementById('ea-dia-cobro').value=a.dia_cobro||'';
@@ -893,7 +914,8 @@ async function saveEditA(){
   const fechaVal=document.getElementById('ea-fecha-inicio').value||null;
   const diaCobroVal=parseInt(document.getElementById('ea-dia-cobro').value)||null;
   const lesionesVal=document.getElementById('ea-lesiones').value.trim()||null;
-  const updates={nombre:document.getElementById('ea-nombre').value.trim(),email:document.getElementById('ea-email').value.trim()||null,tel:document.getElementById('ea-tel').value.trim(),tipo:document.getElementById('ea-tipo').value,dias:parseInt(document.getElementById('ea-dias').value),notas:document.getElementById('ea-notas').value.trim(),notas_privadas:document.getElementById('ea-np').value.trim()||null,precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal};
+  const _ev=id=>document.getElementById(id)?.value?.trim()||null;
+  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp')};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
     // Intentar guardar con lesiones; si la columna no existe en DB, guardar sin ella
@@ -947,7 +969,8 @@ async function addAlumna(){
   const email=document.getElementById('na-email')?.value?.trim()||null;
   const nac=document.getElementById('na-nacimiento')?.value||null;
   const slug=slugUnique(n);
-  const a={slug,nombre:n,email,tipo:document.getElementById('na-tipo')?.value||'gym',dias:parseInt(document.getElementById('na-dias')?.value||'3'),notas:document.getElementById('na-notas')?.value||'',foto:'',tel:document.getElementById('na-tel')?.value||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1};
+  const _g=v=>document.getElementById(v)?.value?.trim()||null;
+  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null};
   S.msg='Guardando...';render();
   try{
     const saved=await sbInsert('alumnas',a);
@@ -1233,6 +1256,13 @@ async function aprobar(id){
   }
   const elNotas=document.getElementById('na-notas');
   if(elNotas&&reg.objetivos&&reg.objetivos!=='—')elNotas.value=reg.objetivos;
+  const _pf=(id,val)=>{const el=document.getElementById(id);if(el&&val&&val!=='—')el.value=val;};
+  _pf('na-genero',reg.genero);
+  _pf('na-ubicacion',reg.ubicacion);
+  _pf('na-fuma',reg.fuma);
+  _pf('na-peso',reg.peso);
+  _pf('na-altura',reg.altura);
+  _pf('na-exp',reg.exp);
 }
 async function rechazar(id){
   if(!confirm('¿Rechazás?'))return;
@@ -1423,8 +1453,21 @@ function rAlumnas(){
       <div><label>Tipo</label><select id="na-tipo"><option value="gym">Gimnasio</option><option value="casa">Casa</option><option value="otro">Otro</option></select></div>
       <div><label>Días/semana</label><select id="na-dias"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
-    <label>Notas</label><textarea id="na-notas" placeholder="Lesiones, objetivos..."></textarea>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <label>Notas / objetivos</label><textarea id="na-notas" placeholder="Objetivos, lesiones..."></textarea>
+    <div style="font-size:11px;color:var(--tm);margin:.5rem 0 .25rem;font-weight:500;">Datos de perfil (opcional)</div>
+    <div class="frow">
+      <div><label>Género</label><select id="na-genero"><option value="">—</option><option>Mujer</option><option>Hombre</option><option>Otro</option></select></div>
+      <div><label>Ubicación</label><input type="text" id="na-ubicacion" placeholder="Ej: Buenos Aires"></div>
+    </div>
+    <div class="frow">
+      <div><label>Peso (kg)</label><input type="number" id="na-peso" placeholder="65" step="0.1" min="30" max="200"></div>
+      <div><label>Altura (cm)</label><input type="number" id="na-altura" placeholder="165" min="100" max="220"></div>
+    </div>
+    <div class="frow">
+      <div><label>¿Fuma?</label><select id="na-fuma"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+      <div><label>Experiencia</label><select id="na-exp"><option value="">—</option><option>Nunca entrené</option><option>Algo de experiencia</option><option>Experiencia media</option><option>Avanzada</option></select></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:.5rem;">
       <button class="btn btn-p btn-s" onclick="addAlumna()">Guardar</button>
       <button class="btn btn-s" onclick="S.addA=false;render()">Cancelar</button>
       ${S.msg?`<span class="sm">${S.msg}</span>`:''}${S.err?`<span class="em">${S.err}</span>`:''}
@@ -1447,7 +1490,7 @@ function rAlumnas(){
       <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1">
         <div class="aname">${a.nombre}</div>
-        <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel||'<span style="color:var(--rd)">Sin WhatsApp</span>'} · <strong style="color:var(--pd)">${a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1))}</strong></div>
+        <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel?`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel}</a>`:'<span style="color:var(--rd)">Sin WhatsApp</span>'} · <strong style="color:var(--pd)">${a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1))}</strong></div>
       </div>
       <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
     </div>
@@ -1476,31 +1519,46 @@ function rAlumnas(){
       </div>${histRows}`;
     })()}
 
-    ${regData?`
-    <div style="margin-bottom:10px;">
+    ${(()=>{
+      // Merge: alumna record fields take precedence; regData is legacy fallback
+      const nac=a.nacimiento||regData?.nacimiento;
+      const nf=fmtNac(nac); const edad=calcEdad(nac);
+      const gen=a.genero||regData?.genero;
+      const ubic=a.ubicacion||regData?.ubicacion;
+      const lugar=a.lugar_entrenamiento||regData?.lugar_entrenamiento||{gym:'Gimnasio',casa:'En casa',otro:'Otro'}[a.tipo];
+      const fuma=a.fuma||regData?.fuma;
+      const peso=a.peso||regData?.peso;
+      const altura=a.altura||regData?.altura;
+      const exp=a.exp||regData?.exp;
+      const obj=regData?.objetivos&&regData?.objetivos!=='—'?regData.objetivos:null;
+      const extra=regData?.extra&&regData?.extra!=='—'?regData.extra:null;
+      const tel=a.tel||regData?.tel;
+      const mail=a.email||regData?.mail;
+      const hasAny=!!(nf||gen||ubic||lugar||fuma||peso||altura||exp);
+      if(!hasAny)return'';
+      return`<div style="margin-bottom:10px;">
       <button class="btn btn-s" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;background:var(--s2);" onclick="S['reg_open_${a.id}']=!S['reg_open_${a.id}'];render()">
-        <span>📝 Datos del registro</span>
+        <span>📝 Perfil</span>
         <span style="font-size:10px;color:var(--tm);">${regOpen?'Cerrar ▲':'Ver ▼'}</span>
       </button>
       ${regOpen?`
       <div style="background:var(--s2);border-radius:0 0 var(--rs) var(--rs);padding:1rem;border:1px solid var(--b);border-top:none;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">
-          ${regData.mail?`<div><span style="color:var(--tm);">Mail:</span> ${regData.mail}</div>`:''}
-          ${regData.tel?`<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/${regData.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);font-weight:500;">${regData.tel}</a></div>`:''}
-          ${(()=>{const nf=fmtNac(regData.nacimiento);const edad=calcEdad(regData.nacimiento);return nf?`<div><span style="color:var(--tm);">Nacimiento:</span> <strong>${nf}</strong>${edad!==null?' ('+edad+' años)':''}</div>`:''})()}
-          ${regData.genero?`<div><span style="color:var(--tm);">Género:</span> ${regData.genero}</div>`:''}
-          ${regData.ubicacion&&regData.ubicacion!=='—'?`<div><span style="color:var(--tm);">Ubicación:</span> ${regData.ubicacion}</div>`:''}
-          ${regData.lugar_entrenamiento?`<div><span style="color:var(--tm);">Entrena en:</span> <strong>${regData.lugar_entrenamiento}</strong></div>`:''}
-          ${regData.dias&&regData.dias!=='—'?`<div><span style="color:var(--tm);">Días/sem:</span> ${regData.dias}</div>`:''}
-          ${regData.fuma?`<div><span style="color:var(--tm);">¿Fuma?:</span> ${regData.fuma}</div>`:''}
-          ${regData.peso&&regData.peso!=='—'?`<div><span style="color:var(--tm);">Peso:</span> ${regData.peso} kg</div>`:''}
-          ${regData.altura&&regData.altura!=='—'?`<div><span style="color:var(--tm);">Altura:</span> ${regData.altura} cm</div>`:''}
-          ${regData.exp?`<div><span style="color:var(--tm);">Experiencia:</span> ${regData.exp}</div>`:''}
-          ${regData.objetivos&&regData.objetivos!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> ${regData.objetivos}</div>`:''}
-          ${regData.lesiones&&regData.lesiones!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones:</span> <strong style="color:var(--rd);">${regData.lesiones}</strong></div>`:''}
-          ${regData.extra&&regData.extra!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> ${regData.extra}</div>`:''}
+          ${mail?`<div><span style="color:var(--tm);">Mail:</span> ${mail}</div>`:''}
+          ${tel?`<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/${tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);font-weight:500;">${tel}</a></div>`:''}
+          ${nf?`<div><span style="color:var(--tm);">Nacimiento:</span> <strong>${nf}</strong>${edad!==null?' ('+edad+' años)':''}</div>`:''}
+          ${gen?`<div><span style="color:var(--tm);">Género:</span> ${gen}</div>`:''}
+          ${ubic&&ubic!=='—'?`<div><span style="color:var(--tm);">Ubicación:</span> ${ubic}</div>`:''}
+          ${lugar?`<div><span style="color:var(--tm);">Entrena en:</span> <strong>${lugar}</strong></div>`:''}
+          ${fuma?`<div><span style="color:var(--tm);">¿Fuma?:</span> ${fuma}</div>`:''}
+          ${peso&&peso!=='—'?`<div><span style="color:var(--tm);">Peso:</span> ${peso} kg</div>`:''}
+          ${altura&&altura!=='—'?`<div><span style="color:var(--tm);">Altura:</span> ${altura} cm</div>`:''}
+          ${exp?`<div><span style="color:var(--tm);">Experiencia:</span> ${exp}</div>`:''}
+          ${obj?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> ${obj}</div>`:''}
+          ${extra?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> ${extra}</div>`:''}
         </div>
-      </div>`:''}</div>`:''}
+      </div>`:''}</div>`;
+    })()}
 
     ${ficha ? `
     <div style="margin-bottom:10px;">
@@ -2004,18 +2062,18 @@ function rHistorial(){
       <div class="metric" style="padding:.75rem;"><div class="mlabel">Con peso registrado</div><div class="mval" style="font-size:1.5rem;">${cicloRows.filter(r=>r.peso_kg).length}</div></div>
       <div class="metric" style="padding:.75rem;"><div class="mlabel">Semanas</div><div class="mval" style="font-size:1.5rem;">${new Set(cicloRows.map(r=>r.semana)).size}</div></div>
     </div>
-    ${calHtml}
+    <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
+      <div style="flex:1;min-width:0;">${calHtml}</div>
+      ${sugerencias.length>0?`<div style="min-width:180px;max-width:240px;background:var(--a);border-radius:var(--rs);padding:.75rem;border:1px solid transparent;">
+        <div style="font-size:11px;font-weight:600;color:var(--ad);margin-bottom:.5rem;">💡 Progresión sugerida</div>
+        ${sugerencias.map(s=>`<div style="margin-bottom:6px;font-size:12px;">
+          <div style="font-weight:500;color:var(--t);margin-bottom:2px;">${s.nombre}</div>
+          <div style="color:var(--tm);">${s.actual} → <strong style="color:var(--ad);">${s.sugerido} kg</strong> <span style="font-size:10px;">(+5%)</span></div>
+        </div>`).join('')}
+      </div>`:''}
+    </div>
     ${exTableHtml}
   </div>
-  ${sugerencias.length>0?`<div class="card" style="margin-top:1rem;background:var(--a);border-color:transparent;">
-    <div class="ctitle" style="color:var(--ad);margin-bottom:.6rem;">💡 Progresión sugerida — mismo peso ${sugerencias[0]?.semanas||2}+ semanas</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
-      ${sugerencias.map(s=>`<div style="background:var(--s);border-radius:var(--rs);padding:.6rem .75rem;font-size:12px;">
-        <div style="font-weight:500;color:var(--t);margin-bottom:3px;">${s.nombre}</div>
-        <div style="color:var(--tm);">${s.actual} kg → <strong style="color:var(--ad);">${s.sugerido} kg</strong> <span style="font-size:10px;">(+5%)</span></div>
-      </div>`).join('')}
-    </div>
-  </div>`:''}
   `}`;
 }
 

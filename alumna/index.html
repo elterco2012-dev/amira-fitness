@@ -1677,8 +1677,11 @@ function renderRutina(){
 
     <div class="warmup">
       <div class="wt">Entrada en calor — hacé esto primero</div>
-      <a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
-      <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>
+      ${(DB.calentamiento&&DB.calentamiento.length>0
+        ?DB.calentamiento.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
+        :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
+        <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`
+      )}
     </div>`;
 
   // Selector de ciclos — siempre visible
@@ -2026,13 +2029,15 @@ async function init(){
     if(a){
       selCiclo=parseInt(a.ciclo_actual)||1;
       localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
-      const [coms,prog,avs]=await Promise.all([
+      const [coms,prog,avs,calBib]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`),
-        sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[])
+        sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
+        sbGet('biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[])
       ]);
       DB.comentarios=coms;
       DB.avisos=avs;
+      if(calBib.length>0)DB.calentamiento=calBib;
       mostrarAvisos(a);
       // Si el panel reseteó el progreso, limpiar caché local antes de cargar
       const lastReset=localStorage.getItem('af-last-reset');
