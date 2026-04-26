@@ -320,10 +320,21 @@ function buildResumen(){
     <div class="resumen-row"><span class="resumen-lbl">${l}</span><span class="resumen-val">${v}</span></div>`).join('');
 }
 
+function normalizarTel(raw){
+  // Strip spaces, dashes, parentheses
+  let t=raw.replace(/[\s\-()]/g,'');
+  // If already has country/area code (starts with + or 549...), leave it
+  if(t.startsWith('+')) return t.replace(/^\+/,'');
+  if(t.startsWith('549')) return t;
+  if(t.startsWith('54')) return '5' + t; // 54... → 549...
+  // Local Argentine number — prepend 549
+  return '549' + t;
+}
+
 async function enviarRegistro(){
   const nombre=document.getElementById('f-nombre').value.trim();
   const apellido=document.getElementById('f-apellido').value.trim();
-  const tel=document.getElementById('f-tel').value.trim();
+  const tel=normalizarTel(document.getElementById('f-tel').value.trim());
   const mail=document.getElementById('f-mail').value.trim();
   const nacimiento=document.getElementById('f-nacimiento').value||'—';
   const genero=document.getElementById('f-genero').value||'—';
