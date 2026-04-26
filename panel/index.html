@@ -1217,6 +1217,11 @@ async function aprobar(id){
   if(elNac&&reg.nacimiento&&reg.nacimiento!=='—')elNac.value=reg.nacimiento;
   const elDias=document.getElementById('na-dias');
   if(elDias&&reg.dias){const dNum=parseInt(String(reg.dias).replace(/\D/g,''))||3;elDias.value=String(dNum);}
+  const elTipo=document.getElementById('na-tipo');
+  if(elTipo&&reg.lugar_entrenamiento){
+    const lug=String(reg.lugar_entrenamiento).toLowerCase();
+    elTipo.value=lug.startsWith('gimnasio')?'gym':'distancia';
+  }
   const elNotas=document.getElementById('na-notas');
   if(elNotas&&reg.objetivos&&reg.objetivos!=='—')elNotas.value=reg.objetivos;
 }
@@ -1420,6 +1425,9 @@ function rAlumnas(){
     // Ficha de salud: solo la que la alumna llenó desde /ficha/[slug] (con alumna_id asignado)
     const ficha = DB.registros.find(r => r.alumna_id === a.id);
     const fichaAbierta = S[`ficha_open_${a.id}`];
+    // Datos del formulario de registro original
+    const regData = DB.registros.find(r => r.estado==='aprobado' && r.nombre===a.nombre && !r.alumna_id);
+    const regOpen = S[`reg_open_${a.id}`];
     return`
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:.75rem;">
@@ -1458,6 +1466,28 @@ function rAlumnas(){
         ${hist.length>0?`<button class="btn btn-s" style="font-size:11px;padding:3px 8px;" onclick="S['hist_pago_${a.id}']=!S['hist_pago_${a.id}'];render()">📋</button>`:''}
       </div>${histRows}`;
     })()}
+
+    ${regData?`
+    <div style="margin-bottom:10px;">
+      <button class="btn btn-s" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;background:var(--s2);" onclick="S['reg_open_${a.id}']=!S['reg_open_${a.id}'];render()">
+        <span>📝 Datos del registro</span>
+        <span style="font-size:10px;color:var(--tm);">${regOpen?'Cerrar ▲':'Ver ▼'}</span>
+      </button>
+      ${regOpen?`
+      <div style="background:var(--s2);border-radius:0 0 var(--rs) var(--rs);padding:1rem;border:1px solid var(--b);border-top:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">
+          ${regData.nacimiento&&regData.nacimiento!=='—'?`<div><span style="color:var(--tm);">Nacimiento:</span> <strong>${regData.nacimiento}</strong></div>`:''}
+          ${regData.genero?`<div><span style="color:var(--tm);">Género:</span> ${regData.genero}</div>`:''}
+          ${regData.lugar_entrenamiento?`<div><span style="color:var(--tm);">Entrena en:</span> <strong>${regData.lugar_entrenamiento}</strong></div>`:''}
+          ${regData.fuma?`<div><span style="color:var(--tm);">¿Fuma?:</span> ${regData.fuma}</div>`:''}
+          ${regData.peso&&regData.peso!=='—'?`<div><span style="color:var(--tm);">Peso:</span> ${regData.peso} kg</div>`:''}
+          ${regData.altura&&regData.altura!=='—'?`<div><span style="color:var(--tm);">Altura:</span> ${regData.altura} cm</div>`:''}
+          ${regData.exp?`<div><span style="color:var(--tm);">Experiencia:</span> ${regData.exp}</div>`:''}
+          ${regData.objetivos&&regData.objetivos!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> ${regData.objetivos}</div>`:''}
+          ${regData.lesiones&&regData.lesiones!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones:</span> <strong style="color:var(--rd);">${regData.lesiones}</strong></div>`:''}
+          ${regData.extra&&regData.extra!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> ${regData.extra}</div>`:''}
+        </div>
+      </div>`:''}</div>`:''}
 
     ${ficha ? `
     <div style="margin-bottom:10px;">
@@ -2004,7 +2034,27 @@ function rRegistros(){
     ${r.extra&&r.extra!=='—'?`<div class="nota" style="margin-top:.75rem;margin-bottom:.4rem;">💬 ${r.extra}</div>`:''}
     ${r.lesiones&&r.lesiones!=='—'?`<div class="nota" style="margin-top:.4rem;margin-bottom:0;background:var(--rl);color:var(--rd);">⚠️ ${r.lesiones}</div>`:''}
   </div>`).join('')}
-  ${otros.length>0?`<div class="ctitle" style="margin:.75rem 0 .5rem;">Historial</div>${otros.map(r=>`<div class="card" style="opacity:.7;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''}</div></div><span class="badge" style="background:${r.estado==='aprobado'?'var(--vl)':'var(--rl)'};color:${r.estado==='aprobado'?'var(--vd)':'var(--rd)'};">${r.estado}</span></div></div>`).join('')}`:''}`;
+  ${otros.length>0?`<div class="ctitle" style="margin:.75rem 0 .5rem;">Historial</div>${otros.map(r=>{
+    const detOpen=S[`hreg_open_${r.id}`];
+    return`<div class="card" style="opacity:.85;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${detOpen?'.75rem':'0'};">
+        <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="badge" style="background:${r.estado==='aprobado'?'var(--vl)':'var(--rl)'};color:${r.estado==='aprobado'?'var(--vd)':'var(--rd)'};">${r.estado}</span>
+          <button class="btn btn-s" style="font-size:10px;" onclick="S['hreg_open_${r.id}']=!S['hreg_open_${r.id}'];render()">${detOpen?'▲':'Ver ▼'}</button>
+        </div>
+      </div>
+      ${detOpen?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+        <div><span style="color:var(--tm);">WhatsApp:</span> ${r.tel||'—'}</div><div><span style="color:var(--tm);">Mail:</span> ${r.mail||'—'}</div>
+        <div><span style="color:var(--tm);">Nacimiento:</span> ${r.nacimiento||'—'}</div><div><span style="color:var(--tm);">Género:</span> ${r.genero||'—'}</div>
+        <div><span style="color:var(--tm);">Objetivos:</span> ${r.objetivos||'—'}</div><div><span style="color:var(--tm);">Días/sem:</span> ${r.dias||'—'}</div>
+        <div><span style="color:var(--tm);">Lugar entrena:</span> ${r.lugar_entrenamiento||'—'}</div><div><span style="color:var(--tm);">¿Fuma?:</span> ${r.fuma||'—'}</div>
+        <div><span style="color:var(--tm);">Peso:</span> ${r.peso&&r.peso!=='—'?r.peso+' kg':'—'}</div><div><span style="color:var(--tm);">Altura:</span> ${r.altura&&r.altura!=='—'?r.altura+' cm':'—'}</div>
+        <div><span style="color:var(--tm);">Experiencia:</span> ${r.exp||'—'}</div>
+        ${r.lesiones&&r.lesiones!=='—'?`<div style="grid-column:1/-1;color:var(--rd);">⚠️ ${r.lesiones}</div>`:''}
+        ${r.extra&&r.extra!=='—'?`<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> ${r.extra}</div>`:''}
+      </div>`:''}
+    </div>`;}).join('')}`:''}`;
 }
 
 function rRecordatorios(){
