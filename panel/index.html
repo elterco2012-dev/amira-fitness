@@ -510,6 +510,7 @@ async function loadAll(){
     try{DB.pushSubs=await sbGet('push_subscriptions','select=alumna_id');}catch(e){DB.pushSubs=[];}
     try{DB.pagos=await sbGet('pagos','order=fecha_pago.desc');}catch(e){DB.pagos=[];}
     try{DB.avisos=await sbGet('avisos','order=created_at.desc');}catch(e){DB.avisos=[];}
+    try{DB.pesoAlumna=await sbGet('peso_alumna','order=alumna_id.asc,fecha.desc');}catch(e){DB.pesoAlumna=[];}
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1209,6 +1210,16 @@ async function deshacerPago(aId){
 
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
+function waTpls(a){
+  const ph=a.tel.replace(/\D/g,'');
+  const nom=a.nombre.split(' ')[0];
+  return[
+    {l:'💪 Recordatorio de rutina',href:'https://wa.me/'+ph+'?text='+encodeURIComponent('Hola '+nom+'! 💪 Hoy es día de entrenamiento. Tu rutina: '+BASE+'/alumna/'+a.slug+'\n\n¡Vamos! — Amira')},
+    {l:'🏋️ ¿Cómo te fue?',href:'https://wa.me/'+ph+'?text='+encodeURIComponent('Hola '+nom+'! ¿Cómo te fue con los entrenamientos esta semana? 🏋️‍♀️')},
+    {l:'💰 Recordatorio de pago',href:'https://wa.me/'+ph+'?text='+encodeURIComponent('Hola '+nom+'! Te recuerdo que no registré tu pago de este mes. Avisame cuando puedas 🙏')},
+    {l:'💬 Chequeo general',href:'https://wa.me/'+ph+'?text='+encodeURIComponent('Hola '+nom+'! Solo quería ver cómo estás y si todo bien con los entrenamientos 💪')},
+  ];
+}
 
 async function enviarPush(aId){
   const pushBody=aId?JSON.stringify({alumna_id:aId}):'{}';
@@ -1312,6 +1323,11 @@ function rInicio(){
   const gym=DB.alumnas.filter(a=>a.tipo==='gym').length;
   const dist=DB.alumnas.filter(a=>a.tipo!=='gym').length;
   const pend=DB.registros.filter(r=>r.estado==='pendiente').length;
+  const cumples=DB.alumnas.filter(a=>{
+    if(!a.nacimiento)return false;
+    const p=a.nacimiento.split('-');
+    return parseInt(p[1])===now.getMonth()+1&&parseInt(p[2])===now.getDate();
+  });
 
   // Semáforo: ordenar por urgencia (🔴 primero)
   const alWithDays=DB.alumnas.map(a=>{
@@ -1369,6 +1385,10 @@ function rInicio(){
     <div class="metric"><div class="mlabel">Casa</div><div class="mval">${dist}</div></div>
     <div class="metric"><div class="mlabel">Biblioteca</div><div class="mval g">${DB.biblioteca.length}</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">ejercicios</div></div>
   </div>
+  ${cumples.length>0?`<div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#f59e0b;margin-bottom:1rem;">
+    <div style="font-size:1rem;font-weight:500;color:#92400e;margin-bottom:4px;">🎂 ¡Hoy cumple ${cumples.map(a=>a.nombre.split(' ')[0]).join(' y ')}!</div>
+    ${cumples.filter(a=>a.tel).map(a=>`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}?text=${encodeURIComponent('¡Feliz cumple '+a.nombre.split(' ')[0]+'! 🎂🎉 Espero que la pases increíble. — Amira')}" target="_blank" class="btn btn-s" style="display:inline-block;margin-top:4px;">Saludar por WhatsApp 🎉</a>`).join(' ')}
+  </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
   <div class="card" style="margin-bottom:1rem;">
     <div class="ctitle" style="margin-bottom:.75rem;">¿A quién prestarle atención hoy?</div>
@@ -1589,11 +1609,12 @@ function rAlumnas(){
       </div>` : ''}
     </div>` : `<div style="font-size:11px;color:var(--th);margin-bottom:10px;">Sin ficha de salud todavía · <a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar link de ficha</a></div>`}
 
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
       <button class="btn btn-s btn-d" onclick="resetearProgreso(${a.id})">Resetear progreso</button>
       <button class="btn btn-s" onclick="navigator.clipboard.writeText('${BASE}/alumna/${a.slug}').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar link</button>
+      ${a.tel?(()=>{const open=S['wa_'+a.id];const tpls=waTpls(a);return`<div style="position:relative;display:inline-block;"><button class="btn btn-s" style="color:#25D366;border-color:#25D366;" onclick="S['wa_${a.id}']=!S['wa_${a.id}'];render()">💬 WA</button>${open?`<div style="position:absolute;bottom:calc(100% + 4px);left:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.12);">${tpls.map(t=>`<a href="${t.href}" target="_blank" onclick="S['wa_${a.id}']=false;render()" style="display:block;padding:6px 10px;font-size:12px;color:var(--t);text-decoration:none;border-radius:5px;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</a>`).join('')}</div>`:''}</div>`;})():''}
     </div>
   </div>`;
   }).join('')}`;
@@ -2074,6 +2095,7 @@ function rHistorial(){
       </div>`:''}
     </div>
     ${exTableHtml}
+    ${(()=>{const pc=(DB.pesoAlumna||[]).filter(p=>p.alumna_id===a?.id).sort((x,y)=>y.fecha.localeCompare(x.fecha));if(!pc.length)return'';return`<div style="margin-top:1rem;border-top:1px solid var(--b);padding-top:.75rem;"><div class="ctitle" style="margin-bottom:.5rem;">Peso corporal</div><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr>${['Fecha','Peso'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead><tbody>${pc.map(p=>`<tr><td style="padding:5px 8px;border-bottom:1px solid var(--b);color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-weight:600;">${p.peso} kg</td></tr>`).join('')}</tbody></table></div>`;})()}
   </div>
   `}`;
 }

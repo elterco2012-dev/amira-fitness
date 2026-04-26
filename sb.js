@@ -24,6 +24,7 @@ const ON_CONFLICT = {
   comentarios:          'id',
   push_subscriptions:   'alumna_id',
   pagos:                'alumna_id,mes',
+  peso_alumna:          'alumna_id,fecha',
 };
 
 async function sbGet(table, qs = '') {
