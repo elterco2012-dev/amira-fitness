@@ -47,7 +47,8 @@ async function sbUpsert(table, body) {
     console.error(`UPSERT ${table} error:`, e);
     throw new Error(`UPSERT ${table}: ${e}`);
   }
-  return r.json();
+  const rows = await r.json();
+  return Array.isArray(rows) ? rows[0] : rows;
 }
 
 async function sbInsert(table, body) {
@@ -57,7 +58,8 @@ async function sbInsert(table, body) {
     body: JSON.stringify(body)
   });
   if (!r.ok) { const e = await r.text(); throw new Error(`INSERT ${table}: ${e}`); }
-  return r.json();
+  const rows = await r.json();
+  return Array.isArray(rows) ? rows[0] : rows;
 }
 
 async function sbPatch(table, filter, body) {
@@ -67,7 +69,8 @@ async function sbPatch(table, filter, body) {
     body: JSON.stringify(body)
   });
   if (!r.ok) { const e = await r.text(); throw new Error(`PATCH ${table}: ${e}`); }
-  return r.json();
+  const rows = await r.json();
+  return Array.isArray(rows) ? rows[0] : rows;
 }
 
 async function sbDelete(table, filter) {
