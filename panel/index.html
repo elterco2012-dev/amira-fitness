@@ -886,6 +886,7 @@ async function delEx(idx){
 function openEditA(id){
   const a=getA(id);if(!a)return;
   S.editAId=id;
+  const regData=DB.registros.find(r=>r.estado==='aprobado'&&r.nombre===a.nombre&&!r.alumna_id);
   document.getElementById('ea-nombre').value=a.nombre;
   document.getElementById('ea-email').value=a.email||'';
   document.getElementById('ea-tel').value=a.tel||'';
@@ -894,13 +895,13 @@ function openEditA(id){
   document.getElementById('ea-notas').value=a.notas||'';
   document.getElementById('ea-np').value=a.notas_privadas||'';
   document.getElementById('ea-lesiones').value=a.lesiones||'';
-  document.getElementById('ea-genero').value=a.genero||'';
-  document.getElementById('ea-nacimiento').value=a.nacimiento||'';
-  document.getElementById('ea-ubicacion').value=a.ubicacion||'';
-  document.getElementById('ea-fuma').value=a.fuma||'';
-  document.getElementById('ea-peso').value=a.peso||'';
-  document.getElementById('ea-altura').value=a.altura||'';
-  document.getElementById('ea-exp').value=a.exp||'';
+  document.getElementById('ea-genero').value=a.genero||regData?.genero||'';
+  document.getElementById('ea-nacimiento').value=a.nacimiento||regData?.nacimiento||'';
+  document.getElementById('ea-ubicacion').value=a.ubicacion||regData?.ubicacion||'';
+  document.getElementById('ea-fuma').value=a.fuma||regData?.fuma||'';
+  document.getElementById('ea-peso').value=a.peso||regData?.peso||'';
+  document.getElementById('ea-altura').value=a.altura||regData?.altura||'';
+  document.getElementById('ea-exp').value=a.exp||regData?.exp||'';
   document.getElementById('ea-precio').value=a.precio||'';
   document.getElementById('ea-fecha-inicio').value=a.fecha_inicio||'';
   document.getElementById('ea-dia-cobro').value=a.dia_cobro||'';
@@ -1365,8 +1366,8 @@ function rInicio(){
   <div class="metrics">
     <div class="metric"><div class="mlabel">Alumnas</div><div class="mval">${DB.alumnas.length}</div></div>
     <div class="metric"><div class="mlabel">Gimnasio</div><div class="mval">${gym}</div></div>
-    <div class="metric"><div class="mlabel">A distancia</div><div class="mval">${dist}</div></div>
-    <div class="metric"><div class="mlabel">Biblioteca</div><div class="mval g">${DB.biblioteca.length}</div></div>
+    <div class="metric"><div class="mlabel">Casa</div><div class="mval">${dist}</div></div>
+    <div class="metric"><div class="mlabel">Biblioteca</div><div class="mval g">${DB.biblioteca.length}</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">ejercicios</div></div>
   </div>
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
   <div class="card" style="margin-bottom:1rem;">
@@ -2027,8 +2028,8 @@ function rHistorial(){
   });
   const sugerencias=Object.entries(pesosPorEj).map(([nombre,registros])=>{
     const sorted=[...registros].sort((a,b)=>a.ciclo-b.ciclo||a.semana-b.semana);
-    if(sorted.length<2)return null;
-    const ultimos=sorted.slice(-3);
+    if(sorted.length<4)return null;
+    const ultimos=sorted.slice(-4);
     const pesos=ultimos.map(r=>r.peso);
     if(!pesos.every(p=>p===pesos[0]))return null;
     const actual=pesos[0];
