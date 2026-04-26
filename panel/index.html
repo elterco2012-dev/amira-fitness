@@ -2164,9 +2164,13 @@ async function editarNombrePlantilla(id){
 
 async function loadHistorial(aId){
   try{
-    const rows = await sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`);
-    DB.progreso = DB.progreso||{};
-    DB.progreso[aId] = rows;
+    const [rows,pc]=await Promise.all([
+      sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`),
+      sbGet('peso_alumna',`alumna_id=eq.${aId}&order=fecha.desc`).catch(()=>[])
+    ]);
+    DB.progreso=DB.progreso||{};
+    DB.progreso[aId]=rows;
+    DB.pesoAlumna=(DB.pesoAlumna||[]).filter(p=>p.alumna_id!==aId).concat(pc);
     render();
   }catch(e){console.error('historial error',e);}
 }

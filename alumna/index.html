@@ -2248,7 +2248,7 @@ async function init(){
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
         sbGet('biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
         sbGet('biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
-        sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc&limit=10`).catch(()=>[])
+        sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[])
       ]);
       DB.comentarios=coms;
       DB.avisos=avs;
@@ -2284,6 +2284,7 @@ async function init(){
     saveCache();
     window._cargando = false; // Carga completa
     renderRutina();
+    if(curTab==='p') renderProgreso();
 
   }catch(e){
     window._cargando = false; // Aunque haya error, la carga terminó
