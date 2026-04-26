@@ -1100,7 +1100,13 @@ async function addAlumna(){
   try{
     const saved=await sbInsert('alumnas',a);
     DB.alumnas.push(saved);
-    if(!S.selA)S.selA=saved.id;
+    S.selA=saved.id;
+    // Link back to the registro that originated this alumna
+    if(S._fromRegId){
+      sbPatch('registros',`id=eq.${S._fromRegId}`,{alumna_id:saved.id}).catch(()=>{});
+      const reg=DB.registros.find(r=>r.id===S._fromRegId);if(reg)reg.alumna_id=saved.id;
+      S._fromRegId=null;
+    }
     // Crear usuario de acceso si hay email
     const pin=pinDesdeNacimiento(nac);
     if(email&&pin){
@@ -1376,6 +1382,7 @@ async function aprobar(id){
   reg.estado='aprobado';
   prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
   const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
+  S._fromRegId=id;
   S.addA=true;
   go('alumnas');  // render corre primero — los inputs existen después de esto
   const elNombre=document.getElementById('na-nombre');if(elNombre)elNombre.value=reg.nombre||'';
