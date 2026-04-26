@@ -407,6 +407,10 @@ let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
+let _panelSW=null;
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(r=>{_panelSW=r;}).catch(()=>{});
+}
 
 if(dark)document.documentElement.setAttribute('data-theme','dark');
 
@@ -607,7 +611,7 @@ function startPoll(){
     try{
       const [coms,regs]=await Promise.all([sbGet('comentarios','select=id&order=created_at.desc&limit=1'),sbGet('registros','estado=eq.pendiente&select=id')]);
       if(coms.length&&+coms[0].id>prevCom){const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}prevCom=+coms[0].id;}
-      if(regs.length>prevReg){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}if(typeof Notification!=='undefined'&&Notification.permission==='granted'&&localStorage.getItem('af-notif-panel')==='1'){try{new Notification('🆕 Nueva alumna registrada',{body:'Revisá Registros en el panel para aprobar.',icon:'/icon-192.png'});}catch(_){}}}
+      if(regs.length>prevReg){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}if(Notification.permission==='granted'&&localStorage.getItem('af-notif-panel')==='1'){const _opts={body:'Revisá Registros en el panel para aprobar.',icon:'/api/icon-192.svg',tag:'panel-registro',requireInteraction:true};try{const sw=_panelSW||await navigator.serviceWorker.ready;sw.showNotification('🆕 Nueva alumna registrada',_opts);}catch(_){try{new Notification('🆕 Nueva alumna registrada',_opts);}catch(__){}}}}
       prevReg=regs.length;
     }catch(e){}
   },8000);
@@ -2754,7 +2758,7 @@ function rConfig(){
   <div class="card"><div class="ctitle">Contraseña del panel</div><input type="password" id="np" placeholder="Nueva contraseña"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('np').value;if(v.length>=4){localStorage.setItem('af-pwd',v);alert('Actualizada');}">Cambiar</button></div>
   <div class="card"><div class="ctitle">WhatsApp de Amira</div><input type="tel" id="wai" placeholder="5491123456789" value="${ph}"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('wai').value;if(v){localStorage.setItem('af-amira-ph',v);S.msg='Guardado ✓';render();}">Guardar</button>${S.msg?`<span class="sm">${S.msg}</span>`:''}</div>
   <div class="card"><div class="ctitle">🔔 Notificaciones del panel</div>
-    <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Recibí una notificación en este dispositivo cuando llegue un nuevo registro de alumna.</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Recibí una notificación en este dispositivo cuando llegue un nuevo registro de alumna. <strong>El panel tiene que estar abierto en el navegador</strong> para que funcione (se revisa cada 8 segundos).</div>
     ${notifActivas
       ?`<div style="font-size:12px;color:var(--vd);margin-bottom:.5rem;">✓ Notificaciones activadas en este dispositivo</div><button class="btn btn-s btn-d" onclick="desactivarNotifPanel()">Desactivar</button>`
       :`<button class="btn btn-p btn-s" onclick="activarNotifPanel()">Activar notificaciones</button>`}
@@ -2862,6 +2866,10 @@ async function activarNotifPanel(){
   if(!('Notification' in window)){S.msg='Tu navegador no soporta notificaciones.';render();return;}
   const perm=await Notification.requestPermission();
   if(perm==='granted'){
+    // Also ensure SW is registered so showNotification() works when tab is in background
+    if('serviceWorker' in navigator&&!_panelSW){
+      try{_panelSW=await navigator.serviceWorker.register('/sw.js',{scope:'/'});}catch(_){}
+    }
     localStorage.setItem('af-notif-panel','1');
     S.msg='✓ Notificaciones activadas';render();
     setTimeout(()=>{S.msg='';render();},2500);
