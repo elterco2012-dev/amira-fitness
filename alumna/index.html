@@ -1704,6 +1704,27 @@ function renderRutina(){
   localStorage.setItem('af-selSem', selSem);
   localStorage.setItem('af-selDia', selDia);
   const a=getAlumna();
+  if(a&&a.estado==='baja'){
+    const amPh=localStorage.getItem('af-amira-ph')||AMIRA_WA;
+    const waMsg=encodeURIComponent('Hola Amira! Quería consultar sobre retomar los entrenamientos 💪');
+    scr.innerHTML=`<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center;">
+      <div style="width:72px;height:72px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1.5rem;">⏸</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--t);margin-bottom:.75rem;">Membresía pausada</div>
+      <div style="font-size:13px;color:var(--tm);line-height:1.75;max-width:280px;margin-bottom:2rem;">
+        Tu acceso está desactivado por el momento.<br>Si querés retomar, escribile a Amira.
+      </div>
+      <a href="https://wa.me/${amPh}?text=${waMsg}" target="_blank" style="
+        display:inline-flex;align-items:center;gap:10px;
+        background:#25D366;color:white;text-decoration:none;
+        padding:12px 24px;border-radius:var(--rp);
+        font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+        Escribirle a Amira
+      </a>
+    </div>`;
+    return;
+  }
   if(!a){
     // Si todavía estamos cargando, mostrar spinner en vez de error
     if(window._cargando){
