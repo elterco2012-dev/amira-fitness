@@ -1017,6 +1017,11 @@ async function saveEditA(){
       else throw e;
     }
     Object.assign(a,updates,{lesiones:lesionesVal});
+    // Si hay email + nacimiento, intentar crear usuario auth silenciosamente
+    if(updates.email&&updates.nacimiento){
+      const pin=pinDesdeNacimiento(updates.nacimiento);
+      if(pin) crearAuthUser(updates.email,pin).catch(()=>{});
+    }
     closeEditA();render();
   }catch(e){document.getElementById('ea-msg').textContent='Error: '+e.message;}
 }
@@ -1053,6 +1058,30 @@ async function crearAuthUser(email, password){
     if(!r.ok) console.warn('Auth signup:',data);
     return data;
   }catch(e){console.warn('Auth signup failed:',e);}
+}
+
+async function crearAccesoAlumna(aId){
+  const a=getA(aId);if(!a)return;
+  if(!a.email){alert('Esta alumna no tiene email. Editá su perfil primero.');return;}
+  const pin=pinDesdeNacimiento(a.nacimiento);
+  if(!pin){alert('Esta alumna no tiene fecha de nacimiento. Editá su perfil primero.');return;}
+  const nombre=a.nombre.split(' ')[0];
+  const r=await fetch(`${SB_URL}/auth/v1/signup`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY},
+    body:JSON.stringify({email:a.email,password:pin})
+  });
+  const data=await r.json();
+  if(r.ok&&data.access_token){
+    alert('✓ Acceso creado.\n\nPIN de '+nombre+': '+pin+'\n\nCompartí este PIN con la alumna.');
+  }else{
+    const msg=data.msg||data.error_description||data.message||'';
+    if(msg.toLowerCase().includes('already')||msg.toLowerCase().includes('registered')){
+      alert('La cuenta ya existía.\n\nPIN de '+nombre+': '+pin+'\n\nSi no puede ingresar, verificá que use exactamente este PIN.');
+    }else{
+      alert('PIN de '+nombre+': '+pin+'\n\nNo se pudo crear la cuenta: '+msg+'\nVerificá que el email sea correcto.');
+    }
+  }
 }
 
 async function addAlumna(){
@@ -1638,6 +1667,7 @@ function alumnaCardHTML(a){
     ?'<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:30;min-width:185px;box-shadow:0 4px 20px rgba(0,0,0,.15);">'
       +'<button class="btn btn-s" style="width:100%;text-align:left;border:none;padding:7px 10px;font-size:12px;" onclick="navigator.clipboard.writeText(\''+BASE+'/alumna/'+a.slug+'\').then(()=>{S.msg=\'Copiado\';S[\'menu_'+a.id+'\']=false;render();setTimeout(()=>{S.msg=\'\';render();},1200)})">📋 Copiar link</button>'
       +'<button class="btn btn-s" style="width:100%;text-align:left;border:none;padding:7px 10px;font-size:12px;" onclick="S[\'menu_'+a.id+'\']=false;informeMensual('+a.id+')">📊 Informe mensual WA</button>'
+      +(a.email&&a.nacimiento?'<button class="btn btn-s" style="width:100%;text-align:left;border:none;padding:7px 10px;font-size:12px;" onclick="S[\'menu_'+a.id+'\']=false;crearAccesoAlumna('+a.id+')">🔑 Ver/crear acceso (PIN)</button>':'')
       +'<button class="btn btn-s" style="width:100%;text-align:left;border:none;padding:7px 10px;font-size:12px;" onclick="S[\'menu_'+a.id+'\']=false;resetearProgreso('+a.id+')">🔄 Resetear progreso</button>'
       +'<div style="border-top:1px solid var(--b);margin:3px 0;"></div>'
       +'<button class="btn btn-s btn-d" style="width:100%;text-align:left;border:none;padding:7px 10px;font-size:12px;" onclick="S[\'menu_'+a.id+'\']=false;deleteAlumna('+a.id+')">🗑 Eliminar alumna</button>'
