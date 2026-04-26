@@ -403,7 +403,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:''};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -776,7 +776,19 @@ async function aplicarPlantilla(plantId){
 }
 
 // ── Biblioteca modal ──────────────────────────────────────────
-function openBib(){bibSelEx=null;renderBib();document.getElementById('modal-bib').style.display='flex';document.getElementById('bib-selected-wrap').style.display='none';document.getElementById('bib-add-btn').style.display='none';}
+function openBib(){
+  bibSelEx=null;
+  const qEl=document.getElementById('bib-q');if(qEl)qEl.value='';
+  const gEl=document.getElementById('bib-grupo');if(gEl)gEl.value='';
+  const msgEl=document.getElementById('bib-msg');if(msgEl)msgEl.textContent='';
+  const bibSer=document.getElementById('bib-series');if(bibSer)bibSer.value='3';
+  const bibRep=document.getElementById('bib-reps');if(bibRep)bibRep.value='10';
+  const bibNot=document.getElementById('bib-nota');if(bibNot)bibNot.value='';
+  renderBib();
+  document.getElementById('modal-bib').style.display='flex';
+  document.getElementById('bib-selected-wrap').style.display='none';
+  document.getElementById('bib-add-btn').style.display='none';
+}
 function closeBib(){document.getElementById('modal-bib').style.display='none';bibSelEx=null;}
 
 function renderBib(){
@@ -2187,19 +2199,29 @@ function rHistorial(){
     </table>
   </div>`;
 
-  // All completed exercises (hecho=true)
-  const hechos=cicloRows.filter(r=>r.hecho).sort((a,b)=>b.semana-a.semana||b.dia-a.dia||a.ejercicio_idx-b.ejercicio_idx);
-  const exTableHtml=hechos.length===0
-    ?`<div class="empty">Sin ejercicios completados en este ciclo.</div>`
+  // All completed exercises (hecho=true), optionally filtered by search
+  const _hq=(S._histQ||'').toLowerCase().trim();
+  const hechos=cicloRows.filter(r=>{
+    if(!r.hecho)return false;
+    if(!_hq)return true;
+    return (r.ejercicio_nombre||'').toLowerCase().includes(_hq);
+  }).sort((a,b)=>b.semana-a.semana||b.dia-a.dia||a.ejercicio_idx-b.ejercicio_idx);
+  const exTableHtml=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:.6rem;flex-wrap:wrap;">
+    <input type="text" value="${(S._histQ||'').replace(/"/g,'&quot;')}" placeholder="Buscar ejercicio... ej: cuadric, hip thrust" oninput="S._histQ=this.value;render()" style="flex:1;min-width:160px;padding:7px 11px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;">
+    ${_hq?`<button class="btn btn-s" onclick="S._histQ='';render()" style="flex-shrink:0;">✕ Limpiar</button>`:''}
+    <span style="font-size:11px;color:var(--th);flex-shrink:0;">${hechos.length} registros</span>
+  </div>
+  ${hechos.length===0
+    ?`<div class="empty">${_hq?`Sin resultados para "${S._histQ}".`:'Sin ejercicios completados en este ciclo.'}</div>`
     :`<table style="width:100%;font-size:12px;border-collapse:collapse;">
       <thead><tr>${['Sem','Día','Ejercicio','Peso','Fecha'].map(h=>`<th style="font-size:10px;color:var(--tm);text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-weight:400;">${h}</th>`).join('')}</tr></thead>
       <tbody>${hechos.map(r=>{
         const exNombre=r.ejercicio_nombre||('Ej. '+(r.ejercicio_idx+1));
         const peso=r.peso_kg?`${r.peso_kg} kg`:'—';
         const fecha=r.fecha_registro?new Date(r.fecha_registro).toLocaleDateString('es-AR'):'';
-        return`<tr><td style="padding:5px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);">${exNombre}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-weight:500;">${peso}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${fecha}</td></tr>`;
+        return`<tr><td style="padding:5px 8px;border-bottom:1px solid var(--b);">S${r.semana}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);">D${r.dia}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-weight:500;color:var(--t);">${exNombre}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-weight:600;color:var(--vd);">${peso}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);">${fecha}</td></tr>`;
       }).join('')}</tbody>
-    </table>`;
+    </table>`}`;
 
   // Weight progression suggestions (across all cycles)
   const pesosPorEj={};
@@ -2706,9 +2728,16 @@ async function cambiarEstado(aId, estado){
   try{
     const log=Array.isArray(a.estado_log)?[...a.estado_log]:[];
     log.push({estado,fecha:new Date().toISOString()});
-    await sbPatch('alumnas',`id=eq.${aId}`,{estado,estado_log:log});
+    try{
+      await sbPatch('alumnas',`id=eq.${aId}`,{estado,estado_log:log});
+      a.estado_log=log;
+    }catch(e2){
+      if(e2.message.includes('PGRST204')||e2.message.includes('estado_log')){
+        // La migración add_alumnas_estado_log.sql aún no fue ejecutada en Supabase
+        await sbPatch('alumnas',`id=eq.${aId}`,{estado});
+      }else{throw e2;}
+    }
     a.estado=estado;
-    a.estado_log=log;
     render();
   }catch(e){alert('Error al cambiar estado: '+e.message);}
 }
