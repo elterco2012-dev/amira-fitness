@@ -948,6 +948,18 @@ async function delEx(idx){
   }
 }
 
+// ── Reordenar ejercicio ───────────────────────────────────────
+function moveEx(idx, dir){
+  const a=getA(S.selA);if(!a)return;
+  const day=DB.rutinas[a.id]?.[S.selCiclo]?.[S.selSem]?.find(d=>d.dia===S.selDia);
+  if(!day)return;
+  const exs=day.ejercicios;
+  const target=idx+dir;
+  if(target<0||target>=exs.length)return;
+  [exs[idx],exs[target]]=[exs[target],exs[idx]];
+  render();
+}
+
 // ── Editar alumna ─────────────────────────────────────────────
 function openEditA(id){
   const a=getA(id);if(!a)return;
@@ -1896,6 +1908,10 @@ function rRutinas(){
     ${exs.length===0?'<div class="empty">Sin ejercicios. Usá "Desde biblioteca" para agregar rápido, o "Nuevo ejercicio" para crear uno.</div>':''}
     ${exs.map((ex,i)=>`
     <div class="ex-item">
+      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:0;">
+        <button class="btn btn-s" onclick="moveEx(${i},-1)" ${i===0?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===0?'opacity:.25;cursor:default;':''}">↑</button>
+        <button class="btn btn-s" onclick="moveEx(${i},1)" ${i===exs.length-1?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===exs.length-1?'opacity:.25;cursor:default;':''}">↓</button>
+      </div>
       <div class="exn">${i+1}</div>
       <div class="ex-body">
         <div class="ex-name">${ex.nombre}</div>
