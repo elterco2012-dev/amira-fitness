@@ -1421,8 +1421,13 @@ function go(v){
 
 function render(){
   const m=document.getElementById('main');
+  const prev=document.activeElement;
+  const prevId=prev?.id;
+  const prevStart=prev?.selectionStart;
+  const prevEnd=prev?.selectionEnd;
   const vs={inicio:rInicio,alumnas:rAlumnas,rutinas:rRutinas,historial:rHistorial,biblioteca:rBiblioteca,plantillas:rPlantillas,comentarios:rComentarios,registros:rRegistros,recordatorios:rRecordatorios,avisos:rAvisos,links:rLinks,config:rConfig,analisis:rAnalisis};
   m.innerHTML=(vs[S.view]||rInicio)();
+  if(prevId){const el=document.getElementById(prevId);if(el){el.focus();try{el.setSelectionRange(prevStart,prevEnd);}catch(e){}}}
 }
 
 // ── RENDERS ───────────────────────────────────────────────────
@@ -2237,7 +2242,7 @@ function rHistorial(){
     return (r.ejercicio_nombre||'').toLowerCase().includes(_hq);
   }).sort((a,b)=>b.semana-a.semana||b.dia-a.dia||a.ejercicio_idx-b.ejercicio_idx);
   const exTableHtml=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:.6rem;flex-wrap:wrap;">
-    <input type="text" value="${(S._histQ||'').replace(/"/g,'&quot;')}" placeholder="Buscar ejercicio... ej: cuadric, hip thrust" oninput="S._histQ=this.value;render()" style="flex:1;min-width:160px;padding:7px 11px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;">
+    <input id="hist-q" type="text" value="${(S._histQ||'').replace(/"/g,'&quot;')}" placeholder="Buscar ejercicio... ej: cuadric, hip thrust" oninput="S._histQ=this.value;render()" style="flex:1;min-width:160px;padding:7px 11px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;">
     ${_hq?`<button class="btn btn-s" onclick="S._histQ='';render()" style="flex-shrink:0;">✕ Limpiar</button>`:''}
     <span style="font-size:11px;color:var(--th);flex-shrink:0;">${hechos.length} registros</span>
   </div>
