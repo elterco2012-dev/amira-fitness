@@ -279,7 +279,7 @@
       <div><label>Grupo muscular</label>
         <select id="m-grupo" style="margin-bottom:0;">
           <option>Core</option><option>Piernas</option><option>Glúteos</option>
-          <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option><option>Calentamiento</option><option>Otro</option>
+          <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option><option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
       <div><label>Tipo</label>
@@ -492,7 +492,7 @@ function getEx(aId,ciclo,sem,dia){
 }
 function copyL(slug){navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{S.msg='Copiado ✓';render();setTimeout(()=>{S.msg='';render();},1200);});}
 function sbSt(ok,msg){S.sbOk=ok;const d=document.getElementById('sbd'),l=document.getElementById('sbl');if(d)d.className='dot '+(ok?'ok':'err');if(l)l.textContent=msg;}
-function grupoColor(g){const m={Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Brazos:'#854F0B',Calentamiento:'#0891b2'};return m[g]||'#6b7280';}
+function grupoColor(g){const m={Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Brazos:'#854F0B',Calentamiento:'#0891b2',Estiramiento:'#6d28d9'};return m[g]||'#6b7280';}
 
 // ── Load ──────────────────────────────────────────────────────
 async function loadAll(){
@@ -2367,7 +2367,7 @@ initAuth();
         <select id="eb-grupo" style="margin-bottom:0;">
           <option>Core</option><option>Piernas</option><option>Glúteos</option>
           <option>Espalda</option><option>Pecho</option><option>Hombros</option>
-          <option>Brazos</option><option>Otro</option>
+          <option>Brazos</option><option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
       <div><label>Tipo</label>
