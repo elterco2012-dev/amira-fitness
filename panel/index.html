@@ -402,7 +402,7 @@ if(!localStorage.getItem('af-amira-ph')){
   localStorage.setItem('af-amira-ph','5492226500790');
 }
 const COLORS=['teal','purple','amber','coral'];
-let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[]};
+let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
@@ -517,6 +517,7 @@ async function loadAll(){
     try{DB.pagos=await sbGet('pagos','order=fecha_pago.desc');}catch(e){DB.pagos=[];}
     try{DB.avisos=await sbGet('avisos','order=created_at.desc');}catch(e){DB.avisos=[];}
     try{DB.pesoAlumna=await sbGet('peso_alumna','order=alumna_id.asc,fecha.desc');}catch(e){DB.pesoAlumna=[];}
+    try{DB.notasSesion=await sbGet('notas_sesion','order=created_at.desc&limit=200');}catch(e){DB.notasSesion=[];}
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -570,7 +571,7 @@ function startPoll(){
     try{
       const [coms,regs]=await Promise.all([sbGet('comentarios','select=id&order=created_at.desc&limit=1'),sbGet('registros','estado=eq.pendiente&select=id')]);
       if(coms.length&&+coms[0].id>prevCom){const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}prevCom=+coms[0].id;}
-      if(regs.length>prevReg){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}}
+      if(regs.length>prevReg){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}if(typeof Notification!=='undefined'&&Notification.permission==='granted'&&localStorage.getItem('af-notif-panel')==='1'){try{new Notification('🆕 Nueva alumna registrada',{body:'Revisá Registros en el panel para aprobar.',icon:'/icon-192.png'});}catch(_){}}}
       prevReg=regs.length;
     }catch(e){}
   },8000);
@@ -1361,8 +1362,9 @@ function rInicio(){
     return parseInt(p[1])===now.getMonth()+1&&parseInt(p[2])===now.getDate();
   });
 
-  // Semáforo: ordenar por urgencia (🔴 primero)
-  const alWithDays=DB.alumnas.map(a=>{
+  // Semáforo: solo alumnas activas
+  const alumnaActivas=DB.alumnas.filter(a=>!a.estado||a.estado==='activa');
+  const alWithDays=alumnaActivas.map(a=>{
     const d=a.last_active_at?Math.max(0,Math.floor((now-new Date(a.last_active_at))/86400000)):null;
     return {...a,_days:d};
   });
@@ -1411,7 +1413,7 @@ function rInicio(){
   }
 
   const _alertas=(DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante');
-  const _inactivas5=DB.alumnas.filter(a=>{if(!a.last_active_at)return true;return Math.floor((now-new Date(a.last_active_at))/86400000)>=5;});
+  const _inactivas5=alumnaActivas.filter(a=>{if(!a.last_active_at)return true;return Math.floor((now-new Date(a.last_active_at))/86400000)>=5;});
   return`<div class="ptitle">Bienvenida, Amira</div>
   ${(_alertas.length>0||_inactivas5.length>0)?`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
     <div class="ctitle" style="margin-bottom:.6rem;">⚡ Acciones urgentes</div>
@@ -1442,7 +1444,7 @@ function rInicio(){
   </div>
   ${fbSec}
   ${(()=>{
-    const deben=DB.alumnas.filter(a=>!hasPagado(a.id));
+    const deben=DB.alumnas.filter(a=>(!a.estado||a.estado==='activa')&&!hasPagado(a.id));
     if(!deben.length)return'';
     const rows=deben.map(a=>`<div class="arow">
       <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
@@ -1555,7 +1557,7 @@ function rAlumnas(){
       </div>
       <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1">
-        <div class="aname">${a.nombre}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div class="aname">${a.nombre}</div>${a.estado&&a.estado!=='activa'?'<span style="background:'+(a.estado==='pausada'?'var(--a)':'var(--rl)')+';color:'+(a.estado==='pausada'?'var(--ad)':'var(--rd)')+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;">'+(a.estado==='pausada'?'⏸ Pausada':'✕ Baja')+'</span>':''}</div>
         <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel?`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel}</a>`:'<span style="color:var(--rd)">Sin WhatsApp</span>'} · <strong style="color:var(--pd)">${a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1))}</strong></div>
       </div>
       <button class="btn btn-s btn-d" onclick="deleteAlumna(${a.id})">Eliminar</button>
@@ -1654,9 +1656,42 @@ function rAlumnas(){
       </div>` : ''}
     </div>` : `<div style="font-size:11px;color:var(--th);margin-bottom:10px;">Sin ficha de salud todavía · <a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar link de ficha</a></div>`}
 
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    ${(()=>{
+      const nsOpen=S['notas_open_'+a.id];
+      const notas=(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id);
+      const notasRows=notas.slice(0,8).map(n=>'<div style="padding:.4rem 0;border-bottom:1px solid var(--b);">'
+        +'<div style="font-size:10px;color:var(--th);margin-bottom:2px;">'+new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+' · C'+n.ciclo+' S'+n.semana+'</div>'
+        +'<div style="font-size:12px;color:var(--t);">'+n.nota+'</div>'
+        +'</div>').join('');
+      return'<div style="margin-bottom:10px;">'
+        +'<button class="btn btn-s" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;background:var(--s2);" onclick="S[\'notas_open_'+a.id+'\']=!S[\'notas_open_'+a.id+'\'];render()">'
+        +'<span>📓 Notas de sesión'+(notas.length?' ('+notas.length+')':'')+'</span>'
+        +'<span style="font-size:10px;color:var(--tm);">'+(nsOpen?'Cerrar ▲':'Ver ▼')+'</span>'
+        +'</button>'
+        +(nsOpen
+          ?'<div style="background:var(--s2);border-radius:0 0 var(--rs) var(--rs);padding:.85rem;border:1px solid var(--b);border-top:none;">'
+            +'<textarea id="nota-txt-'+a.id+'" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:\'DM Sans\',sans-serif;resize:vertical;height:60px;margin-bottom:0;" placeholder="Nota privada de esta semana... (solo visible en el panel)"></textarea>'
+            +'<div style="display:flex;gap:6px;align-items:center;margin-top:6px;">'
+            +'<button class="btn btn-p btn-s" onclick="guardarNota('+a.id+')">Guardar nota</button>'
+            +(S['nota_saved_'+a.id]?'<span style="font-size:11px;color:var(--vd);">Guardado ✓</span>':'')
+            +'</div>'
+            +(notas.length
+              ?'<div style="margin-top:.75rem;border-top:1px solid var(--b);padding-top:.5rem;">'+notasRows+'</div>'
+              :'<div style="font-size:11px;color:var(--th);margin-top:.5rem;">Sin notas todavía.</div>')
+            +'</div>'
+          :'')
+        +'</div>';
+    })()}
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar datos</button>
+      <button class="btn btn-s" onclick="informeMensual(${a.id})">📊 Informe WA</button>
+      <select onchange="cambiarEstado(${a.id},this.value)" title="Estado de la alumna" style="font-size:11px;padding:3px 7px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;cursor:pointer;">
+        <option value="activa"${(!a.estado||a.estado==='activa')?' selected':''}>● Activa</option>
+        <option value="pausada"${a.estado==='pausada'?' selected':''}>⏸ Pausada</option>
+        <option value="baja"${a.estado==='baja'?' selected':''}>✕ Baja</option>
+      </select>
       <button class="btn btn-s btn-d" onclick="resetearProgreso(${a.id})">Resetear progreso</button>
       <button class="btn btn-s" onclick="navigator.clipboard.writeText('${BASE}/alumna/${a.slug}').then(()=>{S.msg='Copiado';render();setTimeout(()=>{S.msg='';render();},1200)})">Copiar link</button>
       ${a.tel?(()=>{const open=S['wa_'+a.id];const tpls=waTpls(a);return`<div style="position:relative;display:inline-block;"><button class="btn btn-s" style="color:#25D366;border-color:#25D366;" onclick="S['wa_${a.id}']=!S['wa_${a.id}'];render()">💬 WA</button>${open?`<div style="position:absolute;bottom:calc(100% + 4px);left:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.12);">${tpls.map(t=>`<a href="${t.href}" target="_blank" onclick="S['wa_${a.id}']=false;render()" style="display:block;padding:6px 10px;font-size:12px;color:var(--t);text-decoration:none;border-radius:5px;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</a>`).join('')}</div>`:''}</div>`;})():''}
@@ -2242,7 +2277,7 @@ function rRegistros(){
   ${pend.map(r=>`<div class="card" style="border-left:3px solid var(--v);border-radius:0 var(--r) var(--r) 0;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
       <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div></div>
-      <div style="display:flex;gap:6px;"><button class="btn btn-p btn-s" onclick="aprobar(${r.id})">✓ Aprobar</button><button class="btn btn-s btn-d" onclick="rechazar(${r.id})">Rechazar</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-p btn-s" onclick="aprobar(${r.id})">✓ Aprobar</button><button class="btn btn-s btn-d" onclick="rechazar(${r.id})">Rechazar</button><button class="btn btn-s" style="color:#25D366;border-color:#25D366;" onclick="onboardingWA(${r.id})">💬 Onboarding</button></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
       <div><span style="color:var(--tm);">WhatsApp:</span> ${r.tel||'—'}</div><div><span style="color:var(--tm);">Mail:</span> ${r.mail||'—'}</div>
@@ -2492,10 +2527,122 @@ function rLinks(){
 function rConfig(){
   const ph=localStorage.getItem('af-amira-ph')||'';
   const pwd=localStorage.getItem('af-pwd')||'amira2025';
+  const notifActivas=localStorage.getItem('af-notif-panel')==='1';
   return`<div class="ptitle">Configuración</div>
   <div class="card"><div class="ctitle">Estado Supabase</div><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:${S.sbOk?'var(--vd)':'var(--rd)'}"><div style="width:8px;height:8px;border-radius:50%;background:${S.sbOk?'var(--v)':'var(--rd)'}"></div>${S.sbOk?'Conectado y sincronizando':'Sin conexión'}</div></div>
   <div class="card"><div class="ctitle">Contraseña del panel</div><input type="password" id="np" placeholder="Nueva contraseña"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('np').value;if(v.length>=4){localStorage.setItem('af-pwd',v);alert('Actualizada');}">Cambiar</button></div>
-  <div class="card"><div class="ctitle">WhatsApp de Amira</div><input type="tel" id="wai" placeholder="5491123456789" value="${ph}"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('wai').value;if(v){localStorage.setItem('af-amira-ph',v);S.msg='Guardado ✓';render();}">Guardar</button>${S.msg?`<span class="sm">${S.msg}</span>`:''}</div>`;
+  <div class="card"><div class="ctitle">WhatsApp de Amira</div><input type="tel" id="wai" placeholder="5491123456789" value="${ph}"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('wai').value;if(v){localStorage.setItem('af-amira-ph',v);S.msg='Guardado ✓';render();}">Guardar</button>${S.msg?`<span class="sm">${S.msg}</span>`:''}</div>
+  <div class="card"><div class="ctitle">🔔 Notificaciones del panel</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Recibí una notificación en este dispositivo cuando llegue un nuevo registro de alumna.</div>
+    ${notifActivas
+      ?`<div style="font-size:12px;color:var(--vd);margin-bottom:.5rem;">✓ Notificaciones activadas en este dispositivo</div><button class="btn btn-s btn-d" onclick="desactivarNotifPanel()">Desactivar</button>`
+      :`<button class="btn btn-p btn-s" onclick="activarNotifPanel()">Activar notificaciones</button>`}
+  </div>`;
+}
+
+// ── Estado alumna ─────────────────────────────────────────────
+async function cambiarEstado(aId, estado){
+  const a=getA(aId);if(!a)return;
+  try{
+    await sbPatch('alumnas',`id=eq.${aId}`,{estado});
+    a.estado=estado;
+    render();
+  }catch(e){alert('Error al cambiar estado: '+e.message);}
+}
+
+// ── Notas de sesión ───────────────────────────────────────────
+async function guardarNota(aId){
+  const txt=document.getElementById('nota-txt-'+aId)?.value?.trim();
+  if(!txt)return;
+  const ciclo=parseInt(S.selCiclo)||1;
+  const semana=parseInt(S.selSem)||1;
+  try{
+    const res=await sbInsert('notas_sesion',{alumna_id:aId,ciclo,semana,nota:txt});
+    const nuevo=Array.isArray(res)?res[0]:res;
+    if(nuevo){DB.notasSesion.unshift(nuevo);}
+    const el=document.getElementById('nota-txt-'+aId);if(el)el.value='';
+    S['nota_saved_'+aId]=true;render();
+    setTimeout(()=>{S['nota_saved_'+aId]=false;render();},2000);
+  }catch(e){alert('Error al guardar nota: '+e.message);}
+}
+
+// ── Informe mensual ───────────────────────────────────────────
+async function informeMensual(aId){
+  const a=getA(aId);if(!a)return;
+  if(!DB.progreso?.[aId]){
+    S.msg='Cargando historial...';render();
+    await loadHistorial(aId);
+  }
+  const rows=DB.progreso?.[aId]||[];
+  const ciclo=parseInt(a.ciclo_actual)||1;
+  const cicloNom=a.ciclos_nombres?.[ciclo]||('Ciclo '+ciclo);
+  const nombre=a.nombre.split(' ')[0];
+  const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana)).size;
+  const diasHechos=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana+'-'+r.dia)).size;
+  const ejercHechos=rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).length;
+  // Mejor peso por ejercicio
+  const mejMap={};
+  rows.filter(r=>r.peso_kg&&parseInt(r.ciclo)===ciclo&&r.ejercicio_nombre).forEach(r=>{
+    const kg=parseFloat(r.peso_kg);
+    if(!mejMap[r.ejercicio_nombre]||kg>mejMap[r.ejercicio_nombre])mejMap[r.ejercicio_nombre]=kg;
+  });
+  const topEj=Object.entries(mejMap).sort((x,y)=>y[1]-x[1]).slice(0,3);
+  // Peso corporal
+  const pcs=(DB.pesoAlumna||[]).filter(p=>p.alumna_id===aId).sort((x,y)=>x.fecha.localeCompare(y.fecha));
+  const pesoIni=pcs[0]?.peso;const pesoFin=pcs[pcs.length-1]?.peso;
+  const pesoDiff=pesoIni&&pesoFin&&pcs.length>=2?parseFloat(pesoFin)-parseFloat(pesoIni):null;
+  const tel=a.tel?a.tel.replace(/\D/g,''):'';
+  if(!tel){S.msg='Esta alumna no tiene WhatsApp.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
+  const icon=semanasHechas>=4?'🏆':semanasHechas>=2?'💪':'📊';
+  let msg=icon+' Informe mensual — '+nombre+'\n'+cicloNom+' · '+mesActual()+'\n\n';
+  msg+='📅 Semanas entrenadas: '+semanasHechas+'/4\n';
+  msg+='💪 Días completados: '+diasHechos+'\n';
+  msg+='🏋️ Ejercicios realizados: '+ejercHechos+'\n';
+  if(topEj.length){msg+='\n🏆 Mejores pesos del ciclo:\n';topEj.forEach(([ej,kg])=>{msg+='· '+ej+': '+kg+' kg\n';});}
+  if(pesoDiff!==null){const ds=pesoDiff>0?'+'+pesoDiff.toFixed(1):pesoDiff.toFixed(1);msg+='\n⚖️ Peso corporal: '+pesoIni+' → '+pesoFin+' kg ('+ds+' kg)\n';}
+  msg+='\n¡Seguimos el próximo ciclo! 🔥 — Amira';
+  S.msg='';render();
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ── Onboarding WA ─────────────────────────────────────────────
+function onboardingWA(regId){
+  const reg=DB.registros.find(r=>r.id===regId);if(!reg)return;
+  const tel=reg.tel?reg.tel.replace(/\D/g,''):'';
+  if(!tel){alert('Este registro no tiene número de WhatsApp.');return;}
+  const nombre=reg.nombre.split(' ')[0];
+  const lug=(()=>{const l=String(reg.lugar_entrenamiento||'').toLowerCase();if(l.startsWith('gimnasio'))return'el gimnasio';if(l.includes('casa'))return'casa';return'tu espacio';})();
+  const dias=reg.dias&&reg.dias!=='—'?reg.dias:'varios';
+  const obj=reg.objetivos&&reg.objetivos!=='—'?reg.objetivos:null;
+  const exp=reg.exp&&reg.exp!=='—'?reg.exp:null;
+  let msg='¡Hola '+nombre+'! 🎉 Bienvenida a Amira Fitness.\n\n';
+  msg+='Leí tu registro y ya sé lo que necesitás. 💪\n\n';
+  if(obj)msg+='📌 Tu objetivo: *'+obj+'*\n';
+  msg+='📍 Lugar de entrenamiento: '+lug+'\n';
+  msg+='📅 Días por semana: '+dias+'\n';
+  if(exp)msg+='🏋️ Experiencia: '+exp+'\n';
+  msg+='\nEn breve te cargo tu rutina personalizada. Cuando te llegue el link, ya podés empezar.\n\n';
+  msg+='Cualquier duda, escribime acá. ¡Arrancamos! — Amira 🔥';
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ── Notificaciones del panel ──────────────────────────────────
+async function activarNotifPanel(){
+  if(!('Notification' in window)){S.msg='Tu navegador no soporta notificaciones.';render();return;}
+  const perm=await Notification.requestPermission();
+  if(perm==='granted'){
+    localStorage.setItem('af-notif-panel','1');
+    S.msg='✓ Notificaciones activadas';render();
+    setTimeout(()=>{S.msg='';render();},2500);
+  }else{
+    S.msg='Permiso denegado. Habilitá las notificaciones en el navegador.';render();
+    setTimeout(()=>{S.msg='';render();},4000);
+  }
+}
+function desactivarNotifPanel(){
+  localStorage.removeItem('af-notif-panel');
+  S.msg='Notificaciones desactivadas';render();
+  setTimeout(()=>{S.msg='';render();},2000);
 }
 
 initAuth();
