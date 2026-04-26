@@ -1792,6 +1792,20 @@ function renderRutina(){
   scr.innerHTML=html;
 }
 
+async function savePesoCorp(aId){
+  const v=parseFloat(document.getElementById('pc-input')?.value);
+  if(!v||isNaN(v)||v<30||v>300)return;
+  const hoy=new Date().toISOString().split('T')[0];
+  try{
+    const saved=await sbUpsert('peso_alumna',{alumna_id:aId,fecha:hoy,peso:v});
+    const row=saved[0]||{alumna_id:aId,fecha:hoy,peso:v};
+    const idx=(DB.pesoAlumnaHist||[]).findIndex(p=>p.fecha===hoy);
+    if(idx>=0)DB.pesoAlumnaHist[idx]=row;else(DB.pesoAlumnaHist||[]).unshift(row);
+    renderProgreso();
+    mostrarToast('Peso guardado ✓');
+  }catch(e){mostrarToast('Error al guardar');}
+}
+
 function renderProgreso(){
   const scr=document.getElementById('screen-progreso'); if(!scr) return;
   const a=getAlumna(); if(!a){scr.innerHTML='';return;}
@@ -1874,11 +1888,23 @@ function renderProgreso(){
     </div>`;
   });
 
+  // Racha de semanas consecutivas
+  const _nDias=parseInt(a.dias)||3;
+  const _semList=[];
+  ciclos.forEach(cic=>{for(let s=1;s<=4;s++)_semList.push({cic,s});});
+  const _semHecha=(cic,s)=>{for(let d=1;d<=_nDias;d++){const exs=getExs(a.id,cic,s,d);if(!exs.length)continue;let cnt=0;for(let i=0;i<exs.length;i++)if(done[`${a.id}-c${cic}-${s}-${d}-${i}`])cnt++;if(cnt/exs.length>=0.8)return true;}return false;};
+  let racha=0;
+  for(let i=_semList.length-1;i>=0;i--){const{cic,s}=_semList[i];if(_semHecha(cic,s))racha++;else break;}
+
   let html=`
     <div class="stat-grid">
       <div class="stat-card"><span class="stat-num">${totalD}</span><span class="stat-lbl">Días entrenados</span></div>
       <div class="stat-card"><span class="stat-num">${totalP}</span><span class="stat-lbl">Ejercicios con peso</span></div>
     </div>
+    ${racha>=2?`<div style="background:linear-gradient(135deg,var(--a),#fde68a22);border:1px solid #f59e0b44;border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2rem;line-height:1;">${racha>=6?'🏆':racha>=3?'🔥':'⭐'}</span>
+      <div><div style="font-size:1.1rem;font-family:'DM Serif Display',serif;color:var(--t);">${racha} semanas seguidas</div><div style="font-size:11px;color:var(--tm);">¡Seguí así, lo estás haciendo genial!</div></div>
+    </div>`:''}
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Constancia</div>
     <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
       ${calHtml}
@@ -1898,6 +1924,16 @@ function renderProgreso(){
       Cargá el peso que usás en cada ejercicio durante tu rutina para ver tu progreso acá.
     </div>`;
   }
+  // Peso corporal
+  const _pc=DB.pesoAlumnaHist||[];
+  html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin:.75rem 0 .5rem;">Mi peso corporal</div>
+  <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length?'.6rem':'0'};">
+      <input type="number" id="pc-input" step="0.1" min="30" max="200" placeholder="kg hoy" style="width:90px;padding:7px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:14px;background:var(--s2);color:var(--t);">
+      <button class="btn btn-p btn-s" onclick="savePesoCorp(${a.id})">Guardar</button>
+    </div>
+    ${_pc.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
+  </div>`;
   scr.innerHTML=html;
   if(exns.length>0) setTimeout(()=>{
     const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
@@ -2035,17 +2071,20 @@ async function init(){
     if(a){
       selCiclo=parseInt(a.ciclo_actual)||1;
       localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
-      const [coms,prog,avs,calBib,estBib]=await Promise.all([
+      DB.pesoAlumnaHist=[];
+      const [coms,prog,avs,calBib,estBib,pcRows]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`),
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
         sbGet('biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
-        sbGet('biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[])
+        sbGet('biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
+        sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc&limit=10`).catch(()=>[])
       ]);
       DB.comentarios=coms;
       DB.avisos=avs;
       if(calBib.length>0)DB.calentamiento=calBib;
       if(estBib.length>0)DB.estiramiento=estBib;
+      DB.pesoAlumnaHist=pcRows;
       mostrarAvisos(a);
       // Si el panel reseteó el progreso, limpiar caché local antes de cargar
       const lastReset=localStorage.getItem('af-last-reset');
