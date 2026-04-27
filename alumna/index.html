@@ -1893,8 +1893,8 @@ function renderRutina(){
 
   // Obtener datos
   const ciclos = getCiclos(a.id);
-  // Asegurar selCiclo válido
-  if(!ciclos.includes(selCiclo)) selCiclo = ciclos[ciclos.length-1];
+  // Siempre mostrar el ciclo actual de la alumna (no ciclos pasados)
+  selCiclo = parseInt(a.ciclo_actual)||ciclos[ciclos.length-1]||1;
   // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
   if(selSem < 1 || selSem > 4) selSem = 1;
 
@@ -1916,7 +1916,7 @@ function renderRutina(){
       <input type="file" id="fp-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
       <div style="flex:1;min-width:0;">
         <h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2>
-        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha}`:''}</p>
+        <p>${a.tipo==='gym'?'Gimnasio':a.tipo==='casa'?'Casa':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha}`:''}</p>
         ${stats.cicloTotal>0?`<div style="margin-top:7px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
             <span style="font-size:10px;color:var(--tm);">${stats.cicloDone}/${stats.cicloTotal} entrenamientos del ciclo</span>
@@ -1963,10 +1963,12 @@ function renderRutina(){
       ${_wuOpen?`<div class="warmup" style="border-radius:0 0 var(--rs) var(--rs);padding-top:.5rem;margin-bottom:.85rem;">${_wuLinks}</div>`:''}`;
     })()}`;
 
-  // Selector de ciclos — siempre visible
-  if(ciclos.length>0){
+  // Selector de ciclos — solo muestra el ciclo actual, sin acceso a ciclos pasados
+  // Los ciclos anteriores quedan en el tab Progreso para ver historial
+  if(ciclos.length>1){
+    const cicloNombre=(a.ciclos_nombres||{})[selCiclo]||'Ciclo '+selCiclo;
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      ${ciclos.map(c=>`<button class="stab${selCiclo===c?' active':''}" onclick="selCiclo=${c};selSem=1;renderRutina()">${a.ciclos_nombres?.[c]||'Ciclo '+c}</button>`).join('')}
+      <button class="stab active">${cicloNombre}</button>
     </div></div>`;
   }
   // Mensaje de Amira para este ciclo (se muestra una vez hasta que la alumna lo cierra)
@@ -1996,7 +1998,7 @@ function renderRutina(){
     <div class="prog-top"><span>${comp} de ${total} ejercicios</span><span>${pct}%</span></div>
     <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
   </div>
-  <div class="dlbl">Ciclo ${selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
+  <div class="dlbl">${(a.ciclos_nombres||{})[selCiclo]||'Ciclo '+selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
 
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
