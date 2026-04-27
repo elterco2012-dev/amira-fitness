@@ -1375,15 +1375,19 @@ async function deshacerPago(aId){
 
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
-function waTpls(a){
+function envTplAlu(aId, key){
+  const a=getA(aId); if(!a||!a.tel) return;
+  const tpl=getAlumnaTpls().find(t=>t.key===key); if(!tpl) return;
   const ph=a.tel.replace(/\D/g,'');
   const nom=a.nombre.split(' ')[0];
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
   const link=BASE+'/alumna/'+a.slug;
-  const vars={nombre:nom,link,ciclo:cicNom};
+  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom})),'_blank');
+}
+function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
     l:t.l,
-    href:'https://wa.me/'+ph+'?text='+encodeURIComponent(interpTpl(t.msg,vars))
+    onclick:`envTplAlu(${a.id},'${t.key}')`
   }));
 }
 
@@ -1807,7 +1811,7 @@ function alumnaCardHTML(a){
     const tpls=waTpls(a);
     return'<div style="position:relative;display:inline-block;">'
       +'<button class="btn btn-s" style="color:#25D366;border-color:#25D366;" onclick="S[\'wa_'+a.id+'\']=!S[\'wa_'+a.id+'\'];render()">💬 WA</button>'
-      +(waOpen?'<div style="position:absolute;bottom:calc(100% + 4px);left:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.12);">'+tpls.map(t=>'<a href="'+t.href+'" target="_blank" onclick="S[\'wa_'+a.id+'\']=false;render()" style="display:block;padding:6px 10px;font-size:12px;color:var(--t);text-decoration:none;border-radius:5px;" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">'+t.l+'</a>').join('')+'</div>':'')
+      +(waOpen?'<div style="position:absolute;bottom:calc(100% + 4px);left:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.12);">'+tpls.map(t=>'<button onclick="'+t.onclick+';S[\'wa_'+a.id+'\']=false;render()" style="display:block;width:100%;text-align:left;padding:6px 10px;font-size:12px;color:var(--t);background:none;border:none;border-radius:5px;cursor:pointer;font-family:\'DM Sans\',sans-serif;" onmouseover="this.style.background=\'var(--s2)\'" onmouseout="this.style.background=\'\'">'+t.l+'</button>').join('')+'</div>':'')
       +'</div>';
   })():'';
 
@@ -2544,7 +2548,7 @@ function rRecordatorios(){
   </div>
   <div class="card">
     <div class="ctitle">Templates de WhatsApp</div>
-    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Mensajes pre-escritos — elegí uno y envialo con un click · <strong>Tip:</strong> sin emojis para mejor compatibilidad</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Mensajes pre-escritos — elegí uno y envialo con un click</div>
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.9rem;">
       ${getTpls().map(t=>`<div style="display:inline-flex;align-items:center;gap:1px;margin:0 4px 4px 0;">
         <button class="btn btn-s${S._tplSel===t.key?' btn-p':''}" style="border-radius:var(--rp) 0 0 var(--rp);" onclick="S._tplSel=S._tplSel==='${t.key}'?null:'${t.key}';S._tplEdit=null;render()">${t.label}</button>
