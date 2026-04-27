@@ -402,7 +402,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:''};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -1326,9 +1326,13 @@ async function deletePlantilla(id){
 }
 
 async function deleteAlumna(id){
-  if(!confirm('¿Eliminás esta alumna y toda su rutina?'))return;
-  try{await sbDelete('alumnas',`id=eq.${id}`);DB.alumnas=DB.alumnas.filter(a=>a.id!==id);delete DB.rutinas[id];if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;render();}
-  catch(e){alert('Error al eliminar');}
+  S._confirmDeleteId=id; S['menu_'+id]=false; render();
+}
+async function confirmDeleteAlumna(){
+  const id=S._confirmDeleteId; S._confirmDeleteId=null;
+  try{await sbDelete('alumnas',`id=eq.${id}`);DB.alumnas=DB.alumnas.filter(a=>a.id!==id);delete DB.rutinas[id];if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;}
+  catch(e){S.err='Error al eliminar';render();return;}
+  render();
 }
 
 async function resetearProgreso(id){
@@ -1504,6 +1508,22 @@ function render(){
   const vs={inicio:rInicio,alumnas:rAlumnas,rutinas:rRutinas,historial:rHistorial,biblioteca:rBiblioteca,plantillas:rPlantillas,comentarios:rComentarios,registros:rRegistros,recordatorios:rRecordatorios,avisos:rAvisos,links:rLinks,config:rConfig,analisis:rAnalisis};
   m.innerHTML=(vs[S.view]||rInicio)();
   if(prevId){const el=document.getElementById(prevId);if(el){el.focus();try{el.setSelectionRange(prevStart,prevEnd);}catch(e){}}}
+  // Modal confirmación eliminar alumna
+  let _dm=document.getElementById('_del-modal');
+  if(S._confirmDeleteId){
+    const _da=getA(S._confirmDeleteId);
+    if(!_dm){_dm=document.createElement('div');_dm.id='_del-modal';document.body.appendChild(_dm);}
+    _dm.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    _dm.innerHTML=`<div style="background:var(--s);border-radius:var(--r);padding:1.5rem 1.25rem;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+      <div style="font-size:18px;font-weight:600;color:var(--rd);margin-bottom:.5rem;">⚠️ Eliminar alumna</div>
+      <div style="font-size:14px;color:var(--t);margin-bottom:.3rem;">Estás por eliminar a <strong>${_da?_da.nombre:'esta alumna'}</strong>.</div>
+      <div style="font-size:13px;color:var(--tm);margin-bottom:1.25rem;line-height:1.5;">Esto borrará <strong>todos sus datos</strong>: rutinas, progreso, pagos y notas. Esta acción <strong>no se puede deshacer</strong>.</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="S._confirmDeleteId=null;render()" style="flex:1;padding:10px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s2);color:var(--t);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
+        <button onclick="confirmDeleteAlumna()" style="flex:1;padding:10px;border-radius:var(--rp);border:none;background:var(--rd);color:white;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">Sí, eliminar</button>
+      </div>
+    </div>`;
+  } else if(_dm){_dm.remove();}
 }
 
 // ── RENDERS ───────────────────────────────────────────────────
