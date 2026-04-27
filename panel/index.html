@@ -554,9 +554,9 @@ async function loadAll(){
     const [_fb,_ps,_pg,_av,_pa,_ns]=await Promise.allSettled([
       sbGet('feedbacks','order=created_at.desc&limit=50'),
       sbGet('push_subscriptions','select=alumna_id'),
-      sbGet('pagos','order=fecha_pago.desc'),
-      sbGet('avisos','order=created_at.desc'),
-      sbGet('peso_alumna','order=alumna_id.asc,fecha.desc'),
+      sbGet('pagos','order=fecha_pago.desc&limit=5000'),
+      sbGet('avisos','order=created_at.desc&limit=5000'),
+      sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200')
     ]);
     DB.feedbacks   = _fb.status==='fulfilled'?_fb.value:[];
@@ -1054,14 +1054,20 @@ async function saveEditA(){
 // ── CRUD Alumnas ──────────────────────────────────────────────
 function handleFoto(aId,input){
   const file=input.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const foto=e.target.result;
+  const img=new Image();
+  img.onload=async()=>{
+    const MAX=200;
+    const ratio=Math.min(MAX/img.width,MAX/img.height);
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width*ratio; canvas.height=img.height*ratio;
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const foto=canvas.toDataURL('image/jpeg',0.8);
     const a=getA(aId); if(a)a.foto=foto;
     try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
     render();
+    URL.revokeObjectURL(img.src);
   };
-  reader.readAsDataURL(file);
+  img.src=URL.createObjectURL(file);
 }
 
 function pinDesdeNacimiento(nac){
@@ -2199,8 +2205,8 @@ async function editarNombrePlantilla(id){
 async function loadHistorial(aId){
   try{
     const [rows,pc]=await Promise.all([
-      sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`),
-      sbGet('peso_alumna',`alumna_id=eq.${aId}&order=fecha.desc`).catch(()=>[])
+      sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc&limit=5000`),
+      sbGet('peso_alumna',`alumna_id=eq.${aId}&order=fecha.desc&limit=5000`).catch(()=>[])
     ]);
     DB.progreso=DB.progreso||{};
     DB.progreso[aId]=rows;
