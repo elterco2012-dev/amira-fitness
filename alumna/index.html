@@ -2324,18 +2324,6 @@ async function init(){
   mostrarBannerIOS();
 }
 // Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
-async function limpiarCachesViejos(){
-  try{
-    if('caches' in window){
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-      console.log('Caches eliminados:', keys);
-    }
-  }catch(e){
-    console.warn('No se pudieron limpiar caches', e);
-  }
-}
-limpiarCachesViejos();
 init();
 </script>
 </body>
