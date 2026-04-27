@@ -605,7 +605,16 @@ async function loadAll(){
     prevCom=coms.length?Math.max(...coms.map(c=>+c.id)):0;
     localStorage.setItem('af-prevCom',String(prevCom));
     prevReg=regs.filter(r=>r.estado==='pendiente').length;
+    try{
+      const _nav=localStorage.getItem('af-nav');
+      if(_nav){
+        const n=JSON.parse(_nav);
+        if(n.a&&DB.alumnas.some(x=>x.id===n.a)){S.selA=n.a;S.selCiclo=n.c||1;S.selSem=n.s||1;S.selDia=n.d||1;}
+        if(n.v)S.view=n.v;
+      }
+    }catch(e){}
     if(!S.selA&&DB.alumnas.length>0){S.selA=DB.alumnas[0].id;S.selCiclo=DB.alumnas[0].ciclo_actual||1;}
+    if(S.view==='historial'&&S.selA&&!DB.progreso?.[S.selA])loadHistorial(S.selA);
     sbSt(true,'Conectado ✓');
     render();startPoll();
     if(prevReg>0){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=prevReg;}}
@@ -1460,6 +1469,7 @@ function go(v){
 }
 
 function render(){
+  try{localStorage.setItem('af-nav',JSON.stringify({v:S.view,a:S.selA,c:S.selCiclo,s:S.selSem,d:S.selDia}));}catch(e){}
   const m=document.getElementById('main');
   const prev=document.activeElement;
   const prevId=prev?.id;
