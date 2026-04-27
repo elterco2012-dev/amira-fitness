@@ -1078,6 +1078,12 @@ function getMensajeContextual(stats){
   return'Cada sesión cuenta. Seguí sumando — tu cuerpo lo agradece.';
 }
 
+function toggleWarmup(){
+  const open=localStorage.getItem('af-warmup-open')==='1';
+  localStorage.setItem('af-warmup-open',open?'0':'1');
+  renderRutina();
+}
+
 // ── Toast de confirmación ─────────────────────────────────────
 function mostrarToast(msg){
   const t = document.createElement('div');
@@ -1899,6 +1905,7 @@ function renderRutina(){
   const justDone = total>0 && comp===total;
   const avContent = a.foto ? `<img src="${a.foto}" alt="${a.nombre}">` : ini(a.nombre);
   const stats = calcStats(a.id);
+  const pctCiclo = stats.cicloTotal>0 ? Math.round((stats.cicloDone/stats.cicloTotal)*100) : 0;
 
   let html = `
     <div class="hero">
@@ -1907,9 +1914,17 @@ function renderRutina(){
         <div class="av-edit">✎</div>
       </div>
       <input type="file" id="fp-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
-      <div>
+      <div style="flex:1;min-width:0;">
         <h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2>
-        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha} sesiones seguidas`:''}</p>
+        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha}`:''}</p>
+        ${stats.cicloTotal>0?`<div style="margin-top:7px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span style="font-size:10px;color:var(--tm);">${stats.cicloDone}/${stats.cicloTotal} entrenamientos del ciclo</span>
+          </div>
+          <div style="height:4px;background:var(--b);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${pctCiclo}%;background:var(--v);border-radius:2px;transition:width .4s;"></div>
+          </div>
+        </div>`:''}
       </div>
     </div>
 
@@ -1928,34 +1943,25 @@ function renderRutina(){
       </div>`;
     })()}
     ${(()=>{
-      if(!stats.totalCompletedEver&&!stats.cicloTotal)return'';
-      const _msg=getMensajeContextual(stats);
-      const _pct=stats.cicloTotal>0?Math.round((stats.cicloDone/stats.cicloTotal)*100):0;
-      return`<div style="background:var(--s);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:.75rem;">
-        ${stats.racha>=2?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:.55rem;">
-          <span style="font-size:1rem;">🔥</span>
-          <span style="font-size:13px;font-weight:600;color:var(--t);">${stats.racha} sesiones seguidas</span>
-        </div>`:''}
-        ${stats.cicloTotal>0?`<div style="margin-bottom:.6rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <span style="font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;">Progreso del ciclo</span>
-            <span style="font-size:12px;font-weight:600;color:var(--t);">${stats.cicloDone}/${stats.cicloTotal}</span>
-          </div>
-          <div style="height:5px;background:var(--b2);border-radius:3px;overflow:hidden;">
-            <div style="height:100%;width:${_pct}%;background:var(--v);border-radius:3px;transition:width .4s;"></div>
-          </div>
-        </div>`:''}
-        <div style="font-size:12px;color:var(--tm);line-height:1.55;">${_msg}</div>
+      const _diasDesde=stats.lastTrainingDate?Math.floor((new Date()-stats.lastTrainingDate)/864e5):null;
+      const _showNudge=stats.totalCompletedEver===0||(_diasDesde!==null&&_diasDesde>=3);
+      if(!_showNudge)return'';
+      return`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;">
+        <div style="font-size:12px;color:var(--tm);line-height:1.55;">${getMensajeContextual(stats)}</div>
       </div>`;
     })()}
-    <div class="warmup">
-      <div class="wt">Entrada en calor — hacé esto primero</div>
-      ${(DB.calentamiento&&DB.calentamiento.length>0
+    ${(()=>{
+      const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
+      const _wuLinks=DB.calentamiento&&DB.calentamiento.length>0
         ?DB.calentamiento.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
         :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
-        <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`
-      )}
-    </div>`;
+        <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`;
+      return`<button onclick="toggleWarmup()" style="width:100%;background:var(--a);border:none;border-radius:${_wuOpen?'var(--rs) var(--rs) 0 0':'var(--rs)'};padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:${_wuOpen?'0':'.85rem'};">
+        <span style="font-size:10px;font-weight:500;color:var(--ad);text-transform:uppercase;letter-spacing:.05em;">🔥 Entrada en calor</span>
+        <span style="font-size:10px;color:var(--ad);opacity:.7;">${_wuOpen?'▲ cerrar':'▼ ver'}</span>
+      </button>
+      ${_wuOpen?`<div class="warmup" style="border-radius:0 0 var(--rs) var(--rs);padding-top:.5rem;margin-bottom:.85rem;">${_wuLinks}</div>`:''}`;
+    })()}`;
 
   // Selector de ciclos — siempre visible
   if(ciclos.length>0){
