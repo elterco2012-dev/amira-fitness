@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel — Amira Fitness</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <script src="/sb.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -551,13 +550,21 @@ async function loadAll(){
       sbGet('ejercicios_biblioteca','order=grupo_muscular.asc,nombre.asc'),
       sbGet('plantillas','order=created_at.asc')
     ]);
-    // feedbacks in separate try-catch (table may not exist yet until migration is run)
-    try{DB.feedbacks=await sbGet('feedbacks','order=created_at.desc&limit=50');}catch(e){DB.feedbacks=[];}
-    try{DB.pushSubs=await sbGet('push_subscriptions','select=alumna_id');}catch(e){DB.pushSubs=[];}
-    try{DB.pagos=await sbGet('pagos','order=fecha_pago.desc');}catch(e){DB.pagos=[];}
-    try{DB.avisos=await sbGet('avisos','order=created_at.desc');}catch(e){DB.avisos=[];}
-    try{DB.pesoAlumna=await sbGet('peso_alumna','order=alumna_id.asc,fecha.desc');}catch(e){DB.pesoAlumna=[];}
-    try{DB.notasSesion=await sbGet('notas_sesion','order=created_at.desc&limit=200');}catch(e){DB.notasSesion=[];}
+    // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
+    const [_fb,_ps,_pg,_av,_pa,_ns]=await Promise.allSettled([
+      sbGet('feedbacks','order=created_at.desc&limit=50'),
+      sbGet('push_subscriptions','select=alumna_id'),
+      sbGet('pagos','order=fecha_pago.desc'),
+      sbGet('avisos','order=created_at.desc'),
+      sbGet('peso_alumna','order=alumna_id.asc,fecha.desc'),
+      sbGet('notas_sesion','order=created_at.desc&limit=200')
+    ]);
+    DB.feedbacks   = _fb.status==='fulfilled'?_fb.value:[];
+    DB.pushSubs    = _ps.status==='fulfilled'?_ps.value:[];
+    DB.pagos       = _pg.status==='fulfilled'?_pg.value:[];
+    DB.avisos      = _av.status==='fulfilled'?_av.value:[];
+    DB.pesoAlumna  = _pa.status==='fulfilled'?_pa.value:[];
+    DB.notasSesion = _ns.status==='fulfilled'?_ns.value:[];
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1435,8 +1442,8 @@ function go(v){
   if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';localStorage.setItem('af-prevCom',String(prevCom));}
   if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
   if(v==='historial'){
-    // Cargar progreso de todas las alumnas al entrar al historial
-    DB.alumnas.forEach(a=>loadHistorial(a.id));
+    // Cargar solo la alumna seleccionada al entrar; las demás se cargan al hacer clic
+    if(S.selA && !DB.progreso?.[S.selA]) loadHistorial(S.selA);
   }
   document.querySelectorAll('.nav').forEach(el=>{el.classList.remove('active');});
   document.querySelectorAll('.nav').forEach(el=>{if(el.getAttribute('onclick')===`go('${v}')`)el.classList.add('active');});
