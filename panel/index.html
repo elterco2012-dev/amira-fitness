@@ -615,6 +615,7 @@ async function loadAll(){
 function startPoll(){
   if(pollT)clearInterval(pollT);
   pollT=setInterval(async()=>{
+    if(document.hidden) return; // no polling when tab is in background
     try{
       const [coms,regs]=await Promise.all([sbGet('comentarios','select=id&order=created_at.desc&limit=1'),sbGet('registros','estado=eq.pendiente&select=id')]);
       if(coms.length&&+coms[0].id>prevCom){const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}prevCom=+coms[0].id;}
@@ -1398,7 +1399,8 @@ async function enviarPush(aId){
 // ── Registros ─────────────────────────────────────────────────
 async function aprobar(id){
   const reg=DB.registros.find(r=>r.id===id);if(!reg)return;
-  await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});
+  try{await sbPatch('registros',`id=eq.${id}`,{estado:'aprobado'});}
+  catch(e){S.err='Error al aprobar: '+e.message;render();return;}
   reg.estado='aprobado';
   prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
   const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
@@ -1429,7 +1431,8 @@ async function aprobar(id){
 }
 async function rechazar(id){
   if(!confirm('¿Rechazás?'))return;
-  await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});
+  try{await sbPatch('registros',`id=eq.${id}`,{estado:'rechazado'});}
+  catch(e){S.err='Error al rechazar: '+e.message;render();return;}
   const reg=DB.registros.find(r=>r.id===id);if(reg)reg.estado='rechazado';
   prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
   const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
@@ -2202,7 +2205,7 @@ async function loadHistorial(aId){
     DB.progreso=DB.progreso||{};
     DB.progreso[aId]=rows;
     DB.pesoAlumna=(DB.pesoAlumna||[]).filter(p=>p.alumna_id!==aId).concat(pc);
-    render();
+    if(S.view==='historial') render();
   }catch(e){console.error('historial error',e);}
 }
 
@@ -2313,7 +2316,7 @@ function rHistorial(){
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
     <div style="display:flex;gap:7px;flex-wrap:wrap;">
-      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
     </div>
     ${a&&rows.length>0?`<button class="btn btn-s" onclick="exportarCSV(${a.id})" title="Descargar historial en Excel">⬇ CSV</button>`:''}
   </div>
