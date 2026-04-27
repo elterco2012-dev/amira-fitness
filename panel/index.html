@@ -554,9 +554,9 @@ async function loadAll(){
     const [_fb,_ps,_pg,_av,_pa,_ns]=await Promise.allSettled([
       sbGet('feedbacks','order=created_at.desc&limit=50'),
       sbGet('push_subscriptions','select=alumna_id'),
-      sbGet('pagos','order=fecha_pago.desc'),
-      sbGet('avisos','order=created_at.desc'),
-      sbGet('peso_alumna','order=alumna_id.asc,fecha.desc'),
+      sbGet('pagos','order=fecha_pago.desc&limit=5000'),
+      sbGet('avisos','order=created_at.desc&limit=5000'),
+      sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200')
     ]);
     DB.feedbacks   = _fb.status==='fulfilled'?_fb.value:[];
@@ -2205,8 +2205,8 @@ async function editarNombrePlantilla(id){
 async function loadHistorial(aId){
   try{
     const [rows,pc]=await Promise.all([
-      sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc`),
-      sbGet('peso_alumna',`alumna_id=eq.${aId}&order=fecha.desc`).catch(()=>[])
+      sbGet('progreso',`alumna_id=eq.${aId}&order=ciclo.asc,semana.asc,dia.asc,ejercicio_idx.asc&limit=5000`),
+      sbGet('peso_alumna',`alumna_id=eq.${aId}&order=fecha.desc&limit=5000`).catch(()=>[])
     ]);
     DB.progreso=DB.progreso||{};
     DB.progreso[aId]=rows;
