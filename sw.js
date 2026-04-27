@@ -1,8 +1,7 @@
-const CACHE = 'amira-v6';
+const CACHE = 'amira-v7';
 const STATIC = [
   '/',
   '/alumna/',
-  '/api/sb.js',
   '/sb.js',
   '/api/manifest.json',
   '/api/icon-192.svg',

@@ -544,10 +544,10 @@ function grupoColor(g){const m={Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#9935
 async function loadAll(){
   try{
     const [alumnas,rutinas,coms,regs,bib,plants]=await Promise.all([
-      sbGet('alumnas','order=created_at.asc'),
-      sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc'),
-      sbGet('comentarios','order=created_at.desc'),
-      sbGet('registros','order=created_at.desc'),
+      sbGet('alumnas','order=created_at.asc&limit=5000'),
+      sbGet('rutinas','order=alumna_id.asc,ciclo.asc,semana.asc,dia.asc&limit=5000'),
+      sbGet('comentarios','order=created_at.desc&limit=5000'),
+      sbGet('registros','order=created_at.desc&limit=5000'),
       sbGet('ejercicios_biblioteca','order=grupo_muscular.asc,nombre.asc'),
       sbGet('plantillas','order=created_at.asc')
     ]);

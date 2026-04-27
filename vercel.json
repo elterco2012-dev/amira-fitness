@@ -6,7 +6,6 @@
     { "source": "/registro", "destination": "/registro/index.html" },
     { "source": "/ficha/:slug", "destination": "/ficha/index.html" },
     { "source": "/ficha", "destination": "/ficha/index.html" },
-    { "source": "/api/sb.js", "destination": "/api/sb.js" },
     { "source": "/sb.js", "destination": "/sb.js" },
     { "source": "/api/seed.json", "destination": "/api/seed.json" },
     { "source": "/sw.js", "destination": "/sw.js" },
@@ -21,7 +20,7 @@
       ]
     },
     {
-      "source": "/(sb|api/sb).js",
+      "source": "/sb.js",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {

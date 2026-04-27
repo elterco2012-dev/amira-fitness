@@ -326,7 +326,7 @@ function normalizarTel(raw){
   // If already has country/area code (starts with + or 549...), leave it
   if(t.startsWith('+')) return t.replace(/^\+/,'');
   if(t.startsWith('549')) return t;
-  if(t.startsWith('54')) return '5' + t; // 54... → 549...
+  if(t.startsWith('54'))  return '549' + t.slice(2); // 54... → 549...
   // Local Argentine number — prepend 549
   return '549' + t;
 }
