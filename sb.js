@@ -1,9 +1,11 @@
 const SB_URL = 'https://aywkeoxwybzcexaichtv.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5d2tlb3h3eWJ6Y2V4YWljaHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzcyMDIsImV4cCI6MjA5MTUxMzIwMn0.BTcWM5GFj3r7hRFF-DXH9tSvoFLRjxELKZ-UQCvnUo0';
+const SB_KEY = 'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb';
 
-// Usa el JWT de sesión si está disponible, cae al anon JWT si no
+// Usa el JWT de sesión solo si todavía es válido; si venció o no hay sesión usa SB_KEY
 function getSBH(extra) {
-  const token = localStorage.getItem('af-access-token') || SB_KEY;
+  const stored = localStorage.getItem('af-access-token');
+  const expires = parseInt(localStorage.getItem('af-token-expires') || '0');
+  const token = (stored && Date.now() < expires) ? stored : SB_KEY;
   return {
     'Content-Type': 'application/json',
     'apikey': SB_KEY,
