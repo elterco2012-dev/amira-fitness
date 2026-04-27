@@ -2668,7 +2668,7 @@ function envResumenGeneral(){
     return`${a.nombre.split(' ')[0]}: ${hechas}/${totalSems} sem ${icon}`;
   });
   const msg=`Resumen semanal — ${new Date().toLocaleDateString('es-AR')}\n${lineas.join(' | ')}`;
-  window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`,'_blank');
+  waOpen(ph, msg);
 }
 
 // ── Feedback labels (module scope para rAnalisis y rInicio) ───────────────────
@@ -2752,7 +2752,7 @@ function envTemplate(aId, key){
   const a=getA(aId); if(!a||!a.tel){S.msg='Esta alumna no tiene WhatsApp.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
   const tpl=getTpls().find(t=>t.key===key); if(!tpl)return;
   const msg=tpl.msg.replace('[nombre]',a.nombre.split(' ')[0]);
-  window.open(`https://wa.me/${a.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');
+  waOpen(a.tel.replace(/\D/g,''), msg);
 }
 
 async function envRes(aId){
@@ -2775,7 +2775,7 @@ async function envRes(aId){
     +`¡Seguimos la próxima semana! 🔥`;
   const tel=a.tel?a.tel.replace(/\D/g,''):'';
   if(!tel){S.msg='Esta alumna no tiene WhatsApp cargado.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
-  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
+  waOpen(tel, msg);
 }
 
 function rAvisos(){
@@ -2929,7 +2929,7 @@ async function informeMensual(aId){
   if(pesoDiff!==null){const ds=pesoDiff>0?'+'+pesoDiff.toFixed(1):pesoDiff.toFixed(1);msg+='\n⚖️ Peso corporal: '+pesoIni+' → '+pesoFin+' kg ('+ds+' kg)\n';}
   msg+='\n¡Seguimos el próximo ciclo! 🔥 — Amira';
   S.msg='';render();
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+  waOpen(tel, msg);
 }
 
 // ── Onboarding WA ─────────────────────────────────────────────
@@ -2950,7 +2950,7 @@ function onboardingWA(regId){
   if(exp)msg+='🏋️ Experiencia: '+exp+'\n';
   msg+='\nEn breve te cargo tu rutina personalizada. Cuando te llegue el link, ya podés empezar.\n\n';
   msg+='Cualquier duda, escribime acá. ¡Arrancamos! — Amira 🔥';
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+  waOpen(tel, msg);
 }
 
 // ── Notificaciones del panel ──────────────────────────────────
