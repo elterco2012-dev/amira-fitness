@@ -1054,14 +1054,20 @@ async function saveEditA(){
 // ── CRUD Alumnas ──────────────────────────────────────────────
 function handleFoto(aId,input){
   const file=input.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async e=>{
-    const foto=e.target.result;
+  const img=new Image();
+  img.onload=async()=>{
+    const MAX=200;
+    const ratio=Math.min(MAX/img.width,MAX/img.height);
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width*ratio; canvas.height=img.height*ratio;
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const foto=canvas.toDataURL('image/jpeg',0.8);
     const a=getA(aId); if(a)a.foto=foto;
     try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
     render();
+    URL.revokeObjectURL(img.src);
   };
-  reader.readAsDataURL(file);
+  img.src=URL.createObjectURL(file);
 }
 
 function pinDesdeNacimiento(nac){
