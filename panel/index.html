@@ -1373,16 +1373,38 @@ async function deshacerPago(aId){
   }catch(e){alert('Error: '+e.message);}
 }
 
+// ── WhatsApp helpers ──────────────────────────────────────────
+function toastPanel(msg){
+  let el=document.getElementById('_tp');
+  if(!el){el=document.createElement('div');el.id='_tp';el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:999;white-space:nowrap;pointer-events:none;transition:opacity .3s;';document.body.appendChild(el);}
+  el.textContent=msg;el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2800);
+}
+async function waOpen(ph, msg){
+  // Copiar al clipboard primero (preserva emoji perfectamente)
+  try{await navigator.clipboard.writeText(msg);}catch(e){}
+  // Abrir WhatsApp — si el clipboard funcionó, el usuario pega (Ctrl+V)
+  // Si no, abrir con texto en URL como fallback
+  let opened=false;
+  try{
+    await navigator.clipboard.readText(); // Verifica que el clipboard tiene el texto
+    toastPanel('✓ Mensaje copiado — abriendo WhatsApp, pegá con Ctrl+V');
+    window.open('https://wa.me/'+ph,'_blank');
+    opened=true;
+  }catch(e){}
+  if(!opened) window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank');
+}
+
 // ── Recordatorios ─────────────────────────────────────────────
-function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=encodeURIComponent(`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`);window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');}
-function envTplAlu(aId, key){
+function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`;waOpen(ph,msg);}
+async function envTplAlu(aId, key){
   const a=getA(aId); if(!a||!a.tel) return;
   const tpl=getAlumnaTpls().find(t=>t.key===key); if(!tpl) return;
   const ph=a.tel.replace(/\D/g,'');
   const nom=a.nombre.split(' ')[0];
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
   const link=BASE+'/alumna/'+a.slug;
-  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom})),'_blank');
+  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom}));
 }
 function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
@@ -1567,11 +1589,11 @@ function rInicio(){
     <div class="ctitle" style="margin-bottom:.6rem;">⚡ Acciones urgentes</div>
     ${_alertas.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const ph=(al?.tel||'').replace(/\D/g,'');return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--rd);">🚨 <strong>${al?al.nombre.split(' ')[0]:'?'}</strong> — ${f.ejercicio_nombre||'ejercicio'}${f.nota?' ('+f.nota+')':''}</span>
-      ${ph?`<a href="https://wa.me/${ph}?text=${encodeURIComponent(interpTpl(_tplDolor.msg,{nombre:(al?.nombre||'').split(' ')[0]}))}" target="_blank" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</a>`:''}
+      ${ph?`<button onclick="waOpen('${ph}',interpTpl(_tplDolor.msg,{nombre:'${(al?.nombre||'').split(' ')[0]}'}))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
     </div>`;}).join('')}
     ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?Math.floor((now-new Date(a.last_active_at))/86400000):null;return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--tm);">🔴 <strong>${a.nombre.split(' ')[0]}</strong> — ${d===null?'sin actividad':d+' días sin entrenar'}</span>
-      <a href="https://wa.me/${ph}?text=${encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}))}" target="_blank" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</a>
+      <button onclick="waOpen('${ph}',interpTpl(_tplInact.msg,{nombre:'${a.nombre.split(' ')[0]}'}))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
     </div>`;}).join('')}
   </div>`:''}
   <div class="metrics">
@@ -1582,7 +1604,7 @@ function rInicio(){
   </div>
   ${cumples.length>0?`<div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#f59e0b;margin-bottom:1rem;">
     <div style="font-size:1rem;font-weight:500;color:#92400e;margin-bottom:4px;">🎂 ¡Hoy cumple ${cumples.map(a=>a.nombre.split(' ')[0]).join(' y ')}!</div>
-    ${cumples.filter(a=>a.tel).map(a=>`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}?text=${encodeURIComponent('¡Feliz cumple '+a.nombre.split(' ')[0]+'! 🎂🎉 Espero que la pases increíble. — Amira')}" target="_blank" class="btn btn-s" style="display:inline-block;margin-top:4px;">Saludar por WhatsApp 🎉</a>`).join(' ')}
+    ${cumples.filter(a=>a.tel).map(a=>`<button onclick="waOpen('${a.tel.replace(/\D/g,'')}','¡Feliz cumple ${a.nombre.split(' ')[0]}! 🎂🎉 Espero que la pases increíble. — Amira')" class="btn btn-s" style="display:inline-block;margin-top:4px;">Saludar por WhatsApp 🎉</button>`).join(' ')}
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
   <div class="card" style="margin-bottom:1rem;">
