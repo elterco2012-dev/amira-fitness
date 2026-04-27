@@ -228,11 +228,8 @@ if(fichaSlug && localStorage.getItem(fichaKey)){
 // Pre-cargar nombre de la alumna si viene en la URL
 async function cargarAlumna(){
   try{
-    const alumnas = await sbGet('alumnas','order=created_at.asc');
-    const a = alumnas.find(x=>
-      x.slug===fichaSlug ||
-      (x.nombre||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(' ')[0] === fichaSlug.normalize('NFD').replace(/[̀-ͯ]/g,'')
-    );
+    const alumnas = await sbGet('alumnas',`slug=eq.${encodeURIComponent(fichaSlug)}`);
+    const a = alumnas[0];
     if(a){
       fichaAlumnaId=a.id;
       fichaAlumnaNombre=a.nombre;
@@ -320,7 +317,6 @@ function prev(n){goTo(n-1);}
 async function enviar(){
   if(!validate(4))return;
   const datos={
-    id:Date.now(),
     nombre:document.getElementById('f-nombre').value.trim(),
     tel:document.getElementById('f-tel').value.trim(),
     mail:document.getElementById('f-mail').value.trim(),
@@ -329,7 +325,7 @@ async function enviar(){
     objetivos:getChips('ch-objetivo'),
     modalidad:'—',
     dias:'—',
-    // Campos de salud adicionales
+    fuma:getChips('ch-fuma')||'—',
     control_medico:getChips('ch-control'),
     enfermedad:document.getElementById('f-enfermedad').value||'Ninguna',
     medicacion:document.getElementById('f-medicacion').value||'No',
@@ -347,8 +343,8 @@ async function enviar(){
   // Asociar a alumna si viene de URL personalizada
   if(fichaAlumnaId) datos.alumna_id = fichaAlumnaId;
   
-  // Guardar en Supabase
-  try{await sbUpsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+  // Guardar en Supabase (sin id — la DB lo genera con autoincrement)
+  try{await sbInsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
   
   // Marcar como completada en localStorage (no se puede reenviar)
   if(fichaSlug) localStorage.setItem(fichaKey, '1');

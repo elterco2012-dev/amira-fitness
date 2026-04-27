@@ -615,6 +615,7 @@ async function loadAll(){
 function startPoll(){
   if(pollT)clearInterval(pollT);
   pollT=setInterval(async()=>{
+    if(document.hidden) return; // no polling when tab is in background
     try{
       const [coms,regs]=await Promise.all([sbGet('comentarios','select=id&order=created_at.desc&limit=1'),sbGet('registros','estado=eq.pendiente&select=id')]);
       if(coms.length&&+coms[0].id>prevCom){const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}prevCom=+coms[0].id;}
