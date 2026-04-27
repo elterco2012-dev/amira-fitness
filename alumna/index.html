@@ -905,6 +905,43 @@ async function guardarSuscripcion(alumnaId, sub){
   }catch(e){ console.warn('Error guardando suscripción:', e); }
 }
 
+async function activarPushManual(alumnaId){
+  if(!swReg || !('PushManager' in window)){
+    mostrarToast('Instalá la app en tu pantalla de inicio para activar notificaciones');
+    return;
+  }
+  localStorage.removeItem('af-push-asked');
+  try{
+    await swReg.ready;
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      localStorage.setItem('af-push-asked','denied');
+      mostrarToast('No se pudieron activar las notificaciones');
+      renderNotas(); return;
+    }
+    let sub = await swReg.pushManager.getSubscription();
+    if(!sub) sub = await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUB_KEY)});
+    localStorage.setItem('af-push-asked','granted');
+    await guardarSuscripcion(alumnaId, sub);
+    mostrarToast('✓ Recordatorios activados 💪');
+  }catch(e){
+    console.warn('Push error:', e);
+    localStorage.setItem('af-push-asked','denied');
+    mostrarToast('No se pudieron activar las notificaciones');
+  }
+  renderNotas();
+}
+
+async function desactivarPush(alumnaId){
+  try{
+    if(swReg){const sub=await swReg.pushManager.getSubscription();if(sub)await sub.unsubscribe();}
+    await sbDelete('push_subscriptions',`alumna_id=eq.${alumnaId}`);
+  }catch(e){ console.warn('Unsubscribe error:', e); }
+  localStorage.setItem('af-push-asked','denied');
+  mostrarToast('Notificaciones desactivadas');
+  renderNotas();
+}
+
 // ── Avisos de Amira ───────────────────────────────────────────
 function mostrarAvisos(a){
   // Remover banners anteriores
@@ -2147,7 +2184,36 @@ function renderNotas(){
     </div>
     ${_diasSel.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasSel.map(d=>_diasNom[d]).join(', ')}</div>`:'<div style="font-size:11px;color:var(--th);">Sin días seleccionados</div>'}
   </div>`;
-  scr.innerHTML=ciHtml+_horHtml+`<div class="csec">
+  const _pushSupported='PushManager' in window&&'serviceWorker' in navigator;
+  const _pushAsked=localStorage.getItem('af-push-asked');
+  const _notifPerm=_pushSupported?(typeof Notification!=='undefined'?Notification.permission:'default'):'unsupported';
+  let _pushHtml;
+  if(!_pushSupported){
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.3rem;">🔕 Recordatorios push</div>
+      <div style="font-size:11px;color:var(--tm);line-height:1.5;">En iPhone, primero agregá la app a tu pantalla de inicio y después podrás activarlos.</div>
+    </div>`;
+  } else if(_notifPerm==='granted'&&_pushAsked==='granted'){
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--t);">🔔 Recordatorios activos</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px;">Te avisamos a las 9AM los días de entrenamiento.</div>
+      </div>
+      <button onclick="desactivarPush(${a.id})" style="white-space:nowrap;padding:6px 12px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s2);color:var(--tm);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">Desactivar</button>
+    </div>`;
+  } else if(_notifPerm==='denied'){
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.3rem;">🔕 Notificaciones bloqueadas</div>
+      <div style="font-size:11px;color:var(--tm);line-height:1.5;">Tu navegador las bloqueó. Para reactivarlas, andá a Configuración del navegador → esta página → Notificaciones → Permitir.</div>
+    </div>`;
+  } else {
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.3rem;">🔕 Recordatorios push</div>
+      <div style="font-size:11px;color:var(--tm);margin-bottom:.65rem;line-height:1.5;">Recibí un aviso cuando tenés entrenamiento. Sin spam.</div>
+      <button onclick="activarPushManual(${a.id})" style="padding:7px 16px;border-radius:var(--rp);border:none;background:var(--v);color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar recordatorios</button>
+    </div>`;
+  }
+  scr.innerHTML=ciHtml+_horHtml+_pushHtml+`<div class="csec">
     <div class="ctit">Mis notas para Amira</div>
     <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>
     ${coms.length===0?`<div style="font-size:12px;color:var(--tm);margin-bottom:10px;">Todavía no tenés notas. ¡Dejale una a Amira!</div>`:''}
