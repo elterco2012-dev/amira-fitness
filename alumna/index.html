@@ -1628,7 +1628,7 @@ function savePeso(aId,i,val){
   const k=pKey(aId,selSem,selDia,i);
   pesos[k]=val;
   localStorage.setItem('af-pesos',JSON.stringify(pesos));
-  const tk=`${aId}-${i}`;
+  const tk=`${aId}-c${selCiclo}-${selSem}-${selDia}-${i}`;
   if(_pt[tk]) clearTimeout(_pt[tk]);
   _pt[tk]=setTimeout(async()=>{
     const kg=parseFloat(val)||null;
@@ -1963,7 +1963,7 @@ async function savePesoCorp(aId){
   const hoy=new Date().toISOString().split('T')[0];
   try{
     const saved=await sbUpsert('peso_alumna',{alumna_id:aId,fecha:hoy,peso:v});
-    const row=saved[0]||{alumna_id:aId,fecha:hoy,peso:v};
+    const row=saved||{alumna_id:aId,fecha:hoy,peso:v};
     const idx=(DB.pesoAlumnaHist||[]).findIndex(p=>p.fecha===hoy);
     if(idx>=0)DB.pesoAlumnaHist[idx]=row;else(DB.pesoAlumnaHist||[]).unshift(row);
     renderProgreso();
@@ -2229,7 +2229,7 @@ async function init(){
       :await sbGet('alumnas','order=created_at.asc');
     const a0=alumnas[0];
     const rutinas=a0
-      ?await sbGet('rutinas',`alumna_id=eq.${a0.id}&order=ciclo.asc,semana.asc,dia.asc`)
+      ?await sbGet('rutinas',`alumna_id=eq.${a0.id}&order=ciclo.asc,semana.asc,dia.asc&limit=5000`)
       :[];
     DB.alumnas=alumnas;
     loadFotosCache(); // inyectar foto cacheada antes de cualquier render para evitar parpadeo
@@ -2250,8 +2250,8 @@ async function init(){
       localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
       DB.pesoAlumnaHist=[];
       const [coms,prog,avs,calBib,estBib,pcRows]=await Promise.all([
-        sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc`),
-        sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc`),
+        sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
+        sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc&limit=5000`),
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
         sbGet('biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
         sbGet('biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
