@@ -995,6 +995,89 @@ function calcRacha(alumnaId, ciclo){
   return racha;
 }
 
+function calcStats(aId){
+  const al=DB.alumnas.find(x=>x.id===aId);
+  const ciclo=al?(al.ciclo_actual||1):1;
+
+  function dayCompletado(c,s,d){
+    const exs=getExs(aId,c,s,d);
+    if(!exs.length)return false;
+    const hechos=exs.filter((_,i)=>done[`${aId}-c${c}-${s}-${d}-${i}`]).length;
+    return hechos/exs.length>=0.8;
+  }
+
+  // Cycle progress for current ciclo
+  let cicloDone=0,cicloTotal=0;
+  for(const s of getSemanas(aId,ciclo)){
+    for(const dObj of getDias(aId,ciclo,s)){
+      if(dObj.ejercicios&&dObj.ejercicios.length>0){
+        cicloTotal++;
+        if(dayCompletado(ciclo,s,dObj.dia))cicloDone++;
+      }
+    }
+  }
+
+  // Streak from raw progreso rows (with updated_at)
+  let racha=0,lastTrainingDate=null,totalCompletedEver=0;
+  const raw=DB.progresoRaw||[];
+  if(raw.length>0){
+    const groups={};
+    for(const p of raw){
+      const gk=`c${p.ciclo}-${p.semana}-${p.dia}`;
+      if(!groups[gk])groups[gk]={ciclo:p.ciclo,semana:p.semana,dia:p.dia,rows:[]};
+      groups[gk].rows.push(p);
+    }
+    const completedDates=[];
+    for(const g of Object.values(groups)){
+      if(dayCompletado(g.ciclo,g.semana,g.dia)){
+        const ts=g.rows.map(r=>r.updated_at).filter(Boolean);
+        if(ts.length>0){
+          completedDates.push(new Date(ts.reduce((a,b)=>a>b?a:b)));
+          totalCompletedEver++;
+        }
+      }
+    }
+    completedDates.sort((a,b)=>b-a);
+    if(completedDates.length>0){
+      lastTrainingDate=completedDates[0];
+      racha=1;
+      for(let i=1;i<completedDates.length;i++){
+        if((completedDates[i-1]-completedDates[i])/(864e5)<=7)racha++;
+        else break;
+      }
+    }
+  } else {
+    // Offline fallback: count completed days without dates
+    const seen=new Set();
+    for(const c of Object.keys(DB.rutinas[aId]||{}).map(Number)){
+      for(const s of getSemanas(aId,c)){
+        for(const dObj of getDias(aId,c,s)){
+          const gk=`${c}-${s}-${dObj.dia}`;
+          if(!seen.has(gk)&&dayCompletado(c,s,dObj.dia)){seen.add(gk);totalCompletedEver++;}
+        }
+      }
+    }
+  }
+  return{racha,cicloDone,cicloTotal,lastTrainingDate,totalCompletedEver};
+}
+
+function getMensajeContextual(stats){
+  const{racha,totalCompletedEver,lastTrainingDate}=stats;
+  if(totalCompletedEver===0)
+    return'¡Bienvenida! Cuando completes tu primera sesión, empezamos a registrar tu progreso.';
+  const diasDesde=lastTrainingDate
+    ?Math.floor((new Date()-lastTrainingDate)/864e5):null;
+  if(diasDesde!==null&&diasDesde>=7)
+    return'Llevas un tiempo sin entrenar, ¿todo bien? Tu rutina te espera cuando estés lista — sin presión.';
+  if(diasDesde!==null&&diasDesde>=3)
+    return'Llevas unos días sin pasar por acá. Recorda que no hace falta que sea perfecto, con que empieces ya ganás.';
+  if(racha>=5)
+    return`¡Qué racha! ${racha} sesiones seguidas. Amira lo nota y se pone orgullosa de vos.`;
+  if(racha>=3)
+    return`Vas muy bien, ${racha} sesiones seguidas. La constancia es lo que hace la diferencia.`;
+  return'Cada sesión cuenta. Seguí sumando — tu cuerpo lo agradece.';
+}
+
 // ── Toast de confirmación ─────────────────────────────────────
 function mostrarToast(msg){
   const t = document.createElement('div');
@@ -1815,6 +1898,7 @@ function renderRutina(){
   const pct = total>0 ? Math.round((comp/total)*100) : 0;
   const justDone = total>0 && comp===total;
   const avContent = a.foto ? `<img src="${a.foto}" alt="${a.nombre}">` : ini(a.nombre);
+  const stats = calcStats(a.id);
 
   let html = `
     <div class="hero">
@@ -1825,7 +1909,7 @@ function renderRutina(){
       <input type="file" id="fp-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
       <div>
         <h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2>
-        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana${(()=>{const r=calcRacha(a.id,selCiclo);return r>=2?` · 🔥 ${r} sem seguidas`:'';})()}</p>
+        <p>${a.tipo==='gym'?'Gimnasio':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha} sesiones seguidas`:''}</p>
       </div>
     </div>
 
@@ -1841,6 +1925,27 @@ function renderRutina(){
       return`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:10px;">
         <span style="font-size:1.4rem;">💪</span>
         <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--vd);">¡Hoy te toca entrenar!</div><div style="font-size:11px;color:var(--vd);opacity:.8;">Abriste la app — eso ya es el primer paso.</div></div>
+      </div>`;
+    })()}
+    ${(()=>{
+      if(!stats.totalCompletedEver&&!stats.cicloTotal)return'';
+      const _msg=getMensajeContextual(stats);
+      const _pct=stats.cicloTotal>0?Math.round((stats.cicloDone/stats.cicloTotal)*100):0;
+      return`<div style="background:var(--s);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:.75rem;">
+        ${stats.racha>=2?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:.55rem;">
+          <span style="font-size:1rem;">🔥</span>
+          <span style="font-size:13px;font-weight:600;color:var(--t);">${stats.racha} sesiones seguidas</span>
+        </div>`:''}
+        ${stats.cicloTotal>0?`<div style="margin-bottom:.6rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;">Progreso del ciclo</span>
+            <span style="font-size:12px;font-weight:600;color:var(--t);">${stats.cicloDone}/${stats.cicloTotal}</span>
+          </div>
+          <div style="height:5px;background:var(--b2);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${_pct}%;background:var(--v);border-radius:3px;transition:width .4s;"></div>
+          </div>
+        </div>`:''}
+        <div style="font-size:12px;color:var(--tm);line-height:1.55;">${_msg}</div>
       </div>`;
     })()}
     <div class="warmup">
@@ -2335,6 +2440,7 @@ async function init(){
         done={}; pesos={};
         localStorage.setItem('af-last-reset', a.progreso_reset_at);
       }
+      DB.progresoRaw = prog;
       prog.forEach(p=>{
         if(p.hecho){
           const k=`${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
