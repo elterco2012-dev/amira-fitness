@@ -1,7 +1,7 @@
 const SB_URL = 'https://aywkeoxwybzcexaichtv.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5d2tlb3h3eWJ6Y2V4YWljaHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzcyMDIsImV4cCI6MjA5MTUxMzIwMn0.BTcWM5GFj3r7hRFF-DXH9tSvoFLRjxELKZ-UQCvnUo0';
 
-// Usa el JWT de sesión si está disponible, cae a la anon key si no
+// Usa el JWT de sesión si está disponible, cae al anon JWT si no
 function getSBH(extra) {
   const token = localStorage.getItem('af-access-token') || SB_KEY;
   return {
