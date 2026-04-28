@@ -402,7 +402,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -1944,6 +1944,26 @@ async function duplicarRutina(){
   }catch(e){S.msg='Error: '+e.message;render();}
 }
 
+async function copiarSemana(){
+  const dstA=S._copSemDstA;
+  if(!dstA){S.msg='Seleccioná una alumna destino';render();return;}
+  const srcDias=(DB.rutinas[S.selA]?.[S.selCiclo]?.[S.selSem])||[];
+  if(!srcDias.length){S.msg='La semana origen no tiene ejercicios';render();return;}
+  if(dstA===S.selA&&S._copSemDstCiclo===S.selCiclo&&S._copSemDstSem===S.selSem){
+    S.msg='El origen y el destino son iguales';render();return;
+  }
+  S.msg='Copiando...';render();
+  try{
+    await sbDelete('rutinas',`alumna_id=eq.${dstA}&ciclo=eq.${S._copSemDstCiclo}&semana=eq.${S._copSemDstSem}`);
+    await Promise.all(srcDias.map(d=>sbUpsert('rutinas',{
+      alumna_id:dstA,ciclo:S._copSemDstCiclo,semana:S._copSemDstSem,dia:d.dia,ejercicios:d.ejercicios
+    })));
+    await loadAll();
+    S._copSemMode=false;S.msg='¡Semana copiada!';render();
+    setTimeout(()=>{S.msg='';render();},2500);
+  }catch(e){S.msg='Error: '+e.message;render();}
+}
+
 async function delDia(){
   const a=getA(S.selA);if(!a)return;
   const cNom=a.ciclos_nombres?.[S.selCiclo]||('Ciclo '+S.selCiclo);
@@ -2014,7 +2034,8 @@ function rRutinas(){
           </span>`;
         }).join('');
       })()}
-      <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S.msg='';render()">📋 Copiar rutina</button>
+      <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S._copSemMode=false;S.msg='';render()">📋 Copiar rutina</button>
+      <button class="btn btn-s" onclick="S._copSemMode=!S._copSemMode;S._dupMode=false;S._copSemDstA=null;S._copSemDstCiclo=1;S._copSemDstSem=1;S.msg='';render()">✂️ Copiar semana</button>
       <button class="btn btn-s" style="margin-left:auto;" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
     </div>
     ${S._dupMode?(()=>{
@@ -2027,6 +2048,38 @@ function rRutinas(){
         +'<div style="display:flex;gap:6px;align-items:center;">'
         +'<button class="btn btn-p btn-s" onclick="duplicarRutina()">Copiar al Ciclo '+S.selCiclo+'</button>'
         +'<button class="btn btn-s" onclick="S._dupMode=false;render()">Cancelar</button>'
+        +(S.msg?'<span style="font-size:11px;color:var(--vd);">'+S.msg+'</span>':'')
+        +'</div></div>';
+    })():''}
+    ${S._copSemMode?(()=>{
+      const a=getA(S.selA);
+      const cicloNom=(a.ciclos_nombres||{})[S.selCiclo]||'Ciclo '+S.selCiclo;
+      const todasAlumnas=DB.alumnas;
+      const opts=todasAlumnas.map(al=>'<option value="'+al.id+'"'+(S._copSemDstA===al.id?' selected':'')+'>'+al.nombre+'</option>').join('');
+      const dstA=S._copSemDstA?getA(S._copSemDstA):null;
+      const dstCiclos=S._copSemDstA
+        ?(()=>{const cs=Object.keys(DB.rutinas[S._copSemDstA]||{}).map(Number).filter(c=>c>0).sort();return cs.length?cs:[1];})()
+        :[];
+      return'<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid rgba(60,52,137,.15);">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--pd);margin-bottom:8px;">Copiar <strong>Sem '+S.selSem+'</strong> de <strong>'+cicloNom+'</strong> → destino:</div>'
+        +'<select onchange="S._copSemDstA=parseInt(this.value);S._copSemDstCiclo=getA(S._copSemDstA)?.ciclo_actual||1;S._copSemDstSem=1;render()" style="width:100%;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;background:var(--s);color:var(--t);margin-bottom:8px;">'
+        +'<option value="">— Alumna destino —</option>'+opts+'</select>'
+        +(S._copSemDstA?(
+          '<div style="font-size:11px;color:var(--pd);margin-bottom:4px;">Ciclo destino</div>'
+          +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">'
+          +dstCiclos.map(c=>{
+            const nom=(dstA?.ciclos_nombres||{})[c]||'Ciclo '+c;
+            return'<button class="btn btn-s'+(S._copSemDstCiclo===c?' btn-purple':'')+'" onclick="S._copSemDstCiclo='+c+';render()">'+nom+'</button>';
+          }).join('')
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--pd);margin-bottom:4px;">Semana destino</div>'
+          +'<div style="display:flex;gap:4px;margin-bottom:8px;">'
+          +[1,2,3,4].map(s=>'<button class="btn btn-s'+(S._copSemDstSem===s?' btn-purple':'')+'" onclick="S._copSemDstSem='+s+';render()">Sem '+s+'</button>').join('')
+          +'</div>'
+        ):'')
+        +'<div style="display:flex;gap:6px;align-items:center;">'
+        +'<button class="btn btn-p btn-s" onclick="copiarSemana()">Copiar semana</button>'
+        +'<button class="btn btn-s" onclick="S._copSemMode=false;render()">Cancelar</button>'
         +(S.msg?'<span style="font-size:11px;color:var(--vd);">'+S.msg+'</span>':'')
         +'</div></div>';
     })():''}
