@@ -129,8 +129,9 @@
     .ex-btns{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--b);flex-wrap:wrap;}
     .btip{background:var(--p);border:none;border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--pd);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
     .bvid{background:var(--rl);border:none;border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--rd);font-family:'DM Sans',sans-serif;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:3px;}
-    .bchk{margin-left:auto;background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .2s;}
+    .bchk{width:100%;margin-top:8px;background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .2s;text-align:center;}
     .ex-card.done .bchk{background:var(--vl);color:var(--vd);border-color:var(--vm);}
+    .nota-ej{font-size:12px;color:var(--ad);background:var(--a);border-radius:var(--rs);padding:8px 10px;margin-top:8px;line-height:1.55;}
     .tip-txt{font-size:12px;color:var(--vd);background:var(--vl);border-radius:var(--rs);padding:8px 10px;margin-top:8px;line-height:1.55;display:none;}
     .tip-txt.show{display:block;}
     .peso-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
@@ -2052,7 +2053,6 @@ function renderRutina(){
         ${ex.tip?`<button class="btip" onclick="toggleExp(${a.id},${i})">${isExp?'Ocultar':'Ver técnica'}</button>`:''}
         ${ex.video?`<a class="bvid" href="${ex.video}" target="_blank">▶ Video</a>`:''}
         <button class="brep" onclick="event.stopPropagation();reportarProblema(${a.id},${i},decodeURIComponent('${encodeURIComponent(ex.nombre)}'))">⚑ Reportar</button>
-        <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       </div>
       <div class="peso-row">
         <span class="peso-lbl">Peso:</span>
@@ -2060,7 +2060,9 @@ function renderRutina(){
           oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()">
         <span style="font-size:11px;color:var(--tm);">kg</span>
       </div>
+      <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       ${ex.tip?`<div class="tip-txt${isExp?' show':''}">${ex.tip}</div>`:''}
+      ${ex.nota?`<div class="nota-ej">💬 ${ex.nota}</div>`:''}
     </div>`;
   });
 
