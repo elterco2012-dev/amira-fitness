@@ -313,7 +313,8 @@
       <div><label>Series</label><input type="text" id="ee-series" style="margin-bottom:0;"></div>
       <div><label>Reps / tiempo</label><input type="text" id="ee-reps" style="margin-bottom:0;"></div>
     </div>
-    <div style="margin-top:10px;"><label>Nota técnica</label><textarea id="ee-tip" style="margin-bottom:0;"></textarea></div>
+    <div style="margin-top:10px;"><label>Nota técnica (de la biblioteca)</label><textarea id="ee-tip" style="margin-bottom:0;"></textarea></div>
+    <div style="margin-top:10px;"><label>Nota específica para esta alumna</label><input type="text" id="ee-nota" placeholder="Ej: empezá sin peso las primeras 2 semanas" style="margin-bottom:0;"></div>
     <div style="margin-top:10px;"><label>Link de video</label><input type="text" id="ee-video" style="margin-bottom:0;"></div>
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b);">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -854,7 +855,8 @@ async function addFromBib(){
     nombre:bibSelEx.nombre,
     series:document.getElementById('bib-series').value,
     reps:document.getElementById('bib-reps').value,
-    tip:document.getElementById('bib-nota').value.trim()||bibSelEx.descripcion||'',
+    tip:bibSelEx.descripcion||'',
+    nota:document.getElementById('bib-nota').value.trim()||'',
     video:bibSelEx.video||'',
     grupo:bibSelEx.grupo_muscular||''
   };
@@ -931,6 +933,7 @@ function openEditEx(idx){
   document.getElementById('ee-series').value=ex.series||'3';
   document.getElementById('ee-reps').value=ex.reps||'10';
   document.getElementById('ee-tip').value=ex.tip||'';
+  document.getElementById('ee-nota').value=ex.nota||'';
   document.getElementById('ee-video').value=ex.video||'';
   document.getElementById('ee-guardar-variante').checked=false;
   document.getElementById('ee-variante-nombre').style.display='none';
@@ -945,10 +948,11 @@ async function saveEditEx(){
   if(!day)return;
   const ex=day.ejercicios[S.editExIdx];if(!ex)return;
   // Backup antes de mutar para poder hacer rollback
-  const backup={series:ex.series,reps:ex.reps,tip:ex.tip,video:ex.video};
+  const backup={series:ex.series,reps:ex.reps,tip:ex.tip,nota:ex.nota,video:ex.video};
   ex.series=document.getElementById('ee-series').value;
   ex.reps=document.getElementById('ee-reps').value;
   ex.tip=document.getElementById('ee-tip').value;
+  ex.nota=document.getElementById('ee-nota').value.trim()||'';
   ex.video=document.getElementById('ee-video').value;
   // Guardar variante (por alumna, sin duplicados)
   if(document.getElementById('ee-guardar-variante').checked){
