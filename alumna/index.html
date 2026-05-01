@@ -2181,7 +2181,7 @@ function renderProgreso(){
       .filter(Boolean)
   );
 
-  const ciclosDisp=getCiclos(a.id);
+  const ciclosDisp=[...getCiclos(a.id)].reverse(); // ciclo actual primero
   const numDias=parseInt(a.dias)||3;
   let calHtml='';
   ciclosDisp.forEach(cic=>{

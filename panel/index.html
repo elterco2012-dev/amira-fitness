@@ -2367,22 +2367,27 @@ function rHistorial(){
   const cicloRows=rows.filter(r=>(r.ciclo||1)===selCiclo);
   const cNom=a?.ciclos_nombres?.[selCiclo]||('Ciclo '+selCiclo);
 
-  // Calendar: build done map [sem-dia] = {done, total}
-  const dayMap={};
-  cicloRows.forEach(r=>{
-    const k=`${r.semana}-${r.dia}`;
-    if(!dayMap[k])dayMap[k]={done:0,total:0};
-    dayMap[k].total++;
-    if(r.hecho)dayMap[k].done++;
-  });
   const allSems=[...new Set([
     ...cicloRows.map(r=>r.semana),
     ...Object.keys(DB.rutinas?.[a?.id]?.[selCiclo]||{}).map(Number)
   ])].filter(Boolean).sort((a,b)=>a-b);
+  const maxDias=parseInt(a?.dias)||4;
   const allDias=[...new Set([
     ...cicloRows.map(r=>r.dia),
     ...allSems.flatMap(s=>(DB.rutinas?.[a?.id]?.[selCiclo]?.[s]||[]).map(x=>x.dia))
-  ])].filter(Boolean).sort((a,b)=>a-b);
+  ])].filter(d=>d>0&&d<=maxDias).sort((a,b)=>a-b);
+
+  // Calendar: build dayMap using rutina exercise count as denominator (consistent with alumna view)
+  const dayMap={};
+  allSems.forEach(s=>allDias.forEach(d=>{
+    const k=`${s}-${d}`;
+    const rutinaExs=(DB.rutinas?.[a?.id]?.[selCiclo]?.[s]||[]).find(x=>x.dia===d)?.ejercicios||[];
+    dayMap[k]={done:0,total:rutinaExs.length};
+  }));
+  cicloRows.forEach(r=>{
+    const k=`${r.semana}-${r.dia}`;
+    if(dayMap[k]&&r.hecho)dayMap[k].done++;
+  });
 
   const calHtml=allSems.length===0?'':
   `<div style="overflow-x:auto;margin-bottom:1rem;">
