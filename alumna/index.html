@@ -786,6 +786,7 @@ let dark = localStorage.getItem('af-dark')==='1';
 let curTab = 'r';
 let charts = {};
 let selHistEx = null;
+let selProgCiclo = null; // ciclo seleccionado en la tab de progreso
 let maxPesos = {};
 
 // ── PWA + Push ────────────────────────────────────────────────
@@ -2183,47 +2184,62 @@ function renderProgreso(){
 
   const ciclosDisp=[...getCiclos(a.id)].reverse(); // ciclo actual primero
   const numDias=parseInt(a.dias)||3;
-  let calHtml='';
-  ciclosDisp.forEach(cic=>{
-    const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
-    const totalCeldas=4*numDias;
-    function isDayDone80(sem,dia){
-      const exs=getExs(a.id,cic,sem,dia);
-      const total=exs.length;
-      if(total===0)return false;
-      let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
-      return cnt/total>=0.8;
-    }
-    let completados=0;
-    for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
-    const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
 
-    calHtml+=`<div style="margin-bottom:1.25rem;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
-        <span style="font-size:13px;font-weight:600;color:var(--t);">${cicloNombre}</span>
-        <span style="font-size:11px;color:var(--tm);">${completados}/${totalCeldas} días</span>
-      </div>
-      <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
-        <div></div>
-        ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
-        ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
-        <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
-        ${[1,2,3,4].map(sem=>{
-          const hecho=isDayDone80(sem,dia);
-          return`<div title="${cicloNombre} · Sem ${sem} · Día ${dia}" style="
-            height:30px;border-radius:6px;
-            background:${hecho?'var(--v)':'var(--s2)'};
-            border:1px solid ${hecho?'var(--vd)':'var(--b)'};
-            display:flex;align-items:center;justify-content:center;
-            font-size:12px;color:white;font-weight:600;
-          ">${hecho?'✓':''}</div>`;
-        }).join('')}`).join('')}
-      </div>
+  // Asegurar que selProgCiclo apunte a un ciclo válido (por defecto el más reciente)
+  if(!selProgCiclo||!ciclosDisp.includes(selProgCiclo)) selProgCiclo=ciclosDisp[0]||1;
+  const cic=selProgCiclo;
+  const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
+  const totalCeldas=4*numDias;
+  function isDayDone80(sem,dia){
+    const exs=getExs(a.id,cic,sem,dia);
+    const total=exs.length;
+    if(total===0)return false;
+    let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
+    return cnt/total>=0.8;
+  }
+  let completados=0;
+  for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
+  const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
+
+  const cicloSelectorHtml=ciclosDisp.length>1
+    ?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${ciclosDisp.map(c=>{
+          const cn=a.ciclos_nombres?.[c]||a.ciclos_nombres?.[String(c)]||`Ciclo ${c}`;
+          const active=c===cic;
+          return`<button onclick="selProgCiclo=${c};renderProgreso()" style="
+            padding:5px 14px;border-radius:99px;border:1.5px solid ${active?'var(--v)':'var(--b)'};
+            background:${active?'var(--v)':'var(--s)'};color:${active?'white':'var(--t)'};
+            font-size:12px;font-weight:${active?'600':'400'};cursor:pointer;
+            font-family:'DM Sans',sans-serif;transition:all .15s;
+          ">${cn}</button>`;
+        }).join('')}
+      </div>`
+    :'';
+
+  const calHtml=`
+    ${cicloSelectorHtml}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+      <span style="font-size:13px;font-weight:600;color:var(--t);">${cicloNombre}</span>
+      <span style="font-size:11px;color:var(--tm);">${completados}/${totalCeldas} días</span>
+    </div>
+    <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
+      <div></div>
+      ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
+      ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
+      <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
+      ${[1,2,3,4].map(sem=>{
+        const hecho=isDayDone80(sem,dia);
+        return`<div style="height:30px;border-radius:6px;
+          background:${hecho?'var(--v)':'var(--s2)'};
+          border:1px solid ${hecho?'var(--vd)':'var(--b)'};
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;color:white;font-weight:600;
+        ">${hecho?'✓':''}</div>`;
+      }).join('')}`).join('')}
     </div>`;
-  });
 
   // Racha de semanas consecutivas
   const _nDias=parseInt(a.dias)||3;
