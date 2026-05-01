@@ -1032,33 +1032,46 @@ async function saveEditA(){
   const diaCobroVal=parseInt(document.getElementById('ea-dia-cobro').value)||null;
   const lesionesVal=document.getElementById('ea-lesiones').value.trim()||null;
   const _ev=id=>document.getElementById(id)?.value?.trim()||null;
+  const oldEmail=a.email||'';
   const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp')};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
-    // Intentar guardar con lesiones; si la columna no existe en DB, guardar sin ella
-    try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
-    catch(e){
-      if(String(e.message).includes('lesiones')){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
-      else throw e;
-    }
-    Object.assign(a,updates,{lesiones:lesionesVal});
-    // Si hay email + nacimiento, crear/confirmar usuario auth y mostrar el PIN
-    if(updates.email&&updates.nacimiento){
-      const pin=pinDesdeNacimiento(updates.nacimiento);
-      if(pin){
-        const authRes=await crearAuthUser(updates.email,pin).catch(()=>null);
-        const ya=(authRes?.msg||authRes?.error_description||authRes?.message||'').toLowerCase();
-        if(ya.includes('already')||ya.includes('registered')){
-          S.msg=`Guardado ✓ · La cuenta ya existía · PIN: ${pin}`;
-        } else {
-          S.msg=`Guardado ✓ · Acceso creado · PIN de ${a.nombre.split(' ')[0]}: ${pin}`;
-        }
-      } else {
-        S.msg='Guardado ✓';
-      }
+    const newEmail=updates.email||'';
+    const emailCambio=oldEmail&&newEmail&&oldEmail!==newEmail;
+
+    if(emailCambio){
+      // Actualizar email en auth.users Y alumnas en un solo paso (edge function)
+      document.getElementById('ea-msg').textContent='Actualizando email...';
+      const tok=localStorage.getItem('af-access-token')||'';
+      const efRes=await fetch(`${SB_URL}/functions/v1/update-auth-email`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${tok}`},
+        body:JSON.stringify({old_email:oldEmail,new_email:newEmail,alumna_id:S.editAId})
+      });
+      const efData=await efRes.json();
+      if(!efRes.ok) throw new Error(efData.error||'Error al actualizar email en auth');
+      // La edge function ya actualizó alumnas.email, actualizar el resto de campos
+      try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
+      catch(e){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
     } else {
-      S.msg='Guardado ✓';
+      // Sin cambio de email: guardar normalmente
+      try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
+      catch(e){
+        if(String(e.message).includes('lesiones')){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
+        else throw e;
+      }
+      // Si hay email + nacimiento y es cuenta nueva, crear acceso
+      if(updates.email&&updates.nacimiento&&!oldEmail){
+        const pin=pinDesdeNacimiento(updates.nacimiento);
+        if(pin) await crearAuthUser(updates.email,pin).catch(()=>null);
+      }
     }
+
+    Object.assign(a,updates,{lesiones:lesionesVal});
+    const pin=pinDesdeNacimiento(updates.nacimiento||a.nacimiento);
+    S.msg=emailCambio
+      ?`Guardado ✓ · Email actualizado correctamente · PIN: ${pin||'(sin PIN)'}`
+      :`Guardado ✓${pin?' · PIN: '+pin:''}`;
     closeEditA();render();
     setTimeout(()=>{S.msg='';render();},6000);
   }catch(e){document.getElementById('ea-msg').textContent='Error: '+e.message;}
