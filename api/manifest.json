@@ -1,7 +1,7 @@
 {
   "id": "amira-fitness-pwa",
   "name": "Amira Fitness",
-  "short_name": "Amira",
+  "short_name": "Amira Fitness",
   "description": "Tu entrenamiento personalizado. Seguí tu rutina, cargá pesos y recibí recordatorios de Amira.",
   "start_url": "/alumna/",
   "scope": "/",
