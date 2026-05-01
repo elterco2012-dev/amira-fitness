@@ -435,6 +435,17 @@
         Cada semana aparece una tarjeta para <strong>contarle cómo te sentiste</strong>.<br><br>
         Al terminar el día podés <strong>compartir tu progreso por WhatsApp</strong> con un toque.
       </div>
+    </div>
+
+    <!-- Slide 6: Descanso activo -->
+    <div class="ob-slide" id="ob-s6">
+      <div class="ob-icon">🚴</div>
+      <div class="ob-title">¿Saliste a correr<br>o andar en bici?</div>
+      <div class="ob-body">
+        Los días que hacés actividad física fuera del gym — correr, andar en bici, roller, nadar — marcalos como <strong>🚶 Descanso activo</strong>.<br><br>
+        Lo vas a ver debajo de cada día. Amira lo registra y cuenta en tu historial.<br><br>
+        Si no pudiste hacer nada, usá <strong>😔 No pude nada hoy</strong> para avisarle.
+      </div>
       <div class="ob-pill">🚀 ¡Todo listo para empezar!</div>
     </div>
 
@@ -447,6 +458,7 @@
       <div class="ob-dot" id="od3"></div>
       <div class="ob-dot" id="od4"></div>
       <div class="ob-dot" id="od5"></div>
+      <div class="ob-dot" id="od6"></div>
     </div>
     <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
     <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
@@ -623,7 +635,7 @@ async function checkAlumnaAuth(){
 
 // ── Onboarding ────────────────────────────────────────────────
 let obStep = 1;
-const OB_TOTAL = 5;
+const OB_TOTAL = 6;
 
 function obMostrar(nombre){
   // Solo la primera vez
@@ -2025,9 +2037,12 @@ function renderRutina(){
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
   if(exs.length>0&&!justDone&&!_noPude){
-    html+=`<div style="display:flex;gap:8px;margin-bottom:.5rem;">
-      <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
-      <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
+    html+=`<div style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
+        <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
+      </div>
+      <div style="font-size:11px;color:var(--tm);text-align:center;line-height:1.4;">🚴 ¿Saliste a correr, andar en bici, roller u otra actividad? Marcá <em>descanso activo</em>.</div>
     </div>`;
   } else if(_noPude&&!justDone){
     const _npParts=_noPude.split('|');
