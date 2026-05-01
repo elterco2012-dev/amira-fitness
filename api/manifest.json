@@ -13,9 +13,6 @@
   "lang": "es",
   "categories": ["health", "fitness", "sports"],
   "prefer_related_applications": false,
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  },
   "icons": [
     {
       "src": "/api/icon-192.svg",

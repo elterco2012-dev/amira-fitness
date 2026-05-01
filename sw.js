@@ -1,4 +1,4 @@
-const CACHE = 'amira-v7';
+const CACHE = 'amira-v8';
 const STATIC = [
   '/',
   '/alumna/',
@@ -112,12 +112,12 @@ self.addEventListener('push', e => {
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   if (e.action === 'dismiss') return;
-  const target = e.notification.data?.url || '/alumna/';
+  const rel = e.notification.data?.url || '/alumna/';
+  const target = rel.startsWith('http') ? rel : self.location.origin + rel;
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
-        // Si la app ya está abierta, enfocarla
-        const existing = clientList.find(c => c.url.includes('amira') || c.url.includes('/alumna'));
+        const existing = clientList.find(c => c.url.startsWith(self.location.origin));
         if (existing) {
           existing.focus();
           existing.navigate(target);
