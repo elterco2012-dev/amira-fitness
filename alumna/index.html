@@ -2432,6 +2432,12 @@ async function init(){
     });
 
     const a=getAlumna();
+    // Si la PWA abrió en /alumna/ sin slug, redirigir al slug real de la alumna
+    if(!a && a0?.slug){
+      localStorage.setItem('af-last-slug', a0.slug);
+      location.replace('/alumna/' + a0.slug);
+      return;
+    }
     if(a){
       selCiclo=parseInt(a.ciclo_actual)||1;
       localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
