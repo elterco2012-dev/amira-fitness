@@ -1091,6 +1091,16 @@ function toggleWarmup(){
   renderRutina();
 }
 
+function autoSelectFirstDay(aId,ciclo){
+  for(const s of getSemanas(aId,ciclo)){
+    for(const dObj of getDias(aId,ciclo,s)){
+      if(dObj.ejercicios&&dObj.ejercicios.length>0){
+        selSem=s; selDia=parseInt(dObj.dia); return;
+      }
+    }
+  }
+}
+
 // ── Toast de confirmación ─────────────────────────────────────
 function mostrarToast(msg){
   const t = document.createElement('div');
@@ -1840,6 +1850,8 @@ async function enviarCom(aId){
 function renderRutina(){
   const scr=document.getElementById('screen-rutina');
   if(!scr) return; // Seguridad: si el elemento no existe, salir
+  // Detectar primera visita antes de persistir (se usa más abajo para auto-seleccionar)
+  const isFirstEver=!localStorage.getItem('af-selSem');
   // Persistir selección de semana y día
   localStorage.setItem('af-selSem', selSem);
   localStorage.setItem('af-selDia', selDia);
@@ -1904,6 +1916,8 @@ function renderRutina(){
   selCiclo = parseInt(a.ciclo_actual)||ciclos[ciclos.length-1]||1;
   // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
   if(selSem < 1 || selSem > 4) selSem = 1;
+  // Primera visita: ir directo al primer día que tenga ejercicios
+  if(isFirstEver) autoSelectFirstDay(a.id, selCiclo);
 
   const exs = getExs(a.id, selCiclo, selSem, selDia);
   const comp = exs.filter((_,i)=>done[dKey(a.id,selSem,selDia,i)]).length;
