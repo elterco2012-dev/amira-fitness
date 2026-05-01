@@ -2432,11 +2432,14 @@ async function init(){
     });
 
     const a=getAlumna();
-    // Si la PWA abrió en /alumna/ sin slug, redirigir al slug real de la alumna
-    if(!a && a0?.slug){
-      localStorage.setItem('af-last-slug', a0.slug);
-      location.replace('/alumna/' + a0.slug);
-      return;
+    // Si el slug de la URL no corresponde a esta alumna, redirigir al slug/nombre correcto
+    if(!a && a0){
+      const dest=a0.slug||norm(a0.nombre?.split(' ')[0]||'');
+      if(dest){
+        localStorage.setItem('af-last-slug',dest);
+        location.replace('/alumna/'+dest);
+        return;
+      }
     }
     if(a){
       selCiclo=parseInt(a.ciclo_actual)||1;
