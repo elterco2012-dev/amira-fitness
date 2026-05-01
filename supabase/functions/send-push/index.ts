@@ -16,15 +16,23 @@ webpush.setVapidDetails("mailto:hola@amira.fitness", VAPID_PUBLIC, VAPID_PRIVATE
 
 async function dbGet(path: string): Promise<unknown> {
   // Try service role first, fall back to anon key
-  const key = SB_SVC || SB_ANON;
-  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}` }
-  });
-  if (!r.ok) {
-    const err = await r.text();
-    throw new Error(`DB ${r.status}: ${err}`);
+  for (const [label, key] of [["svc", SB_SVC], ["anon", SB_ANON]] as const) {
+    if (!key) continue;
+    const url = `${SB_URL}/rest/v1/${path}`;
+    console.log(`dbGet [${label}]: ${url}`);
+    const r = await fetch(url, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` }
+    });
+    const txt = await r.text();
+    console.log(`dbGet [${label}] status=${r.status} body=${txt.slice(0, 200)}`);
+    if (!r.ok) {
+      console.warn(`dbGet [${label}] failed: ${r.status}`);
+      if (label === "anon") throw new Error(`DB ${r.status}: ${txt}`);
+      continue; // try next key
+    }
+    return JSON.parse(txt);
   }
-  return r.json();
+  throw new Error("No valid DB key available");
 }
 
 Deno.serve(async (req) => {
@@ -49,7 +57,8 @@ Deno.serve(async (req) => {
       if (body?.body) customPayload.body = body.body;
     } catch { /* no body is fine */ }
 
-    // Fetch subscriptions (simple query, no join)
+    console.log(`alumnaFilter: "${alumnaFilter}"`);
+
     const subsRaw = await dbGet(`push_subscriptions?select=*${alumnaFilter}`) as Array<{
       endpoint: string; p256dh: string; auth: string; alumna_id: number;
     }>;
@@ -75,6 +84,7 @@ Deno.serve(async (req) => {
         const alumna = alumnaMap.get(sub.alumna_id);
         const nombre = (alumna?.nombre ?? "").split(" ")[0] || "¡Hola!";
         const slug   = alumna?.slug ?? "";
+        console.log(`Sending push to alumna_id=${sub.alumna_id} endpoint=${sub.endpoint.slice(0, 50)}...`);
         return webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify({
@@ -95,6 +105,7 @@ Deno.serve(async (req) => {
       }
     });
 
+    console.log(`Done: sent=${sent} failed=${failed}`);
     return Response.json({ sent, failed, total: subsRaw.length }, { headers: CORS });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
