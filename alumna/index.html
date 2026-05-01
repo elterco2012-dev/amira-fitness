@@ -517,6 +517,12 @@
 const AMIRA_WA = '5492226500790';
 const slug = location.pathname.split('/').filter(Boolean).pop()||'';
 
+// Si la PWA abre desde start_url /alumna/ sin slug, redirigir al último slug visitado
+if (location.pathname === '/alumna/' || location.pathname === '/alumna') {
+  const saved = localStorage.getItem('af-last-slug');
+  if (saved) { location.replace('/alumna/' + saved); }
+}
+
 // WhatsApp de Amira siempre actualizado
 localStorage.setItem('af-amira-ph', AMIRA_WA);
 
@@ -1119,7 +1125,7 @@ function getAlumna(){
     norm(a.slug)===norm(slug) ||
     norm(a.nombre.split(' ')[0])===norm(slug)
   );
-  if(found) return found;
+  if(found){localStorage.setItem('af-last-slug',found.slug);return found;}
   // Only fall back to the single alumna when there's no slug in the URL
   if(!slug && DB.alumnas.length===1) return DB.alumnas[0];
   return null;
