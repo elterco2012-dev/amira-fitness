@@ -1260,21 +1260,44 @@ async function flushSyncQueue(){
     syncQueue = [...fallidos, ...syncQueue];
     localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
   } else if(pendientes.length){
-    console.log(`✓ ${pendientes.length} operaciones sincronizadas`);
     mostrarToast('✓ Progreso sincronizado');
   }
+  updateOfflineBanner();
 }
 
 // Escuchar cuando el dispositivo recupera la conexión
 window.addEventListener('online', ()=>{
-  console.log('Conexión recuperada — sincronizando...');
+  updateOfflineBanner();
   flushSyncQueue();
 });
+window.addEventListener('offline', ()=>updateOfflineBanner());
+
+function updateOfflineBanner(){
+  let b=document.getElementById('offline-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='offline-banner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:200;text-align:center;font-size:12px;font-family:\'DM Sans\',sans-serif;padding:6px 12px;transition:transform .3s;max-width:430px;margin:0 auto;';
+    document.body.appendChild(b);
+  }
+  const offline=!navigator.onLine;
+  const pending=syncQueue.length;
+  if(offline){
+    b.style.background='#374151';b.style.color='white';b.style.transform='translateY(0)';
+    b.textContent=pending?`📵 Sin conexión · ${pending} cambio${pending>1?'s':''} guardado${pending>1?'s':''}`:' 📵 Sin conexión — los cambios se guardan localmente';
+  } else if(pending){
+    b.style.background='var(--vl,#E1F5EE)';b.style.color='var(--vd,#0F6E56)';b.style.transform='translateY(0)';
+    b.textContent=`🔄 Sincronizando ${pending} cambio${pending>1?'s':''}...`;
+  } else {
+    b.style.transform='translateY(-100%)';
+  }
+}
 
 // Si ya hay conexión al iniciar y quedan ops pendientes, sincronizar ahora
 if(navigator.onLine && syncQueue.length){
   setTimeout(flushSyncQueue, 3000); // esperar que init() termine primero
 }
+updateOfflineBanner();
 
 // ── Tabs ──────────────────────────────────────────────────────
 function switchTab(t){
@@ -2127,6 +2150,7 @@ function renderRutina(){
         <input class="peso-in" type="text" inputmode="decimal" placeholder="0" value="${pv}"
           oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()">
         <span style="font-size:11px;color:var(--tm);">kg</span>
+        ${(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
       </div>
       <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       ${ex.tip?`<div class="tip-txt${isExp?' show':''}">${ex.tip}</div>`:''}
