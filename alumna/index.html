@@ -1925,8 +1925,19 @@ function renderRutina(){
 
   // Obtener datos
   const ciclos = getCiclos(a.id);
-  // Siempre mostrar el ciclo actual de la alumna (no ciclos pasados)
-  selCiclo = parseInt(a.ciclo_actual)||ciclos[ciclos.length-1]||1;
+  const cicloActual = parseInt(a.ciclo_actual)||ciclos[ciclos.length-1]||1;
+  // Determine if the new cycle has been started (any exercise marked done)
+  const _newCycleStarted = Object.keys(done).some(k=>k.startsWith(`${a.id}-c${cicloActual}-`)&&done[k]);
+  const _cicloAnterior = cicloActual > 1 ? cicloActual - 1 : null;
+  const _hasPrevCiclo = _cicloAnterior !== null && ciclos.includes(_cicloAnterior);
+  // Show both cycles when new one hasn't been started yet
+  const _showCicloTabs = _hasPrevCiclo && !_newCycleStarted;
+  const _ciclosVisibles = _showCicloTabs ? [_cicloAnterior, cicloActual] : [cicloActual];
+  // Only reset selCiclo if it's outside the visible set
+  if(!_ciclosVisibles.includes(selCiclo)){
+    selCiclo = _showCicloTabs ? _cicloAnterior : cicloActual;
+    localStorage.setItem('af-selCiclo', selCiclo);
+  }
   // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
   if(selSem < 1 || selSem > 4) selSem = 1;
   // Primera visita: ir directo al primer día que tenga ejercicios
@@ -2009,10 +2020,19 @@ function renderRutina(){
       ${_wuOpen?`<div class="warmup" style="border-radius:0 0 var(--rs) var(--rs);padding-top:.5rem;margin-bottom:.85rem;">${_wuLinks}</div>`:''}`;
     })()}`;
 
-  // Selector de ciclos — solo muestra el ciclo actual, sin acceso a ciclos pasados
-  // Los ciclos anteriores quedan en el tab Progreso para ver historial
-  if(ciclos.length>1){
-    const cicloNombre=(a.ciclos_nombres||{})[selCiclo]||'Ciclo '+selCiclo;
+  // Selector de ciclos
+  if(_showCicloTabs){
+    // New cycle exists but hasn't been started: show both so alumna can review old + start new
+    html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
+      ${_ciclosVisibles.map(c=>{
+        const cn=(a.ciclos_nombres||{})[c]||(a.ciclos_nombres||{})[String(c)]||'Ciclo '+c;
+        const isActive=selCiclo===c;
+        return`<button class="stab${isActive?' active':''}" onclick="selCiclo=${c};localStorage.setItem('af-selCiclo','${c}');selSem=1;selDia=1;renderRutina()">${cn}</button>`;
+      }).join('')}
+    </div></div>`;
+  }else if(ciclos.length>1){
+    // Multiple cycles exist but new one is active — show current cycle name only (no switching)
+    const cicloNombre=(a.ciclos_nombres||{})[selCiclo]||(a.ciclos_nombres||{})[String(selCiclo)]||'Ciclo '+selCiclo;
     html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
       <button class="stab active">${cicloNombre}</button>
     </div></div>`;
@@ -2293,6 +2313,20 @@ function renderProgreso(){
     <div class="badge-row">
       ${badges.map(b=>`<div class="badge-item${b.e?' earned':''}"><span style="font-size:16px;">${b.icon}</span><span>${b.label}</span></div>`).join('')}
     </div>`;
+  // ── Mi peso corporal (prominent, above exercise weights) ────────
+  const _pc=DB.pesoAlumnaHist||[];
+  const _pcLast=_pc[0];
+  const _pcLastStr=_pcLast?`${_pcLast.peso} kg · ${new Date(_pcLast.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}`:'Sin registros aún';
+  html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Mi peso corporal</div>
+  <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+    ${_pcLast?`<div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">Último: <strong style="color:var(--t);">${_pcLastStr}</strong></div>`:''}
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length?'.6rem':'0'};">
+      <input type="number" id="pc-input" step="0.1" min="30" max="300" placeholder="Peso hoy (kg)" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'" onkeydown="if(event.key==='Enter')savePesoCorp(${a.id})">
+      <button class="btn btn-p btn-s" style="white-space:nowrap;" onclick="savePesoCorp(${a.id})">Guardar</button>
+    </div>
+    ${_pc.slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
+    ${_pc.length>5?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y ${_pc.length-5} registros más</div>`:''}
+  </div>`;
   if(exns.length>0){
     html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos</div>
     <select class="ex-sel" onchange="selHistEx=this.value;renderProgreso()">
@@ -2304,16 +2338,6 @@ function renderProgreso(){
       Cargá el peso que usás en cada ejercicio durante tu rutina para ver tu progreso acá.
     </div>`;
   }
-  // Peso corporal
-  const _pc=DB.pesoAlumnaHist||[];
-  html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin:.75rem 0 .5rem;">Mi peso corporal</div>
-  <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length?'.6rem':'0'};">
-      <input type="number" id="pc-input" step="0.1" min="30" max="200" placeholder="kg hoy" style="width:90px;padding:7px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:14px;background:var(--s2);color:var(--t);">
-      <button class="btn btn-p btn-s" onclick="savePesoCorp(${a.id})">Guardar</button>
-    </div>
-    ${_pc.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
-  </div>`;
   scr.innerHTML=html;
   if(exns.length>0) setTimeout(()=>{
     const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
@@ -2499,8 +2523,7 @@ async function init(){
       }
     }
     if(a){
-      selCiclo=parseInt(a.ciclo_actual)||1;
-      localStorage.setItem('af-selCiclo', selCiclo); // cache para próximo render
+      // Don't force selCiclo here — renderRutina() handles cycle visibility logic
       DB.pesoAlumnaHist=[];
       const [coms,prog,avs,calBib,estBib,pcRows]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
