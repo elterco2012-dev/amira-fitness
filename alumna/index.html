@@ -1985,10 +1985,21 @@ function renderRutina(){
       </div>`;
     })()}
     ${(()=>{
-      const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
       const _wuCustom=getExs(a.id,selCiclo,0,1);
+      const _wuHashKey=`af-warmup-hash-${a.id}-c${selCiclo}`;
+      const _wuCurrentHash=_wuCustom.map(e=>e.nombre).join('|');
+      if(_wuCurrentHash!==( localStorage.getItem(_wuHashKey)||'')){
+        localStorage.setItem(_wuHashKey,_wuCurrentHash);
+        localStorage.setItem('af-warmup-open','1');
+      }
+      const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
       const _wuLinks=_wuCustom.length>0
-        ?_wuCustom.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
+        ?_wuCustom.map(e=>{
+            const hasV=!!(e.video);
+            const showSR=e.series&&e.series!=='1'&&e.reps&&e.reps!=='—';
+            const showTip=!!(e.tip);
+            return`<div style="margin-top:4px;"><a href="${e.video||'#'}" target="_blank"${!hasV?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>${showSR?`<div style="font-size:11px;color:var(--ad);padding-left:22px;margin-top:1px;">${e.series} series × ${e.reps}</div>`:''}${showTip?`<div style="font-size:11px;color:var(--ad);opacity:.8;padding-left:22px;margin-top:1px;font-style:italic;">${e.tip}</div>`:''}</div>`;
+          }).join('')
         :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
         <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`;
       return`<button onclick="toggleWarmup()" style="width:100%;background:var(--a);border:none;border-radius:${_wuOpen?'var(--rs) var(--rs) 0 0':'var(--rs)'};padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:${_wuOpen?'0':'.85rem'};">

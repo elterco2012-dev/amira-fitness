@@ -403,7 +403,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -1407,6 +1407,19 @@ async function waOpen(ph, msg){
   window.open('https://wa.me/'+ph,'_blank');
 }
 
+async function saveWarmupEdit(){
+  const aId=S.selA,ciclo=S.selCiclo,idx=S._wuEditIdx;
+  if(idx===null)return;
+  const day=DB.rutinas[aId]?.[ciclo]?.[0]?.find(d=>d.dia===1);
+  if(!day||!day.ejercicios[idx])return;
+  day.ejercicios[idx].series=document.getElementById('wu-edit-series').value.trim()||'1';
+  day.ejercicios[idx].reps=document.getElementById('wu-edit-reps').value.trim()||'—';
+  day.ejercicios[idx].tip=document.getElementById('wu-edit-tip').value.trim();
+  day.ejercicios[idx].video=document.getElementById('wu-edit-video').value.trim();
+  S._wuEditIdx=null;
+  await saveWarmup(aId,ciclo);
+}
+
 // ── Calentamiento personalizado (semana=0, dia=1) ──────────────
 function getWarmupExs(aId,ciclo){
   const arr=DB.rutinas[aId]?.[ciclo]?.[0]||[];
@@ -2137,10 +2150,24 @@ function rRutinas(){
         <div style="font-size:11px;font-weight:600;color:var(--ad);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">🔥 Calentamiento</div>
         ${wuExs.length===0
           ?'<div style="font-size:12px;color:var(--tm);margin-bottom:.5rem;">Usando calentamiento por defecto (de la biblioteca)</div>'
-          :wuExs.map((ex,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-              <span style="font-size:12px;flex:1;">${ex.nombre}</span>
-              <button class="btn btn-s btn-d" style="padding:2px 6px;font-size:11px;" onclick="delWarmupEx(${i})">×</button>
-            </div>`).join('')
+          :wuExs.map((ex,i)=>S._wuEditIdx===i
+            ?`<div style="background:rgba(0,0,0,.04);border-radius:var(--rs);padding:.6rem;margin-bottom:6px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:5px;">
+                  <div><label style="font-size:10px;color:var(--tm);">Series</label><input id="wu-edit-series" value="${ex.series||'1'}" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);"></div>
+                  <div><label style="font-size:10px;color:var(--tm);">Reps / Duración</label><input id="wu-edit-reps" value="${ex.reps||'—'}" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);"></div>
+                </div>
+                <label style="font-size:10px;color:var(--tm);">Indicación / Tip</label>
+                <input id="wu-edit-tip" value="${(ex.tip||'').replace(/"/g,'&quot;')}" placeholder="Ej: Despacio, sin impacto" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);margin-bottom:5px;">
+                <label style="font-size:10px;color:var(--tm);">Video (URL)</label>
+                <input id="wu-edit-video" value="${(ex.video||'').replace(/"/g,'&quot;')}" placeholder="https://youtube.com/..." style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);margin-bottom:6px;">
+                <div style="display:flex;gap:6px;"><button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveWarmupEdit()">Guardar</button><button class="btn btn-s" style="font-size:11px;" onclick="S._wuEditIdx=null;render()">Cancelar</button></div>
+              </div>`
+            :`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-size:12px;flex:1;">${ex.nombre}${ex.reps&&ex.reps!=='—'?` <span style="color:var(--tm);font-size:11px;">${ex.series||'1'}×${ex.reps}</span>`:''}</span>
+                <button class="btn btn-s" style="padding:2px 6px;font-size:11px;" onclick="S._wuEditIdx=${i};render()">✎</button>
+                <button class="btn btn-s btn-d" style="padding:2px 6px;font-size:11px;" onclick="delWarmupEx(${i})">×</button>
+              </div>`
+          ).join('')
         }
         ${calBib.length===0?'<div style="font-size:11px;color:var(--tm);">No hay ejercicios de Calentamiento en la biblioteca.</div>':
           available.length>0?`<div style="margin-top:.5rem;border-top:1px solid rgba(0,0,0,.06);padding-top:.5rem;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
