@@ -1676,13 +1676,13 @@ function rInicio(){
   return`<div class="ptitle">Bienvenida, Amira</div>
   ${(_alertas.length>0||_inactivas5.length>0)?`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
     <div class="ctitle" style="margin-bottom:.6rem;">⚡ Acciones urgentes</div>
-    ${_alertas.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const ph=(al?.tel||'').replace(/\D/g,'');return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
+    ${_alertas.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const ph=(al?.tel||'').replace(/\D/g,'');const _mn=encodeURIComponent(interpTpl(_tplDolor.msg,{nombre:(al?.nombre||'').split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--rd);">🚨 <strong>${al?al.nombre.split(' ')[0]:'?'}</strong> — ${f.ejercicio_nombre||'ejercicio'}${f.nota?' ('+f.nota+')':''}</span>
-      ${ph?`<button onclick="waOpen('${ph}',interpTpl(_tplDolor.msg,{nombre:'${(al?.nombre||'').split(' ')[0]}'}))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
+      ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
     </div>`;}).join('')}
-    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?Math.floor((now-new Date(a.last_active_at))/86400000):null;return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
+    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?Math.floor((now-new Date(a.last_active_at))/86400000):null;const _mn=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--tm);">🔴 <strong>${a.nombre.split(' ')[0]}</strong> — ${d===null?'sin actividad':d+' días sin entrenar'}</span>
-      <button onclick="waOpen('${ph}',interpTpl(_tplInact.msg,{nombre:'${a.nombre.split(' ')[0]}'}))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
+      <button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
     </div>`;}).join('')}
   </div>`:''}
   ${(()=>{
