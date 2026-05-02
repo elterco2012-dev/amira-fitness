@@ -2209,7 +2209,7 @@ function renderProgreso(){
     if(!hist[ex.nombre]) hist[ex.nombre]=[];
     hist[ex.nombre].push({sem,dia,kg:parseFloat(v),label:`S${sem}D${dia}`});
   });
-  const exns=Object.keys(hist);
+  const exns=Object.keys(hist).sort((a,b)=>a.localeCompare(b,'es'));
   if(!selHistEx&&exns.length>0) selHistEx=exns[0];
   const badges=[
     {icon:'🏁',label:'Primera rutina',e:totalD>=1},
@@ -2327,7 +2327,7 @@ function renderProgreso(){
     ${_pc.slice(1,6).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
     ${_pc.length>6?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y ${_pc.length-6} registros más</div>`:''}
   </div>`;
-  const _hasPcChart=_pc.length>=2;
+  const _hasPcChart=_pc.length>=1;
   if(exns.length>0||_hasPcChart){
     const _allOpts=[...(_hasPcChart?['__peso_corp__']:[]),...exns];
     if(!selHistEx||(!_allOpts.includes(selHistEx))) selHistEx=_allOpts[0];
