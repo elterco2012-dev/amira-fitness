@@ -1403,7 +1403,8 @@ function toastPanel(msg){
 }
 async function waOpen(ph, msg){
   try{await navigator.clipboard.writeText(msg);}catch(e){}
-  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank');
+  toastPanel('✓ Mensaje copiado — pegá con Ctrl+V en WhatsApp');
+  window.open('https://wa.me/'+ph,'_blank');
 }
 
 // ── Recordatorios ─────────────────────────────────────────────
