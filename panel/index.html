@@ -1630,8 +1630,9 @@ function rInicio(){
       const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
       const _isUrg=a._days===null||a._days>=7;
       const _ph=(a.tel||'').replace(/\D/g,'');
+      const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));
       const _actionBtn=_isUrg&&_ph
-        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',interpTpl(_tplInact.msg,{nombre:'${a.nombre.split(' ')[0]}'}))">💬 WA</button>`
+        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'))">💬 WA</button>`
         :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
       return`<div class="arow" style="cursor:pointer;" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('alumnas')">
         <span style="font-size:16px;flex-shrink:0;">${icon}</span>
