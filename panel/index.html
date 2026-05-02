@@ -559,7 +559,7 @@ async function loadAll(){
       sbGet('avisos','order=created_at.desc&limit=5000'),
       sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200'),
-      sbGet('progreso','select=alumna_id,ciclo,semana,dia,hecho&hecho=eq.true&order=alumna_id.asc&limit=5000')
+      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho&hecho=eq.true&order=alumna_id.asc&limit=5000')
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -2311,25 +2311,48 @@ function rRutinas(){
     </div>
 
     ${exs.length===0?'<div class="empty">Sin ejercicios. Usá "Desde biblioteca" para agregar rápido, o "Nuevo ejercicio" para crear uno.</div>':''}
-    ${exs.map((ex,i)=>`
-    <div class="ex-item">
-      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:0;">
-        <button class="btn btn-s" onclick="moveEx(${i},-1)" ${i===0?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===0?'opacity:.25;cursor:default;':''}">↑</button>
-        <button class="btn btn-s" onclick="moveEx(${i},1)" ${i===exs.length-1?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===exs.length-1?'opacity:.25;cursor:default;':''}">↓</button>
-      </div>
-      <div class="exn">${i+1}</div>
-      <div class="ex-body">
-        <div class="ex-name">${ex.nombre}</div>
-        <div class="ex-det">${ex.series} series × ${ex.reps}</div>
-        ${ex.tip?`<div class="ex-tip">${ex.tip}</div>`:''}
-        ${ex.video?`<div class="ex-vid">✓ Video vinculado</div>`:''}
-        ${ex.grupo?`<div><span class="ex-grupo">${ex.grupo}</span></div>`:''}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <button class="btn btn-s btn-warn" onclick="openEditEx(${i})">Editar</button>
-        <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
-      </div>
-    </div>`).join('')}
+    ${(()=>{
+      // Mapa de progreso por índice de ejercicio para el día actual
+      const _pm={};
+      (DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===S.selSem&&parseInt(r.dia)===S.selDia).forEach(r=>{_pm[parseInt(r.ejercicio_idx)]=r;});
+      // Mapa de feedbacks de ejercicio (reportes específicos, con ejercicio_idx)
+      const _fm={};
+      (DB.feedbacks||[]).filter(f=>f.alumna_id===S.selA&&parseInt(f.ciclo)===parseInt(S.selCiclo)&&parseInt(f.semana)===S.selSem&&parseInt(f.dia)===S.selDia&&f.ejercicio_idx!=null).forEach(f=>{if(!_fm[parseInt(f.ejercicio_idx)])_fm[parseInt(f.ejercicio_idx)]=f;});
+      return exs.map((ex,i)=>{
+        const p=_pm[i], fb=_fm[i];
+        const borderL=p?'border-left:3px solid var(--v);':fb?'border-left:3px solid #f59e0b;':'';
+        const actividadHtml=(()=>{
+          let r='';
+          if(p){const kg=p.peso_kg?` · ${p.peso_kg} kg`:'';r+=`<div style="font-size:11px;color:#15803d;font-weight:500;margin-top:4px;">✓ Hecho${kg}</div>`;}
+          if(fb){
+            const lbl=FB_LABELS[fb.tipo]||fb.tipo;
+            const nota=fb.nota?` — "${fb.nota}"` :'';
+            const isUrg=fb.tipo==='dolor_preocupante';
+            r+=`<div style="font-size:11px;color:${isUrg?'#dc2626':'#d97706'};margin-top:2px;">${lbl}${nota}</div>`;
+          }
+          return r;
+        })();
+        return`<div class="ex-item" style="${borderL}">
+          <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:0;">
+            <button class="btn btn-s" onclick="moveEx(${i},-1)" ${i===0?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===0?'opacity:.25;cursor:default;':''}">↑</button>
+            <button class="btn btn-s" onclick="moveEx(${i},1)" ${i===exs.length-1?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===exs.length-1?'opacity:.25;cursor:default;':''}">↓</button>
+          </div>
+          <div class="exn">${i+1}</div>
+          <div class="ex-body">
+            <div class="ex-name">${ex.nombre}</div>
+            <div class="ex-det">${ex.series} series × ${ex.reps}</div>
+            ${ex.tip?`<div class="ex-tip">${ex.tip}</div>`:''}
+            ${ex.video?`<div class="ex-vid">✓ Video vinculado</div>`:''}
+            ${ex.grupo?`<div><span class="ex-grupo">${ex.grupo}</span></div>`:''}
+            ${actividadHtml}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <button class="btn btn-s btn-warn" onclick="openEditEx(${i})">Editar</button>
+            <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
+          </div>
+        </div>`;
+      }).join('');
+    })()}
 
     ${variantes.length>0?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
       <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">Variantes guardadas — click para agregar:</div>
