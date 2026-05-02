@@ -1602,10 +1602,19 @@ function render(){
 }
 
 // ── RENDERS ───────────────────────────────────────────────────
+function localDayDiff(iso){
+  if(!iso) return null;
+  const d=new Date(iso); if(isNaN(d)) return null;
+  const now=new Date();
+  const dL=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const nL=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  return Math.round((nL-dL)/86400000);
+}
+
 function fmtWhen(iso){
   if(!iso) return '';
   const d=new Date(iso); if(isNaN(d)) return '';
-  const diffD=Math.floor((Date.now()-d)/86400000);
+  const diffD=localDayDiff(iso);
   const hh=d.getHours().toString().padStart(2,'0');
   const mm=d.getMinutes().toString().padStart(2,'0');
   const hora=hh+':'+mm;
@@ -1634,7 +1643,7 @@ function rInicio(){
   const _tplInact=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
   const alumnaActivas=DB.alumnas.filter(a=>!a.estado||a.estado==='activa');
   const alWithDays=alumnaActivas.map(a=>{
-    const d=a.last_active_at?Math.max(0,Math.floor((now-new Date(a.last_active_at))/86400000)):null;
+    const d=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):null;
     return {...a,_days:d};
   });
   alWithDays.sort((a,b)=>{
@@ -1698,7 +1707,7 @@ function rInicio(){
   }
 
   const _alertas=(DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante');
-  const _inactivas5=alumnaActivas.filter(a=>{if(!a.last_active_at)return true;return Math.floor((now-new Date(a.last_active_at))/86400000)>=5;});
+  const _inactivas5=alumnaActivas.filter(a=>{if(!a.last_active_at)return true;return localDayDiff(a.last_active_at)>=5;});
   return`<div class="ptitle">Bienvenida, Amira</div>
   ${(_alertas.length>0||_inactivas5.length>0)?`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
     <div class="ctitle" style="margin-bottom:.6rem;">⚡ Acciones urgentes</div>
@@ -1706,7 +1715,7 @@ function rInicio(){
       <span style="font-size:13px;flex:1;color:var(--rd);">🚨 <strong>${al?al.nombre.split(' ')[0]:'?'}</strong> — ${f.ejercicio_nombre||'ejercicio'}${f.nota?' ('+f.nota+')':''}</span>
       ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
     </div>`;}).join('')}
-    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?Math.floor((now-new Date(a.last_active_at))/86400000):null;const _mn=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
+    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?localDayDiff(a.last_active_at):null;const _mn=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--tm);">🔴 <strong>${a.nombre.split(' ')[0]}</strong> — ${d===null?'sin actividad':d+' días sin entrenar'}</span>
       <button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
     </div>`;}).join('')}
@@ -1761,7 +1770,7 @@ function rInicio(){
     const ingresosMesAnt=pagosMesAnt.reduce((s,p)=>s+(p.monto||(DB.alumnas.find(a=>a.id===p.alumna_id)?.precio)||0),0);
     const diff=ingresosMes-ingresosMesAnt;
     const pct=ingresosMesAnt>0?Math.round((diff/ingresosMesAnt)*100):null;
-    const activas=DB.alumnas.filter(a=>{if(!a.last_active_at)return false;return Math.floor((now-new Date(a.last_active_at))/86400000)<7;}).length;
+    const activas=DB.alumnas.filter(a=>{if(!a.last_active_at)return false;return localDayDiff(a.last_active_at)<7;}).length;
     const retencion=DB.alumnas.length>0?Math.round((activas/DB.alumnas.length)*100):0;
     if(!ingresosMes&&!DB.alumnas.filter(a=>a.precio).length)return'';
     return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
@@ -2778,9 +2787,9 @@ function rAnalisis(){
   const topEst=Object.entries(estMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
   // ── 4. Retención por cohort ─────────────────────────────────
-  const actHoy=all.filter(a=>a.last_active_at&&Math.floor((now-new Date(a.last_active_at))/86400000)<=1).length;
-  const act7=all.filter(a=>a.last_active_at&&Math.floor((now-new Date(a.last_active_at))/86400000)<=7).length;
-  const act30=all.filter(a=>a.last_active_at&&Math.floor((now-new Date(a.last_active_at))/86400000)<=30).length;
+  const actHoy=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
+  const act7=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=7).length;
+  const act30=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=30).length;
 
   return`<div class="ptitle">Análisis</div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.5rem;">
