@@ -418,7 +418,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_bulkWA:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -2080,7 +2080,34 @@ function rInicio(){
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
   <div class="card" style="margin-bottom:1rem;">
-    <div class="ctitle" style="margin-bottom:.75rem;">¿A quién prestarle atención hoy?</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
+      <div class="ctitle" style="margin-bottom:0;">¿A quién prestarle atención hoy?</div>
+      ${(()=>{
+        const rojas=alWithDays.filter(a=>(a._days===null||a._days>=7)&&(a.tel||'').replace(/\D/g,''));
+        if(!rojas.length)return'';
+        return`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;" onclick="S._bulkWA=!S._bulkWA;render()">📢 Recordatorio masivo (${rojas.length})</button>`;
+      })()}
+    </div>
+    ${S._bulkWA?(()=>{
+      const _tplMsg=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
+      const rojas=alWithDays.filter(a=>(a._days===null||a._days>=7)&&(a.tel||'').replace(/\D/g,''));
+      return`<div style="background:var(--s2);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid var(--b);">
+        <div style="font-size:11px;color:var(--tm);margin-bottom:.6rem;">Enviar recordatorio a las <strong>${rojas.length} alumna${rojas.length>1?'s':''}</strong> sin actividad reciente:</div>
+        ${rojas.map(a=>{
+          const ph=a.tel.replace(/\D/g,'');
+          const d=a._days;
+          const msg=interpTpl(_tplMsg.msg,{nombre:a.nombre.split(' ')[0]});
+          const _mn=encodeURIComponent(msg);
+          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b);">
+            <div class="av av-${a.color}" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${avH(a)}</div>
+            <span style="flex:1;font-size:12px;font-weight:500;">${a.nombre.split(' ')[0]}</span>
+            <span style="font-size:11px;color:var(--tm);">${d===null?'sin actividad':d+' días'}</span>
+            <button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;padding:3px 8px;">💬 WA</button>
+          </div>`;
+        }).join('')}
+        <button class="btn btn-s" style="margin-top:8px;font-size:11px;" onclick="S._bulkWA=false;render()">Cerrar</button>
+      </div>`;
+    })():''}
     <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">🔴 +7 días sin actividad &nbsp;·&nbsp; 🟡 4–6 días &nbsp;·&nbsp; 🟢 1–3 días</div>
     ${semHtml}
   </div>
