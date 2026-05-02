@@ -44,13 +44,12 @@
 
     /* Hero */
     .hero-wrap{max-width:1100px;margin:0 auto;padding:5.5rem 2rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
-    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--verde-l);color:var(--verde-d);font-size:11.5px;font-weight:500;padding:5px 14px;border-radius:var(--rp);margin-bottom:1.25rem;letter-spacing:.02em;}
-    .hero-quote{font-family:'DM Serif Display',serif;font-size:2.6rem;line-height:1.15;color:var(--txt);margin-bottom:.5rem;}
+    .hero-badge{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;display:block;}
+    .hero-quote{font-family:'DM Serif Display',serif;font-size:2.6rem;line-height:1.15;color:var(--txt);margin-bottom:1.5rem;}
     .hero-quote em{font-style:italic;color:var(--verde);}
-    .hero-attr{font-size:13px;color:var(--txt-m);margin-bottom:1.5rem;padding-left:2px;}
-    .hero-desc{font-size:.975rem;color:var(--txt-m);margin-bottom:2rem;max-width:420px;line-height:1.8;}
-    .hero-ctas{display:flex;flex-direction:column;gap:10px;max-width:380px;margin-bottom:2rem;}
-    .hero-ctas .btn{justify-content:center;padding:15px 24px;font-size:15px;}
+    .hero-desc{font-size:.975rem;color:var(--txt-m);margin-bottom:2rem;max-width:440px;line-height:1.85;}
+    .hero-ctas{max-width:380px;margin-bottom:2rem;}
+    .hero-ctas .btn{justify-content:center;padding:15px 24px;font-size:15px;width:100%;}
     .hero-trust{display:flex;gap:1.5rem;flex-wrap:wrap;}
     .trust-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt-m);}
     .trust-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);}
@@ -191,24 +190,22 @@
 <section style="padding:0;">
   <div class="hero-wrap">
     <div>
-      <div class="hero-badge">💪 Entrenamiento 100% personalizado · A distancia</div>
+      <div class="hero-badge">Entrenadora personal · Buenos Aires</div>
       <h1 class="hero-quote">
-        "No quiero darte otra rutina de internet.<br>
-        Quiero <em>conocerte</em> y armarte la tuya."
+        No quiero darte <em>otra rutina<br>de internet</em>. Quiero conocerte<br>y armarte la tuya.
       </h1>
-      <p class="hero-attr">— Amira Lezcano, entrenadora personal</p>
-      <p class="hero-desc">Entrenamiento diseñado para vos: tus objetivos, tu cuerpo, tu vida. Con seguimiento semanal real y contacto directo — sin planes genéricos, sin respuestas automáticas.</p>
+      <p class="hero-desc">Soy Amira. Trabajo con pocas alumnas a la vez para poder responderte yo, no un bot. Te armo tu rutina, te la ajusto cada semana, y te contesto las dudas por WhatsApp el mismo día.</p>
       <div class="hero-ctas">
         <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn btn-wa">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
-          Escribirle a Amira por WhatsApp
+          Escribime y charlamos
         </a>
-        <a href="/registro" class="btn btn-outline">Ver cómo funciona &darr;</a>
+        <a href="/registro" style="display:block;margin-top:.25rem;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;">o completá el formulario · 2 min →</a>
       </div>
       <div class="hero-trust">
-        <div class="trust-item"><div class="trust-dot"></div>Respuesta en menos de 24hs</div>
-        <div class="trust-item"><div class="trust-dot"></div>Rutina 100% a medida</div>
-        <div class="trust-item"><div class="trust-dot"></div>Ajuste semanal incluido</div>
+        <div class="trust-item"><div class="trust-dot"></div>Cupos limitados</div>
+        <div class="trust-item"><div class="trust-dot"></div>12 alumnas activas</div>
+        <div class="trust-item"><div class="trust-dot"></div>Respuesta en el día</div>
       </div>
     </div>
     <div class="hero-photo">
