@@ -1986,8 +1986,10 @@ function renderRutina(){
     })()}
     ${(()=>{
       const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
-      const _wuLinks=DB.calentamiento&&DB.calentamiento.length>0
-        ?DB.calentamiento.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
+      const _wuCustom=getExs(a.id,selCiclo,0,1);
+      const _wuSource=_wuCustom.length>0?_wuCustom:(DB.calentamiento||[]);
+      const _wuLinks=_wuSource.length>0
+        ?_wuSource.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
         :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
         <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`;
       return`<button onclick="toggleWarmup()" style="width:100%;background:var(--a);border:none;border-radius:${_wuOpen?'var(--rs) var(--rs) 0 0':'var(--rs)'};padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:${_wuOpen?'0':'.85rem'};">
@@ -2494,8 +2496,8 @@ async function init(){
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc&limit=5000`),
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
-        sbGet('biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
-        sbGet('biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
+        sbGet('ejercicios_biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
+        sbGet('ejercicios_biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
         sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[])
       ]);
       DB.comentarios=coms;

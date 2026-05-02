@@ -1407,6 +1407,43 @@ async function waOpen(ph, msg){
   window.open('https://wa.me/'+ph,'_blank');
 }
 
+// ── Calentamiento personalizado (semana=0, dia=1) ──────────────
+function getWarmupExs(aId,ciclo){
+  const arr=DB.rutinas[aId]?.[ciclo]?.[0]||[];
+  const day=(arr.find?arr.find(d=>d.dia===1):null);
+  return day?.ejercicios||[];
+}
+async function saveWarmup(aId,ciclo){
+  const exs=getWarmupExs(aId,ciclo);
+  await sbUpsert('rutinas',{alumna_id:aId,ciclo,semana:0,dia:1,ejercicios:exs,updated_at:new Date().toISOString()});
+  S.msg='✓ Calentamiento guardado';render();setTimeout(()=>{S.msg='';render();},2000);
+}
+function addWarmupEx(bibId){
+  const aId=S.selA,ciclo=S.selCiclo;
+  const bib=DB.biblioteca.find(e=>e.id===bibId);if(!bib)return;
+  if(!DB.rutinas[aId])DB.rutinas[aId]={};
+  if(!DB.rutinas[aId][ciclo])DB.rutinas[aId][ciclo]={};
+  if(!DB.rutinas[aId][ciclo][0])DB.rutinas[aId][ciclo][0]=[];
+  let day=DB.rutinas[aId][ciclo][0].find(d=>d.dia===1);
+  if(!day){day={dia:1,ejercicios:[]};DB.rutinas[aId][ciclo][0].push(day);}
+  if(day.ejercicios.some(e=>e.nombre===bib.nombre))return;
+  day.ejercicios.push({nombre:bib.nombre,series:'1',reps:'—',video:bib.video||'',tip:bib.descripcion||'',grupo:bib.grupo_muscular||''});
+  saveWarmup(aId,ciclo);
+}
+function delWarmupEx(idx){
+  const aId=S.selA,ciclo=S.selCiclo;
+  const day=DB.rutinas[aId]?.[ciclo]?.[0]?.find(d=>d.dia===1);if(!day)return;
+  day.ejercicios.splice(idx,1);
+  saveWarmup(aId,ciclo);
+}
+async function resetWarmup(){
+  const aId=S.selA,ciclo=S.selCiclo;
+  if(!DB.rutinas[aId]?.[ciclo]?.[0])return;
+  DB.rutinas[aId][ciclo][0]=[];
+  await sbDelete('rutinas',`alumna_id=eq.${aId}&ciclo=eq.${ciclo}&semana=eq.0`);
+  S.msg='↩ Usando calentamiento por defecto';render();setTimeout(()=>{S.msg='';render();},2000);
+}
+
 // ── Recordatorios ─────────────────────────────────────────────
 function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`;waOpen(ph,msg);}
 async function envTplAlu(aId, key){
@@ -2092,6 +2129,28 @@ function rRutinas(){
         +'</div></div>';
     })():''}
 
+    ${(()=>{
+      const wuExs=getWarmupExs(a.id,S.selCiclo);
+      const calBib=DB.biblioteca.filter(e=>e.grupo_muscular==='Calentamiento');
+      const available=calBib.filter(e=>!wuExs.some(w=>w.nombre===e.nombre));
+      return`<div style="background:var(--a);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;">
+        <div style="font-size:11px;font-weight:600;color:var(--ad);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">🔥 Calentamiento</div>
+        ${wuExs.length===0
+          ?'<div style="font-size:12px;color:var(--tm);margin-bottom:.5rem;">Usando calentamiento por defecto (de la biblioteca)</div>'
+          :wuExs.map((ex,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="font-size:12px;flex:1;">${ex.nombre}</span>
+              <button class="btn btn-s btn-d" style="padding:2px 6px;font-size:11px;" onclick="delWarmupEx(${i})">×</button>
+            </div>`).join('')
+        }
+        ${calBib.length===0?'<div style="font-size:11px;color:var(--tm);">No hay ejercicios de Calentamiento en la biblioteca.</div>':
+          available.length>0?`<div style="margin-top:.5rem;border-top:1px solid rgba(0,0,0,.06);padding-top:.5rem;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:11px;color:var(--tm);">+ Agregar:</span>
+            ${available.map(e=>`<button class="btn btn-s" style="font-size:11px;" onclick="addWarmupEx(${e.id})">${e.nombre}</button>`).join('')}
+          </div>`:'<div style="font-size:11px;color:var(--tm);margin-top:4px;">Ya están todos los ejercicios de calentamiento asignados.</div>'
+        }
+        ${wuExs.length>0?`<button class="btn btn-s" style="font-size:11px;margin-top:.5rem;" onclick="resetWarmup()">↩ Volver al default</button>`:''}
+      </div>`;
+    })()}
     <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Semana</div>
     <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
 
