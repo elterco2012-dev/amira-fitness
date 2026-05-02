@@ -3698,9 +3698,10 @@ async function activarPushAmira(){
     const k=sub.getKey('p256dh');const a=sub.getKey('auth');
     const p256dh=btoa(String.fromCharCode(...new Uint8Array(k)));
     const auth=btoa(String.fromCharCode(...new Uint8Array(a)));
-    await sbUpsert('push_subscriptions',{alumna_id:0,endpoint:sub.endpoint,p256dh,auth});
+    // upsert by endpoint — each device gets its own row, no overwriting
+    await sbUpsert('amira_push_subscriptions',{endpoint:sub.endpoint,p256dh,auth});
     localStorage.setItem('af-notif-panel','1');
-    S.msg='✓ Push activado — te llegará al celular aunque el panel esté cerrado';render();
+    S.msg='✓ Push activado en este dispositivo';render();
     setTimeout(()=>{S.msg='';render();},4000);
   }catch(e){S.msg='Error activando push: '+e.message;render();setTimeout(()=>{S.msg='';render();},5000);}
 }
@@ -3709,11 +3710,14 @@ async function desactivarPushAmira(){
   try{
     const sw=_panelSW||await navigator.serviceWorker.ready;
     const sub=await sw.pushManager.getSubscription();
-    if(sub)await sub.unsubscribe();
-    await sbDelete('push_subscriptions','alumna_id=eq.0');
+    if(sub){
+      // Remove only this device's subscription
+      await sbDelete('amira_push_subscriptions',`endpoint=eq.${encodeURIComponent(sub.endpoint)}`);
+      await sub.unsubscribe();
+    }
   }catch(_){}
   localStorage.removeItem('af-notif-panel');
-  S.msg='Push desactivado';render();setTimeout(()=>{S.msg='';render();},2000);
+  S.msg='Push desactivado en este dispositivo';render();setTimeout(()=>{S.msg='';render();},2000);
 }
 
 // ── Notificaciones del panel ──────────────────────────────────
