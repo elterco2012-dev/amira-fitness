@@ -3695,7 +3695,7 @@ async function activarPushAmira(){
     const k=sub.getKey('p256dh');const a=sub.getKey('auth');
     const p256dh=btoa(String.fromCharCode(...new Uint8Array(k)));
     const auth=btoa(String.fromCharCode(...new Uint8Array(a)));
-    await sbUpsert('push_subscriptions',{alumna_id:0,endpoint:sub.endpoint,p256dh,auth,updated_at:new Date().toISOString()});
+    await sbUpsert('push_subscriptions',{alumna_id:0,endpoint:sub.endpoint,p256dh,auth});
     localStorage.setItem('af-notif-panel','1');
     S.msg='✓ Push activado — te llegará al celular aunque el panel esté cerrado';render();
     setTimeout(()=>{S.msg='';render();},4000);
