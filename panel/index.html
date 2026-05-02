@@ -188,8 +188,12 @@
     .drawer-hd{position:sticky;top:0;background:var(--s);z-index:10;border-bottom:1px solid var(--b);padding:1rem 1.25rem 0;}
     .drawer-tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
     .drawer-tabs::-webkit-scrollbar{display:none;}
-    .dtab{padding:8px 14px;font-size:12px;font-weight:400;color:var(--tm);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:color .15s;}
-    .dtab.active{font-weight:600;color:var(--v);border-bottom-color:var(--v);}
+    .dwtab{padding:8px 14px;font-size:12px;font-weight:400;color:var(--tm);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:color .15s;}
+    .dwtab.active{font-weight:600;color:var(--v);border-bottom-color:var(--v);}
+    .dtabs{display:flex;gap:5px;flex-wrap:wrap;}
+    .dtab{padding:4px 12px;border-radius:var(--rp);font-size:11px;border:1px solid var(--bm);background:var(--s);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .dtab:hover{background:var(--s2);}
+    .dtab.active{background:var(--v);color:white;border-color:var(--v);font-weight:500;}
     .drawer-body{padding:1.25rem;flex:1;}
     .dfield{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;margin-bottom:1rem;}
     .dfield-item span:first-child{font-size:10px;color:var(--tm);display:block;margin-bottom:1px;}
@@ -1655,7 +1659,7 @@ function renderDrawer(){
         <button onclick="closeDrawer()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--tm);font-size:22px;line-height:1;flex-shrink:0;" title="Cerrar (Esc)">×</button>
       </div>
       <div class="drawer-tabs">
-        ${tabs.map(([k,l])=>`<button class="dtab${tab===k?' active':''}" onclick="S._drawerTab='${k}';render()">${l}</button>`).join('')}
+        ${tabs.map(([k,l])=>`<button class="dwtab${tab===k?' active':''}" onclick="S._drawerTab='${k}';render()">${l}</button>`).join('')}
       </div>
     </div>
     <div class="drawer-body">${content}</div>
