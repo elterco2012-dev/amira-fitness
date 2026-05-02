@@ -1402,18 +1402,8 @@ function toastPanel(msg){
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2800);
 }
 async function waOpen(ph, msg){
-  // Copiar al clipboard primero (preserva emoji perfectamente)
   try{await navigator.clipboard.writeText(msg);}catch(e){}
-  // Abrir WhatsApp — si el clipboard funcionó, el usuario pega (Ctrl+V)
-  // Si no, abrir con texto en URL como fallback
-  let opened=false;
-  try{
-    await navigator.clipboard.readText(); // Verifica que el clipboard tiene el texto
-    toastPanel('✓ Mensaje copiado — abriendo WhatsApp, pegá con Ctrl+V');
-    window.open('https://wa.me/'+ph,'_blank');
-    opened=true;
-  }catch(e){}
-  if(!opened) window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank');
+  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank');
 }
 
 // ── Recordatorios ─────────────────────────────────────────────
