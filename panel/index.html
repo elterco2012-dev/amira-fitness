@@ -420,7 +420,7 @@ const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_bulkWA:false};
 let dark=localStorage.getItem('af-dark')==='1';
-let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
+let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
 let bibSelEx=null;
 let _panelSW=null;
 if('serviceWorker' in navigator){
@@ -623,6 +623,7 @@ async function loadAll(){
     prevCom=coms.length?Math.max(...coms.map(c=>+c.id)):0;
     localStorage.setItem('af-prevCom',String(prevCom));
     prevReg=regs.filter(r=>r.estado==='pendiente').length;
+    try{const fbs=await sbGet('feedbacks','select=id&order=id.desc&limit=1');prevFb=fbs.length?+fbs[0].id:0;localStorage.setItem('af-prevFb',String(prevFb));}catch(_){}
     try{
       const _nav=localStorage.getItem('af-nav');
       if(_nav){
@@ -639,15 +640,43 @@ async function loadAll(){
   }catch(e){sbSt(false,'Sin conexión');console.error(e);render();}
 }
 
+async function _panelNotif(title,body,tag){
+  if(Notification.permission!=='granted'||localStorage.getItem('af-notif-panel')!=='1')return;
+  const opts={body,icon:'/api/icon-192.svg',tag,requireInteraction:true};
+  try{const sw=_panelSW||await navigator.serviceWorker.ready;sw.showNotification(title,opts);}
+  catch(_){try{new Notification(title,opts);}catch(__){}}
+}
+
 function startPoll(){
   if(pollT)clearInterval(pollT);
   pollT=setInterval(async()=>{
-    if(document.hidden) return; // no polling when tab is in background
+    if(document.hidden) return;
     try{
-      const [coms,regs]=await Promise.all([sbGet('comentarios','select=id&order=created_at.desc&limit=1'),sbGet('registros','estado=eq.pendiente&select=id')]);
-      if(coms.length&&+coms[0].id>prevCom){const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}prevCom=+coms[0].id;}
-      if(regs.length>prevReg){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}if(Notification.permission==='granted'&&localStorage.getItem('af-notif-panel')==='1'){const _opts={body:'Revisá Registros en el panel para aprobar.',icon:'/api/icon-192.svg',tag:'panel-registro',requireInteraction:true};try{const sw=_panelSW||await navigator.serviceWorker.ready;sw.showNotification('🆕 Nueva alumna registrada',_opts);}catch(_){try{new Notification('🆕 Nueva alumna registrada',_opts);}catch(__){}}}}
+      const [coms,regs,fbs]=await Promise.all([
+        sbGet('comentarios','select=id&order=created_at.desc&limit=1'),
+        sbGet('registros','estado=eq.pendiente&select=id'),
+        sbGet('feedbacks','select=id,alumna_id,tipo,texto&order=id.desc&limit=1')
+      ]);
+      if(coms.length&&+coms[0].id>prevCom){
+        const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}
+        const newCom=coms[0];
+        prevCom=+newCom.id;
+        const aName=(DB.alumnas.find(a=>a.id===newCom.alumna_id)?.nombre||'alumna').split(' ')[0];
+        _panelNotif(`💬 Nota — ${aName}`,newCom.texto||'Nueva nota desde la app','panel-comentario');
+      }
+      if(regs.length>prevReg){
+        const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}
+        _panelNotif('🆕 Nueva alumna registrada','Revisá Registros en el panel para aprobar.','panel-registro');
+      }
       prevReg=regs.length;
+      if(fbs.length&&+fbs[0].id>prevFb){
+        prevFb=+fbs[0].id;localStorage.setItem('af-prevFb',String(prevFb));
+        const fb=fbs[0];
+        const aName=(DB.alumnas.find(a=>a.id===fb.alumna_id)?.nombre||'alumna').split(' ')[0];
+        const emojiMap={dolor_preocupante:'🚨',bajo_rendimiento:'⚠️',bueno:'😊',excelente:'🔥'};
+        const emoji=emojiMap[fb.tipo]||'💬';
+        _panelNotif(`${emoji} Feedback — ${aName}`,fb.texto||`Tipo: ${fb.tipo}`,'panel-feedback');
+      }
     }catch(e){}
   },8000);
 }
@@ -3543,11 +3572,13 @@ function rConfig(){
   <div class="card"><div class="ctitle">Estado Supabase</div><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:${S.sbOk?'var(--vd)':'var(--rd)'}"><div style="width:8px;height:8px;border-radius:50%;background:${S.sbOk?'var(--v)':'var(--rd)'}"></div>${S.sbOk?'Conectado y sincronizando':'Sin conexión'}</div></div>
   <div class="card"><div class="ctitle">Contraseña del panel</div><input type="password" id="np" placeholder="Nueva contraseña"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('np').value;if(v.length>=4){localStorage.setItem('af-pwd',v);alert('Actualizada');}">Cambiar</button></div>
   <div class="card"><div class="ctitle">WhatsApp de Amira</div><input type="tel" id="wai" placeholder="5491123456789" value="${ph}"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('wai').value;if(v){localStorage.setItem('af-amira-ph',v);S.msg='Guardado ✓';render();}">Guardar</button>${S.msg?`<span class="sm">${S.msg}</span>`:''}</div>
-  <div class="card"><div class="ctitle">🔔 Notificaciones del panel</div>
-    <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Recibí una notificación en este dispositivo cuando llegue un nuevo registro de alumna. <strong>El panel tiene que estar abierto en el navegador</strong> para que funcione (se revisa cada 8 segundos).</div>
+  <div class="card"><div class="ctitle">🔔 Notificaciones push (Amira)</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Activá las notificaciones push para recibir un aviso en tu celular <strong>aunque el panel esté cerrado</strong> cada vez que una alumna mande feedback o una nota. Se guarda en este dispositivo.</div>
     ${notifActivas
-      ?`<div style="font-size:12px;color:var(--vd);margin-bottom:.5rem;">✓ Notificaciones activadas en este dispositivo</div><button class="btn btn-s btn-d" onclick="desactivarNotifPanel()">Desactivar</button>`
-      :`<button class="btn btn-p btn-s" onclick="activarNotifPanel()">Activar notificaciones</button>`}
+      ?`<div style="font-size:12px;color:var(--vd);margin-bottom:.5rem;">✓ Push activado en este dispositivo</div>
+        <button class="btn btn-s btn-d" onclick="desactivarPushAmira()">Desactivar push</button>`
+      :`<button class="btn btn-p btn-s" onclick="activarPushAmira()">🔔 Activar notificaciones push</button>`}
+    <div style="font-size:11px;color:var(--th);margin-top:.75rem;border-top:1px solid var(--b);padding-top:.5rem;">Para que funcione con el panel cerrado, también hay que configurar un webhook en Supabase (ver instrucciones).</div>
   </div>`;
 }
 
@@ -3645,6 +3676,41 @@ function onboardingWA(regId){
   msg+='\nEn breve te cargo tu rutina personalizada. Cuando te llegue el link, ya podés empezar.\n\n';
   msg+='Cualquier duda, escribime acá. ¡Arrancamos! — Amira 🔥';
   waOpen(tel, msg);
+}
+
+// ── Push de Amira (Web Push real, panel cerrado) ──────────────
+const VAPID_PUB='BIGAfUKXOWHBDEULTLi4zp-E3L5fQ8AlF4qxybdKZXtYbA-3NHR0DF7stGRHyGeeXJz2euHAs4oHpYC52wp7DnQ';
+function _b64ToUint8(b64){const p=b64.replace(/-/g,'+').replace(/_/g,'/');const raw=atob(p);const a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return a;}
+
+async function activarPushAmira(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
+    S.msg='Tu navegador no soporta push. Usá Chrome o Safari 16.4+.';render();setTimeout(()=>{S.msg='';render();},4000);return;
+  }
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){S.msg='Permiso denegado. Habilitá notificaciones en el navegador.';render();setTimeout(()=>{S.msg='';render();},4000);return;}
+  try{
+    const sw=_panelSW||await navigator.serviceWorker.ready;
+    let sub=await sw.pushManager.getSubscription();
+    if(!sub)sub=await sw.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToUint8(VAPID_PUB)});
+    const k=sub.getKey('p256dh');const a=sub.getKey('auth');
+    const p256dh=btoa(String.fromCharCode(...new Uint8Array(k)));
+    const auth=btoa(String.fromCharCode(...new Uint8Array(a)));
+    await sbUpsert('push_subscriptions',{alumna_id:0,endpoint:sub.endpoint,p256dh,auth,updated_at:new Date().toISOString()});
+    localStorage.setItem('af-notif-panel','1');
+    S.msg='✓ Push activado — te llegará al celular aunque el panel esté cerrado';render();
+    setTimeout(()=>{S.msg='';render();},4000);
+  }catch(e){S.msg='Error activando push: '+e.message;render();setTimeout(()=>{S.msg='';render();},5000);}
+}
+
+async function desactivarPushAmira(){
+  try{
+    const sw=_panelSW||await navigator.serviceWorker.ready;
+    const sub=await sw.pushManager.getSubscription();
+    if(sub)await sub.unsubscribe();
+    await sbDelete('push_subscriptions','alumna_id=eq.0');
+  }catch(_){}
+  localStorage.removeItem('af-notif-panel');
+  S.msg='Push desactivado';render();setTimeout(()=>{S.msg='';render();},2000);
 }
 
 // ── Notificaciones del panel ──────────────────────────────────
