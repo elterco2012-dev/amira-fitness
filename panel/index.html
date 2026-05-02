@@ -2185,14 +2185,28 @@ function rRutinas(){
     </div>
     ${S._dupMode?(()=>{
       const otras=DB.alumnas.filter(al=>al.id!==S.selA);
-      const opts=otras.map(al=>'<option value="'+al.id+'">'+al.nombre+'</option>').join('');
+      const opts=otras.map(al=>'<option value="'+al.id+'"'+(S._dupSrcA===al.id?' selected':'')+'>'+al.nombre+'</option>').join('');
+      const srcA=S._dupSrcA?getA(S._dupSrcA):null;
+      const cicloDestNom=(a.ciclos_nombres||{})[S.selCiclo]||'Ciclo '+S.selCiclo;
+      const summary=srcA
+        ?'<div style="background:rgba(60,52,137,.1);border:1px solid rgba(60,52,137,.25);border-radius:var(--rs);padding:8px 10px;margin-bottom:8px;font-size:12px;line-height:1.5;">'
+          +'<div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Se va a copiar:</div>'
+          +'<span style="font-weight:600;color:var(--t);">'+srcA.nombre+'</span>'
+          +' <span style="color:var(--tm);">(toda la rutina)</span>'
+          +' <strong style="color:var(--pd);">→</strong>'
+          +' <span style="font-weight:600;color:var(--t);">'+a.nombre+'</span>'
+          +' <span style="color:var(--tm);">· '+cicloDestNom+'</span>'
+          +'<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ Reemplaza los ejercicios existentes en '+cicloDestNom+'</div>'
+          +'</div>'
+        :'';
       return'<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid rgba(60,52,137,.15);">'
-        +'<div style="font-size:11px;font-weight:500;color:var(--pd);margin-bottom:6px;">Copiar rutina de:</div>'
-        +'<select onchange="S._dupSrcA=parseInt(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;background:var(--s);color:var(--t);margin-bottom:6px;">'
-        +'<option value="">— Elegir alumna —</option>'+opts+'</select>'
+        +'<div style="font-size:11px;font-weight:500;color:var(--pd);margin-bottom:6px;">📋 Copiar rutina completa — elegir origen:</div>'
+        +'<select onchange="S._dupSrcA=parseInt(this.value)||null;render()" style="width:100%;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;background:var(--s);color:var(--t);margin-bottom:8px;">'
+        +'<option value="">— Elegir alumna fuente —</option>'+opts+'</select>'
+        +summary
         +'<div style="display:flex;gap:6px;align-items:center;">'
-        +'<button class="btn btn-p btn-s" onclick="duplicarRutina()">Copiar al Ciclo '+S.selCiclo+'</button>'
-        +'<button class="btn btn-s" onclick="S._dupMode=false;render()">Cancelar</button>'
+        +(srcA?'<button class="btn btn-p btn-s" onclick="duplicarRutina()">✓ Confirmar y copiar</button>':'')
+        +'<button class="btn btn-s" onclick="S._dupMode=false;S._dupSrcA=null;render()">Cancelar</button>'
         +(S.msg?'<span style="font-size:11px;color:var(--vd);">'+S.msg+'</span>':'')
         +'</div></div>';
     })():''}
@@ -2205,26 +2219,38 @@ function rRutinas(){
       const dstCiclos=S._copSemDstA
         ?(()=>{const cs=Object.keys(DB.rutinas[S._copSemDstA]||{}).map(Number).filter(c=>c>0).sort();return cs.length?cs:[1];})()
         :[];
+      const ready=S._copSemDstA&&dstA;
+      const dstCicloNom=dstA?(dstA.ciclos_nombres||{})[S._copSemDstCiclo]||'Ciclo '+S._copSemDstCiclo:'';
+      const summary=ready
+        ?'<div style="background:rgba(60,52,137,.1);border:1px solid rgba(60,52,137,.25);border-radius:var(--rs);padding:8px 10px;margin-bottom:8px;font-size:12px;line-height:1.5;">'
+          +'<div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Se va a copiar:</div>'
+          +'<span style="font-weight:600;color:var(--t);">'+a.nombre+'</span>'
+          +' <span style="color:var(--tm);">· Sem '+S.selSem+' ('+cicloNom+')</span>'
+          +' <strong style="color:var(--pd);">→</strong>'
+          +' <span style="font-weight:600;color:var(--t);">'+dstA.nombre+'</span>'
+          +' <span style="color:var(--tm);">· Sem '+S._copSemDstSem+' ('+dstCicloNom+')</span>'
+          +'<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ Reemplaza los ejercicios de Sem '+S._copSemDstSem+' de '+dstA.nombre.split(' ')[0]+'</div>'
+          +'</div>'
+        :'';
       return'<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid rgba(60,52,137,.15);">'
-        +'<div style="font-size:11px;font-weight:500;color:var(--pd);margin-bottom:8px;">Copiar <strong>Sem '+S.selSem+'</strong> de <strong>'+cicloNom+'</strong> → destino:</div>'
-        +'<select onchange="S._copSemDstA=parseInt(this.value);S._copSemDstCiclo=getA(S._copSemDstA)?.ciclo_actual||1;S._copSemDstSem=1;render()" style="width:100%;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;background:var(--s);color:var(--t);margin-bottom:8px;">'
-        +'<option value="">— Alumna destino —</option>'+opts+'</select>'
+        +'<div style="font-size:11px;font-weight:500;color:var(--pd);margin-bottom:8px;">✂️ Copiar semana a otra alumna — elegir destino:</div>'
+        +'<select onchange="S._copSemDstA=parseInt(this.value)||null;if(S._copSemDstA){S._copSemDstCiclo=getA(S._copSemDstA)?.ciclo_actual||1;S._copSemDstSem=1;}render()" style="width:100%;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;background:var(--s);color:var(--t);margin-bottom:8px;">'
+        +'<option value="">— Elegir alumna destino —</option>'+opts+'</select>'
         +(S._copSemDstA?(
-          '<div style="font-size:11px;color:var(--pd);margin-bottom:4px;">Ciclo destino</div>'
-          +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">'
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">'
+          +'<div style="font-size:11px;color:var(--tm);">Ciclo:</div>'
           +dstCiclos.map(c=>{
             const nom=(dstA?.ciclos_nombres||{})[c]||'Ciclo '+c;
             return'<button class="btn btn-s'+(S._copSemDstCiclo===c?' btn-purple':'')+'" onclick="S._copSemDstCiclo='+c+';render()">'+nom+'</button>';
           }).join('')
-          +'</div>'
-          +'<div style="font-size:11px;color:var(--pd);margin-bottom:4px;">Semana destino</div>'
-          +'<div style="display:flex;gap:4px;margin-bottom:8px;">'
+          +'<div style="font-size:11px;color:var(--tm);margin-left:4px;">Semana:</div>'
           +[1,2,3,4].map(s=>'<button class="btn btn-s'+(S._copSemDstSem===s?' btn-purple':'')+'" onclick="S._copSemDstSem='+s+';render()">Sem '+s+'</button>').join('')
           +'</div>'
         ):'')
+        +summary
         +'<div style="display:flex;gap:6px;align-items:center;">'
-        +'<button class="btn btn-p btn-s" onclick="copiarSemana()">Copiar semana</button>'
-        +'<button class="btn btn-s" onclick="S._copSemMode=false;render()">Cancelar</button>'
+        +(ready?'<button class="btn btn-p btn-s" onclick="copiarSemana()">✓ Confirmar y copiar</button>':'')
+        +'<button class="btn btn-s" onclick="S._copSemMode=false;S._copSemDstA=null;render()">Cancelar</button>'
         +(S.msg?'<span style="font-size:11px;color:var(--vd);">'+S.msg+'</span>':'')
         +'</div></div>';
     })():''}
