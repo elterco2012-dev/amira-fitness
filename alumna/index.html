@@ -2317,15 +2317,17 @@ function renderProgreso(){
   const _pc=DB.pesoAlumnaHist||[];
   const _pcLast=_pc[0];
   const _pcLastStr=_pcLast?`${_pcLast.peso} kg · ${new Date(_pcLast.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}`:'Sin registros aún';
+  const _pcHoy=new Date().toISOString().split('T')[0];
+  const _pcEntradaHoy=_pc.find(p=>p.fecha===_pcHoy);
   html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Mi peso corporal</div>
   <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
-    ${_pcLast?`<div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">Último: <strong style="color:var(--t);">${_pcLastStr}</strong></div>`:''}
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length>1?'.6rem':'0'};">
-      <input type="number" id="pc-input" step="0.1" min="30" max="300" placeholder="Peso hoy (kg)" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'" onkeydown="if(event.key==='Enter')savePesoCorp(${a.id})">
-      <button class="btn btn-p btn-s" style="white-space:nowrap;" onclick="savePesoCorp(${a.id})">Guardar</button>
+      <input type="number" id="pc-input" step="0.1" min="30" max="300" placeholder="Peso hoy (kg)" value="${_pcEntradaHoy?_pcEntradaHoy.peso:''}" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'" onkeydown="if(event.key==='Enter')savePesoCorp(${a.id})">
+      <button class="btn btn-p btn-s" style="white-space:nowrap;" onclick="savePesoCorp(${a.id})">${_pcEntradaHoy?'Actualizar':'Guardar'}</button>
     </div>
-    ${_pc.slice(1,6).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
-    ${_pc.length>6?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y ${_pc.length-6} registros más</div>`:''}
+    ${_pcEntradaHoy?`<div style="font-size:11px;color:var(--vd);margin-bottom:${_pc.length>1?'.4rem':'0'};">✓ Registrado hoy · un registro por día</div>`:''}
+    ${_pc.filter(p=>p.fecha!==_pcHoy).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
+    ${_pc.filter(p=>p.fecha!==_pcHoy).length>5?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y más registros</div>`:''}
   </div>`;
   const _hasPcChart=_pc.length>=1;
   if(exns.length>0||_hasPcChart){
