@@ -33,13 +33,11 @@ Deno.serve(async (req) => {
   }
 
   const { type, table, record } = payload;
-
-  // Only process INSERT events with a record
   if (type !== "INSERT" || !record) {
     return Response.json({ skipped: true }, { headers: CORS });
   }
 
-  // Build notification content based on which table fired
+  // Build notification content
   let title = "📬 Nueva actividad";
   let body = "Revisá el panel.";
 
@@ -62,8 +60,7 @@ Deno.serve(async (req) => {
         bueno: "😊",
         excelente: "🔥",
       };
-      const emoji = emojiMap[tipo] || "💬";
-      title = `${emoji} Feedback — ${alumnaName || "alumna"}`;
+      title = `${emojiMap[tipo] || "💬"} Feedback — ${alumnaName || "alumna"}`;
       body = texto ? texto.slice(0, 120) : `Tipo: ${tipo}`;
     } else if (table === "comentarios") {
       const texto = String(record.texto || record.contenido || "");
@@ -74,33 +71,37 @@ Deno.serve(async (req) => {
     console.warn("Could not build message:", e);
   }
 
-  // Fetch Amira's subscription (alumna_id = 0)
+  // Fetch ALL of Amira's subscriptions (one per device)
   let subs: Array<{ endpoint: string; p256dh: string; auth: string }> = [];
   try {
     subs = await dbFetch(
-      "push_subscriptions?alumna_id=eq.0&select=endpoint,p256dh,auth"
+      "amira_push_subscriptions?select=endpoint,p256dh,auth"
     ) as typeof subs;
   } catch (e) {
-    console.error("DB error fetching Amira sub:", e);
+    console.error("DB error fetching Amira subs:", e);
     return Response.json({ error: "db error" }, { status: 500, headers: CORS });
   }
 
+  console.log(`Sending to ${subs.length} Amira device(s): ${title}`);
+
   if (!subs.length) {
-    console.log("No Amira push subscription (alumna_id=0)");
-    return Response.json({ sent: 0, reason: "no subscription" }, { headers: CORS });
+    return Response.json({ sent: 0, reason: "no subscriptions" }, { headers: CORS });
   }
 
-  try {
-    const sub = subs[0];
-    await webpush.sendNotification(
-      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify({ type: "amira-alert", title, body, url: "/panel/" })
-    );
-    console.log(`Amira push sent: ${title}`);
-    return Response.json({ sent: 1 }, { headers: CORS });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("Push failed:", msg);
-    return Response.json({ error: msg }, { status: 500, headers: CORS });
-  }
+  const results = await Promise.allSettled(
+    subs.map(sub =>
+      webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify({ type: "amira-alert", title, body, url: "/panel/" })
+      )
+    )
+  );
+
+  const sent   = results.filter(r => r.status === "fulfilled").length;
+  const failed = results.filter(r => r.status === "rejected").length;
+  results.forEach((r, i) => {
+    if (r.status === "rejected") console.error(`Push failed device ${i}:`, (r as PromiseRejectedResult).reason);
+  });
+
+  return Response.json({ sent, failed, total: subs.length }, { headers: CORS });
 });
