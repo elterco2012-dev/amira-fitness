@@ -182,6 +182,17 @@
     .hist-check{font-size:11px;color:var(--vd);font-weight:500;}
 
     @media(max-width:700px){.sidebar{display:none;}.main{padding:1rem;}.metrics{grid-template-columns:1fr 1fr;}.plant-grid{grid-template-columns:1fr 1fr;}.bib-grid{grid-template-columns:1fr;}}
+    .drawer{position:fixed;top:0;right:0;width:min(620px,100vw);height:100vh;background:var(--s);z-index:101;overflow-y:auto;box-shadow:-4px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;animation:slideIn .2s ease;}
+    @keyframes slideIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;}
+    .drawer-hd{position:sticky;top:0;background:var(--s);z-index:10;border-bottom:1px solid var(--b);padding:1rem 1.25rem 0;}
+    .drawer-tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
+    .drawer-tabs::-webkit-scrollbar{display:none;}
+    .dtab{padding:8px 14px;font-size:12px;font-weight:400;color:var(--tm);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:color .15s;}
+    .dtab.active{font-weight:600;color:var(--v);border-bottom-color:var(--v);}
+    .drawer-body{padding:1.25rem;flex:1;}
+    .dfield{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;margin-bottom:1rem;}
+    .dfield-item span:first-child{font-size:10px;color:var(--tm);display:block;margin-bottom:1px;}
   </style>
 </head>
 <body>
@@ -403,7 +414,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -1599,6 +1610,330 @@ function render(){
       </div>
     </div>`;
   } else if(_dm){_dm.remove();}
+
+  // Drawer
+  let _dw=document.getElementById('_drawer');
+  if(S._drawerA){
+    document.body.style.overflow='hidden';
+    if(!_dw){_dw=document.createElement('div');_dw.id='_drawer';document.body.appendChild(_dw);}
+    _dw.innerHTML=renderDrawer();
+  } else {
+    document.body.style.overflow='';
+    if(_dw)_dw.remove();
+  }
+}
+
+function openDrawer(aId){
+  const a=getA(aId); if(!a)return;
+  S._drawerA=aId;
+  S._drawerTab='resumen';
+  S._drawerCiclo=parseInt(a.ciclo_actual)||1;
+  S._drawerSem=1; S._drawerDia=1;
+  render();
+}
+function closeDrawer(){S._drawerA=null;render();}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S._drawerA)closeDrawer();});
+
+function renderDrawer(){
+  const a=getA(S._drawerA); if(!a)return'';
+  const tab=S._drawerTab||'resumen';
+  const diasSinAct=a.last_active_at?localDayDiff(a.last_active_at):null;
+  const actLabel=diasSinAct===null?'Sin actividad':diasSinAct===0?'Entrenó hoy':diasSinAct===1?'Entrenó ayer':'Hace '+diasSinAct+' días';
+  const tabs=[['resumen','Resumen'],['rutina','Rutina'],['progreso','Progreso'],['notas','Notas'],['pagos','Pagos'],['ficha','Ficha']];
+  const tabContent={resumen:drawerResumen,rutina:drawerRutina,progreso:drawerProgreso,notas:drawerNotas,pagos:drawerPagos,ficha:drawerFicha};
+  const content=(tabContent[tab]||drawerResumen)(a);
+  return`<div class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div class="drawer">
+    <div class="drawer-hd">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;">
+        <div class="av av-${a.color}" style="width:42px;height:42px;font-size:16px;flex-shrink:0;">${avH(a)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:16px;font-weight:600;color:var(--t);">${a.nombre}</div>
+          <div style="font-size:12px;color:var(--tm);">${actLabel} · ${{gym:'Gimnasio',casa:'Casa',otro:'Otro',distancia:'A distancia'}[a.tipo]||a.tipo} · ${a.dias} días/sem</div>
+        </div>
+        <button onclick="closeDrawer()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--tm);font-size:22px;line-height:1;flex-shrink:0;" title="Cerrar (Esc)">×</button>
+      </div>
+      <div class="drawer-tabs">
+        ${tabs.map(([k,l])=>`<button class="dtab${tab===k?' active':''}" onclick="S._drawerTab='${k}';render()">${l}</button>`).join('')}
+      </div>
+    </div>
+    <div class="drawer-body">${content}</div>
+  </div>`;
+}
+
+function drawerResumen(a){
+  const pagado=hasPagado(a.id);
+  const ph=(a.tel||'').replace(/\D/g,'');
+  const alertas=(DB.feedbacks||[]).filter(f=>f.alumna_id===a.id&&f.tipo==='dolor_preocupante');
+  const fbs=(DB.feedbacks||[]).filter(f=>f.alumna_id===a.id).slice(0,6);
+  const notas=(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id);
+  let html='';
+  if(alertas.length){
+    html+=`<div style="background:var(--rl);border:1px solid #f59595;border-radius:var(--rs);padding:.75rem;margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--rd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">⚠️ Alertas activas</div>
+      ${alertas.map(f=>`<div style="font-size:12px;color:var(--rd);padding:2px 0;">🚨 ${f.ejercicio_nombre||'Ejercicio'}${f.nota?' — '+f.nota:''}</div>`).join('')}
+    </div>`;
+  }
+  if(a.lesiones){
+    html+=`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .75rem;font-size:12px;color:var(--rd);margin-bottom:.75rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`;
+  }
+  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
+    <div style="background:var(--s2);border-radius:var(--rs);padding:.7rem;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:var(--t);">${a.ciclo_actual||1}</div>
+      <div style="font-size:10px;color:var(--tm);">Ciclo actual</div>
+    </div>
+    <div style="background:${pagado?'var(--vl)':'var(--rl)'};border-radius:var(--rs);padding:.7rem;text-align:center;">
+      <div style="font-size:13px;font-weight:700;color:${pagado?'var(--vd)':'var(--rd)'};">${pagado?'✓ Pagó':'Debe'}</div>
+      <div style="font-size:10px;color:var(--tm);">${a.precio?'$'+a.precio+'/mes':'Sin precio'}</div>
+    </div>
+    <div style="background:var(--s2);border-radius:var(--rs);padding:.7rem;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:var(--t);">${a.dias||3}</div>
+      <div style="font-size:10px;color:var(--tm);">días/sem</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;">
+    ${ph?`<button class="btn btn-s" onclick="envRec(${a.id})" style="color:#25D366;border-color:#25D366;">💬 WA</button>`:''}
+    <button class="btn btn-s" onclick="closeDrawer();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Editar rutina →</button>
+    <button class="btn btn-s" onclick="S._drawerTab='notas';render()">📝 Agregar nota</button>
+    ${!pagado?`<button class="btn btn-p btn-s" onclick="marcarPago(${a.id})">✓ Marcar pago</button>`:''}
+  </div>`;
+  if(fbs.length){
+    html+=`<div style="margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Feedbacks recientes</div>
+      ${fbs.map(f=>{
+        const isUrg=f.tipo==='dolor_preocupante';
+        const em=(FB_LABELS[f.tipo]||'📋').split(' ')[0];
+        const tl=(FB_LABELS[f.tipo]||f.tipo).replace(/^\S+\s*/,'');
+        const cNom=(a.ciclos_nombres||{})[f.ciclo]||('C'+f.ciclo);
+        return`<div style="padding:.4rem 0;border-bottom:1px solid var(--b);">
+          <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;">
+            <span>${em}</span>
+            <span style="font-size:12px;font-weight:500;color:${isUrg?'var(--rd)':'var(--t)'};">${tl}</span>
+            <span style="font-size:10px;color:var(--tm);">${cNom}·S${f.semana}·D${f.dia}</span>
+            <span style="font-size:10px;color:var(--th);margin-left:auto;">${fmtWhen(f.created_at||f.fecha)}</span>
+          </div>
+          ${f.nota?`<div style="font-size:11px;color:var(--tm);margin-top:2px;padding-left:18px;">"${f.nota}"</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    html+=`<div style="font-size:12px;color:var(--th);margin-bottom:1rem;">Sin feedbacks registrados.</div>`;
+  }
+  if(notas.length){
+    html+=`<div style="margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Notas privadas</div>
+      ${notas.slice(0,3).map(n=>`<div style="padding:.35rem 0;border-bottom:1px solid var(--b);">
+        <div style="font-size:10px;color:var(--th);">${new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})} · C${n.ciclo} S${n.semana}</div>
+        <div style="font-size:12px;color:var(--t);margin-top:1px;">${n.nota}</div>
+      </div>`).join('')}
+      ${notas.length>3?`<button onclick="S._drawerTab='notas';render()" style="background:none;border:none;color:var(--v);cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;margin-top:4px;">Ver todas (${notas.length}) →</button>`:''}
+    </div>`;
+  }
+  if(a.notas||a.notas_privadas){
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.75rem;font-size:12px;">
+      ${a.notas_privadas?`<div style="color:var(--pd);margin-bottom:4px;">🔒 ${a.notas_privadas}</div>`:''}
+      ${a.notas?`<div style="color:var(--tm);">${a.notas}</div>`:''}
+    </div>`;
+  }
+  return html;
+}
+
+function drawerRutina(a){
+  const ciclosEnDB=Object.keys(DB.rutinas[a.id]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0);
+  const maxC=Math.max(parseInt(a.ciclo_actual)||1,...(ciclosEnDB.length?ciclosEnDB:[1]));
+  const ciclos=Array.from({length:maxC},(_,i)=>i+1);
+  if(!ciclos.includes(S._drawerCiclo))S._drawerCiclo=parseInt(a.ciclo_actual)||1;
+  const numDias=parseInt(a.dias)||3;
+  const sems=[1,2,3,4];
+  const exs=getEx(a.id,S._drawerCiclo,S._drawerSem,S._drawerDia);
+  const _pm={};
+  (DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id&&parseInt(r.ciclo)===S._drawerCiclo&&parseInt(r.semana)===S._drawerSem&&parseInt(r.dia)===S._drawerDia)
+    .forEach(r=>{_pm[parseInt(r.ejercicio_idx)]=r;});
+  const wuExs=getWarmupExs(a.id,S._drawerCiclo);
+  const wuList=wuExs.length?wuExs:DB.biblioteca.filter(e=>e.grupo_muscular==='Calentamiento').slice(0,4);
+  let html=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">
+    ${ciclos.map(c=>`<button class="btn btn-s${S._drawerCiclo===c?' btn-purple':''}" onclick="S._drawerCiclo=${c};S._drawerSem=1;S._drawerDia=1;render()">${a.ciclos_nombres?.[c]||'Ciclo '+c}</button>`).join('')}
+    <button class="btn btn-s" style="margin-left:auto;" onclick="closeDrawer();S.selA=${a.id};S.selCiclo=${S._drawerCiclo};S.selSem=${S._drawerSem};S.selDia=${S._drawerDia};go('rutinas')">Editar →</button>
+  </div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">
+    ${sems.map(s=>{const hasEx=(DB.rutinas[a.id]?.[S._drawerCiclo]?.[s]||[]).some(d=>d.ejercicios?.length>0);
+      return`<button class="btn btn-s${S._drawerSem===s?' btn-p':''}" onclick="S._drawerSem=${s};S._drawerDia=1;render()">Sem ${s}${hasEx?'':' ·'}</button>`;}).join('')}
+  </div>
+  <div style="display:flex;gap:4px;margin-bottom:1rem;">
+    ${Array.from({length:numDias},(_,i)=>i+1).map(d=>`<button class="btn btn-s${S._drawerDia===d?' btn-p':''}" onclick="S._drawerDia=${d};render()">D${d}</button>`).join('')}
+  </div>`;
+  if(wuList.length){
+    html+=`<div style="background:var(--a);border-radius:var(--rs);padding:.6rem .85rem;margin-bottom:.75rem;">
+      <div style="font-size:10px;font-weight:600;color:var(--ad);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">🔥 Calentamiento</div>
+      ${wuList.slice(0,3).map(w=>`<div style="font-size:12px;color:var(--t);padding:2px 0;">${w.nombre}${w.series?` · ${w.series}×${w.reps||'—'}`:''}</div>`).join('')}
+    </div>`;
+  }
+  if(!exs.length){
+    return html+`<div style="color:var(--th);font-size:13px;text-align:center;padding:2rem;">Sin ejercicios en este día.
+      <br><button onclick="closeDrawer();S.selA=${a.id};S.selCiclo=${S._drawerCiclo};S.selSem=${S._drawerSem};S.selDia=${S._drawerDia};go('rutinas')" style="background:none;border:none;color:var(--v);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;margin-top:.5rem;">Agregar ejercicios →</button></div>`;
+  }
+  html+=exs.map((ex,i)=>{
+    const p=_pm[i];
+    return`<div style="border:1px solid var(--b);border-radius:var(--rs);padding:.6rem .85rem;margin-bottom:6px;${p?'border-left:3px solid var(--v);':''}">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;color:var(--t);">${ex.nombre}</div>
+          <div style="font-size:11px;color:var(--tm);">${ex.series||'—'}×${ex.reps||'—'}${ex.peso?' · '+ex.peso:''}${ex.tip?` · <em>${ex.tip}</em>`:''}</div>
+        </div>
+        ${p?`<span style="font-size:11px;color:var(--vd);font-weight:500;flex-shrink:0;">✓${p.peso_kg?' '+p.peso_kg+' kg':''}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  return html;
+}
+
+function drawerProgreso(a){
+  const rows=DB.progreso?.[a.id];
+  if(rows===undefined){
+    return`<div style="text-align:center;padding:2rem;">
+      <div style="font-size:13px;color:var(--tm);margin-bottom:1rem;">El historial de progreso se carga bajo demanda.</div>
+      <button class="btn btn-p btn-s" onclick="loadHistorial(${a.id}).then(()=>render())">Cargar historial</button>
+    </div>`;
+  }
+  if(!rows.length) return'<div class="empty">Sin registros de progreso todavía.</div>';
+  const ciclo=parseInt(a.ciclo_actual)||1;
+  const cicloRows=rows.filter(r=>(r.ciclo||1)===ciclo);
+  const allSems=[...new Set(cicloRows.map(r=>r.semana))].filter(Boolean).sort((a,b)=>a-b);
+  const maxD=parseInt(a.dias)||4;
+  const dayMap={};
+  allSems.forEach(s=>{for(let d=1;d<=maxD;d++){const k=`${s}-${d}`;const rutinaExs=(DB.rutinas?.[a.id]?.[ciclo]?.[s]||[]).find(x=>x.dia===d)?.ejercicios||[];dayMap[k]={done:0,total:rutinaExs.length};}});
+  cicloRows.forEach(r=>{const k=`${r.semana}-${r.dia}`;if(dayMap[k]&&r.hecho)dayMap[k].done++;});
+  const cicNom=(a.ciclos_nombres||{})[ciclo]||'Ciclo '+ciclo;
+  let html='';
+  if(allSems.length){
+    html+=`<div style="margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Progreso — ${cicNom}</div>
+      <div style="overflow-x:auto;"><table style="border-collapse:collapse;">
+        <thead><tr><th style="font-size:10px;color:var(--tm);padding:3px 8px;font-weight:400;"></th>${allSems.map(s=>`<th style="font-size:10px;color:var(--tm);padding:3px 8px;font-weight:400;">S${s}</th>`).join('')}</tr></thead>
+        <tbody>${Array.from({length:maxD},(_,i)=>i+1).map(d=>`<tr><td style="font-size:10px;color:var(--tm);padding:3px 8px;font-weight:400;">D${d}</td>${allSems.map(s=>{const info=dayMap[`${s}-${d}`];if(!info||info.total===0)return`<td style="padding:3px 4px;"><div style="width:28px;height:28px;border-radius:5px;background:var(--b);"></div></td>`;const ok=info.done/info.total>=0.8;return`<td style="padding:3px 4px;"><div style="width:28px;height:28px;border-radius:5px;background:${ok?'var(--v)':'var(--b)'};display:flex;align-items:center;justify-content:center;font-size:9px;color:${ok?'white':'var(--tm)'};">${ok?'✓':`${info.done}/${info.total}`}</div></td>`;}).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+  }
+  const pc=(DB.pesoAlumna||[]).filter(p=>p.alumna_id===a.id).sort((x,y)=>y.fecha.localeCompare(x.fecha));
+  if(pc.length){
+    html+=`<div style="margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Peso corporal</div>
+      ${pc.slice(0,6).map(p=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--b);font-size:12px;"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;">${p.peso} kg</span></div>`).join('')}
+    </div>`;
+  }
+  const pesosPorEj={};
+  rows.filter(r=>r.peso_kg&&r.ejercicio_nombre&&r.hecho).forEach(r=>{const k=r.ejercicio_nombre;if(!pesosPorEj[k]||parseFloat(r.peso_kg)>pesosPorEj[k].peso)pesosPorEj[k]={peso:parseFloat(r.peso_kg)};});
+  const records=Object.entries(pesosPorEj).sort((a,b)=>a[0].localeCompare(b[0],'es'));
+  if(records.length){
+    html+=`<div>
+      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Máximos registrados</div>
+      ${records.slice(0,12).map(([nom,d])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--b);font-size:12px;"><span style="color:var(--t);">${nom}</span><span style="font-weight:600;color:var(--vd);">${d.peso} kg</span></div>`).join('')}
+    </div>`;
+  }
+  return html||'<div class="empty">Sin datos de progreso.</div>';
+}
+
+function drawerNotas(a){
+  const notas=(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id);
+  return`<div style="margin-bottom:1.25rem;">
+    <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Nueva nota privada</div>
+    <textarea id="drawer-nota-${a.id}" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:70px;" placeholder="Nota sobre ${a.nombre.split(' ')[0]}... (solo visible en el panel)"></textarea>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+      <button class="btn btn-p btn-s" onclick="saveDrawerNota(${a.id})">Guardar nota</button>
+      ${S['_dnSaved_'+a.id]?'<span style="font-size:11px;color:var(--vd);">✓ Guardado</span>':''}
+    </div>
+  </div>
+  <div style="border-top:1px solid var(--b);padding-top:.75rem;">
+    <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Historial (${notas.length})</div>
+    ${notas.length?notas.map(n=>`<div style="padding:.5rem 0;border-bottom:1px solid var(--b);">
+      <div style="font-size:10px;color:var(--th);margin-bottom:2px;">${new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})} · C${n.ciclo} S${n.semana}</div>
+      <div style="font-size:13px;color:var(--t);">${n.nota}</div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--th);">Sin notas todavía.</div>'}
+  </div>`;
+}
+
+async function saveDrawerNota(aId){
+  const el=document.getElementById('drawer-nota-'+aId);
+  const txt=(el?.value||'').trim(); if(!txt)return;
+  const a=getA(aId); if(!a)return;
+  const row={alumna_id:aId,ciclo:a.ciclo_actual||1,semana:S._drawerSem||0,nota:txt};
+  try{
+    const res=await sbInsert('notas_sesion',row);
+    const nuevo=Array.isArray(res)?res[0]:res;
+    DB.notasSesion.unshift(nuevo||{...row,created_at:new Date().toISOString()});
+    S['_dnSaved_'+aId]=true; render();
+    setTimeout(()=>{S['_dnSaved_'+aId]=false;render();},2000);
+  }catch(e){alert('Error al guardar');}
+}
+
+function drawerPagos(a){
+  const pagado=hasPagado(a.id);
+  const hist=pagosDe(a.id);
+  return`<div style="margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;gap:10px;padding:.85rem;background:${pagado?'var(--vl)':'var(--rl)'};border-radius:var(--rs);">
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;color:${pagado?'var(--vd)':'var(--rd)'};">${pagado?'✓ Pagó este mes':'Pago pendiente'}</div>
+        <div style="font-size:11px;color:var(--tm);">${a.precio?'$'+a.precio+'/mes':'Sin precio definido'}</div>
+      </div>
+      ${pagado?`<button class="btn btn-s" style="font-size:11px;" onclick="deshacerPago(${a.id})">Deshacer</button>`:`<button class="btn btn-p btn-s" onclick="marcarPago(${a.id})">✓ Registrar pago</button>`}
+    </div>
+  </div>
+  ${hist.length?`<div>
+    <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Historial de pagos</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead><tr>${['Mes','Monto','Fecha'].map(h=>`<th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--b);font-size:10px;color:var(--tm);font-weight:400;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${hist.map(p=>`<tr><td style="padding:5px 8px;border-bottom:1px solid var(--b);">${p.mes}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);font-weight:500;">${p.monto?'$'+p.monto:'—'}</td><td style="padding:5px 8px;border-bottom:1px solid var(--b);color:var(--tm);">${new Date(p.fecha_pago).toLocaleDateString('es-AR')}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>`:'<div style="font-size:12px;color:var(--th);">Sin historial de pagos.</div>'}`;
+}
+
+function drawerFicha(a){
+  const regData=DB.registros.find(r=>r.alumna_id===a.id);
+  const nac=a.nacimiento||regData?.nacimiento;
+  const nf=fmtNac(nac); const edad=calcEdad(nac);
+  const fields=[
+    a.email||regData?.mail?['Email',a.email||regData.mail]:null,
+    a.tel||regData?.tel?['WhatsApp',`<a href="https://wa.me/${(a.tel||regData.tel).replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel||regData.tel}</a>`]:null,
+    nf?['Nacimiento',nf+(edad!==null?' ('+edad+' años)':'')]:null,
+    a.genero||regData?.genero?['Género',a.genero||regData.genero]:null,
+    (a.ubicacion||regData?.ubicacion)&&(a.ubicacion||regData?.ubicacion)!=='—'?['Ubicación',a.ubicacion||regData.ubicacion]:null,
+    a.fuma||regData?.fuma?['¿Fuma?',a.fuma||regData.fuma]:null,
+    (a.peso||regData?.peso)&&(a.peso||regData?.peso)!=='—'?['Peso',(a.peso||regData.peso)+' kg']:null,
+    (a.altura||regData?.altura)&&(a.altura||regData?.altura)!=='—'?['Altura',(a.altura||regData.altura)+' cm']:null,
+    a.exp||regData?.exp?['Experiencia',a.exp||regData.exp]:null,
+  ].filter(Boolean);
+  const obj=regData?.objetivos&&regData?.objetivos!=='—'?regData.objetivos:null;
+  if(!fields.length&&!regData){
+    return`<div class="empty">Sin datos de perfil.<br><a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar formulario de ficha →</a></div>`;
+  }
+  let html='';
+  if(fields.length){
+    html+=`<div class="dfield">${fields.map(([l,v])=>`<div class="dfield-item"><span>${l}</span><span style="font-weight:500;">${v}</span></div>`).join('')}</div>`;
+  }
+  if(obj){
+    html+=`<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;">
+      <div style="font-size:10px;color:var(--pd);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Objetivos</div>
+      <div style="font-size:13px;color:var(--t);">${obj}</div>
+    </div>`;
+  }
+  if(regData&&(regData.lesiones||regData.enfermedad||regData.medicacion)){
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.85rem;border:1px solid var(--b);">
+      <div style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">Ficha médica</div>
+      <div style="display:grid;gap:6px;font-size:12px;">
+        ${regData.lesiones&&regData.lesiones!=='Sin lesiones'&&regData.lesiones!=='—'?`<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);">⚠️ <strong>Lesiones:</strong> ${regData.lesiones}</div>`:`<div><span style="color:var(--tm);">Lesiones:</span> ${regData.lesiones||'—'}</div>`}
+        ${regData.lesiones_previas?`<div><span style="color:var(--tm);">Lesiones previas:</span> ${regData.lesiones_previas}</div>`:''}
+        ${regData.dolor_zonas?`<div><span style="color:var(--tm);">Dolor frecuente:</span> ${regData.dolor_zonas}</div>`:''}
+        ${regData.control_medico?`<div><span style="color:var(--tm);">Último control médico:</span> ${regData.control_medico}</div>`:''}
+        ${regData.enfermedad?`<div><span style="color:var(--tm);">Enfermedades:</span> ${regData.enfermedad}</div>`:''}
+        ${regData.medicacion?`<div><span style="color:var(--tm);">Medicación:</span> ${regData.medicacion}</div>`:''}
+        ${regData.patologia_cardio?`<div><span style="color:var(--tm);">Patología cardiovascular:</span> ${regData.patologia_cardio}</div>`:''}
+        ${regData.extra&&regData.extra!=='—'?`<div><span style="color:var(--tm);">Notas extra:</span> ${regData.extra}</div>`:''}
+        <div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el ${regData.fecha||'—'}</div>
+      </div>
+    </div>`;
+  }
+  return html||'<div class="empty">Sin datos de ficha.</div>';
 }
 
 // ── RENDERS ───────────────────────────────────────────────────
@@ -1661,7 +1996,7 @@ function rInicio(){
         ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'))">💬 WA</button>`
         :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
       const _noteOpen=S._quickNoteA===a.id;
-      return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="S.selA='+a.id+';S.selCiclo='+(a.ciclo_actual||1)+';S.selSem=1;S.selDia=1;go(\'alumnas\')"'}>
+      return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="openDrawer('+a.id+')"'}>
         <span style="font-size:16px;flex-shrink:0;">${icon}</span>
         <div class="av av-${a.color}">${avH(a)}</div>
         <div style="flex:1;min-width:0;">
@@ -2017,7 +2352,8 @@ function alumnaCardHTML(a){
     </div>
     ${perfilHTML}${fichaHTML}${notasHTML}
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--b);padding-top:8px;">
-      <button class="btn btn-p btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Gestionar rutina</button>
+      <button class="btn btn-p btn-s" onclick="openDrawer(${a.id})">Ver detalle</button>
+      <button class="btn btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>
       ${waHTML}
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar</button>
       <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
