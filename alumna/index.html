@@ -2320,16 +2320,20 @@ function renderProgreso(){
   html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Mi peso corporal</div>
   <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
     ${_pcLast?`<div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">Último: <strong style="color:var(--t);">${_pcLastStr}</strong></div>`:''}
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length?'.6rem':'0'};">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length>1?'.6rem':'0'};">
       <input type="number" id="pc-input" step="0.1" min="30" max="300" placeholder="Peso hoy (kg)" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'" onkeydown="if(event.key==='Enter')savePesoCorp(${a.id})">
       <button class="btn btn-p btn-s" style="white-space:nowrap;" onclick="savePesoCorp(${a.id})">Guardar</button>
     </div>
-    ${_pc.slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
-    ${_pc.length>5?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y ${_pc.length-5} registros más</div>`:''}
+    ${_pc.slice(1,6).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
+    ${_pc.length>6?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y ${_pc.length-6} registros más</div>`:''}
   </div>`;
-  if(exns.length>0){
+  const _hasPcChart=_pc.length>=2;
+  if(exns.length>0||_hasPcChart){
+    const _allOpts=[...(_hasPcChart?['__peso_corp__']:[]),...exns];
+    if(!selHistEx||(!_allOpts.includes(selHistEx))) selHistEx=_allOpts[0];
     html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos</div>
     <select class="ex-sel" onchange="selHistEx=this.value;renderProgreso()">
+      ${_hasPcChart?`<option value="__peso_corp__" ${selHistEx==='__peso_corp__'?'selected':''}>⚖ Mi peso corporal</option>`:''}
       ${exns.map(n=>`<option value="${n}" ${n===selHistEx?'selected':''}>${n}</option>`).join('')}
     </select>
     <div class="chart-wrap"><canvas id="pchart"></canvas></div>`;
@@ -2339,14 +2343,25 @@ function renderProgreso(){
     </div>`;
   }
   scr.innerHTML=html;
-  if(exns.length>0) setTimeout(()=>{
-    const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+  if(exns.length>0||_hasPcChart) setTimeout(()=>{
     const c=document.getElementById('pchart'); if(!c) return;
     if(charts.p) charts.p.destroy();
     const dk=document.documentElement.getAttribute('data-theme')==='dark';
     const gc=dk?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
     const tc=dk?'#9ca3af':'#6b7280';
-    charts.p=new Chart(c,{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:selHistEx,data:data.map(d=>d.kg),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' kg'}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+' kg'},beginAtZero:false}}}});
+    let labels,values,labelStr;
+    if(selHistEx==='__peso_corp__'){
+      const sorted=[..._pc].reverse(); // ascendente para el gráfico
+      labels=sorted.map(p=>new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'}));
+      values=sorted.map(p=>parseFloat(p.peso));
+      labelStr='Peso corporal';
+    }else{
+      const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+      labels=data.map(d=>d.label);
+      values=data.map(d=>d.kg);
+      labelStr=selHistEx;
+    }
+    charts.p=new Chart(c,{type:'line',data:{labels,datasets:[{label:labelStr,data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' kg'}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+' kg'},beginAtZero:false}}}});
   },50);
 }
 
