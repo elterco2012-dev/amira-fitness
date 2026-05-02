@@ -1987,9 +1987,8 @@ function renderRutina(){
     ${(()=>{
       const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
       const _wuCustom=getExs(a.id,selCiclo,0,1);
-      const _wuSource=_wuCustom.length>0?_wuCustom:(DB.calentamiento||[]);
-      const _wuLinks=_wuSource.length>0
-        ?_wuSource.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
+      const _wuLinks=_wuCustom.length>0
+        ?_wuCustom.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
         :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
         <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`;
       return`<button onclick="toggleWarmup()" style="width:100%;background:var(--a);border:none;border-radius:${_wuOpen?'var(--rs) var(--rs) 0 0':'var(--rs)'};padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:${_wuOpen?'0':'.85rem'};">
