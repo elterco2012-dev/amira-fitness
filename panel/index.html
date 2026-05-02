@@ -2091,10 +2091,10 @@ async function delDia(){
   }catch(e){S.msg='Error: '+e.message;render();}
 }
 
-async function copiarSemRapida(){
-  const a=getA(S.selA); if(!a)return;
-  const src=S.selSem, dst=src+1;
-  if(dst>4){S.msg='Ya estás en la última semana';render();return;}
+async function copiarSemRapida(dstSem){
+  const a=getA(S.selA); if(!a||!dstSem)return;
+  const src=S.selSem, dst=parseInt(dstSem);
+  if(src===dst)return;
   const srcDias=(DB.rutinas[a.id]?.[S.selCiclo]?.[src]||[]);
   if(!srcDias.length){S.msg='Sem '+src+' no tiene ejercicios';render();return;}
   const dstDias=(DB.rutinas[a.id]?.[S.selCiclo]?.[dst]||[]);
@@ -2179,9 +2179,9 @@ function rRutinas(){
           </span>`;
         }).join('');
       })()}
-      <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S._copSemMode=false;S.msg='';render()">📋 Copiar rutina</button>
-      <button class="btn btn-s" onclick="S._copSemMode=!S._copSemMode;S._dupMode=false;S._copSemDstA=null;S._copSemDstCiclo=1;S._copSemDstSem=1;S.msg='';render()">✂️ Copiar semana</button>
       <button class="btn btn-s" style="margin-left:auto;" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
+      <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S._copSemMode=false;S.msg='';render()" title="Copiar rutina de otra alumna" style="padding:5px 8px;">📋</button>
+      <button class="btn btn-s" onclick="S._copSemMode=!S._copSemMode;S._dupMode=false;S._copSemDstA=null;S._copSemDstCiclo=1;S._copSemDstSem=1;S.msg='';render()" title="Copiar semana entre alumnas" style="padding:5px 8px;">✂️</button>
     </div>
     ${S._dupMode?(()=>{
       const otras=DB.alumnas.filter(al=>al.id!==S.selA);
@@ -2265,42 +2265,44 @@ function rRutinas(){
         ${wuExs.length>0?`<button class="btn btn-s" style="font-size:11px;margin-top:.5rem;" onclick="resetWarmup()">↩ Volver al default</button>`:''}
       </div>`;
     })()}
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
-      <div style="font-size:11px;color:var(--tm);min-width:36px;">Semana</div>
-      <div class="stabs" style="margin-bottom:0;">${[1,2,3,4].map(s=>{
-        const hasExs=[1,2,3,4,5].slice(0,parseInt(a.dias)||3).some(d=>getEx(a.id,S.selCiclo,s,d).length>0);
-        return`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${hasExs?'':' ·'}</button>`;
-      }).join('')}</div>
-      ${S.selSem<4?`<button class="btn btn-s" onclick="copiarSemRapida()" title="Clonar Sem ${S.selSem} → Sem ${S.selSem+1}" style="font-size:11px;white-space:nowrap;">→ Clonar sem</button>`:''}
-    </div>
-
     ${(()=>{
-      // Estado semanal: qué días completó la alumna esta semana (desde progreso)
+      // Progreso de esta semana: integrado en tabs de semana y días
       const _done=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===S.selSem&&r.hecho).map(r=>parseInt(r.dia)));
       const numDias=parseInt(a.dias)||3;
       const doneCount=_done.size;
-      if(_done.size===0) return'';
-      return`<div style="font-size:11px;color:var(--tm);margin-bottom:.4rem;">
-        ${[1,2,3,4,5].slice(0,numDias).map(d=>`<span style="margin-right:6px;color:${_done.has(d)?'var(--vd)':'var(--th)'};font-weight:${_done.has(d)?'600':'400'};">${_done.has(d)?'✓ ':''}D${d}</span>`).join('')}
-        <span style="color:var(--vd);">${doneCount}/${numDias} días hechos esta semana</span>
+      const semTabs=[1,2,3,4].map(s=>{
+        const hasExs=[1,2,3,4,5].slice(0,numDias).some(d=>getEx(a.id,S.selCiclo,s,d).length>0);
+        // Días hechos en esta semana (para badge)
+        const sDone=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===s&&r.hecho).map(r=>parseInt(r.dia)));
+        const allDone=hasExs&&sDone.size>=numDias;
+        const someDone=sDone.size>0&&!allDone;
+        return`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()" style="position:relative;">Sem ${s}${allDone?' ✓':hasExs?'':' ·'}${someDone?`<span style="position:absolute;top:2px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--v);"></span>`:''}</button>`;
+      }).join('');
+      const dayTabs=[1,2,3,4,5].slice(0,numDias).map(d=>{
+        const done=_done.has(d);
+        return`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()" style="${done&&S.selDia!==d?'border-color:var(--v);color:var(--vd);':''}">${done?'✓ ':''}Día ${d}</button>`;
+      }).join('');
+      const doneLabel=doneCount>0?`<span style="font-size:11px;color:var(--vd);margin-left:4px;">${doneCount}/${numDias} hechos</span>`:'';
+      return`
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
+        <div style="font-size:11px;color:var(--tm);min-width:36px;">Semana</div>
+        <div class="stabs" style="margin-bottom:0;">${semTabs}</div>
+        <select onchange="if(this.value)copiarSemRapida(parseInt(this.value));this.value=''" style="font-size:11px;padding:4px 6px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);color:var(--t);cursor:pointer;" title="Clonar semana actual a otra semana">
+          <option value="">→ Clonar sem a...</option>
+          ${[1,2,3,4].filter(s=>s!==S.selSem).map(s=>`<option value="${s}">Sem ${s}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
+        <div style="font-size:11px;color:var(--tm);min-width:36px;">Día</div>
+        <div class="dtabs" style="margin-bottom:0;">${dayTabs}</div>
+        ${doneLabel}
+        ${numDias>1?`<select onchange="if(this.value)copiarDiaRapido(parseInt(this.value));this.value=''" style="font-size:11px;padding:4px 6px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);color:var(--t);cursor:pointer;" title="Clonar día actual a otro día">
+          <option value="">→ Clonar día a...</option>
+          ${[1,2,3,4,5].slice(0,numDias).filter(d=>d!==S.selDia).map(d=>`<option value="${d}">Día ${d}</option>`).join('')}
+        </select>`:''}
+        <button class="btn btn-s btn-d" onclick="delDia()" title="Eliminar este día" style="font-size:11px;padding:4px 8px;margin-left:auto;">🗑️ Día</button>
       </div>`;
     })()}
-
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
-      <div style="font-size:11px;color:var(--tm);min-width:36px;">Día</div>
-      <div class="dtabs" style="margin-bottom:0;">${(()=>{
-        const _done=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===S.selSem&&r.hecho).map(r=>parseInt(r.dia)));
-        return [1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>{
-          const done=_done.has(d);
-          return`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()" style="${done&&S.selDia!==d?'border-color:var(--v);color:var(--vd);':''}">${done?'✓ ':''}Día ${d}</button>`;
-        }).join('');
-      })()}</div>
-      ${parseInt(a.dias)>1?`<select onchange="if(this.value)copiarDiaRapido(parseInt(this.value));this.value=''" style="font-size:11px;padding:4px 6px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);color:var(--t);cursor:pointer;" title="Clonar día actual a otro día">
-        <option value="">→ Clonar a...</option>
-        ${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).filter(d=>d!==S.selDia).map(d=>`<option value="${d}">Día ${d}</option>`).join('')}
-      </select>`:''}
-      <button class="btn btn-s btn-d" onclick="delDia()" title="Eliminar este día del ciclo actual" style="font-size:11px;padding:4px 8px;">🗑️ Día</button>
-    </div>
 
     <div class="shd">
       <div class="shdt">Ejercicios (${exs.length})</div>
