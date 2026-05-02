@@ -1622,11 +1622,14 @@ function render(){
   const m=document.getElementById('main');
   const prev=document.activeElement;
   const prevId=prev?.id;
+  const prevVal=prev instanceof HTMLInputElement||prev instanceof HTMLTextAreaElement?prev.value:'';
   const prevStart=prev?.selectionStart;
   const prevEnd=prev?.selectionEnd;
+  const bibGVal=document.getElementById('bib-main-g')?.value||'';
   const vs={inicio:rInicio,alumnas:rAlumnas,rutinas:rRutinas,historial:rHistorial,biblioteca:rBiblioteca,plantillas:rPlantillas,comentarios:rComentarios,registros:rRegistros,recordatorios:rRecordatorios,avisos:rAvisos,links:rLinks,config:rConfig,analisis:rAnalisis};
   m.innerHTML=(vs[S.view]||rInicio)();
-  if(prevId){const el=document.getElementById(prevId);if(el){el.focus();try{el.setSelectionRange(prevStart,prevEnd);}catch(e){}}}
+  if(prevId){const el=document.getElementById(prevId);if(el){if(prevVal&&!el.value)el.value=prevVal;el.focus();try{el.setSelectionRange(prevStart,prevEnd);}catch(e){}}}
+  const bibG=document.getElementById('bib-main-g');if(bibG&&bibGVal)bibG.value=bibGVal;
   // Modal confirmación eliminar alumna
   let _dm=document.getElementById('_del-modal');
   if(S._confirmDeleteId){
