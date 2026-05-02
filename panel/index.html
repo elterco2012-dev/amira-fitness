@@ -403,7 +403,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -552,20 +552,22 @@ async function loadAll(){
       sbGet('plantillas','order=created_at.asc')
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
-    const [_fb,_ps,_pg,_av,_pa,_ns]=await Promise.allSettled([
+    const [_fb,_ps,_pg,_av,_pa,_ns,_prg]=await Promise.allSettled([
       sbGet('feedbacks','order=created_at.desc&limit=50'),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
       sbGet('avisos','order=created_at.desc&limit=5000'),
       sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
-      sbGet('notas_sesion','order=created_at.desc&limit=200')
+      sbGet('notas_sesion','order=created_at.desc&limit=200'),
+      sbGet('progreso','select=alumna_id,ciclo,semana,dia,hecho&hecho=eq.true&order=alumna_id.asc&limit=5000')
     ]);
-    DB.feedbacks   = _fb.status==='fulfilled'?_fb.value:[];
-    DB.pushSubs    = _ps.status==='fulfilled'?_ps.value:[];
-    DB.pagos       = _pg.status==='fulfilled'?_pg.value:[];
-    DB.avisos      = _av.status==='fulfilled'?_av.value:[];
-    DB.pesoAlumna  = _pa.status==='fulfilled'?_pa.value:[];
-    DB.notasSesion = _ns.status==='fulfilled'?_ns.value:[];
+    DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
+    DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
+    DB.pagos          = _pg.status==='fulfilled'?_pg.value:[];
+    DB.avisos         = _av.status==='fulfilled'?_av.value:[];
+    DB.pesoAlumna     = _pa.status==='fulfilled'?_pa.value:[];
+    DB.notasSesion    = _ns.status==='fulfilled'?_ns.value:[];
+    DB.progresoHechos = _prg.status==='fulfilled'?_prg.value:[];
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1407,6 +1409,21 @@ async function waOpen(ph, msg){
   window.open('https://wa.me/'+ph,'_blank');
 }
 
+async function saveQuickNote(aId){
+  const txt=(document.getElementById('qn-'+aId)?.value||'').trim();
+  if(!txt){S._quickNoteA=null;render();return;}
+  const a=getA(aId); if(!a)return;
+  const fecha=new Date().toISOString().split('T')[0];
+  const row={alumna_id:aId,ciclo:a.ciclo_actual||1,semana:0,dia:0,texto:txt,fecha};
+  try{
+    await sbInsert('comentarios',row);
+    DB.comentarios.unshift({...row,created_at:new Date().toISOString()});
+    S._quickNoteA=null;
+    toastPanel('✓ Nota guardada');
+    render();
+  }catch(e){toastPanel('Error al guardar la nota');}
+}
+
 async function saveWarmupEdit(){
   const aId=S.selA,ciclo=S.selCiclo,idx=S._wuEditIdx;
   if(idx===null)return;
@@ -1634,7 +1651,8 @@ function rInicio(){
       const _actionBtn=_isUrg&&_ph
         ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'))">💬 WA</button>`
         :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
-      return`<div class="arow" style="cursor:pointer;" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('alumnas')">
+      const _noteOpen=S._quickNoteA===a.id;
+      return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="S.selA='+a.id+';S.selCiclo='+(a.ciclo_actual||1)+';S.selSem=1;S.selDia=1;go(\'alumnas\')"'}>
         <span style="font-size:16px;flex-shrink:0;">${icon}</span>
         <div class="av av-${a.color}">${avH(a)}</div>
         <div style="flex:1;min-width:0;">
@@ -1642,6 +1660,14 @@ function rInicio(){
           <div class="asub">${sub}</div>
         </div>
         ${_actionBtn}
+        <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
+        ${_noteOpen?`<div style="width:100%;padding:.4rem 0 .25rem;" onclick="event.stopPropagation()">
+          <textarea id="qn-${a.id}" placeholder="Nota sobre ${a.nombre.split(' ')[0]}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveQuickNote(${a.id})">Guardar nota</button>
+            <button class="btn btn-s" style="font-size:11px;" onclick="S._quickNoteA=null;render()">Cancelar</button>
+          </div>
+        </div>`:''}
       </div>`;
     }).join('');
 
@@ -2065,6 +2091,47 @@ async function delDia(){
   }catch(e){S.msg='Error: '+e.message;render();}
 }
 
+async function copiarSemRapida(){
+  const a=getA(S.selA); if(!a)return;
+  const src=S.selSem, dst=src+1;
+  if(dst>4){S.msg='Ya estás en la última semana';render();return;}
+  const srcDias=(DB.rutinas[a.id]?.[S.selCiclo]?.[src]||[]);
+  if(!srcDias.length){S.msg='Sem '+src+' no tiene ejercicios';render();return;}
+  const dstDias=(DB.rutinas[a.id]?.[S.selCiclo]?.[dst]||[]);
+  if(dstDias.some(d=>d.ejercicios?.length>0)){
+    if(!confirm(`¿Reemplazar Sem ${dst} con Sem ${src}? Se perderán los ejercicios actuales de Sem ${dst}.`))return;
+    await sbDelete('rutinas',`alumna_id=eq.${a.id}&ciclo=eq.${S.selCiclo}&semana=eq.${dst}`);
+  }
+  ensureLocal(a.id,S.selCiclo,dst);
+  DB.rutinas[a.id][S.selCiclo][dst]=[];
+  const ops=srcDias.map(d=>{
+    const copy={dia:d.dia,ejercicios:JSON.parse(JSON.stringify(d.ejercicios||[]))};
+    DB.rutinas[a.id][S.selCiclo][dst].push(copy);
+    return sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:dst,dia:d.dia,ejercicios:copy.ejercicios,updated_at:new Date().toISOString()});
+  });
+  await Promise.all(ops);
+  S.selSem=dst;S.selDia=1;S.msg='✓ Sem '+dst+' copiada desde Sem '+src;
+  render();setTimeout(()=>{S.msg='';render();},2500);
+}
+
+async function copiarDiaRapido(dstDia){
+  const a=getA(S.selA); if(!a)return;
+  const src=S.selDia;
+  if(src===dstDia)return;
+  const srcExs=getEx(a.id,S.selCiclo,S.selSem,src);
+  if(!srcExs.length){S.msg='Día '+src+' no tiene ejercicios';render();return;}
+  const dstExs=getEx(a.id,S.selCiclo,S.selSem,dstDia);
+  if(dstExs.length&&!confirm(`¿Reemplazar Día ${dstDia} con Día ${src}?`))return;
+  ensureLocal(a.id,S.selCiclo,S.selSem);
+  const week=DB.rutinas[a.id][S.selCiclo][S.selSem];
+  let dstDay=week.find(d=>d.dia===dstDia);
+  if(!dstDay){dstDay={dia:dstDia,ejercicios:[]};week.push(dstDay);}
+  dstDay.ejercicios=JSON.parse(JSON.stringify(srcExs));
+  await sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:dstDia,ejercicios:dstDay.ejercicios,updated_at:new Date().toISOString()});
+  S.selDia=dstDia;S.msg='✓ Día '+dstDia+' copiado desde Día '+src;
+  render();setTimeout(()=>{S.msg='';render();},2500);
+}
+
 function rRutinas(){
   const a=getA(S.selA);
   if(!a)return`<div class="ptitle">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
@@ -2198,12 +2265,40 @@ function rRutinas(){
         ${wuExs.length>0?`<button class="btn btn-s" style="font-size:11px;margin-top:.5rem;" onclick="resetWarmup()">↩ Volver al default</button>`:''}
       </div>`;
     })()}
-    <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Semana</div>
-    <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
+      <div style="font-size:11px;color:var(--tm);min-width:36px;">Semana</div>
+      <div class="stabs" style="margin-bottom:0;">${[1,2,3,4].map(s=>{
+        const hasExs=[1,2,3,4,5].slice(0,parseInt(a.dias)||3).some(d=>getEx(a.id,S.selCiclo,s,d).length>0);
+        return`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${hasExs?'':' ·'}</button>`;
+      }).join('')}</div>
+      ${S.selSem<4?`<button class="btn btn-s" onclick="copiarSemRapida()" title="Clonar Sem ${S.selSem} → Sem ${S.selSem+1}" style="font-size:11px;white-space:nowrap;">→ Clonar sem</button>`:''}
+    </div>
+
+    ${(()=>{
+      // Estado semanal: qué días completó la alumna esta semana (desde progreso)
+      const _done=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===S.selSem&&r.hecho).map(r=>parseInt(r.dia)));
+      const numDias=parseInt(a.dias)||3;
+      const doneCount=_done.size;
+      if(_done.size===0) return'';
+      return`<div style="font-size:11px;color:var(--tm);margin-bottom:.4rem;">
+        ${[1,2,3,4,5].slice(0,numDias).map(d=>`<span style="margin-right:6px;color:${_done.has(d)?'var(--vd)':'var(--th)'};font-weight:${_done.has(d)?'600':'400'};">${_done.has(d)?'✓ ':''}D${d}</span>`).join('')}
+        <span style="color:var(--vd);">${doneCount}/${numDias} días hechos esta semana</span>
+      </div>`;
+    })()}
 
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
       <div style="font-size:11px;color:var(--tm);min-width:36px;">Día</div>
-      <div class="dtabs" style="margin-bottom:0;">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()">Día ${d}</button>`).join('')}</div>
+      <div class="dtabs" style="margin-bottom:0;">${(()=>{
+        const _done=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===S.selSem&&r.hecho).map(r=>parseInt(r.dia)));
+        return [1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>{
+          const done=_done.has(d);
+          return`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()" style="${done&&S.selDia!==d?'border-color:var(--v);color:var(--vd);':''}">${done?'✓ ':''}Día ${d}</button>`;
+        }).join('');
+      })()}</div>
+      ${parseInt(a.dias)>1?`<select onchange="if(this.value)copiarDiaRapido(parseInt(this.value));this.value=''" style="font-size:11px;padding:4px 6px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);color:var(--t);cursor:pointer;" title="Clonar día actual a otro día">
+        <option value="">→ Clonar a...</option>
+        ${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).filter(d=>d!==S.selDia).map(d=>`<option value="${d}">Día ${d}</option>`).join('')}
+      </select>`:''}
       <button class="btn btn-s btn-d" onclick="delDia()" title="Eliminar este día del ciclo actual" style="font-size:11px;padding:4px 8px;">🗑️ Día</button>
     </div>
 
