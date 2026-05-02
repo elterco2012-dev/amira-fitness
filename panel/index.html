@@ -3695,9 +3695,9 @@ async function activarPushAmira(){
     const sw=_panelSW||await navigator.serviceWorker.ready;
     let sub=await sw.pushManager.getSubscription();
     if(!sub)sub=await sw.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToUint8(VAPID_PUB)});
-    const k=sub.getKey('p256dh');const a=sub.getKey('auth');
-    const p256dh=btoa(String.fromCharCode(...new Uint8Array(k)));
-    const auth=btoa(String.fromCharCode(...new Uint8Array(a)));
+    const subJson=sub.toJSON();
+    const p256dh=subJson.keys.p256dh;
+    const auth=subJson.keys.auth;
     // upsert by endpoint — each device gets its own row, no overwriting
     await sbUpsert('amira_push_subscriptions',{endpoint:sub.endpoint,p256dh,auth});
     localStorage.setItem('af-notif-panel','1');
