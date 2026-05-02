@@ -1413,11 +1413,11 @@ async function saveQuickNote(aId){
   const txt=(document.getElementById('qn-'+aId)?.value||'').trim();
   if(!txt){S._quickNoteA=null;render();return;}
   const a=getA(aId); if(!a)return;
-  const fecha=new Date().toISOString().split('T')[0];
-  const row={alumna_id:aId,ciclo:a.ciclo_actual||1,semana:0,dia:0,texto:txt,fecha};
+  const row={alumna_id:aId,ciclo:a.ciclo_actual||1,semana:S.selSem||0,nota:txt};
   try{
-    await sbInsert('comentarios',row);
-    DB.comentarios.unshift({...row,created_at:new Date().toISOString()});
+    const res=await sbInsert('notas_sesion',row);
+    const nuevo=Array.isArray(res)?res[0]:res;
+    DB.notasSesion.unshift(nuevo||{...row,created_at:new Date().toISOString()});
     S._quickNoteA=null;
     toastPanel('✓ Nota guardada');
     render();
