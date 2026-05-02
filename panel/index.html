@@ -403,7 +403,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0;
 let bibSelEx=null;
@@ -1032,33 +1032,46 @@ async function saveEditA(){
   const diaCobroVal=parseInt(document.getElementById('ea-dia-cobro').value)||null;
   const lesionesVal=document.getElementById('ea-lesiones').value.trim()||null;
   const _ev=id=>document.getElementById(id)?.value?.trim()||null;
+  const oldEmail=a.email||'';
   const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp')};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
-    // Intentar guardar con lesiones; si la columna no existe en DB, guardar sin ella
-    try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
-    catch(e){
-      if(String(e.message).includes('lesiones')){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
-      else throw e;
-    }
-    Object.assign(a,updates,{lesiones:lesionesVal});
-    // Si hay email + nacimiento, crear/confirmar usuario auth y mostrar el PIN
-    if(updates.email&&updates.nacimiento){
-      const pin=pinDesdeNacimiento(updates.nacimiento);
-      if(pin){
-        const authRes=await crearAuthUser(updates.email,pin).catch(()=>null);
-        const ya=(authRes?.msg||authRes?.error_description||authRes?.message||'').toLowerCase();
-        if(ya.includes('already')||ya.includes('registered')){
-          S.msg=`Guardado ✓ · La cuenta ya existía · PIN: ${pin}`;
-        } else {
-          S.msg=`Guardado ✓ · Acceso creado · PIN de ${a.nombre.split(' ')[0]}: ${pin}`;
-        }
-      } else {
-        S.msg='Guardado ✓';
-      }
+    const newEmail=updates.email||'';
+    const emailCambio=oldEmail&&newEmail&&oldEmail!==newEmail;
+
+    if(emailCambio){
+      // Actualizar email en auth.users Y alumnas en un solo paso (edge function)
+      document.getElementById('ea-msg').textContent='Actualizando email...';
+      const tok=localStorage.getItem('af-access-token')||'';
+      const efRes=await fetch(`${SB_URL}/functions/v1/update-auth-email`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${tok}`},
+        body:JSON.stringify({old_email:oldEmail,new_email:newEmail,alumna_id:S.editAId})
+      });
+      const efData=await efRes.json();
+      if(!efRes.ok) throw new Error(efData.error||'Error al actualizar email en auth');
+      // La edge function ya actualizó alumnas.email, actualizar el resto de campos
+      try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
+      catch(e){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
     } else {
-      S.msg='Guardado ✓';
+      // Sin cambio de email: guardar normalmente
+      try{await sbPatch('alumnas',`id=eq.${S.editAId}`,{...updates,lesiones:lesionesVal});}
+      catch(e){
+        if(String(e.message).includes('lesiones')){await sbPatch('alumnas',`id=eq.${S.editAId}`,updates);}
+        else throw e;
+      }
+      // Si hay email + nacimiento y es cuenta nueva, crear acceso
+      if(updates.email&&updates.nacimiento&&!oldEmail){
+        const pin=pinDesdeNacimiento(updates.nacimiento);
+        if(pin) await crearAuthUser(updates.email,pin).catch(()=>null);
+      }
     }
+
+    Object.assign(a,updates,{lesiones:lesionesVal});
+    const pin=pinDesdeNacimiento(updates.nacimiento||a.nacimiento);
+    S.msg=emailCambio
+      ?`Guardado ✓ · Email actualizado correctamente · PIN: ${pin||'(sin PIN)'}`
+      :`Guardado ✓${pin?' · PIN: '+pin:''}`;
     closeEditA();render();
     setTimeout(()=>{S.msg='';render();},6000);
   }catch(e){document.getElementById('ea-msg').textContent='Error: '+e.message;}
@@ -1389,18 +1402,59 @@ function toastPanel(msg){
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2800);
 }
 async function waOpen(ph, msg){
-  // Copiar al clipboard primero (preserva emoji perfectamente)
   try{await navigator.clipboard.writeText(msg);}catch(e){}
-  // Abrir WhatsApp — si el clipboard funcionó, el usuario pega (Ctrl+V)
-  // Si no, abrir con texto en URL como fallback
-  let opened=false;
-  try{
-    await navigator.clipboard.readText(); // Verifica que el clipboard tiene el texto
-    toastPanel('✓ Mensaje copiado — abriendo WhatsApp, pegá con Ctrl+V');
-    window.open('https://wa.me/'+ph,'_blank');
-    opened=true;
-  }catch(e){}
-  if(!opened) window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank');
+  toastPanel('✓ Mensaje copiado — pegá con Ctrl+V en WhatsApp');
+  window.open('https://wa.me/'+ph,'_blank');
+}
+
+async function saveWarmupEdit(){
+  const aId=S.selA,ciclo=S.selCiclo,idx=S._wuEditIdx;
+  if(idx===null)return;
+  const day=DB.rutinas[aId]?.[ciclo]?.[0]?.find(d=>d.dia===1);
+  if(!day||!day.ejercicios[idx])return;
+  day.ejercicios[idx].series=document.getElementById('wu-edit-series').value.trim()||'1';
+  day.ejercicios[idx].reps=document.getElementById('wu-edit-reps').value.trim()||'—';
+  day.ejercicios[idx].tip=document.getElementById('wu-edit-tip').value.trim();
+  day.ejercicios[idx].video=document.getElementById('wu-edit-video').value.trim();
+  S._wuEditIdx=null;
+  await saveWarmup(aId,ciclo);
+}
+
+// ── Calentamiento personalizado (semana=0, dia=1) ──────────────
+function getWarmupExs(aId,ciclo){
+  const arr=DB.rutinas[aId]?.[ciclo]?.[0]||[];
+  const day=(arr.find?arr.find(d=>d.dia===1):null);
+  return day?.ejercicios||[];
+}
+async function saveWarmup(aId,ciclo){
+  const exs=getWarmupExs(aId,ciclo);
+  await sbUpsert('rutinas',{alumna_id:aId,ciclo,semana:0,dia:1,ejercicios:exs,updated_at:new Date().toISOString()});
+  S.msg='✓ Calentamiento guardado';render();setTimeout(()=>{S.msg='';render();},2000);
+}
+function addWarmupEx(bibId){
+  const aId=S.selA,ciclo=S.selCiclo;
+  const bib=DB.biblioteca.find(e=>e.id===bibId);if(!bib)return;
+  if(!DB.rutinas[aId])DB.rutinas[aId]={};
+  if(!DB.rutinas[aId][ciclo])DB.rutinas[aId][ciclo]={};
+  if(!DB.rutinas[aId][ciclo][0])DB.rutinas[aId][ciclo][0]=[];
+  let day=DB.rutinas[aId][ciclo][0].find(d=>d.dia===1);
+  if(!day){day={dia:1,ejercicios:[]};DB.rutinas[aId][ciclo][0].push(day);}
+  if(day.ejercicios.some(e=>e.nombre===bib.nombre))return;
+  day.ejercicios.push({nombre:bib.nombre,series:'1',reps:'—',video:bib.video||'',tip:bib.descripcion||'',grupo:bib.grupo_muscular||''});
+  saveWarmup(aId,ciclo);
+}
+function delWarmupEx(idx){
+  const aId=S.selA,ciclo=S.selCiclo;
+  const day=DB.rutinas[aId]?.[ciclo]?.[0]?.find(d=>d.dia===1);if(!day)return;
+  day.ejercicios.splice(idx,1);
+  saveWarmup(aId,ciclo);
+}
+async function resetWarmup(){
+  const aId=S.selA,ciclo=S.selCiclo;
+  if(!DB.rutinas[aId]?.[ciclo]?.[0])return;
+  DB.rutinas[aId][ciclo][0]=[];
+  await sbDelete('rutinas',`alumna_id=eq.${aId}&ciclo=eq.${ciclo}&semana=eq.0`);
+  S.msg='↩ Usando calentamiento por defecto';render();setTimeout(()=>{S.msg='';render();},2000);
 }
 
 // ── Recordatorios ─────────────────────────────────────────────
@@ -1545,16 +1599,22 @@ function fmtWhen(iso){
 
 function rInicio(){
   const now=new Date();
-  const gym=DB.alumnas.filter(a=>a.tipo==='gym').length;
-  const dist=DB.alumnas.filter(a=>a.tipo!=='gym').length;
   const pend=DB.registros.filter(r=>r.estado==='pendiente').length;
-  const cumples=DB.alumnas.filter(a=>{
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const cumples7=DB.alumnas.filter(a=>{
     if(!a.nacimiento)return false;
     const p=a.nacimiento.split('-');
-    return parseInt(p[1])===now.getMonth()+1&&parseInt(p[2])===now.getDate();
+    const yr=now.getFullYear();
+    let bday=new Date(yr,parseInt(p[1])-1,parseInt(p[2]));
+    if(bday<today)bday=new Date(yr+1,parseInt(p[1])-1,parseInt(p[2]));
+    const diff=Math.round((bday-today)/86400000);
+    a._diasCumple=diff;
+    return diff>=0&&diff<=7;
   });
 
   // Semáforo: solo alumnas activas
+  const _tplDolor=getAlumnaTpls().find(t=>t.key==='u_dolor')||{msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'};
+  const _tplInact=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
   const alumnaActivas=DB.alumnas.filter(a=>!a.estado||a.estado==='activa');
   const alWithDays=alumnaActivas.map(a=>{
     const d=a.last_active_at?Math.max(0,Math.floor((now-new Date(a.last_active_at))/86400000)):null;
@@ -1568,6 +1628,12 @@ function rInicio(){
     alWithDays.map(a=>{
       const icon=a._days===null||a._days>=7?'🔴':a._days>=4?'🟡':'🟢';
       const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
+      const _isUrg=a._days===null||a._days>=7;
+      const _ph=(a.tel||'').replace(/\D/g,'');
+      const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));
+      const _actionBtn=_isUrg&&_ph
+        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'))">💬 WA</button>`
+        :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
       return`<div class="arow" style="cursor:pointer;" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('alumnas')">
         <span style="font-size:16px;flex-shrink:0;">${icon}</span>
         <div class="av av-${a.color}">${avH(a)}</div>
@@ -1575,14 +1641,13 @@ function rInicio(){
           <div class="aname">${a.nombre}</div>
           <div class="asub">${sub}</div>
         </div>
-        <button class="btn btn-s" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>
+        ${_actionBtn}
       </div>`;
     }).join('');
 
   // Feedbacks recientes
   const fbLabels=FB_LABELS;
-  const _tplDolor=getAlumnaTpls().find(t=>t.key==='u_dolor')||{msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'};
-  const _tplInact=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
+
   const recentFb=(DB.feedbacks||[]).slice(0,8);
   let fbSec='';
   if(recentFb.length>0){
@@ -1611,24 +1676,33 @@ function rInicio(){
   return`<div class="ptitle">Bienvenida, Amira</div>
   ${(_alertas.length>0||_inactivas5.length>0)?`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
     <div class="ctitle" style="margin-bottom:.6rem;">⚡ Acciones urgentes</div>
-    ${_alertas.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const ph=(al?.tel||'').replace(/\D/g,'');return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
+    ${_alertas.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const ph=(al?.tel||'').replace(/\D/g,'');const _mn=encodeURIComponent(interpTpl(_tplDolor.msg,{nombre:(al?.nombre||'').split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--rd);">🚨 <strong>${al?al.nombre.split(' ')[0]:'?'}</strong> — ${f.ejercicio_nombre||'ejercicio'}${f.nota?' ('+f.nota+')':''}</span>
-      ${ph?`<button onclick="waOpen('${ph}',interpTpl(_tplDolor.msg,{nombre:'${(al?.nombre||'').split(' ')[0]}'}))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
+      ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
     </div>`;}).join('')}
-    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?Math.floor((now-new Date(a.last_active_at))/86400000):null;return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
+    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?Math.floor((now-new Date(a.last_active_at))/86400000):null;const _mn=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
       <span style="font-size:13px;flex:1;color:var(--tm);">🔴 <strong>${a.nombre.split(' ')[0]}</strong> — ${d===null?'sin actividad':d+' días sin entrenar'}</span>
-      <button onclick="waOpen('${ph}',interpTpl(_tplInact.msg,{nombre:'${a.nombre.split(' ')[0]}'}))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
+      <button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
     </div>`;}).join('')}
   </div>`:''}
-  <div class="metrics">
-    <div class="metric"><div class="mlabel">Alumnas</div><div class="mval">${DB.alumnas.length}</div></div>
-    <div class="metric"><div class="mlabel">Gimnasio</div><div class="mval">${gym}</div></div>
-    <div class="metric"><div class="mlabel">Casa</div><div class="mval">${dist}</div></div>
-    <div class="metric"><div class="mlabel">Biblioteca</div><div class="mval g">${DB.biblioteca.length}</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">ejercicios</div></div>
-  </div>
-  ${cumples.length>0?`<div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#f59e0b;margin-bottom:1rem;">
-    <div style="font-size:1rem;font-weight:500;color:#92400e;margin-bottom:4px;">🎂 ¡Hoy cumple ${cumples.map(a=>a.nombre.split(' ')[0]).join(' y ')}!</div>
-    ${cumples.filter(a=>a.tel).map(a=>`<button onclick="waOpen('${a.tel.replace(/\D/g,'')}','¡Feliz cumple ${a.nombre.split(' ')[0]}! 🎂🎉 Espero que la pases increíble. — Amira')" class="btn btn-s" style="display:inline-block;margin-top:4px;">Saludar por WhatsApp 🎉</button>`).join(' ')}
+  ${(()=>{
+    const _urg=alWithDays.filter(a=>a._days===null||a._days>=7).length+(DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante').length;
+    const _aten=alWithDays.filter(a=>a._days!==null&&a._days>=4&&a._days<7).length;
+    const _aldia=alWithDays.filter(a=>a._days!==null&&a._days<4).length;
+    return`<div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;">
+      <div class="metric"><div class="mlabel">Activas</div><div class="mval g">${alumnaActivas.length}</div></div>
+      <div class="metric" style="${_urg>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Urgentes</div><div class="mval" style="color:${_urg>0?'var(--rd)':'var(--tm)'};">${_urg}</div></div>
+      <div class="metric" style="${_aten>0?'border-bottom:2px solid #d97706;':''}"><div class="mlabel">Atención</div><div class="mval" style="color:${_aten>0?'#d97706':'var(--tm)'};">${_aten}</div></div>
+      <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
+    </div>`;
+  })()}
+  ${cumples7.length>0?`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;display:flex;gap:10px;align-items:flex-start;">
+    <span style="font-size:1.4rem;flex-shrink:0;">🎂</span>
+    <div>${cumples7.map(a=>{
+      const d=a._diasCumple;
+      const cuando=d===0?'¡hoy!':d===1?'mañana':'en '+d+' días';
+      return`<div style="font-size:13px;font-weight:500;color:#92400e;">Cumple <strong>${a.nombre.split(' ')[0]}</strong> ${cuando}</div>`;
+    }).join('')}</div>
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
   <div class="card" style="margin-bottom:1rem;">
@@ -2088,6 +2162,42 @@ function rRutinas(){
         +'</div></div>';
     })():''}
 
+    ${(()=>{
+      const wuExs=getWarmupExs(a.id,S.selCiclo);
+      const calBib=DB.biblioteca.filter(e=>e.grupo_muscular==='Calentamiento');
+      const available=calBib.filter(e=>!wuExs.some(w=>w.nombre===e.nombre));
+      return`<div style="background:var(--a);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;">
+        <div style="font-size:11px;font-weight:600;color:var(--ad);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">🔥 Calentamiento</div>
+        ${wuExs.length===0
+          ?'<div style="font-size:12px;color:var(--tm);margin-bottom:.5rem;">Usando calentamiento por defecto (de la biblioteca)</div>'
+          :wuExs.map((ex,i)=>S._wuEditIdx===i
+            ?`<div style="background:rgba(0,0,0,.04);border-radius:var(--rs);padding:.6rem;margin-bottom:6px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:5px;">
+                  <div><label style="font-size:10px;color:var(--tm);">Series</label><input id="wu-edit-series" value="${ex.series||'1'}" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);"></div>
+                  <div><label style="font-size:10px;color:var(--tm);">Reps / Duración</label><input id="wu-edit-reps" value="${ex.reps||'—'}" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);"></div>
+                </div>
+                <label style="font-size:10px;color:var(--tm);">Indicación / Tip</label>
+                <input id="wu-edit-tip" value="${(ex.tip||'').replace(/"/g,'&quot;')}" placeholder="Ej: Despacio, sin impacto" style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);margin-bottom:5px;">
+                <label style="font-size:10px;color:var(--tm);">Video (URL)</label>
+                <input id="wu-edit-video" value="${(ex.video||'').replace(/"/g,'&quot;')}" placeholder="https://youtube.com/..." style="width:100%;padding:4px 6px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);margin-bottom:6px;">
+                <div style="display:flex;gap:6px;"><button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveWarmupEdit()">Guardar</button><button class="btn btn-s" style="font-size:11px;" onclick="S._wuEditIdx=null;render()">Cancelar</button></div>
+              </div>`
+            :`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-size:12px;flex:1;">${ex.nombre}${ex.reps&&ex.reps!=='—'?` <span style="color:var(--tm);font-size:11px;">${ex.series||'1'}×${ex.reps}</span>`:''}</span>
+                <button class="btn btn-s" style="padding:2px 6px;font-size:11px;" onclick="S._wuEditIdx=${i};render()">✎</button>
+                <button class="btn btn-s btn-d" style="padding:2px 6px;font-size:11px;" onclick="delWarmupEx(${i})">×</button>
+              </div>`
+          ).join('')
+        }
+        ${calBib.length===0?'<div style="font-size:11px;color:var(--tm);">No hay ejercicios de Calentamiento en la biblioteca.</div>':
+          available.length>0?`<div style="margin-top:.5rem;border-top:1px solid rgba(0,0,0,.06);padding-top:.5rem;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:11px;color:var(--tm);">+ Agregar:</span>
+            ${available.map(e=>`<button class="btn btn-s" style="font-size:11px;" onclick="addWarmupEx(${e.id})">${e.nombre}</button>`).join('')}
+          </div>`:'<div style="font-size:11px;color:var(--tm);margin-top:4px;">Ya están todos los ejercicios de calentamiento asignados.</div>'
+        }
+        ${wuExs.length>0?`<button class="btn btn-s" style="font-size:11px;margin-top:.5rem;" onclick="resetWarmup()">↩ Volver al default</button>`:''}
+      </div>`;
+    })()}
     <div style="font-size:11px;color:var(--tm);margin-bottom:4px;">Semana</div>
     <div class="stabs">${[1,2,3,4].map(s=>`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()">Sem ${s}${s>1?' ↗':''}</button>`).join('')}</div>
 
@@ -2354,22 +2464,27 @@ function rHistorial(){
   const cicloRows=rows.filter(r=>(r.ciclo||1)===selCiclo);
   const cNom=a?.ciclos_nombres?.[selCiclo]||('Ciclo '+selCiclo);
 
-  // Calendar: build done map [sem-dia] = {done, total}
-  const dayMap={};
-  cicloRows.forEach(r=>{
-    const k=`${r.semana}-${r.dia}`;
-    if(!dayMap[k])dayMap[k]={done:0,total:0};
-    dayMap[k].total++;
-    if(r.hecho)dayMap[k].done++;
-  });
   const allSems=[...new Set([
     ...cicloRows.map(r=>r.semana),
     ...Object.keys(DB.rutinas?.[a?.id]?.[selCiclo]||{}).map(Number)
   ])].filter(Boolean).sort((a,b)=>a-b);
+  const maxDias=parseInt(a?.dias)||4;
   const allDias=[...new Set([
     ...cicloRows.map(r=>r.dia),
     ...allSems.flatMap(s=>(DB.rutinas?.[a?.id]?.[selCiclo]?.[s]||[]).map(x=>x.dia))
-  ])].filter(Boolean).sort((a,b)=>a-b);
+  ])].filter(d=>d>0&&d<=maxDias).sort((a,b)=>a-b);
+
+  // Calendar: build dayMap using rutina exercise count as denominator (consistent with alumna view)
+  const dayMap={};
+  allSems.forEach(s=>allDias.forEach(d=>{
+    const k=`${s}-${d}`;
+    const rutinaExs=(DB.rutinas?.[a?.id]?.[selCiclo]?.[s]||[]).find(x=>x.dia===d)?.ejercicios||[];
+    dayMap[k]={done:0,total:rutinaExs.length};
+  }));
+  cicloRows.forEach(r=>{
+    const k=`${r.semana}-${r.dia}`;
+    if(dayMap[k]&&r.hecho)dayMap[k].done++;
+  });
 
   const calHtml=allSems.length===0?'':
   `<div style="overflow-x:auto;margin-bottom:1rem;">

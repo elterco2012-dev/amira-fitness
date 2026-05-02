@@ -435,6 +435,17 @@
         Cada semana aparece una tarjeta para <strong>contarle cómo te sentiste</strong>.<br><br>
         Al terminar el día podés <strong>compartir tu progreso por WhatsApp</strong> con un toque.
       </div>
+    </div>
+
+    <!-- Slide 6: Descanso activo -->
+    <div class="ob-slide" id="ob-s6">
+      <div class="ob-icon">🚴</div>
+      <div class="ob-title">¿Saliste a correr<br>o andar en bici?</div>
+      <div class="ob-body">
+        Los días que hacés actividad física fuera del gym — correr, andar en bici, roller, nadar — marcalos como <strong>🚶 Descanso activo</strong>.<br><br>
+        Lo vas a ver debajo de cada día. Amira lo registra y cuenta en tu historial.<br><br>
+        Si no pudiste hacer nada, usá <strong>😔 No pude nada hoy</strong> para avisarle.
+      </div>
       <div class="ob-pill">🚀 ¡Todo listo para empezar!</div>
     </div>
 
@@ -447,6 +458,7 @@
       <div class="ob-dot" id="od3"></div>
       <div class="ob-dot" id="od4"></div>
       <div class="ob-dot" id="od5"></div>
+      <div class="ob-dot" id="od6"></div>
     </div>
     <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
     <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
@@ -623,7 +635,7 @@ async function checkAlumnaAuth(){
 
 // ── Onboarding ────────────────────────────────────────────────
 let obStep = 1;
-const OB_TOTAL = 5;
+const OB_TOTAL = 6;
 
 function obMostrar(nombre){
   // Solo la primera vez
@@ -786,6 +798,7 @@ let dark = localStorage.getItem('af-dark')==='1';
 let curTab = 'r';
 let charts = {};
 let selHistEx = null;
+let selProgCiclo = null; // ciclo seleccionado en la tab de progreso
 let maxPesos = {};
 
 // ── PWA + Push ────────────────────────────────────────────────
@@ -1983,9 +1996,21 @@ function renderRutina(){
       </div>`;
     })()}
     ${(()=>{
+      const _wuCustom=getExs(a.id,selCiclo,0,1);
+      const _wuHashKey=`af-warmup-hash-${a.id}-c${selCiclo}`;
+      const _wuCurrentHash=_wuCustom.map(e=>e.nombre).join('|');
+      if(_wuCurrentHash!==( localStorage.getItem(_wuHashKey)||'')){
+        localStorage.setItem(_wuHashKey,_wuCurrentHash);
+        localStorage.setItem('af-warmup-open','1');
+      }
       const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
-      const _wuLinks=DB.calentamiento&&DB.calentamiento.length>0
-        ?DB.calentamiento.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')
+      const _wuLinks=_wuCustom.length>0
+        ?_wuCustom.map(e=>{
+            const hasV=!!(e.video);
+            const showSR=e.series&&e.series!=='1'&&e.reps&&e.reps!=='—';
+            const showTip=!!(e.tip);
+            return`<div style="margin-top:4px;"><a href="${e.video||'#'}" target="_blank"${!hasV?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>${showSR?`<div style="font-size:11px;color:var(--ad);padding-left:22px;margin-top:1px;">${e.series} series × ${e.reps}</div>`:''}${showTip?`<div style="font-size:11px;color:var(--ad);opacity:.8;padding-left:22px;margin-top:1px;font-style:italic;">${e.tip}</div>`:''}</div>`;
+          }).join('')
         :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
         <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`;
       return`<button onclick="toggleWarmup()" style="width:100%;background:var(--a);border:none;border-radius:${_wuOpen?'var(--rs) var(--rs) 0 0':'var(--rs)'};padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:${_wuOpen?'0':'.85rem'};">
@@ -2044,9 +2069,12 @@ function renderRutina(){
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
   if(exs.length>0&&!justDone&&!_noPude){
-    html+=`<div style="display:flex;gap:8px;margin-bottom:.5rem;">
-      <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
-      <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
+    html+=`<div style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
+        <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
+      </div>
+      <div style="font-size:11px;color:var(--tm);text-align:center;line-height:1.4;">🚴 ¿Saliste a correr, andar en bici u otra actividad? Marcá <em>descanso activo</em>.</div>
     </div>`;
   } else if(_noPude&&!justDone){
     const _npParts=_noPude.split('|');
@@ -2201,49 +2229,64 @@ function renderProgreso(){
       .filter(Boolean)
   );
 
-  const ciclosDisp=getCiclos(a.id);
+  const ciclosDisp=[...getCiclos(a.id)].reverse(); // ciclo actual primero
   const numDias=parseInt(a.dias)||3;
-  let calHtml='';
-  ciclosDisp.forEach(cic=>{
-    const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
-    const totalCeldas=4*numDias;
-    function isDayDone80(sem,dia){
-      const exs=getExs(a.id,cic,sem,dia);
-      const total=exs.length;
-      if(total===0)return false;
-      let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
-      return cnt/total>=0.8;
-    }
-    let completados=0;
-    for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
-    const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
 
-    calHtml+=`<div style="margin-bottom:1.25rem;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
-        <span style="font-size:13px;font-weight:600;color:var(--t);">${cicloNombre}</span>
-        <span style="font-size:11px;color:var(--tm);">${completados}/${totalCeldas} días</span>
-      </div>
-      <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
-        <div></div>
-        ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
-        ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
-        <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
-        ${[1,2,3,4].map(sem=>{
-          const hecho=isDayDone80(sem,dia);
-          return`<div title="${cicloNombre} · Sem ${sem} · Día ${dia}" style="
-            height:30px;border-radius:6px;
-            background:${hecho?'var(--v)':'var(--s2)'};
-            border:1px solid ${hecho?'var(--vd)':'var(--b)'};
-            display:flex;align-items:center;justify-content:center;
-            font-size:12px;color:white;font-weight:600;
-          ">${hecho?'✓':''}</div>`;
-        }).join('')}`).join('')}
-      </div>
+  // Asegurar que selProgCiclo apunte a un ciclo válido (por defecto el más reciente)
+  if(!selProgCiclo||!ciclosDisp.includes(selProgCiclo)) selProgCiclo=ciclosDisp[0]||1;
+  const cic=selProgCiclo;
+  const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
+  const totalCeldas=4*numDias;
+  function isDayDone80(sem,dia){
+    const exs=getExs(a.id,cic,sem,dia);
+    const total=exs.length;
+    if(total===0)return false;
+    let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
+    return cnt/total>=0.8;
+  }
+  let completados=0;
+  for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
+  const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
+
+  const cicloSelectorHtml=ciclosDisp.length>1
+    ?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${ciclosDisp.map(c=>{
+          const cn=a.ciclos_nombres?.[c]||a.ciclos_nombres?.[String(c)]||`Ciclo ${c}`;
+          const active=c===cic;
+          return`<button onclick="selProgCiclo=${c};renderProgreso()" style="
+            padding:5px 14px;border-radius:99px;border:1.5px solid ${active?'var(--v)':'var(--b)'};
+            background:${active?'var(--v)':'var(--s)'};color:${active?'white':'var(--t)'};
+            font-size:12px;font-weight:${active?'600':'400'};cursor:pointer;
+            font-family:'DM Sans',sans-serif;transition:all .15s;
+          ">${cn}</button>`;
+        }).join('')}
+      </div>`
+    :'';
+
+  const calHtml=`
+    ${cicloSelectorHtml}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+      <span style="font-size:13px;font-weight:600;color:var(--t);">${cicloNombre}</span>
+      <span style="font-size:11px;color:var(--tm);">${completados}/${totalCeldas} días</span>
+    </div>
+    <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
+      <div></div>
+      ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
+      ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
+      <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
+      ${[1,2,3,4].map(sem=>{
+        const hecho=isDayDone80(sem,dia);
+        return`<div style="height:30px;border-radius:6px;
+          background:${hecho?'var(--v)':'var(--s2)'};
+          border:1px solid ${hecho?'var(--vd)':'var(--b)'};
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;color:white;font-weight:600;
+        ">${hecho?'✓':''}</div>`;
+      }).join('')}`).join('')}
     </div>`;
-  });
 
   // Racha de semanas consecutivas
   const _nDias=parseInt(a.dias)||3;
@@ -2486,8 +2529,8 @@ async function init(){
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc&limit=5000`),
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
-        sbGet('biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
-        sbGet('biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
+        sbGet('ejercicios_biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
+        sbGet('ejercicios_biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
         sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[])
       ]);
       DB.comentarios=coms;
