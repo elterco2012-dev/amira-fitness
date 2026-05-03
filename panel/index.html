@@ -642,7 +642,7 @@ async function loadAll(){
 
 async function _panelNotif(title,body,tag){
   if(Notification.permission!=='granted'||localStorage.getItem('af-notif-panel')!=='1')return;
-  const opts={body,icon:'/api/icon-192.svg',tag,requireInteraction:true};
+  const opts={body,icon:'/api/icon-192.svg',tag,requireInteraction:true,renotify:true,data:{url:'/panel/'}};
   try{const sw=_panelSW||await navigator.serviceWorker.ready;sw.showNotification(title,opts);}
   catch(_){try{new Notification(title,opts);}catch(__){}}
 }
@@ -653,7 +653,7 @@ function startPoll(){
     if(document.hidden) return;
     try{
       const [coms,regs,fbs]=await Promise.all([
-        sbGet('comentarios','select=id&order=created_at.desc&limit=1'),
+        sbGet('comentarios','select=id,alumna_id,texto&order=created_at.desc&limit=1'),
         sbGet('registros','estado=eq.pendiente&select=id'),
         sbGet('feedbacks','select=id,alumna_id,tipo,nota&order=id.desc&limit=1')
       ]);
