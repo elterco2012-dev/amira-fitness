@@ -383,13 +383,13 @@
 <div id="onboarding" style="display:none;">
   <div class="ob-slides">
 
-    <!-- Slide 1: Bienvenida -->
+    <!-- Slide 1: Bienvenida emocional -->
     <div class="ob-slide active" id="ob-s1">
-      <div class="ob-icon">🏋️‍♀️</div>
+      <div class="ob-icon">✨</div>
       <div class="ob-title" id="ob-nombre-titulo">Bienvenida a<br>tu rutina</div>
       <div class="ob-body">
-        Acá vas a tener <strong>todos tus ejercicios del día</strong>, con video y técnica incluidos.<br><br>
-        Amira armó este plan especialmente para vos.
+        Amira diseñó este programa <strong>específicamente para vos</strong> — tu nivel, tus tiempos, tu cuerpo.<br><br>
+        No es una rutina genérica. Es la tuya.
       </div>
       <div class="ob-pill">✦ Tu entrenamiento personalizado</div>
     </div>
@@ -446,7 +446,17 @@
         Lo vas a ver debajo de cada día. Amira lo registra y cuenta en tu historial.<br><br>
         Si no pudiste hacer nada, usá <strong>😔 No pude nada hoy</strong> para avisarle.
       </div>
-      <div class="ob-pill">🚀 ¡Todo listo para empezar!</div>
+    </div>
+
+    <!-- Slide 7: Expectativa primeras semanas (retención) -->
+    <div class="ob-slide" id="ob-s7">
+      <div class="ob-icon">🌱</div>
+      <div class="ob-title">Una cosa antes<br>de arrancar</div>
+      <div class="ob-body">
+        Las primeras dos semanas son las más difíciles. No porque el entrenamiento sea imposible — sino porque el hábito todavía no existe. <strong>Es normal que cueste.</strong><br><br>
+        Si un día no podés, no lo saltes en silencio. Avisale a Amira por acá o por WhatsApp. Acá no se abandona sola.
+      </div>
+      <div class="ob-pill">🚀 ¡Arrancamos!</div>
     </div>
 
   </div>
@@ -459,6 +469,7 @@
       <div class="ob-dot" id="od4"></div>
       <div class="ob-dot" id="od5"></div>
       <div class="ob-dot" id="od6"></div>
+      <div class="ob-dot" id="od7"></div>
     </div>
     <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
     <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
@@ -635,7 +646,7 @@ async function checkAlumnaAuth(){
 
 // ── Onboarding ────────────────────────────────────────────────
 let obStep = 1;
-const OB_TOTAL = 6;
+const OB_TOTAL = 7;
 
 function obMostrar(nombre){
   // Solo la primera vez
