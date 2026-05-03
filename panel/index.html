@@ -655,7 +655,7 @@ function startPoll(){
       const [coms,regs,fbs]=await Promise.all([
         sbGet('comentarios','select=id&order=created_at.desc&limit=1'),
         sbGet('registros','estado=eq.pendiente&select=id'),
-        sbGet('feedbacks','select=id,alumna_id,tipo,texto&order=id.desc&limit=1')
+        sbGet('feedbacks','select=id,alumna_id,tipo,nota&order=id.desc&limit=1')
       ]);
       if(coms.length&&+coms[0].id>prevCom){
         const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}
@@ -675,7 +675,7 @@ function startPoll(){
         const aName=(DB.alumnas.find(a=>a.id===fb.alumna_id)?.nombre||'alumna').split(' ')[0];
         const emojiMap={dolor_preocupante:'🚨',bajo_rendimiento:'⚠️',bueno:'😊',excelente:'🔥'};
         const emoji=emojiMap[fb.tipo]||'💬';
-        _panelNotif(`${emoji} Feedback — ${aName}`,fb.texto||`Tipo: ${fb.tipo}`,'panel-feedback');
+        _panelNotif(`${emoji} Feedback — ${aName}`,fb.nota||`Tipo: ${fb.tipo}`,'panel-feedback');
       }
     }catch(e){}
   },8000);
