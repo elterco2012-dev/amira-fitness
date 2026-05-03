@@ -89,22 +89,24 @@ Deno.serve(async (req) => {
   }
 
   const results = await Promise.allSettled(
-    subs.map(sub =>
-      webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        JSON.stringify({ type: "amira-alert", title, body, url: "/panel/" })
-      )
-    )
+    subs.map(async (sub, i) => {
+      console.log(`Device ${i}: sending to endpoint=${sub.endpoint.slice(0, 60)} p256dh_len=${sub.p256dh.length} auth_len=${sub.auth.length}`);
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          JSON.stringify({ type: "amira-alert", title, body, url: "/panel/" })
+        );
+        console.log(`Device ${i}: push OK`);
+      } catch (e: unknown) {
+        const err = e as { statusCode?: number; body?: string; message?: string };
+        console.log(`Device ${i}: PUSH FAILED statusCode=${err.statusCode} body=${err.body} message=${err.message}`);
+        throw e;
+      }
+    })
   );
 
   const sent   = results.filter(r => r.status === "fulfilled").length;
   const failed = results.filter(r => r.status === "rejected").length;
-  results.forEach((r, i) => {
-    if (r.status === "rejected") {
-      const err = (r as PromiseRejectedResult).reason;
-      console.error(`Push failed device ${i}: statusCode=${err?.statusCode} body=${JSON.stringify(err?.body)} message=${err?.message}`);
-    }
-  });
 
   return Response.json({ sent, failed, total: subs.length }, { headers: CORS });
 });
