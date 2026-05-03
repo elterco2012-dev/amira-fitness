@@ -100,7 +100,10 @@ Deno.serve(async (req) => {
   const sent   = results.filter(r => r.status === "fulfilled").length;
   const failed = results.filter(r => r.status === "rejected").length;
   results.forEach((r, i) => {
-    if (r.status === "rejected") console.error(`Push failed device ${i}:`, (r as PromiseRejectedResult).reason);
+    if (r.status === "rejected") {
+      const err = (r as PromiseRejectedResult).reason;
+      console.error(`Push failed device ${i}: statusCode=${err?.statusCode} body=${JSON.stringify(err?.body)} message=${err?.message}`);
+    }
   });
 
   return Response.json({ sent, failed, total: subs.length }, { headers: CORS });
