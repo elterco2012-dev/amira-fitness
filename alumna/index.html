@@ -2533,9 +2533,13 @@ async function init(){
   // 2. Intentar actualizar desde Supabase (solo datos de esta alumna)
   try{
     const email=_getAlumnaEmail();
-    const alumnas=email
+    let alumnas=email
       ?await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}`)
       :await sbGet('alumnas','order=created_at.asc');
+    // Fallback: si el email no está registrado en alumnas, buscar por slug de la URL
+    if(!alumnas.length&&slug){
+      alumnas=await sbGet('alumnas',`slug=eq.${encodeURIComponent(slug)}`);
+    }
     const a0=alumnas[0];
     const rutinas=a0
       ?await sbGet('rutinas',`alumna_id=eq.${a0.id}&order=ciclo.asc,semana.asc,dia.asc&limit=5000`)
