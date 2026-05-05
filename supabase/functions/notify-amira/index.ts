@@ -173,7 +173,15 @@ Deno.serve(async (req) => {
       }
       if (table === "feedbacks") {
         const tipo = String(record.tipo || "");
-        const em: Record<string, string> = { dolor_preocupante: "🚨", bajo_rendimiento: "⚠️", bueno: "😊", excelente: "🔥" };
+        const em: Record<string, string> = {
+          dolor_preocupante:  "🚨",
+          dolor_articular:    "⚠️",
+          ejercicio_problema: "🔧",
+          bajo_rendimiento:   "📉",
+          dolor_normal:       "💪",
+          bueno:              "😊",
+          excelente:          "🔥",
+        };
         title = `${em[tipo] || "💬"} Feedback — ${name || "alumna"}`;
         body  = String(record.nota || record.texto || `Tipo: ${tipo}`).slice(0, 120);
       } else if (table === "comentarios") {
