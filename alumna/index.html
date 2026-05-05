@@ -514,8 +514,12 @@
 <!-- Modal de reporte de molestia -->
 <div id="modal-reporte" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)cerrarReporte()">
   <div style="background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;">
-    <div style="font-size:16px;font-weight:600;color:var(--t);margin-bottom:1rem;" id="rep-titulo">¿Qué sentiste?</div>
+    <div style="font-size:16px;font-weight:600;color:var(--t);margin-bottom:1rem;" id="rep-titulo">¿Qué pasó?</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
+      <button onclick="enviarReporte('ejercicio_problema')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
+        <div style="font-size:14px;font-weight:500;">🔧 Problema con el ejercicio</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px;">Sin equipo, no entiendo el movimiento, otro motivo</div>
+      </button>
       <button onclick="enviarReporte('dolor_normal')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
         <div style="font-size:14px;font-weight:500;">💪 Dolor muscular normal</div>
         <div style="font-size:11px;color:var(--tm);margin-top:2px;">Ardor o agujetas — es parte del proceso</div>
@@ -529,7 +533,7 @@
         <div style="font-size:11px;margin-top:2px;opacity:.8;">Dolor intenso, agudo o raro — Amira recibe alerta inmediata</div>
       </button>
     </div>
-    <textarea id="rep-nota" rows="2" placeholder="Contale a Amira qué sentiste (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);resize:none;margin-bottom:.75rem;"></textarea>
+    <textarea id="rep-nota" rows="2" placeholder="Contale a Amira qué pasó (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);resize:none;margin-bottom:.75rem;"></textarea>
     <button onclick="cerrarReporte()" style="width:100%;padding:10px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--tm);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
   </div>
 </div>
@@ -1720,7 +1724,7 @@ async function enviarCheckin(aId){
 let _repCtx={aId:null,idx:null,nombre:''};
 function reportarProblema(aId,idx,nombre){
   _repCtx={aId,idx,nombre};
-  document.getElementById('rep-titulo').textContent='¿Qué sentiste con '+nombre+'?';
+  document.getElementById('rep-titulo').textContent='¿Qué pasó con '+nombre+'?';
   document.getElementById('rep-nota').value='';
   document.getElementById('modal-reporte').style.display='flex';
 }
@@ -1730,7 +1734,7 @@ async function enviarReporte(tipo){
   cerrarReporte();
   try{
     await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
-    const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':'💪 ¡Gracias! Es parte del proceso.';
+    const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo vio y va a revisarlo.':'💪 ¡Gracias! Es parte del proceso.';
     mostrarToast(msg);
   }catch(e){mostrarToast('No se pudo enviar, gracias por avisar.');}
 }
