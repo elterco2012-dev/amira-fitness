@@ -147,7 +147,17 @@ async function dbFetch(path: string): Promise<unknown> {
   throw new Error("No DB key available");
 }
 
-// ── Handler ────────────────────────────────────────────────────
+async function dbDelete(path: string): Promise<void> {
+  for (const key of [SB_SVC, SB_ANON]) {
+    if (!key) continue;
+    const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+      method: "DELETE",
+      headers: { apikey: key, Authorization: `Bearer ${key}` }
+    });
+    if (r.ok) return;
+  }
+}
+
 
 Deno.serve(async (req) => {
   try {
@@ -207,6 +217,10 @@ Deno.serve(async (req) => {
       subs.map(async (s, i) => {
         try {
           const r = await sendPush(s.endpoint, s.p256dh, s.auth, notifPayload);
+          // Auto-cleanup: endpoint expirado o inválido — borrar para que se re-registre solo
+          if (r.status === 410 || r.status === 404) {
+            await dbDelete(`amira_push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`).catch(() => {});
+          }
           return { device: i, ...r };
         } catch (e) {
           return { device: i, ok: false, status: 0, body: String(e) };

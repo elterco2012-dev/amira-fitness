@@ -113,6 +113,17 @@ async function sendPush(endpoint: string, p256dh: string, auth: string, payload:
   return { ok: resp.ok, status: resp.status, body };
 }
 
+async function dbDelete(path: string): Promise<void> {
+  for (const key of [SB_SVC, SB_ANON]) {
+    if (!key) continue;
+    const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+      method: "DELETE",
+      headers: { apikey: key, Authorization: `Bearer ${key}` }
+    });
+    if (r.ok) return;
+  }
+}
+
 async function dbGet(path: string): Promise<unknown> {
   for (const key of [SB_SVC, SB_ANON]) {
     if (!key) continue;
@@ -168,6 +179,9 @@ Deno.serve(async (req) => {
         });
         try {
           const r = await sendPush(sub.endpoint, sub.p256dh, sub.auth, payload);
+          if (r.status === 410 || r.status === 404) {
+            await dbDelete(`push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`).catch(() => {});
+          }
           return { device: i, alumna_id: sub.alumna_id, ...r };
         } catch (e) {
           return { device: i, alumna_id: sub.alumna_id, ok: false, status: 0, body: String(e) };
