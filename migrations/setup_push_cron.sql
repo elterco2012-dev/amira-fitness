@@ -10,8 +10,11 @@
 -- Hora: 12:00 UTC = 9:00 AM Argentina (UTC-3)
 -- Para cambiar la hora, edita '0 12 * * *' (formato: minuto hora * * *)
 
--- Si ya existe un cron anterior con el mismo nombre, eliminarlo primero
-SELECT cron.unschedule('push-recordatorios-diarios');
+-- Si ya existe un cron anterior con el mismo nombre, eliminarlo primero (ignora si no existe)
+DO $$ BEGIN
+  PERFORM cron.unschedule('push-recordatorios-diarios');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 SELECT cron.schedule(
   'push-recordatorios-diarios',

@@ -13,8 +13,11 @@
 -- Hora: 01:00 UTC del lunes = 22:00 ART del domingo (UTC-3)
 -- Para cambiar la hora, edita '0 1 * * 1' (formato: minuto hora * * dow)
 
--- Si ya existe un cron anterior con el mismo nombre, eliminarlo primero
-SELECT cron.unschedule('amira-resumen-semanal');
+-- Si ya existe un cron anterior con el mismo nombre, eliminarlo primero (ignora si no existe)
+DO $$ BEGIN
+  PERFORM cron.unschedule('amira-resumen-semanal');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 SELECT cron.schedule(
   'amira-resumen-semanal',
