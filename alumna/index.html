@@ -740,7 +740,7 @@ function obCerrar(){
 
 let DB = {alumnas:[], rutinas:{}, comentarios:[], avisos:[]};
 let selSem = 1, selDia = 1, selCiclo = 1;
-let done = {}, expanded = {}, pesos = {};
+let done = {}, expanded = {}, pesos = {}, rpe = {};
 // Duración preferida por la alumna (persistida en localStorage)
 let timerDuracion = parseInt(localStorage.getItem('af-timer-dur') || '45');
 let timerInt = null, timerTotal = timerDuracion, timerRem = 0, timerRunning = false;
@@ -1228,6 +1228,7 @@ function loadLocal(){
   try{
     const d=localStorage.getItem('af-done');   if(d) done=JSON.parse(d);
     const p=localStorage.getItem('af-pesos');  if(p) pesos=JSON.parse(p);
+    const r=localStorage.getItem('af-rpe');    if(r) rpe=JSON.parse(r);
     // Restaurar selCiclo/selSem/selDia desde cache para que el primer render sea correcto
     const sc=localStorage.getItem('af-selCiclo'); if(sc) selCiclo=parseInt(sc)||1;
     const ss=localStorage.getItem('af-selSem');   if(ss) selSem=parseInt(ss)||1;
@@ -1873,6 +1874,19 @@ function savePeso(aId,i,val){
   },1500);
 }
 
+async function saveRpe(aId,i,val){
+  const k=dKey(aId,selSem,selDia,i);
+  rpe[k]=val;
+  try{localStorage.setItem('af-rpe',JSON.stringify(rpe));}catch(_){}
+  const exNombre=getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'';
+  sbUpsert('progreso',{
+    alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
+    ejercicio_idx:i,ejercicio_nombre:exNombre,rpe:val,
+    fecha_registro:new Date().toISOString()
+  }).catch(()=>{});
+  renderRutina();
+}
+
 async function cambiarFotoAlumna(aId,input){
   const file=input.files[0]; if(!file) return;
   const canvas=document.createElement('canvas');
@@ -2187,6 +2201,14 @@ function renderRutina(){
         ${(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
       </div>
       <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
+      ${isDone?(()=>{
+        const rv=rpe[dKey(a.id,selSem,selDia,i)];
+        const opts=[{v:7,e:'😌',l:'Fácil'},{v:8,e:'💪',l:'Bien'},{v:9,e:'😤',l:'Duro'},{v:10,e:'🥵',l:'Al límite'}];
+        return`<div style="margin-top:6px;padding:6px 8px;background:var(--s2);border-radius:var(--rs);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--tm);flex-shrink:0;">¿Cómo se sintió?</span>
+          ${opts.map(o=>`<button onclick="event.stopPropagation();saveRpe(${a.id},${i},${o.v})" style="padding:3px 8px;border-radius:20px;border:1px solid ${rv===o.v?'var(--v)':'var(--bm)'};background:${rv===o.v?'var(--vl)':'var(--s)'};color:${rv===o.v?'var(--vd)':'var(--t)'};font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;">${o.e} ${o.l}</button>`).join('')}
+        </div>`;
+      })():''}
       ${ex.tip?`<div class="tip-txt${isExp?' show':''}">${ex.tip}</div>`:''}
       ${ex.nota?`<div class="nota-ej">💬 ${ex.nota}</div>`:''}
     </div>`;

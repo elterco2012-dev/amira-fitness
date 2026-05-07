@@ -574,7 +574,7 @@ async function loadAll(){
       sbGet('avisos','order=created_at.desc&limit=5000'),
       sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200'),
-      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho&hecho=eq.true&order=alumna_id.asc&limit=5000')
+      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=5000')
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -1859,12 +1859,18 @@ function drawerProgreso(a){
     </div>`;
   }
   const pesosPorEj={};
-  rows.filter(r=>r.peso_kg&&r.ejercicio_nombre&&r.hecho).forEach(r=>{const k=r.ejercicio_nombre;if(!pesosPorEj[k]||parseFloat(r.peso_kg)>pesosPorEj[k].peso)pesosPorEj[k]={peso:parseFloat(r.peso_kg)};});
+  const rpeReciente={};
+  rows.filter(r=>r.peso_kg&&r.ejercicio_nombre&&r.hecho).forEach(r=>{
+    const k=r.ejercicio_nombre;
+    if(!pesosPorEj[k]||parseFloat(r.peso_kg)>pesosPorEj[k].peso)pesosPorEj[k]={peso:parseFloat(r.peso_kg)};
+    if(r.rpe)rpeReciente[k]=r.rpe; // rows sorted by semana asc → last wins = más reciente
+  });
+  const _rpeE={7:'😌',8:'💪',9:'😤',10:'🥵'};
   const records=Object.entries(pesosPorEj).sort((a,b)=>a[0].localeCompare(b[0],'es'));
   if(records.length){
     html+=`<div>
       <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Máximos registrados</div>
-      ${records.slice(0,12).map(([nom,d])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--b);font-size:12px;"><span style="color:var(--t);">${nom}</span><span style="font-weight:600;color:var(--vd);">${d.peso} kg</span></div>`).join('')}
+      ${records.slice(0,12).map(([nom,d])=>{const rv=rpeReciente[nom];return`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--b);font-size:12px;"><span style="flex:1;color:var(--t);">${nom}</span><span style="font-weight:600;color:var(--vd);">${d.peso} kg</span>${rv?`<span title="Último RPE: ${rv}" style="font-size:13px;">${_rpeE[rv]||''}</span>`:''}</div>`;}).join('')}
     </div>`;
   }
   return html||'<div class="empty">Sin datos de progreso.</div>';
@@ -2111,6 +2117,70 @@ function rInicio(){
     }).join('')}</div>
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
+  ${(()=>{
+    // ── Churn radar ─────────────────────────────────────────────
+    // Calcula riesgo de abandono por alumna con 3 señales:
+    // 1. Membresía reciente + inactividad temprana (el dropout más crítico)
+    // 2. Caída de frecuencia: entrenaba N días/sem, ahora menos
+    // 3. Adherencia global baja vs lo esperado según días/sem configurados
+    const _tplInactR=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
+
+    const churnItems=alumnaActivas.map(a=>{
+      const daysSince=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):999;
+      const memberDays=a.created_at?Math.max(0,localDayDiff(a.created_at)):0;
+      const freqPerWeek=parseInt(a.dias)||3;
+
+      // Días únicos entrenados (ciclo-semana-dia)
+      const trainedDays=new Set(
+        (DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id).map(r=>`${r.ciclo}-${r.semana}-${r.dia}`)
+      );
+      const totalTrained=trainedDays.size;
+
+      // Semanas activas en progreso (proxy de semanas de membership)
+      const semanasSet=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id).map(r=>`${r.ciclo}-${r.semana}`));
+      const semanasActivas=semanasSet.size;
+      const expectedTotal=Math.max(1,Math.floor(memberDays/7))*freqPerWeek;
+      const adherencia=Math.min(1,totalTrained/expectedTotal);
+
+      // Señal 1: nueva + ya inactiva (peor señal)
+      if(memberDays<=21&&daysSince>=5) return{a,risk:'alta',tag:'🆘 Primera semana crítica',sub:`Lleva ${memberDays}d como alumna y ${daysSince}d sin entrenar`};
+
+      // Señal 2: baja adherencia global en alumna con > 2 semanas
+      if(memberDays>14&&adherencia<0.35&&daysSince>=3) return{a,risk:'alta',tag:'📉 Muy poca adherencia',sub:`Solo entrenó ${totalTrained} de ${expectedTotal} días esperados`};
+
+      // Señal 3: inactiva 7+ días (ya conocida pero la incluimos con contexto)
+      if(daysSince>=7) return{a,risk:'alta',tag:'🔴 Sin entrenar',sub:`${daysSince} días sin actividad`};
+
+      // Señal 4: frecuencia bajando (semanas activas vs esperadas)
+      if(memberDays>14&&semanasActivas>0&&adherencia<0.55&&daysSince>=4) return{a,risk:'media',tag:'🟡 Frecuencia baja',sub:`${Math.round(adherencia*100)}% de días completados`};
+
+      return null;
+    }).filter(Boolean).sort((x,y)=>x.risk==='alta'&&y.risk!=='alta'?-1:1);
+
+    if(!churnItems.length)return'';
+    const open=S._churnOpen;
+    const preview=churnItems.slice(0,open?churnItems.length:3);
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid #dc2626;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+        <div class="ctitle" style="margin-bottom:0;">📡 Radar de riesgo</div>
+        <span style="font-size:10px;color:var(--th);">${churnItems.filter(x=>x.risk==='alta').length} en riesgo alto</span>
+      </div>
+      ${preview.map(({a,tag,sub})=>{
+        const ph=(a.tel||'').replace(/\D/g,'');
+        const mn=encodeURIComponent(interpTpl(_tplInactR.msg,{nombre:a.nombre.split(' ')[0]}));
+        return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
+          <div class="av av-${a.color}" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${avH(a)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:var(--t);">${a.nombre.split(' ')[0]} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
+            <div style="font-size:10px;color:var(--th);">${sub}</div>
+          </div>
+          ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
+          <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();openDrawer(${a.id})">Ver →</button>
+        </div>`;
+      }).join('')}
+      ${churnItems.length>3?`<button class="btn btn-s" style="margin-top:6px;font-size:11px;width:100%;" onclick="S._churnOpen=!S._churnOpen;render()">${open?'Ver menos ▲':'Ver ${churnItems.length-3} más ▼'}</button>`:''}
+    </div>`;
+  })()}
   <div class="card" style="margin-bottom:1rem;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
       <div class="ctitle" style="margin-bottom:0;">¿A quién prestarle atención hoy?</div>
@@ -3190,7 +3260,31 @@ function rAnalisis(){
   });
   const topEst=Object.entries(estMap).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
 
-  // ── 4. Retención por cohort ─────────────────────────────────
+  // ── 4. Listas para progresar (RPE ≤7 en ≥2 sesiones recientes) ──
+  const progrMap={};
+  all.forEach(a=>{
+    const rows=(DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id&&r.rpe&&r.peso_kg);
+    const porEj={};
+    rows.forEach(r=>{
+      const nom=getEx(a.id,r.ciclo,r.semana,r.dia)[parseInt(r.ejercicio_idx)]?.nombre;
+      if(!nom)return;
+      if(!porEj[nom])porEj[nom]=[];
+      porEj[nom].push({c:parseInt(r.ciclo)||1,s:parseInt(r.semana),rpe:r.rpe,kg:parseFloat(r.peso_kg)});
+    });
+    Object.entries(porEj).forEach(([nom,recs])=>{
+      const sorted=[...recs].sort((a,b)=>a.c-b.c||a.s-b.s);
+      if(sorted.length<2)return;
+      const ult=sorted.slice(-2);
+      if(ult.every(r=>r.rpe<=7)){
+        if(!progrMap[nom])progrMap[nom]={n:0,alumnas:[]};
+        progrMap[nom].n++;
+        progrMap[nom].alumnas.push({nombre:a.nombre,kg:ult[ult.length-1].kg});
+      }
+    });
+  });
+  const topProgr=Object.entries(progrMap).sort((a,b)=>b[1].n-a[1].n).slice(0,5);
+
+  // ── 5. Retención por cohort ─────────────────────────────────
   const actHoy=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
   const act7=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=7).length;
   const act30=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=30).length;
@@ -3245,7 +3339,23 @@ function rAnalisis(){
         +(open?'<div style="background:var(--s2);border-radius:var(--rs);padding:.5rem .75rem;margin-bottom:.35rem;">'+detailHtml+'</div>':'')
         +'</div>';
     }).join('')}
-  </div>`;
+  </div>
+  ${topProgr.length>0?`<div class="card">
+    <div class="ctitle" style="margin-bottom:.75rem;">📈 Listas para subir peso (RPE 😌 en ≥2 sesiones)</div>
+    ${topProgr.map(([nom,v],idx)=>{
+      const open2=S['prog_open_'+idx];
+      const dh=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+al.nombre.split(' ')[0]+'</span><span style="color:var(--tm);">actualmente '+al.kg+' kg</span><span style="color:var(--vd);margin-left:auto;">→ subir peso</span></div>').join('');
+      return'<div style="border-bottom:1px solid var(--b);">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'prog_open_'+idx+'\']=!S[\'prog_open_'+idx+'\'];render()">'
+        +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
+        +'<span style="background:var(--vl);color:var(--vd);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;">'+v.n+' alumna'+(v.n!==1?'s':'')+'</span>'
+        +'<span style="font-size:11px;color:var(--th);">'+(open2?'▲':'▼')+'</span>'
+        +'</div>'
+        +(open2?'<div style="background:var(--s2);border-radius:var(--rs);padding:.5rem .75rem;margin-bottom:.35rem;">'+dh+'</div>':'')
+        +'</div>';
+    }).join('')}
+  </div>`:''}
+  `;
 }
 
 function rComentarios(){
