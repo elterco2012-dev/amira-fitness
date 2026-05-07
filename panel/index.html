@@ -2027,8 +2027,49 @@ function rInicio(){
     const rv=x=>x._days===null||x._days>=7?2:x._days>=4?1:0;
     return rv(b)-rv(a);
   });
+
+  // ── Lista priorizada única (pain alerts + churn signals, deduplicada) ──
+  const _tplDolorR=getAlumnaTpls().find(t=>t.key==='u_dolor')||{msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'};
+  const _tplInactR=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
+  const prioMap=new Map();
+  (DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante').forEach(f=>{
+    if(prioMap.has(f.alumna_id))return;
+    const al=DB.alumnas.find(a=>a.id===f.alumna_id);
+    if(!al)return;
+    prioMap.set(f.alumna_id,{a:al,kind:'pain',tag:'🚨 Dolor reportado',
+      sub:f.ejercicio_nombre?`${f.ejercicio_nombre}${f.nota?' — '+f.nota:''}`:(f.nota||'reportó dolor'),
+      msg:_tplDolorR.msg});
+  });
+  alumnaActivas.forEach(a=>{
+    if(prioMap.has(a.id))return;
+    const daysSince=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):null;
+    const memberDays=a.created_at?Math.max(0,localDayDiff(a.created_at)):0;
+    const freqPerWeek=parseInt(a.dias)||3;
+    const trainedDays=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id).map(r=>`${r.ciclo}-${r.semana}-${r.dia}`));
+    const totalTrained=trainedDays.size;
+    const expectedTotal=Math.max(1,Math.floor(memberDays/7))*freqPerWeek;
+    const adherencia=Math.min(1,totalTrained/expectedTotal);
+    let item=null;
+    if(daysSince===null){
+      if(memberDays<=21)item={a,tag:'🆘 Todavía no arrancó',sub:`Lleva ${memberDays}d registrada sin entrenar`};
+      else item={a,tag:'⚫ Nunca entrenó',sub:`Registrada hace ${memberDays}d, no abrió la app`};
+    } else if(memberDays<=21&&daysSince>=5){
+      item={a,tag:'🆘 Primera semana crítica',sub:`Lleva ${memberDays}d como alumna y ${daysSince}d sin entrenar`};
+    } else if(memberDays>14&&adherencia<0.35&&daysSince>=3){
+      item={a,tag:'📉 Muy poca adherencia',sub:`Entrenó ${totalTrained} de ${expectedTotal} días esperados`};
+    } else if(daysSince>=7){
+      item={a,tag:'🔴 Sin entrenar',sub:`${daysSince} días sin actividad`};
+    } else if(memberDays>14&&totalTrained>0&&adherencia<0.55&&daysSince>=4){
+      item={a,tag:'🟡 Frecuencia baja',sub:`${Math.round(adherencia*100)}% de adherencia`};
+    }
+    if(item){item.kind='churn';item.msg=_tplInactR.msg;prioMap.set(a.id,item);}
+  });
+  const _kindRank={pain:0,churn:1};
+  const prioritarias=Array.from(prioMap.values()).sort((x,y)=>(_kindRank[x.kind]-_kindRank[y.kind])||x.a.nombre.localeCompare(y.a.nombre,'es'));
+  const prioIds=new Set(prioritarias.map(p=>p.a.id));
+
   const semHtml=DB.alumnas.length===0?'<div class="empty">Sin alumnas todavía.</div>':
-    alWithDays.map(a=>{
+    alWithDays.filter(a=>!prioIds.has(a.id)).map(a=>{
       const icon=a._days===null||a._days>=7?'🔴':a._days>=4?'🟡':'🟢';
       const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
       const _isUrg=a._days===null||a._days>=7;
@@ -2083,28 +2124,39 @@ function rInicio(){
     fbSec='<div class="card" style="margin-bottom:1rem;"><div class="ctitle" style="margin-bottom:.5rem;">Feedbacks recientes</div>'+fbRows+'</div>';
   }
 
-  const _alertas=(DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante');
-  const _inactivas5=alumnaActivas.filter(a=>{if(!a.last_active_at)return true;return localDayDiff(a.last_active_at)>=5;});
   return`<div class="ptitle">Bienvenida, Amira</div>
-  ${(_alertas.length>0||_inactivas5.length>0)?`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
-    <div class="ctitle" style="margin-bottom:.6rem;">⚡ Acciones urgentes</div>
-    ${_alertas.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);const ph=(al?.tel||'').replace(/\D/g,'');const _mn=encodeURIComponent(interpTpl(_tplDolor.msg,{nombre:(al?.nombre||'').split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
-      <span style="font-size:13px;flex:1;color:var(--rd);">🚨 <strong>${al?al.nombre.split(' ')[0]:'?'}</strong> — ${f.ejercicio_nombre||'ejercicio'}${f.nota?' ('+f.nota+')':''}</span>
-      ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>`:''}
-    </div>`;}).join('')}
-    ${_inactivas5.filter(a=>a.tel).slice(0,4).map(a=>{const ph=a.tel.replace(/\D/g,'');const d=a.last_active_at?localDayDiff(a.last_active_at):null;const _mn=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);">
-      <span style="font-size:13px;flex:1;color:var(--tm);">🔴 <strong>${a.nombre.split(' ')[0]}</strong> — ${d===null?'sin actividad':d+' días sin entrenar'}</span>
-      <button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;">💬 WA</button>
-    </div>`;}).join('')}
-  </div>`:''}
+  ${prioritarias.length>0?(()=>{
+    const open=S._prioOpen;
+    const list=open?prioritarias:prioritarias.slice(0,5);
+    const restantes=prioritarias.length-5;
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+        <div class="ctitle" style="margin-bottom:0;">⚡ Hoy hay que atender</div>
+        <span style="font-size:10px;color:var(--th);">${prioritarias.length} alumna${prioritarias.length!==1?'s':''}</span>
+      </div>
+      ${list.map(({a,tag,sub,msg})=>{
+        const ph=(a.tel||'').replace(/\D/g,'');
+        const mn=encodeURIComponent(interpTpl(msg,{nombre:a.nombre.split(' ')[0]}));
+        return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
+          <div class="av av-${a.color}" style="width:30px;height:30px;font-size:12px;flex-shrink:0;">${avH(a)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;color:var(--t);">${a.nombre.split(' ')[0]} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
+            <div style="font-size:10px;color:var(--th);">${sub}</div>
+          </div>
+          ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
+          <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();openDrawer(${a.id})">Ver →</button>
+        </div>`;
+      }).join('')}
+      ${restantes>0?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="S._prioOpen=!S._prioOpen;render()">${open?'Ver menos ▲':'Ver '+restantes+' más ▼'}</button>`:''}
+    </div>`;
+  })():''}
   ${(()=>{
-    const _urg=alWithDays.filter(a=>a._days===null||a._days>=7).length+(DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante').length;
-    const _aten=alWithDays.filter(a=>a._days!==null&&a._days>=4&&a._days<7).length;
-    const _aldia=alWithDays.filter(a=>a._days!==null&&a._days<4).length;
+    const _aten=alWithDays.filter(a=>!prioIds.has(a.id)&&a._days!==null&&a._days>=4&&a._days<7).length;
+    const _aldia=alWithDays.filter(a=>!prioIds.has(a.id)&&a._days!==null&&a._days<4).length;
     return`<div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;">
       <div class="metric"><div class="mlabel">Activas</div><div class="mval g">${alumnaActivas.length}</div></div>
-      <div class="metric" style="${_urg>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Urgentes</div><div class="mval" style="color:${_urg>0?'var(--rd)':'var(--tm)'};">${_urg}</div></div>
-      <div class="metric" style="${_aten>0?'border-bottom:2px solid #d97706;':''}"><div class="mlabel">Atención</div><div class="mval" style="color:${_aten>0?'#d97706':'var(--tm)'};">${_aten}</div></div>
+      <div class="metric" style="${prioritarias.length>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Atender hoy</div><div class="mval" style="color:${prioritarias.length>0?'var(--rd)':'var(--tm)'};">${prioritarias.length}</div></div>
+      <div class="metric" style="${_aten>0?'border-bottom:2px solid #d97706;':''}"><div class="mlabel">A observar</div><div class="mval" style="color:${_aten>0?'#d97706':'var(--tm)'};">${_aten}</div></div>
       <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
     </div>`;
   })()}
@@ -2117,102 +2169,11 @@ function rInicio(){
     }).join('')}</div>
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
-  ${(()=>{
-    // ── Churn radar ─────────────────────────────────────────────
-    // Calcula riesgo de abandono por alumna con 3 señales:
-    // 1. Membresía reciente + inactividad temprana (el dropout más crítico)
-    // 2. Caída de frecuencia: entrenaba N días/sem, ahora menos
-    // 3. Adherencia global baja vs lo esperado según días/sem configurados
-    const _tplInactR=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
-
-    const churnItems=alumnaActivas.map(a=>{
-      const daysSince=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):999;
-      const memberDays=a.created_at?Math.max(0,localDayDiff(a.created_at)):0;
-      const freqPerWeek=parseInt(a.dias)||3;
-
-      // Días únicos entrenados (ciclo-semana-dia)
-      const trainedDays=new Set(
-        (DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id).map(r=>`${r.ciclo}-${r.semana}-${r.dia}`)
-      );
-      const totalTrained=trainedDays.size;
-
-      // Semanas activas en progreso (proxy de semanas de membership)
-      const semanasSet=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id).map(r=>`${r.ciclo}-${r.semana}`));
-      const semanasActivas=semanasSet.size;
-      const expectedTotal=Math.max(1,Math.floor(memberDays/7))*freqPerWeek;
-      const adherencia=Math.min(1,totalTrained/expectedTotal);
-
-      // Señal 1: nueva + ya inactiva (peor señal)
-      if(memberDays<=21&&daysSince>=5) return{a,risk:'alta',tag:'🆘 Primera semana crítica',sub:`Lleva ${memberDays}d como alumna y ${daysSince}d sin entrenar`};
-
-      // Señal 2: baja adherencia global en alumna con > 2 semanas
-      if(memberDays>14&&adherencia<0.35&&daysSince>=3) return{a,risk:'alta',tag:'📉 Muy poca adherencia',sub:`Solo entrenó ${totalTrained} de ${expectedTotal} días esperados`};
-
-      // Señal 3: inactiva 7+ días (ya conocida pero la incluimos con contexto)
-      if(daysSince>=7) return{a,risk:'alta',tag:'🔴 Sin entrenar',sub:`${daysSince} días sin actividad`};
-
-      // Señal 4: frecuencia bajando (semanas activas vs esperadas)
-      if(memberDays>14&&semanasActivas>0&&adherencia<0.55&&daysSince>=4) return{a,risk:'media',tag:'🟡 Frecuencia baja',sub:`${Math.round(adherencia*100)}% de días completados`};
-
-      return null;
-    }).filter(Boolean).sort((x,y)=>x.risk==='alta'&&y.risk!=='alta'?-1:1);
-
-    if(!churnItems.length)return'';
-    const open=S._churnOpen;
-    const preview=churnItems.slice(0,open?churnItems.length:3);
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid #dc2626;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
-        <div class="ctitle" style="margin-bottom:0;">📡 Radar de riesgo</div>
-        <span style="font-size:10px;color:var(--th);">${churnItems.filter(x=>x.risk==='alta').length} en riesgo alto</span>
-      </div>
-      ${preview.map(({a,tag,sub})=>{
-        const ph=(a.tel||'').replace(/\D/g,'');
-        const mn=encodeURIComponent(interpTpl(_tplInactR.msg,{nombre:a.nombre.split(' ')[0]}));
-        return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
-          <div class="av av-${a.color}" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${avH(a)}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:var(--t);">${a.nombre.split(' ')[0]} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
-            <div style="font-size:10px;color:var(--th);">${sub}</div>
-          </div>
-          ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
-          <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();openDrawer(${a.id})">Ver →</button>
-        </div>`;
-      }).join('')}
-      ${churnItems.length>3?`<button class="btn btn-s" style="margin-top:6px;font-size:11px;width:100%;" onclick="S._churnOpen=!S._churnOpen;render()">${open?'Ver menos ▲':'Ver ${churnItems.length-3} más ▼'}</button>`:''}
-    </div>`;
-  })()}
-  <div class="card" style="margin-bottom:1rem;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
-      <div class="ctitle" style="margin-bottom:0;">¿A quién prestarle atención hoy?</div>
-      ${(()=>{
-        const rojas=alWithDays.filter(a=>(a._days===null||a._days>=7)&&(a.tel||'').replace(/\D/g,''));
-        if(!rojas.length)return'';
-        return`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;" onclick="S._bulkWA=!S._bulkWA;render()">📢 Recordatorio masivo (${rojas.length})</button>`;
-      })()}
-    </div>
-    ${S._bulkWA?(()=>{
-      const _tplMsg=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
-      const rojas=alWithDays.filter(a=>(a._days===null||a._days>=7)&&(a.tel||'').replace(/\D/g,''));
-      return`<div style="background:var(--s2);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid var(--b);">
-        <div style="font-size:11px;color:var(--tm);margin-bottom:.6rem;">Enviar recordatorio a las <strong>${rojas.length} alumna${rojas.length>1?'s':''}</strong> sin actividad reciente:</div>
-        ${rojas.map(a=>{
-          const ph=a.tel.replace(/\D/g,'');
-          const d=a._days;
-          const msg=interpTpl(_tplMsg.msg,{nombre:a.nombre.split(' ')[0]});
-          const _mn=encodeURIComponent(msg);
-          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b);">
-            <div class="av av-${a.color}" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${avH(a)}</div>
-            <span style="flex:1;font-size:12px;font-weight:500;">${a.nombre.split(' ')[0]}</span>
-            <span style="font-size:11px;color:var(--tm);">${d===null?'sin actividad':d+' días'}</span>
-            <button onclick="waOpen('${ph}',decodeURIComponent('${_mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;padding:3px 8px;">💬 WA</button>
-          </div>`;
-        }).join('')}
-        <button class="btn btn-s" style="margin-top:8px;font-size:11px;" onclick="S._bulkWA=false;render()">Cerrar</button>
-      </div>`;
-    })():''}
-    <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">🔴 +7 días sin actividad &nbsp;·&nbsp; 🟡 4–6 días &nbsp;·&nbsp; 🟢 1–3 días</div>
+  ${alWithDays.filter(a=>!prioIds.has(a.id)).length>0?`<div class="card" style="margin-bottom:1rem;">
+    <div class="ctitle" style="margin-bottom:.5rem;">Resto de tus alumnas</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">🟡 4–6 días sin entrenar &nbsp;·&nbsp; 🟢 al día</div>
     ${semHtml}
-  </div>
+  </div>`:''}
   ${fbSec}
   ${(()=>{
     const deben=DB.alumnas.filter(a=>(!a.estado||a.estado==='activa')&&!hasPagado(a.id));
