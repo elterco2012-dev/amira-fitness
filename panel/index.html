@@ -3178,12 +3178,13 @@ function rAnalisis(){
       if(sorted.length<3)return;
       const ult=sorted.slice(-3);
       if(ult.every(r=>r.kg===ult[0].kg)){
-        if(!estMap[nom])estMap[nom]=0;
-        estMap[nom]++;
+        if(!estMap[nom])estMap[nom]={n:0,alumnas:[]};
+        estMap[nom].n++;
+        estMap[nom].alumnas.push({nombre:a.nombre,kg:ult[0].kg,streak:sorted.filter(r=>r.kg===ult[0].kg).length});
       }
     });
   });
-  const topEst=Object.entries(estMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const topEst=Object.entries(estMap).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
 
   // ── 4. Retención por cohort ─────────────────────────────────
   const actHoy=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
@@ -3228,10 +3229,18 @@ function rAnalisis(){
   <div class="card">
     <div class="ctitle" style="margin-bottom:.75rem;">📊 Ejercicios con peso estancado (≥3 semanas, en múltiples alumnas)</div>
     ${topEst.length===0?`<div class="empty" style="font-size:12px;">Sin datos suficientes todavía</div>`:''}
-    ${topEst.map(([nom,n])=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--b);font-size:12px;">
-      <div style="flex:1;color:var(--t);">${nom}</div>
-      <span style="background:var(--p);color:var(--pd);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;">${n} alumna${n!==1?'s':''}</span>
-    </div>`).join('')}
+    ${topEst.map(([nom,v],idx)=>{
+      const open=S['est_open_'+idx];
+      const detailHtml=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+al.nombre.split(' ')[0]+'</span><span style="color:var(--tm);">'+al.kg+' kg</span><span style="color:var(--th);margin-left:auto;">'+al.streak+' sem iguales</span></div>').join('');
+      return'<div style="border-bottom:1px solid var(--b);">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'est_open_'+idx+'\']=!S[\'est_open_'+idx+'\'];render()">'
+        +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
+        +'<span style="background:var(--p);color:var(--pd);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;">'+v.n+' alumna'+(v.n!==1?'s':'')+'</span>'
+        +'<span style="font-size:11px;color:var(--th);">'+(open?'▲':'▼')+'</span>'
+        +'</div>'
+        +(open?'<div style="background:var(--s2);border-radius:var(--rs);padding:.5rem .75rem;margin-bottom:.35rem;">'+detailHtml+'</div>':'')
+        +'</div>';
+    }).join('')}
   </div>`;
 }
 
