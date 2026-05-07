@@ -24,7 +24,7 @@ const ON_CONFLICT = {
   progreso:             'alumna_id,ciclo,semana,dia,ejercicio_idx',
   registros:            'id',
   comentarios:          'id',
-  push_subscriptions:        'alumna_id',
+  push_subscriptions:        'endpoint',
   amira_push_subscriptions:  'endpoint',
   pagos:                'alumna_id,mes',
   peso_alumna:          'alumna_id,fecha',

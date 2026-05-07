@@ -969,8 +969,14 @@ async function activarPushManual(alumnaId){
 
 async function desactivarPush(alumnaId){
   try{
-    if(swReg){const sub=await swReg.pushManager.getSubscription();if(sub)await sub.unsubscribe();}
-    await sbDelete('push_subscriptions',`alumna_id=eq.${alumnaId}`);
+    if(swReg){
+      const sub=await swReg.pushManager.getSubscription();
+      if(sub){
+        const ep=sub.endpoint;
+        await sub.unsubscribe();
+        await sbDelete('push_subscriptions',`endpoint=eq.${encodeURIComponent(ep)}`);
+      }
+    }
   }catch(e){ console.warn('Unsubscribe error:', e); }
   localStorage.setItem('af-push-asked','denied');
   mostrarToast('Notificaciones desactivadas');

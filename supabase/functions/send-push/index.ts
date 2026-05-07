@@ -147,28 +147,44 @@ Deno.serve(async (req) => {
     let alumnaFilter = "";
     let customTitle = "";
     let customBody = "";
+    let filterByDay = false;
     try {
       const b = await req.json();
       if (b?.alumna_id) alumnaFilter = `&alumna_id=eq.${b.alumna_id}`;
       if (b?.title) customTitle = b.title;
       if (b?.body) customBody = b.body;
+      if (b?.filter_by_day) filterByDay = true;
     } catch { /* no body is fine */ }
 
     const subs = await dbGet(`push_subscriptions?select=endpoint,p256dh,auth,alumna_id${alumnaFilter}`) as Array<{
       endpoint: string; p256dh: string; auth: string; alumna_id: number;
     }>;
 
-    if (!subs.length) return Response.json({ sent: 0, failed: 0, total: 0 }, { headers: CORS });
+    if (!subs.length) return Response.json({ sent: 0, failed: 0, total: 0, reason: "no_subscriptions" }, { headers: CORS });
 
     const alumnaIds = [...new Set(subs.map(s => s.alumna_id))];
-    let alumnas: Array<{ id: number; nombre: string; slug: string }> = [];
+    let alumnas: Array<{ id: number; nombre: string; slug: string; horario_entreno?: { dias?: number[] } }> = [];
     try {
-      alumnas = await dbGet(`alumnas?select=id,nombre,slug&id=in.(${alumnaIds.join(",")})`) as typeof alumnas;
+      alumnas = await dbGet(`alumnas?select=id,nombre,slug,horario_entreno&id=in.(${alumnaIds.join(",")})`) as typeof alumnas;
     } catch (_) { /* names are optional */ }
     const alumnaMap = new Map(alumnas.map(a => [a.id, a]));
 
+    // Filter by training day when requested (used by cron, not manual panel sends)
+    let filteredSubs = subs;
+    if (filterByDay && !alumnaFilter) {
+      // Argentina is UTC-3; at 12:00 UTC the local day matches UTC day
+      const todayDow = new Date().getUTCDay(); // 0=Sun … 6=Sat
+      filteredSubs = subs.filter(s => {
+        const alumna = alumnaMap.get(s.alumna_id);
+        const dias = alumna?.horario_entreno?.dias ?? [];
+        return dias.includes(todayDow);
+      });
+    }
+
+    if (!filteredSubs.length) return Response.json({ sent: 0, failed: 0, total: 0, reason: "no_training_today" }, { headers: CORS });
+
     const results = await Promise.all(
-      subs.map(async (sub, i) => {
+      filteredSubs.map(async (sub, i) => {
         const alumna = alumnaMap.get(sub.alumna_id);
         const nombre = (alumna?.nombre ?? "").split(" ")[0] || "¡Hola!";
         const slug   = alumna?.slug ?? "";
@@ -191,7 +207,7 @@ Deno.serve(async (req) => {
 
     const sent   = results.filter(r => r.ok).length;
     const failed = results.filter(r => !r.ok).length;
-    return Response.json({ sent, failed, total: subs.length, results }, { headers: CORS });
+    return Response.json({ sent, failed, total: filteredSubs.length, results }, { headers: CORS });
 
   } catch (e) {
     return Response.json({ error: String(e), stack: e instanceof Error ? e.stack : undefined }, { headers: CORS });
