@@ -425,6 +425,14 @@ let bibSelEx=null;
 let _panelSW=null;
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(r=>{_panelSW=r;}).catch(()=>{});
+  navigator.serviceWorker.addEventListener('message', e=>{
+    if(e.data?.type==='SW_UPDATED'){
+      const b=document.createElement('div');
+      b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#2563eb;color:#fff;text-align:center;padding:10px 16px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:12px;';
+      b.innerHTML='🔄 Hay una nueva versión disponible. <button onclick="location.reload()" style="background:#fff;color:#2563eb;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;">Actualizar</button>';
+      document.body.prepend(b);
+    }
+  });
 }
 
 if(dark)document.documentElement.setAttribute('data-theme','dark');

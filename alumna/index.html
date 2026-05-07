@@ -828,6 +828,7 @@ if('serviceWorker' in navigator){
       // Escuchar mensajes del SW (ej: SYNC_NOW desde background sync)
       navigator.serviceWorker.addEventListener('message', e => {
         if(e.data?.type === 'SYNC_NOW') flushSyncQueue();
+        if(e.data?.type === 'SW_UPDATED') location.reload();
       });
     }catch(e){ console.warn('SW error:', e); }
   });
@@ -1304,6 +1305,8 @@ async function flushSyncQueue(){
 window.addEventListener('online', ()=>{
   updateOfflineBanner();
   flushSyncQueue();
+  // Si abrió offline sin caché y no hay alumna cargada, recargar para obtener datos
+  if(!getAlumna()) location.reload();
 });
 window.addEventListener('offline', ()=>updateOfflineBanner());
 
@@ -2588,6 +2591,13 @@ async function init(){
 
   // 2. Intentar actualizar desde Supabase (solo datos de esta alumna)
   try{
+    // Si no hay conexión y ya tenemos caché con la alumna, no hay nada que hacer.
+    // El SW devuelve [] para todas las requests Supabase cuando está offline, lo que
+    // pisaría DB.alumnas con vacío y mostraría "Link no encontrado" incorrectamente.
+    if(!navigator.onLine && tieneCache && getAlumna()){
+      window._cargando=false;
+      return;
+    }
     const email=_getAlumnaEmail();
     let alumnas=email
       ?await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}`)
