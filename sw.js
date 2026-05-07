@@ -92,19 +92,19 @@ self.addEventListener('fetch', e => {
 // Push notifications
 self.addEventListener('push', e => {
   const data = e.data?.json() || {};
-  const isAmiraAlert = data.type === 'amira-alert';
+  const isAmiraPush = typeof data.type === 'string' && data.type.startsWith('amira-');
   e.waitUntil(
     self.registration.showNotification(
-      data.title || (isAmiraAlert ? '📬 Nueva actividad' : '💪 ¡Hora de entrenar!'),
+      data.title || (isAmiraPush ? '📬 Nueva actividad' : '💪 ¡Hora de entrenar!'),
       {
-        body: data.body || (isAmiraAlert ? 'Revisá el panel.' : 'Tu entrenamiento de hoy te espera.'),
+        body: data.body || (isAmiraPush ? 'Revisá el panel.' : 'Tu entrenamiento de hoy te espera.'),
         icon: '/api/icon-192.svg',
         badge: '/api/icon-maskable.svg',
-        vibrate: isAmiraAlert ? [300, 100, 300, 100, 300] : [200, 100, 200, 100, 100],
-        tag: isAmiraAlert ? 'amira-alert' : 'amira-reminder',
+        vibrate: isAmiraPush ? [300, 100, 300, 100, 300] : [200, 100, 200, 100, 100],
+        tag: data.type || 'amira-reminder',
         renotify: true,
-        data: { url: data.url || (isAmiraAlert ? '/panel/' : '/alumna/') },
-        actions: isAmiraAlert
+        data: { url: data.url || (isAmiraPush ? '/panel/' : '/alumna/') },
+        actions: isAmiraPush
           ? [{ action: 'open', title: '📋 Ver panel' }, { action: 'dismiss', title: 'OK' }]
           : [{ action: 'open', title: '🏋️ Ver rutina' }, { action: 'dismiss', title: 'Después' }]
       }
