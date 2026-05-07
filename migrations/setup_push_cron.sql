@@ -24,7 +24,7 @@ SELECT cron.schedule(
       'apikey',         '<SERVICE_ROLE_KEY>',
       'Authorization',  'Bearer <SERVICE_ROLE_KEY>'
     ),
-    body    := '{}'::jsonb
+    body    := '{"filter_by_day":true}'::jsonb
   );
   $$
 );

@@ -843,22 +843,35 @@ function urlB64ToUint8(b64){
 // ── Pedir permiso y suscribir al push ────────────────────────
 async function setupPush(alumnaId){
   if(!swReg || !('PushManager' in window)) return;
-  // No molestar si ya dio permiso o rechazó
   const prev = localStorage.getItem('af-push-asked');
-  if(prev === 'denied' || prev === 'granted') return;
+  if(prev === 'denied') return;
 
-  // Esperar que el SW esté activo
   await swReg.ready;
-
-  // Verificar si ya hay suscripción activa
   const existing = await swReg.pushManager.getSubscription();
+
+  if(prev === 'granted'){
+    if(!existing){
+      // Suscripción del browser perdida (ej: se limpió el browser) → mostrar banner
+      localStorage.removeItem('af-push-asked');
+      mostrarBannerPush(alumnaId);
+      return;
+    }
+    try{
+      const rows = await sbGet('push_subscriptions', `endpoint=eq.${encodeURIComponent(existing.endpoint)}&select=endpoint&limit=1`);
+      if(rows.length){ await guardarSuscripcion(alumnaId, existing); return; }
+      // No está en la BD (fue reseteado) → volver a pedir activación
+      localStorage.removeItem('af-push-asked');
+    }catch{ await guardarSuscripcion(alumnaId, existing); return; }
+    mostrarBannerPush(alumnaId);
+    return;
+  }
+
+  // Sin estado previo: si el browser ya tiene suscripción, re-registrar silenciosamente
   if(existing){
     localStorage.setItem('af-push-asked','granted');
     await guardarSuscripcion(alumnaId, existing);
     return;
   }
-
-  // Mostrar banner amigable antes de pedir permiso del browser
   mostrarBannerPush(alumnaId);
 }
 
@@ -969,8 +982,14 @@ async function activarPushManual(alumnaId){
 
 async function desactivarPush(alumnaId){
   try{
-    if(swReg){const sub=await swReg.pushManager.getSubscription();if(sub)await sub.unsubscribe();}
-    await sbDelete('push_subscriptions',`alumna_id=eq.${alumnaId}`);
+    if(swReg){
+      const sub=await swReg.pushManager.getSubscription();
+      if(sub){
+        const ep=sub.endpoint;
+        await sub.unsubscribe();
+        await sbDelete('push_subscriptions',`endpoint=eq.${encodeURIComponent(ep)}`);
+      }
+    }
   }catch(e){ console.warn('Unsubscribe error:', e); }
   localStorage.setItem('af-push-asked','denied');
   mostrarToast('Notificaciones desactivadas');

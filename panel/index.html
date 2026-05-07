@@ -509,7 +509,7 @@ async function login(){
     btn.textContent='Entrar';
   }
 }
-function showPanel(){document.getElementById('LS').style.display='none';document.getElementById('PS').style.display='block';startTokenRefresh();loadAll();}
+function showPanel(){document.getElementById('LS').style.display='none';document.getElementById('PS').style.display='block';startTokenRefresh();loadAll();checkAmiraPushValid();}
 async function doLogout(){
   const token=localStorage.getItem('af-access-token');
   if(token){await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${token}`}}).catch(()=>{});}
@@ -3679,6 +3679,28 @@ function onboardingWA(regId){
   msg+='\nEn breve te cargo tu rutina personalizada. Cuando te llegue el link, ya podés empezar.\n\n';
   msg+='Cualquier duda, escribime acá. ¡Arrancamos! — Amira 🔥';
   waOpen(tel, msg);
+}
+
+// ── Validar que el push de Amira siga registrado en la BD ─────
+async function checkAmiraPushValid(){
+  if(localStorage.getItem('af-notif-panel')!=='1') return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  try{
+    const sw=_panelSW||await navigator.serviceWorker.ready;
+    const sub=await sw.pushManager.getSubscription();
+    if(!sub){localStorage.removeItem('af-notif-panel');_mostrarBannerPushAmira();return;}
+    const rows=await sbGet('amira_push_subscriptions',`endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=endpoint&limit=1`);
+    if(!rows.length){localStorage.removeItem('af-notif-panel');_mostrarBannerPushAmira();}
+  }catch{ /* error de red: no tocar el estado */ }
+}
+
+function _mostrarBannerPushAmira(){
+  if(document.getElementById('push-banner-amira')) return;
+  const b=document.createElement('div');
+  b.id='push-banner-amira';
+  b.style.cssText='position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;background:var(--s);border-top:2px solid var(--v);padding:1rem 1.25rem;z-index:999;box-shadow:0 -4px 20px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+  b.innerHTML=`<div style="font-size:13px;color:var(--t);"><strong>🔔 Reactivar notificaciones</strong><div style="font-size:11px;color:var(--tm);margin-top:2px;">Las suscripciones push fueron reseteadas. Activá de nuevo en este dispositivo.</div></div><div style="display:flex;gap:8px;flex-shrink:0;"><button onclick="activarPushAmira();document.getElementById('push-banner-amira')?.remove();" style="padding:7px 14px;border-radius:var(--rp);border:none;background:var(--v);color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar</button><button onclick="document.getElementById('push-banner-amira')?.remove();" style="padding:7px 12px;border-radius:var(--rp);border:1px solid var(--bm);background:none;color:var(--tm);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Luego</button></div>`;
+  document.body.appendChild(b);
 }
 
 // ── Push de Amira (Web Push real, panel cerrado) ──────────────
