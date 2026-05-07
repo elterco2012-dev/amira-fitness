@@ -828,6 +828,7 @@ if('serviceWorker' in navigator){
       // Escuchar mensajes del SW (ej: SYNC_NOW desde background sync)
       navigator.serviceWorker.addEventListener('message', e => {
         if(e.data?.type === 'SYNC_NOW') flushSyncQueue();
+        if(e.data?.type === 'SW_UPDATED') location.reload();
       });
     }catch(e){ console.warn('SW error:', e); }
   });
@@ -1304,6 +1305,8 @@ async function flushSyncQueue(){
 window.addEventListener('online', ()=>{
   updateOfflineBanner();
   flushSyncQueue();
+  // Si abrió offline sin caché y no hay alumna cargada, recargar para obtener datos
+  if(!getAlumna()) location.reload();
 });
 window.addEventListener('offline', ()=>updateOfflineBanner());
 
@@ -2203,10 +2206,12 @@ function renderRutina(){
       <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       ${isDone?(()=>{
         const rv=rpe[dKey(a.id,selSem,selDia,i)];
-        const opts=[{v:7,e:'😌',l:'Fácil'},{v:8,e:'💪',l:'Bien'},{v:9,e:'😤',l:'Duro'},{v:10,e:'🥵',l:'Al límite'}];
-        return`<div style="margin-top:6px;padding:6px 8px;background:var(--s2);border-radius:var(--rs);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:10px;color:var(--tm);flex-shrink:0;">¿Cómo se sintió?</span>
-          ${opts.map(o=>`<button onclick="event.stopPropagation();saveRpe(${a.id},${i},${o.v})" style="padding:3px 8px;border-radius:20px;border:1px solid ${rv===o.v?'var(--v)':'var(--bm)'};background:${rv===o.v?'var(--vl)':'var(--s)'};color:${rv===o.v?'var(--vd)':'var(--t)'};font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;">${o.e} ${o.l}</button>`).join('')}
+        const opts=[{v:7,e:'😌',l:'Fácil'},{v:8,e:'💪',l:'Bien'},{v:9,e:'😤',l:'Duro'},{v:10,e:'🥵',l:'Límite'}];
+        return`<div style="margin-top:6px;padding:5px 8px 6px;background:var(--s2);border-radius:var(--rs);">
+          <span style="font-size:10px;color:var(--tm);display:block;margin-bottom:4px;">¿Cómo se sintió?</span>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
+          ${opts.map(o=>`<button onclick="event.stopPropagation();saveRpe(${a.id},${i},${o.v})" style="padding:4px 2px;border-radius:8px;border:1px solid ${rv===o.v?'var(--v)':'var(--bm)'};background:${rv===o.v?'var(--vl)':'var(--s)'};color:${rv===o.v?'var(--vd)':'var(--t)'};font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;"><span style="font-size:16px;">${o.e}</span><span style="font-size:9px;">${o.l}</span></button>`).join('')}
+          </div>
         </div>`;
       })():''}
       ${ex.tip?`<div class="tip-txt${isExp?' show':''}">${ex.tip}</div>`:''}
@@ -2588,6 +2593,13 @@ async function init(){
 
   // 2. Intentar actualizar desde Supabase (solo datos de esta alumna)
   try{
+    // Si no hay conexión y ya tenemos caché con la alumna, no hay nada que hacer.
+    // El SW devuelve [] para todas las requests Supabase cuando está offline, lo que
+    // pisaría DB.alumnas con vacío y mostraría "Link no encontrado" incorrectamente.
+    if(!navigator.onLine && tieneCache && getAlumna()){
+      window._cargando=false;
+      return;
+    }
     const email=_getAlumnaEmail();
     let alumnas=email
       ?await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}`)

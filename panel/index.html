@@ -425,6 +425,14 @@ let bibSelEx=null;
 let _panelSW=null;
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(r=>{_panelSW=r;}).catch(()=>{});
+  navigator.serviceWorker.addEventListener('message', e=>{
+    if(e.data?.type==='SW_UPDATED'){
+      const b=document.createElement('div');
+      b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#2563eb;color:#fff;text-align:center;padding:10px 16px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:12px;';
+      b.innerHTML='🔄 Hay una nueva versión disponible. <button onclick="location.reload()" style="background:#fff;color:#2563eb;border:none;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;">Actualizar</button>';
+      document.body.prepend(b);
+    }
+  });
 }
 
 if(dark)document.documentElement.setAttribute('data-theme','dark');
@@ -1860,17 +1868,42 @@ function drawerProgreso(a){
   }
   const pesosPorEj={};
   const rpeReciente={};
+  const sesPorEj={};
   rows.filter(r=>r.peso_kg&&r.ejercicio_nombre&&r.hecho).forEach(r=>{
     const k=r.ejercicio_nombre;
     if(!pesosPorEj[k]||parseFloat(r.peso_kg)>pesosPorEj[k].peso)pesosPorEj[k]={peso:parseFloat(r.peso_kg)};
     if(r.rpe)rpeReciente[k]=r.rpe; // rows sorted by semana asc → last wins = más reciente
+    if(r.rpe){
+      if(!sesPorEj[k])sesPorEj[k]=[];
+      sesPorEj[k].push({c:parseInt(r.ciclo)||1,s:parseInt(r.semana)||0,d:parseInt(r.dia)||0,rpe:r.rpe,kg:parseFloat(r.peso_kg)});
+    }
+  });
+  // Sugerencia de progresión: si las últimas 2 sesiones tuvieron RPE ≤7, proponer +1 kg (livianos) o +2.5 kg
+  const sugPorEj={};
+  Object.entries(sesPorEj).forEach(([nom,recs])=>{
+    const sorted=[...recs].sort((a,b)=>a.c-b.c||a.s-b.s||a.d-b.d);
+    if(sorted.length<2)return;
+    const ult=sorted.slice(-2);
+    if(ult.every(r=>r.rpe<=7)){
+      const cur=ult[ult.length-1].kg;
+      const inc=cur<10?0.5:cur<20?1:2.5;
+      sugPorEj[nom]={cur,nuevo:Math.round((cur+inc)*2)/2};
+    }
   });
   const _rpeE={7:'😌',8:'💪',9:'😤',10:'🥵'};
   const records=Object.entries(pesosPorEj).sort((a,b)=>a[0].localeCompare(b[0],'es'));
   if(records.length){
-    html+=`<div>
+    html+=`<div style="margin-bottom:1rem;">
       <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Máximos registrados</div>
       ${records.slice(0,12).map(([nom,d])=>{const rv=rpeReciente[nom];return`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--b);font-size:12px;"><span style="flex:1;color:var(--t);">${nom}</span><span style="font-weight:600;color:var(--vd);">${d.peso} kg</span>${rv?`<span title="Último RPE: ${rv}" style="font-size:13px;">${_rpeE[rv]||''}</span>`:''}</div>`;}).join('')}
+    </div>`;
+  }
+  const sugList=Object.entries(sugPorEj).sort((a,b)=>a[0].localeCompare(b[0],'es'));
+  if(sugList.length){
+    html+=`<div style="margin-top:.5rem;padding:.6rem .75rem;background:var(--vl);border-radius:var(--rs);border:1px solid var(--v);">
+      <div style="font-size:11px;font-weight:600;color:var(--vd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">💡 Sugerencias para subir peso</div>
+      <div style="font-size:10px;color:var(--tm);margin-bottom:6px;">RPE 😌 en las últimas 2 sesiones</div>
+      ${sugList.map(([nom,s])=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;"><span style="flex:1;color:var(--t);">${nom}</span><span style="color:var(--tm);">${s.cur} kg</span><span style="color:var(--vd);font-weight:600;">→ ${s.nuevo} kg</span></div>`).join('')}
     </div>`;
   }
   return html||'<div class="empty">Sin datos de progreso.</div>';
