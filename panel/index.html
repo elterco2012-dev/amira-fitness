@@ -3165,13 +3165,16 @@ function rAnalisis(){
   const maxNP=Math.max(...Object.values(npMap),1);
 
   // ── 3. Ejercicios estancados en múltiples alumnas ───────────
+  // Usa progresoHechos (cargado al inicio) + rutinas para resolver nombres
   const estMap={};
   all.forEach(a=>{
-    const rows=DB.progreso?.[a.id]||[];
+    const rows=(DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id&&r.peso_kg);
     const porEj={};
-    rows.filter(r=>r.peso_kg&&r.ejercicio_nombre).forEach(r=>{
-      if(!porEj[r.ejercicio_nombre])porEj[r.ejercicio_nombre]=[];
-      porEj[r.ejercicio_nombre].push({c:r.ciclo||1,s:r.semana,kg:parseFloat(r.peso_kg)});
+    rows.forEach(r=>{
+      const nom=getEx(a.id,r.ciclo,r.semana,r.dia)[parseInt(r.ejercicio_idx)]?.nombre;
+      if(!nom)return;
+      if(!porEj[nom])porEj[nom]=[];
+      porEj[nom].push({c:parseInt(r.ciclo)||1,s:parseInt(r.semana),kg:parseFloat(r.peso_kg)});
     });
     Object.entries(porEj).forEach(([nom,recs])=>{
       const sorted=[...recs].sort((a,b)=>a.c-b.c||a.s-b.s);
@@ -3180,7 +3183,8 @@ function rAnalisis(){
       if(ult.every(r=>r.kg===ult[0].kg)){
         if(!estMap[nom])estMap[nom]={n:0,alumnas:[]};
         estMap[nom].n++;
-        estMap[nom].alumnas.push({nombre:a.nombre,kg:ult[0].kg,streak:sorted.filter(r=>r.kg===ult[0].kg).length});
+        let streak=0;for(let i=sorted.length-1;i>=0;i--){if(sorted[i].kg===ult[0].kg)streak++;else break;}
+        estMap[nom].alumnas.push({nombre:a.nombre,kg:ult[0].kg,streak});
       }
     });
   });
