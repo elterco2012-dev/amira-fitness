@@ -860,8 +860,11 @@ async function setupPush(alumnaId){
     try{
       const rows = await sbGet('push_subscriptions', `endpoint=eq.${encodeURIComponent(existing.endpoint)}&select=endpoint&limit=1`);
       if(rows.length){ await guardarSuscripcion(alumnaId, existing); return; }
-      // No está en la BD (fue reseteado) → volver a pedir activación
-      localStorage.removeItem('af-push-asked');
+      // No está en la BD (ej: fue reseteado con TRUNCATE) → re-registrar silenciosamente
+      // El usuario ya otorgó permiso antes, no hace falta volver a pedírselo
+      await guardarSuscripcion(alumnaId, existing);
+      localStorage.setItem('af-push-asked','granted');
+      return;
     }catch{ await guardarSuscripcion(alumnaId, existing); return; }
     mostrarBannerPush(alumnaId);
     return;
@@ -1720,8 +1723,10 @@ async function marcarDescansoActivo(aId){
 async function guardarFeedbackDia(aId,tipo){
   localStorage.setItem(fbKey(aId,selCiclo,selSem,selDia),tipo);
   renderRutina();
-  try{await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});}
-  catch(e){console.warn('feedback dia:',e);}
+  try{
+    const row=await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});
+    sbNotifyAmira('feedbacks',row||{alumna_id:aId,tipo});
+  }catch(e){console.warn('feedback dia:',e);}
 }
 
 // ── Check-in semanal ──────────────────────────────────────────
@@ -1738,8 +1743,10 @@ async function enviarCheckin(aId){
   const ciK=`af-ci-${aId}-c${selCiclo}-s${selSem}`;
   localStorage.setItem(ciK,tipo);
   _ciSel='';
-  try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'checkin_semanal',ciclo:selCiclo,semana:selSem,dia:0,nota:tipo+(nota?' — '+nota:'')});}
-  catch(e){}
+  try{
+    const row=await sbInsert('feedbacks',{alumna_id:aId,tipo:'checkin_semanal',ciclo:selCiclo,semana:selSem,dia:0,nota:tipo+(nota?' — '+nota:'')});
+    sbNotifyAmira('feedbacks',row||{alumna_id:aId,tipo:'checkin_semanal'});
+  }catch(e){}
   mostrarToast('✓ ¡Check-in enviado a Amira!');
   renderNotas();
 }
@@ -1756,7 +1763,8 @@ async function enviarReporte(tipo){
   const nota=document.getElementById('rep-nota').value.trim();
   cerrarReporte();
   try{
-    await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    const row=await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    sbNotifyAmira('feedbacks',row||{alumna_id:_repCtx.aId,tipo,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
     const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo vio y va a revisarlo.':'💪 ¡Gracias! Es parte del proceso.';
     mostrarToast(msg);
   }catch(e){mostrarToast('No se pudo enviar, gracias por avisar.');}
@@ -1921,7 +1929,8 @@ async function enviarCom(aId){
   const now=new Date();
   const fecha=`${now.getDate()}/${now.getMonth()+1} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
   try{
-    await sbUpsert('comentarios',{alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,texto,fecha});
+    const row=await sbUpsert('comentarios',{alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,texto,fecha});
+    sbNotifyAmira('comentarios',row||{alumna_id:aId,texto});
     DB.comentarios.push({alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,texto,fecha});
     const amPh=localStorage.getItem('af-amira-ph')||AMIRA_WA;
     const a=getAlumna();

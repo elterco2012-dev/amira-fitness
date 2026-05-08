@@ -3807,7 +3807,14 @@ async function checkAmiraPushValid(){
     const sub=await sw.pushManager.getSubscription();
     if(!sub){localStorage.removeItem('af-notif-panel');_mostrarBannerPushAmira();return;}
     const rows=await sbGet('amira_push_subscriptions',`endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=endpoint&limit=1`);
-    if(!rows.length){localStorage.removeItem('af-notif-panel');_mostrarBannerPushAmira();}
+    if(!rows.length){
+      // No está en la BD (ej: TRUNCATE) → re-registrar silenciosamente con el endpoint existente
+      try{
+        const subJson=sub.toJSON();
+        await sbUpsert('amira_push_subscriptions',{endpoint:sub.endpoint,p256dh:subJson.keys.p256dh,auth:subJson.keys.auth});
+        localStorage.setItem('af-notif-panel','1');
+      }catch{ localStorage.removeItem('af-notif-panel');_mostrarBannerPushAmira(); }
+    }
   }catch{ /* error de red: no tocar el estado */ }
 }
 
