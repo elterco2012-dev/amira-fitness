@@ -83,3 +83,14 @@ async function sbDelete(table, filter) {
   if (!r.ok) { const e = await r.text(); throw new Error(`DELETE ${table}: ${e}`); }
   return true;
 }
+
+// Llama al edge function notify-amira directamente desde el cliente.
+// Más confiable que los Supabase Webhooks (que requieren configuración manual y pueden fallar silenciosamente).
+function sbNotifyAmira(table, record) {
+  if (!record) return;
+  fetch(`${SB_URL}/functions/v1/notify-amira`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+    body: JSON.stringify({ type: 'INSERT', table, record })
+  }).catch(() => {});
+}
