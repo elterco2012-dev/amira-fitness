@@ -397,6 +397,39 @@
       <div><label>Altura (cm)</label><input type="number" id="ea-altura" min="100" max="220"></div>
     </div>
     <div><label>Experiencia</label><select id="ea-exp"><option value="">—</option><option>Nunca entrené</option><option>Algo de experiencia</option><option>Experiencia media</option><option>Avanzada</option></select></div>
+    <div style="font-size:11px;color:var(--tm);margin:.75rem 0 .25rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">✨ Perfil para planificación IA</div>
+    <div class="frow">
+      <div><label>Objetivo principal</label><select id="ea-objetivo">
+        <option value="">—</option>
+        <option value="tonificar">Tonificar y mejorar postura</option>
+        <option value="bajar_peso">Bajar de peso</option>
+        <option value="ganar_fuerza">Ganar fuerza</option>
+        <option value="salud">Mejorar salud general</option>
+        <option value="rehabilitacion">Rehabilitación</option>
+        <option value="rendimiento">Rendimiento deportivo</option>
+      </select></div>
+      <div><label>Tiempo por sesión</label><select id="ea-tiempo">
+        <option value="">—</option>
+        <option value="30">30 min</option>
+        <option value="45">45 min</option>
+        <option value="60">60 min</option>
+        <option value="75">75 min</option>
+        <option value="90">90 min</option>
+      </select></div>
+    </div>
+    <label>Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:6px 0;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="sin_equipo"> Solo peso corporal</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="colchoneta"> Colchoneta</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="bandas"> Bandas elásticas</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="mancuernas_livianas"> Mancuernas hasta 5 kg</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="mancuernas_medias"> Mancuernas 5–15 kg</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="mancuernas_pesadas"> Mancuernas +15 kg</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="step"> Step / cajón</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="pelota"> Pelota suiza</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="barra"> Barra y discos</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="polea_trx"> Polea / TRX</label>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><label>💰 Precio mensual ($)</label><input type="number" id="ea-precio" placeholder="0" min="0" step="100"></div>
       <div><label>📅 Inicio membresía</label><input type="date" id="ea-fecha-inicio"></div>
@@ -1072,6 +1105,10 @@ function openEditA(id){
   document.getElementById('ea-peso').value=a.peso||regData?.peso||'';
   document.getElementById('ea-altura').value=a.altura||regData?.altura||'';
   document.getElementById('ea-exp').value=a.exp||regData?.exp||'';
+  document.getElementById('ea-objetivo').value=a.objetivo||'';
+  document.getElementById('ea-tiempo').value=a.tiempo_sesion||'';
+  const eq=Array.isArray(a.equipamiento)?a.equipamiento:[];
+  document.querySelectorAll('#modal-edit-a input[name="ea-equip"]').forEach(cb=>{cb.checked=eq.includes(cb.value);});
   document.getElementById('ea-precio').value=a.precio||'';
   document.getElementById('ea-fecha-inicio').value=a.fecha_inicio||'';
   document.getElementById('ea-dia-cobro').value=a.dia_cobro||'';
@@ -1087,7 +1124,9 @@ async function saveEditA(){
   const lesionesVal=document.getElementById('ea-lesiones').value.trim()||null;
   const _ev=id=>document.getElementById(id)?.value?.trim()||null;
   const oldEmail=a.email||'';
-  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp')};
+  const equipamientoVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-equip"]:checked')].map(cb=>cb.value);
+  const tiempoVal=parseInt(document.getElementById('ea-tiempo').value)||null;
+  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
     const newEmail=updates.email||'';
@@ -1202,7 +1241,8 @@ async function addAlumna(){
   const nac=document.getElementById('na-nacimiento')?.value||null;
   const slug=slugUnique(n);
   const _g=v=>document.getElementById(v)?.value?.trim()||null;
-  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null};
+  const naEquip=[...document.querySelectorAll('input[name="na-equip"]:checked')].map(cb=>cb.value);
+  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null};
   S.msg='Guardando...';render();
   try{
     const saved=await sbInsert('alumnas',a);
@@ -1988,8 +2028,21 @@ function drawerFicha(a){
   }
   if(obj){
     html+=`<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;">
-      <div style="font-size:10px;color:var(--pd);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Objetivos</div>
+      <div style="font-size:10px;color:var(--pd);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Objetivos (formulario)</div>
       <div style="font-size:13px;color:var(--t);">${obj}</div>
+    </div>`;
+  }
+  const _objLabel={tonificar:'Tonificar y mejorar postura',bajar_peso:'Bajar de peso',ganar_fuerza:'Ganar fuerza',salud:'Mejorar salud general',rehabilitacion:'Rehabilitación',rendimiento:'Rendimiento deportivo'};
+  const _equipLabel={sin_equipo:'Solo peso corporal',colchoneta:'Colchoneta',bandas:'Bandas elásticas',mancuernas_livianas:'Mancuernas hasta 5 kg',mancuernas_medias:'Mancuernas 5–15 kg',mancuernas_pesadas:'Mancuernas +15 kg',step:'Step / cajón',pelota:'Pelota suiza',barra:'Barra y discos',polea_trx:'Polea / TRX'};
+  const hasAiProfile=a.objetivo||a.tiempo_sesion||(Array.isArray(a.equipamiento)&&a.equipamiento.length);
+  if(hasAiProfile){
+    html+=`<div style="background:var(--vl);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid var(--vm);">
+      <div style="font-size:10px;color:var(--vd);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">✨ Perfil IA</div>
+      <div style="display:grid;gap:5px;font-size:12px;">
+        ${a.objetivo?`<div style="display:flex;gap:6px;"><span style="color:var(--tm);min-width:80px;">Objetivo</span><strong>${_objLabel[a.objetivo]||a.objetivo}</strong></div>`:''}
+        ${a.tiempo_sesion?`<div style="display:flex;gap:6px;"><span style="color:var(--tm);min-width:80px;">Tiempo</span><strong>${a.tiempo_sesion} min / sesión</strong></div>`:''}
+        ${Array.isArray(a.equipamiento)&&a.equipamiento.length?`<div style="display:flex;gap:6px;align-items:flex-start;"><span style="color:var(--tm);min-width:80px;">Equipamiento</span><span>${a.equipamiento.map(e=>_equipLabel[e]||e).join(', ')}</span></div>`:''}
+      </div>
     </div>`;
   }
   if(regData&&(regData.lesiones||regData.enfermedad||regData.medicacion)){
@@ -2308,6 +2361,39 @@ function rAlumnas(){
     <div class="frow">
       <div><label>¿Fuma?</label><select id="na-fuma"><option value="">—</option><option>No</option><option>Sí</option></select></div>
       <div><label>Experiencia</label><select id="na-exp"><option value="">—</option><option>Nunca entrené</option><option>Algo de experiencia</option><option>Experiencia media</option><option>Avanzada</option></select></div>
+    </div>
+    <div style="font-size:11px;color:var(--tm);margin:.75rem 0 .25rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">✨ Perfil para planificación IA</div>
+    <div class="frow">
+      <div><label>Objetivo principal</label><select id="na-objetivo">
+        <option value="">—</option>
+        <option value="tonificar">Tonificar y mejorar postura</option>
+        <option value="bajar_peso">Bajar de peso</option>
+        <option value="ganar_fuerza">Ganar fuerza</option>
+        <option value="salud">Mejorar salud general</option>
+        <option value="rehabilitacion">Rehabilitación</option>
+        <option value="rendimiento">Rendimiento deportivo</option>
+      </select></div>
+      <div><label>Tiempo por sesión</label><select id="na-tiempo">
+        <option value="">—</option>
+        <option value="30">30 min</option>
+        <option value="45">45 min</option>
+        <option value="60">60 min</option>
+        <option value="75">75 min</option>
+        <option value="90">90 min</option>
+      </select></div>
+    </div>
+    <label>Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:4px 0;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="sin_equipo"> Solo peso corporal</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="colchoneta"> Colchoneta</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="bandas"> Bandas elásticas</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="mancuernas_livianas"> Mancuernas hasta 5 kg</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="mancuernas_medias"> Mancuernas 5–15 kg</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="mancuernas_pesadas"> Mancuernas +15 kg</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="step"> Step / cajón</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="pelota"> Pelota suiza</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="barra"> Barra y discos</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="polea_trx"> Polea / TRX</label>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-top:.5rem;">
       <button class="btn btn-p btn-s" onclick="addAlumna()">Guardar</button>
