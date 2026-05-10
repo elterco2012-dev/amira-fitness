@@ -184,6 +184,7 @@
     @media(max-width:700px){.sidebar{display:none;}.main{padding:1rem;}.metrics{grid-template-columns:1fr 1fr;}.plant-grid{grid-template-columns:1fr 1fr;}.bib-grid{grid-template-columns:1fr;}}
     .drawer{position:fixed;top:0;right:0;width:min(620px,100vw);height:100vh;background:var(--s);z-index:101;overflow-y:auto;box-shadow:-4px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;animation:slideIn .2s ease;}
     @keyframes slideIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
     .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;}
     .drawer-hd{position:sticky;top:0;background:var(--s);z-index:10;border-bottom:1px solid var(--b);padding:1rem 1.25rem 0;}
     .drawer-tabs{display:flex;overflow-x:auto;scrollbar-width:none;}
@@ -364,6 +365,31 @@
       <button class="btn" onclick="closeCicloModal()">Cancelar</button>
     </div>
     <div id="ciclo-msg" style="font-size:12px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- Modal IA: preview de rutina generada -->
+<div class="modal-bg" id="modal-ia" style="display:none;" onclick="if(event.target===this)closeIAModal()">
+  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <h3 style="margin:0;">✨ Rutina generada por IA</h3>
+      <button onclick="closeIAModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tm);line-height:1;">×</button>
+    </div>
+    <div id="ia-loading" style="display:none;text-align:center;padding:2rem 0;">
+      <div style="font-size:2rem;margin-bottom:.75rem;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
+      <div style="font-size:14px;color:var(--tm);">Claude está generando la rutina…</div>
+      <div style="font-size:11px;color:var(--th);margin-top:.5rem;">Esto puede tardar 15–30 segundos</div>
+    </div>
+    <div id="ia-error" style="display:none;background:var(--rl);border-radius:var(--rs);padding:.75rem 1rem;font-size:13px;color:var(--rd);margin-bottom:1rem;"></div>
+    <div id="ia-preview" style="display:none;">
+      <div id="ia-preview-content"></div>
+      <div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;">
+        <button class="btn btn-p" onclick="saveGeneratedRoutine()">💾 Guardar como nuevo ciclo</button>
+        <button class="btn" onclick="generarRutinaIA(true)">🔄 Regenerar</button>
+        <button class="btn" onclick="closeIAModal()">Cancelar</button>
+      </div>
+      <div id="ia-save-msg" style="font-size:12px;margin-top:8px;"></div>
+    </div>
   </div>
 </div>
 
@@ -853,6 +879,134 @@ async function confirmarNuevoCiclo(){
     S.msg=`${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} creado. Los checks se resetearán automáticamente.`;
     render();setTimeout(()=>{S.msg='';render();},3000);
   }catch(e){document.getElementById('ciclo-msg').textContent='Error al crear el ciclo: '+e.message;}
+}
+
+// ── Generación de rutina con IA ───────────────────────────────
+let _iaRoutineData = null;
+
+function closeIAModal(){
+  document.getElementById('modal-ia').style.display='none';
+  document.getElementById('ia-loading').style.display='none';
+  document.getElementById('ia-preview').style.display='none';
+  document.getElementById('ia-error').style.display='none';
+}
+
+async function generarRutinaIA(regenerar=false){
+  const a=getA(S.selA);if(!a)return;
+  if(!regenerar){
+    const perfilOk=a.objetivo||a.tiempo_sesion||(a.equipamiento&&a.equipamiento.length>0);
+    if(!perfilOk){
+      if(!confirm('Esta alumna no tiene perfil IA configurado (objetivo, equipamiento, tiempo). ¿Continuar de todas formas?'))return;
+    }
+  }
+  const modal=document.getElementById('modal-ia');
+  modal.style.display='flex';
+  document.getElementById('ia-loading').style.display='block';
+  document.getElementById('ia-preview').style.display='none';
+  document.getElementById('ia-error').style.display='none';
+  _iaRoutineData=null;
+  try{
+    const semanas=parseInt(a.dias||3)>=5?4:4;
+    const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body:JSON.stringify({alumna_id:a.id,semanas})
+    });
+    const data=await resp.json();
+    if(!resp.ok||data.error){
+      throw new Error(data.error||(data.detail?data.detail.slice(0,200):'Error desconocido'));
+    }
+    _iaRoutineData=data.routine;
+    document.getElementById('ia-loading').style.display='none';
+    document.getElementById('ia-preview').style.display='block';
+    document.getElementById('ia-save-msg').textContent='';
+    document.querySelector('#modal-ia .btn-p').style.display='';
+    document.getElementById('ia-preview-content').innerHTML=renderIAPreview(data.routine,a);
+  }catch(e){
+    document.getElementById('ia-loading').style.display='none';
+    const errEl=document.getElementById('ia-error');
+    errEl.style.display='block';
+    errEl.textContent='Error: '+e.message;
+    // Show only the regenerate/cancel buttons, no save
+    document.getElementById('ia-preview').style.display='block';
+    document.getElementById('ia-preview-content').innerHTML='';
+    document.querySelector('#modal-ia .btn-p').style.display='none';
+  }
+}
+
+function renderIAPreview(routine, a){
+  if(!routine||!routine.semanas)return'<div style="color:var(--rd);">Respuesta inesperada de Claude.</div>';
+  const cicloNom=routine.ciclo_nombre||'Ciclo IA';
+  let html=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.75rem;">📅 ${cicloNom} · ${routine.semanas.length} semanas · ${a.nombre}</div>`;
+  for(const sem of routine.semanas){
+    html+=`<div style="margin-bottom:.75rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">Semana ${sem.semana}${sem.descripcion?` — ${sem.descripcion}`:''}</div>`;
+    for(const dia of(sem.dias||[])){
+      html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.6rem .8rem;margin-bottom:.4rem;">
+        <div style="font-size:11px;font-weight:600;color:var(--t);margin-bottom:.3rem;">Día ${dia.dia}${dia.enfoque?' · '+dia.enfoque:''}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <tr style="color:var(--th);"><th style="text-align:left;padding:2px 4px;font-weight:500;">Ejercicio</th><th style="text-align:center;padding:2px 4px;font-weight:500;white-space:nowrap;">Series</th><th style="text-align:center;padding:2px 4px;font-weight:500;">Reps</th><th style="text-align:left;padding:2px 4px;font-weight:500;">Tip</th></tr>
+          ${(dia.ejercicios||[]).map(ex=>`<tr style="border-top:1px solid var(--b);">
+            <td style="padding:3px 4px;color:var(--t);font-weight:500;">${ex.nombre||''}</td>
+            <td style="padding:3px 4px;text-align:center;color:var(--tm);">${ex.series||''}</td>
+            <td style="padding:3px 4px;text-align:center;color:var(--tm);">${ex.reps||''}</td>
+            <td style="padding:3px 4px;color:var(--th);font-size:10px;">${ex.tip||''}</td>
+          </tr>`).join('')}
+        </table>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  return html;
+}
+
+async function saveGeneratedRoutine(){
+  const a=getA(S.selA);if(!a||!_iaRoutineData)return;
+  const routine=_iaRoutineData;
+  const msgEl=document.getElementById('ia-save-msg');
+  msgEl.textContent='Guardando...';
+  try{
+    const cicloActual=a.ciclo_actual||1;
+    const nuevoCiclo=cicloActual+1;
+    const ops=[];
+    for(const sem of(routine.semanas||[])){
+      for(const dia of(sem.dias||[])){
+        const exs=(dia.ejercicios||[]).map(ex=>({
+          nombre:ex.nombre||'',
+          series:String(ex.series||'3'),
+          reps:String(ex.reps||'10'),
+          tip:ex.tip||'',
+          nota:'',
+          video:'',
+          grupo:ex.grupo||''
+        }));
+        if(exs.length){
+          ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem.semana)||1,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
+        }
+      }
+    }
+    await Promise.all(ops);
+    const ciclosNombres={...(a.ciclos_nombres||{})};
+    const nomCiclo=routine.ciclo_nombre||`Ciclo ${nuevoCiclo}`;
+    ciclosNombres[nuevoCiclo]=nomCiclo;
+    await sbPatch('alumnas',`id=eq.${a.id}`,{ciclo_actual:nuevoCiclo,ciclos_nombres:ciclosNombres});
+    a.ciclo_actual=nuevoCiclo;
+    a.ciclos_nombres=ciclosNombres;
+    if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
+    DB.rutinas[a.id][nuevoCiclo]={};
+    for(const sem of(routine.semanas||[])){
+      const semN=parseInt(sem.semana)||1;
+      DB.rutinas[a.id][nuevoCiclo][semN]=[];
+      for(const dia of(sem.dias||[])){
+        const exs=(dia.ejercicios||[]).map(ex=>({nombre:ex.nombre||'',series:String(ex.series||'3'),reps:String(ex.reps||'10'),tip:ex.tip||'',nota:'',video:'',grupo:ex.grupo||''}));
+        if(exs.length)DB.rutinas[a.id][nuevoCiclo][semN].push({dia:parseInt(dia.dia)||1,ejercicios:exs});
+      }
+    }
+    S.selCiclo=nuevoCiclo;S.selSem=1;S.selDia=1;
+    closeIAModal();
+    S.msg=`✨ ${nomCiclo} generado con IA y guardado.`;
+    render();setTimeout(()=>{S.msg='';render();},4000);
+  }catch(e){msgEl.textContent='Error al guardar: '+e.message;}
 }
 
 // ── Plantillas ────────────────────────────────────────────────
@@ -2737,7 +2891,8 @@ function rRutinas(){
           </span>`;
         }).join('');
       })()}
-      <button class="btn btn-s" style="margin-left:auto;" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
+      <button class="btn btn-s" style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border-color:#7c3aed;" onclick="generarRutinaIA()" title="Generar rutina con IA">✨ IA</button>
+      <button class="btn btn-s" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
       <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S._copSemMode=false;S.msg='';render()" title="Copiar rutina de otra alumna" style="padding:5px 8px;">📋</button>
       <button class="btn btn-s" onclick="S._copSemMode=!S._copSemMode;S._dupMode=false;S._copSemDstA=null;S._copSemDstCiclo=1;S._copSemDstSem=1;S.msg='';render()" title="Copiar semana entre alumnas" style="padding:5px 8px;">✂️</button>
     </div>
