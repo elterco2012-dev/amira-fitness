@@ -65,13 +65,15 @@ Deno.serve(async (req) => {
       .filter(r => r.ciclo === cicloAnterior)
       .sort((a, b) => a.semana - b.semana || a.dia - b.dia);
 
-    // ── 3. Historial de pesos y RPE (últimas sesiones por ejercicio)
+    // ── 3. Historial de pesos y RPE (últimas 3 sesiones por ejercicio → tendencia)
     type ProgresoRow = { ejercicio_nombre?: string; peso_kg?: number | null; rpe?: number | null; semana: number; ciclo: number };
-    const lastKgByEx: Record<string, { kg: number; rpe: number | null }> = {};
+    // progreso viene ordenado ciclo.desc, semana.desc → el primero es el más reciente
+    const sessionsByEx: Record<string, Array<{ kg: number; rpe: number | null }>> = {};
     for (const p of progreso as ProgresoRow[]) {
       const nom = p.ejercicio_nombre;
       if (!nom) continue;
-      if (!lastKgByEx[nom]) lastKgByEx[nom] = { kg: p.peso_kg ?? 0, rpe: p.rpe ?? null };
+      if (!sessionsByEx[nom]) sessionsByEx[nom] = [];
+      if (sessionsByEx[nom].length < 3) sessionsByEx[nom].push({ kg: p.peso_kg ?? 0, rpe: p.rpe ?? null });
     }
 
     // ── 4. Feedbacks recientes relevantes ────────────────────────
@@ -100,14 +102,15 @@ Tu tarea es generar rutinas de entrenamiento progresivas, seguras y efectivas \
 basadas en el perfil de la alumna y el historial de entrenamiento disponible.
 
 REGLAS:
-- Usá SOLO ejercicios de la biblioteca proporcionada. Los nombres deben coincidir EXACTAMENTE.
-- No inventes ejercicios nuevos.
+- Usá SOLO ejercicios de la biblioteca proporcionada. Los nombres deben coincidir EXACTAMENTE (copia y pega el nombre tal cual aparece).
+- No inventes ejercicios nuevos ni uses nombres alternativos.
 - Respetá el número de días por semana de la alumna.
-- Aplicá periodización: variá la intensidad entre semanas (semana 1 base, semana 2 progresión, semana 3 pico, semana 4 descarga si corresponde).
-- Si hay lesiones activas, evitá ejercicios que las comprometan.
-- Ajustá el volumen al tiempo disponible por sesión.
-- Para cada ejercicio incluí: nombre (exacto de la biblioteca), series (número), reps (ej: "10-12" o "8"), tip (consejo técnico breve).
-- Incluí el grupo muscular principal en el campo "grupo".
+- Aplicá periodización lineal: semana 1 base (volumen moderado, intensidad media), semana 2 progresión (+reps o +series), semana 3 pico (máxima intensidad, menor volumen), semana 4 descarga (−30% volumen para recuperación).
+- Si hay lesiones activas, evitá CUALQUIER ejercicio que comprometa esa zona.
+- Ajustá el número de ejercicios por sesión al tiempo disponible: 30min→4-5 ejercicios, 45min→5-6, 60min→6-8, 75min→8-9, 90min→9-10.
+- En el historial de pesos: ↑ significa que el peso aumentó (está progresando bien), = significa estancamiento (considerar cambio de estímulo), ↓ significa regresión (revisar el motivo).
+- Para cada ejercicio incluí: nombre (exacto de biblioteca), series (solo número, ej: "3"), reps (ej: "10-12"), tip (consejo técnico breve y concreto, máx 80 caracteres), grupo muscular.
+- Variá los ejercicios entre semanas cuando tenga sentido (mismos grupos, distinto estímulo).
 
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 ${bibTexto}
@@ -159,10 +162,21 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra):
         }).join("\n")
       : "Sin rutina previa disponible.";
 
-    const pesoHistStr = Object.entries(lastKgByEx).length
-      ? Object.entries(lastKgByEx)
-          .slice(0, 20)
-          .map(([nom, d]) => `- ${nom}: ${d.kg > 0 ? d.kg + " kg" : "sin peso"}${d.rpe ? ` (RPE ${d.rpe})` : ""}`)
+    const pesoHistStr = Object.entries(sessionsByEx).length
+      ? Object.entries(sessionsByEx)
+          .slice(0, 25)
+          .map(([nom, sessions]) => {
+            const last = sessions[0];
+            let trend = "";
+            if (sessions.length >= 2 && last.kg > 0 && sessions[1].kg > 0) {
+              if (last.kg > sessions[1].kg) trend = " ↑";
+              else if (last.kg < sessions[1].kg) trend = " ↓";
+              else trend = " =";
+            }
+            const rpeStr = last.rpe ? ` RPE ${last.rpe}` : "";
+            const kgStr = last.kg > 0 ? `${last.kg} kg` : "sin registro de peso";
+            return `- ${nom}: ${kgStr}${rpeStr}${trend}`;
+          })
           .join("\n")
       : "Sin historial de pesos.";
 

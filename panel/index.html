@@ -883,6 +883,7 @@ async function confirmarNuevoCiclo(){
 
 // ── Generación de rutina con IA ───────────────────────────────
 let _iaRoutineData = null;
+let _iaWeekSel = 0;
 
 function closeIAModal(){
   document.getElementById('modal-ia').style.display='none';
@@ -905,12 +906,12 @@ async function generarRutinaIA(regenerar=false){
   document.getElementById('ia-preview').style.display='none';
   document.getElementById('ia-error').style.display='none';
   _iaRoutineData=null;
+  _iaWeekSel=0;
   try{
-    const semanas=parseInt(a.dias||3)>=5?4:4;
     const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY},
-      body:JSON.stringify({alumna_id:a.id,semanas})
+      body:JSON.stringify({alumna_id:a.id,semanas:4})
     });
     const data=await resp.json();
     if(!resp.ok||data.error){
@@ -921,46 +922,96 @@ async function generarRutinaIA(regenerar=false){
     document.getElementById('ia-preview').style.display='block';
     document.getElementById('ia-save-msg').textContent='';
     document.querySelector('#modal-ia .btn-p').style.display='';
-    document.getElementById('ia-preview-content').innerHTML=renderIAPreview(data.routine,a);
+    refreshIAPreview();
   }catch(e){
     document.getElementById('ia-loading').style.display='none';
     const errEl=document.getElementById('ia-error');
     errEl.style.display='block';
     errEl.textContent='Error: '+e.message;
-    // Show only the regenerate/cancel buttons, no save
     document.getElementById('ia-preview').style.display='block';
     document.getElementById('ia-preview-content').innerHTML='';
     document.querySelector('#modal-ia .btn-p').style.display='none';
   }
 }
 
-function renderIAPreview(routine, a){
+function refreshIAPreview(){
+  const a=getA(S.selA);
+  if(!_iaRoutineData||!a)return;
+  document.getElementById('ia-preview-content').innerHTML=renderIAPreview(_iaRoutineData,a);
+}
+
+function renderIAPreview(routine,a){
   if(!routine||!routine.semanas)return'<div style="color:var(--rd);">Respuesta inesperada de Claude.</div>';
   const cicloNom=routine.ciclo_nombre||'Ciclo IA';
-  let html=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.75rem;">📅 ${cicloNom} · ${routine.semanas.length} semanas · ${a.nombre}</div>`;
-  for(const sem of routine.semanas){
-    html+=`<div style="margin-bottom:.75rem;">
-      <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">Semana ${sem.semana}${sem.descripcion?` — ${sem.descripcion}`:''}</div>`;
-    for(const dia of(sem.dias||[])){
-      html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.6rem .8rem;margin-bottom:.4rem;">
-        <div style="font-size:11px;font-weight:600;color:var(--t);margin-bottom:.3rem;">Día ${dia.dia}${dia.enfoque?' · '+dia.enfoque:''}</div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px;">
-          <tr style="color:var(--th);"><th style="text-align:left;padding:2px 4px;font-weight:500;">Ejercicio</th><th style="text-align:center;padding:2px 4px;font-weight:500;white-space:nowrap;">Series</th><th style="text-align:center;padding:2px 4px;font-weight:500;">Reps</th><th style="text-align:left;padding:2px 4px;font-weight:500;">Tip</th></tr>
-          ${(dia.ejercicios||[]).map(ex=>`<tr style="border-top:1px solid var(--b);">
-            <td style="padding:3px 4px;color:var(--t);font-weight:500;">${ex.nombre||''}</td>
-            <td style="padding:3px 4px;text-align:center;color:var(--tm);">${ex.series||''}</td>
-            <td style="padding:3px 4px;text-align:center;color:var(--tm);">${ex.reps||''}</td>
-            <td style="padding:3px 4px;color:var(--th);font-size:10px;">${ex.tip||''}</td>
-          </tr>`).join('')}
-        </table>
-      </div>`;
+  if(_iaWeekSel>=routine.semanas.length)_iaWeekSel=0;
+
+  // Tabs de semanas
+  const tabs=routine.semanas.map((sem,i)=>`<button
+    onclick="_iaWeekSel=${i};refreshIAPreview()"
+    style="padding:4px 14px;border:1px solid ${_iaWeekSel===i?'var(--pd)':'var(--bm)'};border-radius:20px;background:${_iaWeekSel===i?'var(--pd)':'var(--s)'};color:${_iaWeekSel===i?'#fff':'var(--t)'};font-size:11px;cursor:pointer;font-weight:${_iaWeekSel===i?'600':'400'};">
+    Sem ${sem.semana}
+  </button>`).join('');
+
+  const sem=routine.semanas[_iaWeekSel];
+  const semIdx=_iaWeekSel;
+
+  let html=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.6rem;">📅 ${cicloNom} · ${a.nombre}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">${tabs}</div>
+  <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Semana ${sem.semana}${sem.descripcion?' — '+sem.descripcion:''}</div>`;
+
+  for(let dIdx=0;dIdx<(sem.dias||[]).length;dIdx++){
+    const dia=sem.dias[dIdx];
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.6rem .8rem;margin-bottom:.5rem;">
+      <div style="font-size:11px;font-weight:600;color:var(--t);margin-bottom:.4rem;">Día ${dia.dia}${dia.enfoque?' · <span style="font-weight:400;color:var(--tm);">'+dia.enfoque+'</span>':''}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <tr style="color:var(--th);">
+          <th style="text-align:left;padding:2px 4px;font-weight:500;min-width:120px;">Ejercicio</th>
+          <th style="text-align:center;padding:2px 4px;font-weight:500;width:54px;">Series</th>
+          <th style="text-align:center;padding:2px 4px;font-weight:500;width:64px;">Reps</th>
+          <th style="text-align:left;padding:2px 4px;font-weight:500;">Tip</th>
+          <th style="width:22px;"></th>
+        </tr>`;
+    for(let eIdx=0;eIdx<(dia.ejercicios||[]).length;eIdx++){
+      const ex=dia.ejercicios[eIdx];
+      const tipEsc=(ex.tip||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      html+=`<tr style="border-top:1px solid var(--b);">
+        <td style="padding:3px 4px;color:var(--t);font-weight:500;font-size:11px;">${ex.nombre||''}</td>
+        <td style="padding:2px 3px;">
+          <input value="${ex.series||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'series',this.value)"
+            style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);">
+        </td>
+        <td style="padding:2px 3px;">
+          <input value="${ex.reps||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'reps',this.value)"
+            style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);">
+        </td>
+        <td style="padding:2px 3px;">
+          <input value="${tipEsc}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'tip',this.value)"
+            style="width:100%;border:1px solid var(--bm);border-radius:4px;padding:2px 4px;font-size:11px;background:var(--s);color:var(--t);">
+        </td>
+        <td style="padding:2px 4px;text-align:center;">
+          <button onclick="iaRemoveEx(${semIdx},${dIdx},${eIdx})" title="Eliminar ejercicio"
+            style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:15px;line-height:1;padding:0;">×</button>
+        </td>
+      </tr>`;
     }
-    html+='</div>';
+    html+=`</table>
+      <div style="font-size:10px;color:var(--th);margin-top:4px;">✏️ Podés editar series, reps y tip directamente. × para eliminar un ejercicio.</div>
+    </div>`;
   }
   return html;
 }
 
-async function saveGeneratedRoutine(){
+function iaUpdateEx(semIdx,diaIdx,exIdx,field,value){
+  if(!_iaRoutineData?.semanas?.[semIdx]?.dias?.[diaIdx]?.ejercicios?.[exIdx])return;
+  _iaRoutineData.semanas[semIdx].dias[diaIdx].ejercicios[exIdx][field]=value;
+}
+
+function iaRemoveEx(semIdx,diaIdx,exIdx){
+  const exs=_iaRoutineData?.semanas?.[semIdx]?.dias?.[diaIdx]?.ejercicios;
+  if(!exs)return;
+  exs.splice(exIdx,1);
+  refreshIAPreview();
+}
   const a=getA(S.selA);if(!a||!_iaRoutineData)return;
   const routine=_iaRoutineData;
   const msgEl=document.getElementById('ia-save-msg');
