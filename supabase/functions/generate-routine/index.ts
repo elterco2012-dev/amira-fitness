@@ -144,6 +144,19 @@ REGLA DE PATRONES DE MOVIMIENTO:
 - En sesiones de cuerpo completo: respetá ambas reglas anteriores.
 - Los ejercicios de [aislamiento] son complementarios; no deben ser el único trabajo de un grupo muscular en la sesión.
 
+REGLA DE ORDEN DENTRO DE CADA SESIÓN:
+- Siempre ordená los ejercicios de mayor a menor complejidad e impacto neurológico:
+  1. Primero: multiarticulares pesados (sentadilla, peso muerto, press con barra, remo con barra, dominada)
+  2. Segundo: multiarticulares con mancuernas o máquina (prensa, press inclinado, remo con mancuerna)
+  3. Tercero: ejercicios complementarios y unilaterales (zancada, hip thrust, pull-over)
+  4. Último: aislamientos (curl de bíceps, extensión de tríceps, elevación lateral, core)
+- Esta regla es fija: nunca pongas un aislamiento antes de un compuesto aunque sean del mismo grupo.
+
+REGLA DE CALENTAMIENTO:
+- NO incluyas ejercicios de los grupos "Calentamiento" ni "Estiramiento" en la rutina generada.
+- La entrenadora maneja el calentamiento y vuelta a la calma por separado.
+- Todos los ejercicios de la rutina deben ser de trabajo efectivo.
+
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 (formato: - Nombre [equipamiento][patrón][nivel])
 ${bibTexto}
