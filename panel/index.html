@@ -256,6 +256,7 @@
         <option value="">Todos los grupos</option>
         <option>Core</option><option>Piernas</option><option>Glúteos</option>
         <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option>
+        <option>Gemelos</option><option>Cuádriceps</option><option>Isquiotibiales</option><option>Bíceps</option><option>Tríceps</option>
       </select>
     </div>
     <div class="bib-grid" id="bib-list"></div>
@@ -295,7 +296,9 @@
       <div><label>Grupo muscular</label>
         <select id="m-grupo" style="margin-bottom:0;">
           <option>Core</option><option>Piernas</option><option>Glúteos</option>
-          <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option><option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
+          <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option>
+          <option>Gemelos</option><option>Cuádriceps</option><option>Isquiotibiales</option><option>Bíceps</option><option>Tríceps</option>
+          <option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
       <div><label>Equipamiento</label>
@@ -1231,10 +1234,12 @@ function openBib(){
 function closeBib(){document.getElementById('modal-bib').style.display='none';bibSelEx=null;}
 
 function renderBib(){
-  const q=(document.getElementById('bib-q')?.value||'').toLowerCase();
+  const q=(document.getElementById('bib-q')?.value||'');
   const grupo=document.getElementById('bib-grupo')?.value||'';
+  const _nrm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const qn=_nrm(q);
   const filtered=DB.biblioteca.filter(e=>{
-    const matchQ=!q||e.nombre.toLowerCase().includes(q)||(e.grupo_muscular||'').toLowerCase().includes(q);
+    const matchQ=!qn||_nrm(e.nombre).includes(qn)||_nrm(e.grupo_muscular||'').includes(qn);
     const matchG=!grupo||e.grupo_muscular===grupo;
     return matchQ&&matchG;
   });
@@ -3332,8 +3337,10 @@ function rBiblioteca(){
   const grupos=[...new Set(DB.biblioteca.map(e=>e.grupo_muscular).filter(Boolean))].sort();
   const [q,setQ]=[document.getElementById('bib-main-q')?.value||'',null];
   const [g,setG]=[document.getElementById('bib-main-g')?.value||'',null];
+  const normStr=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const qn=normStr(q);
   const filtered=DB.biblioteca.filter(e=>{
-    const mq=!q||e.nombre.toLowerCase().includes(q.toLowerCase());
+    const mq=!qn||normStr(e.nombre).includes(qn)||normStr(e.grupo_muscular||'').includes(qn);
     const mg=!g||e.grupo_muscular===g;
     return mq&&mg;
   });
@@ -3346,7 +3353,7 @@ function rBiblioteca(){
   const cPortable=DB.biblioteca.filter(e=>PORTABLE.includes(e.equipamiento_requerido)).length;
   const cGym=DB.biblioteca.filter(e=>GYM.includes(e.equipamiento_requerido)).length;
 
-  const MAIN_GRUPOS=['Core','Piernas','Glúteos','Espalda','Pecho','Hombros','Brazos'];
+  const MAIN_GRUPOS=['Core','Piernas','Glúteos','Espalda','Pecho','Hombros','Brazos','Gemelos','Cuádriceps','Isquiotibiales','Bíceps','Tríceps'];
   const grupoStats=MAIN_GRUPOS.map(gr=>{
     const exs=DB.biblioteca.filter(e=>e.grupo_muscular===gr);
     const casaCount=exs.filter(e=>!GYM.includes(e.equipamiento_requerido)).length;
@@ -4384,7 +4391,9 @@ initAuth();
         <select id="eb-grupo" style="margin-bottom:0;">
           <option>Core</option><option>Piernas</option><option>Glúteos</option>
           <option>Espalda</option><option>Pecho</option><option>Hombros</option>
-          <option>Brazos</option><option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
+          <option>Brazos</option>
+          <option>Gemelos</option><option>Cuádriceps</option><option>Isquiotibiales</option><option>Bíceps</option><option>Tríceps</option>
+          <option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
       <div><label>Equipamiento</label>
