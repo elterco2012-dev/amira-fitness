@@ -3337,36 +3337,91 @@ function rBiblioteca(){
     const mg=!g||e.grupo_muscular===g;
     return mq&&mg;
   });
+
+  // ── Stats de cobertura ──
+  const GYM=['maquina','barra','polea'];
+  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step'];
+  const total=DB.biblioteca.length;
+  const cSinEquip=DB.biblioteca.filter(e=>!e.equipamiento_requerido||e.equipamiento_requerido==='sin_equipamiento').length;
+  const cPortable=DB.biblioteca.filter(e=>PORTABLE.includes(e.equipamiento_requerido)).length;
+  const cGym=DB.biblioteca.filter(e=>GYM.includes(e.equipamiento_requerido)).length;
+
+  const MAIN_GRUPOS=['Core','Piernas','Glúteos','Espalda','Pecho','Hombros','Brazos'];
+  const grupoStats=MAIN_GRUPOS.map(gr=>{
+    const exs=DB.biblioteca.filter(e=>e.grupo_muscular===gr);
+    const casaCount=exs.filter(e=>!GYM.includes(e.equipamiento_requerido)).length;
+    return{gr,total:exs.length,casa:casaCount};
+  });
+
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Kettlebell',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Fitball',step:'📦 Step'};
+
+  const statsHtml=`<div class="card" style="margin-bottom:1rem;padding:.85rem 1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
+      <div style="font-size:12px;font-weight:600;color:var(--t);">Cobertura de la biblioteca <span style="font-weight:400;color:var(--tm);">(${total} ejercicios)</span></div>
+      <div style="font-size:10px;color:var(--th);">para que la IA funcione bien: ≥6 por grupo en cada categoría</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:.75rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#166534;">${cSinEquip}</div>
+        <div style="font-size:10px;color:#166534;font-weight:500;">💪 Peso corporal</div>
+        <div style="font-size:9px;color:#4ade80;">Casa y gym</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#1e40af;">${cPortable}</div>
+        <div style="font-size:10px;color:#1e40af;font-weight:500;">🏠 Equipo portable</div>
+        <div style="font-size:9px;color:#60a5fa;">Manc · Banda · KB · TRX</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#6b21a8;">${cGym}</div>
+        <div style="font-size:10px;color:#6b21a8;font-weight:500;">🏋️ Solo gimnasio</div>
+        <div style="font-size:9px;color:#a78bfa;">Máq · Barra · Polea</div>
+      </div>
+    </div>
+    <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">Cobertura casa por grupo muscular</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${grupoStats.map(({gr,total,casa})=>{
+        const color=casa>=6?'#166534':casa>=3?'#92400e':'#991b1b';
+        const bg=casa>=6?'#f0fdf4':casa>=3?'#fffbeb':'#fef2f2';
+        const border=casa>=6?'#bbf7d0':casa>=3?'#fcd34d':'#fecaca';
+        const icon=casa>=6?'✅':casa>=3?'⚠️':'❌';
+        return`<div style="background:${bg};border:1px solid ${border};border-radius:20px;padding:3px 10px;font-size:10px;color:${color};font-weight:500;" title="${gr}: ${casa} ejercicios sin equipamiento de gym">${icon} ${gr} <span style="opacity:.7;">${casa}</span></div>`;
+      }).join('')}
+    </div>
+    ${grupoStats.some(({casa})=>casa<3)?`<div style="font-size:10px;color:#92400e;margin-top:.5rem;">⚠️ Los grupos en rojo/amarillo necesitan más ejercicios de peso corporal o equipo portable para que la IA pueda armar rutinas de casa.</div>`:''}
+  </div>`;
+
   return`<div class="ptitle">Biblioteca de ejercicios</div>
-  <div class="card" style="margin-bottom:1rem;background:var(--p);border-color:var(--pd)20;">
+  <div class="card" style="margin-bottom:.75rem;background:var(--p);border-color:var(--pd)20;">
     <div style="font-size:13px;color:var(--pd);line-height:1.6;">
       La biblioteca guarda todos los ejercicios con su técnica y video. Al armar la rutina de una alumna, elegís desde acá y solo ajustás las series y reps. El video y la técnica ya están cargados.
     </div>
   </div>
+  ${total>0?statsHtml:''}
   <div style="display:flex;gap:8px;margin-bottom:1rem;align-items:center;">
     <input type="text" id="bib-main-q" placeholder="Buscar..." style="flex:1;margin-bottom:0;" oninput="render()">
     <select id="bib-main-g" style="width:160px;margin-bottom:0;" onchange="render()">
       <option value="">Todos los grupos</option>
-      ${grupos.map(g=>`<option value="${g}">${g}</option>`).join('')}
+      ${grupos.map(gr=>`<option value="${gr}">${gr}</option>`).join('')}
     </select>
     <button class="btn btn-p btn-s" onclick="openManualBib()">+ Agregar a biblioteca</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-    ${filtered.map(e=>`
-    <div class="card" style="padding:1rem;margin-bottom:0;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-        <div style="font-size:13px;font-weight:500;color:var(--t);">${e.nombre}</div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span class="ex-grupo">${e.grupo_muscular||'—'}</span>
+    ${filtered.map(e=>{
+      const equLbl=EQUIP_LABEL[e.equipamiento_requerido]||'';
+      return`<div class="card" style="padding:1rem;margin-bottom:0;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div style="font-size:13px;font-weight:500;color:var(--t);flex:1;margin-right:6px;">${e.nombre}</div>
+          <span class="ex-grupo" style="white-space:nowrap;">${e.grupo_muscular||'—'}</span>
         </div>
-      </div>
-      ${e.descripcion?`<div style="font-size:11px;color:var(--vd);margin-bottom:5px;line-height:1.4;">${e.descripcion}</div>`:''}
-      ${e.video?`<div style="font-size:10px;color:#185FA5;margin-bottom:6px;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);margin-bottom:6px;">Sin video</div>'}
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-s btn-warn" onclick="openEditBib(${e.id})">Editar</button>
-        <button class="btn btn-s btn-d" onclick="deleteBib(${e.id})">Eliminar</button>
-      </div>
-    </div>`).join('')}
+        ${equLbl?`<div style="font-size:10px;color:var(--tm);margin-bottom:4px;">${equLbl}</div>`:''}
+        ${e.descripcion?`<div style="font-size:11px;color:var(--vd);margin-bottom:5px;line-height:1.4;">${e.descripcion}</div>`:''}
+        ${e.video?`<div style="font-size:10px;color:#185FA5;margin-bottom:6px;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);margin-bottom:6px;">Sin video</div>'}
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-s btn-warn" onclick="openEditBib(${e.id})">Editar</button>
+          <button class="btn btn-s btn-d" onclick="deleteBib(${e.id})">Eliminar</button>
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
