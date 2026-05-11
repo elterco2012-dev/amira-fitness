@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
   try {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
-      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual`),
-      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido&order=grupo_muscular.asc,nombre.asc"),
+      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel`),
+      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
       dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,descripcion,created_at&order=created_at.desc&limit=20`),
@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
     if (!alumnas.length) return Response.json({ error: "Alumna no encontrada" }, { status: 404, headers: CORS });
     const alumna = alumnas[0] as {
       nombre: string; tipo?: string; dias?: number; lesiones?: string | null; notas?: string | null;
-      objetivo?: string | null; equipamiento?: string[] | null; tiempo_sesion?: number | null; ciclo_actual?: number;
+      objetivo?: string | null; equipamiento?: string[] | null; tiempo_sesion?: number | null;
+      ciclo_actual?: number; nivel?: string | null;
     };
 
     // ── 2. Ciclo anterior: estructura de días ────────────────────
@@ -67,7 +68,6 @@ Deno.serve(async (req) => {
 
     // ── 3. Historial de pesos y RPE (últimas 3 sesiones por ejercicio → tendencia)
     type ProgresoRow = { ejercicio_nombre?: string; peso_kg?: number | null; rpe?: number | null; semana: number; ciclo: number };
-    // progreso viene ordenado ciclo.desc, semana.desc → el primero es el más reciente
     const sessionsByEx: Record<string, Array<{ kg: number; rpe: number | null }>> = {};
     for (const p of progreso as ProgresoRow[]) {
       const nom = p.ejercicio_nombre;
@@ -84,19 +84,24 @@ Deno.serve(async (req) => {
       .map(f => `- ${f.tipo}${f.descripcion ? ": " + f.descripcion : ""} (${f.created_at.slice(0, 10)})`)
       .join("\n");
 
-    // ── 5. Biblioteca como string cacheada ───────────────────────
-    type BibRow = { nombre: string; grupo_muscular?: string; descripcion?: string; equipamiento_requerido?: string };
+    // ── 5. Biblioteca con patrón y nivel ─────────────────────────
+    type BibRow = {
+      nombre: string; grupo_muscular?: string; descripcion?: string;
+      equipamiento_requerido?: string; patron_movimiento?: string | null; nivel_dificultad?: number | null;
+    };
     const equipLabels: Record<string, string> = {
       sin_equipamiento: "sin equipamiento", mancuernas: "mancuernas", barra: "barra",
-      maquina: "máquina", banda_elastica: "banda elástica", kettlebell: "kettlebell",
-      polea: "polea/cables", trx: "TRX", fitball: "fitball", step: "step/cajón"
+      maquina: "máquina", banda_elastica: "banda elástica", kettlebell: "pesa rusa",
+      polea: "polea/cables", trx: "TRX", fitball: "esfera", step: "step/cajón"
     };
     const bibByGroup: Record<string, string[]> = {};
     for (const ex of biblioteca as BibRow[]) {
       const g = ex.grupo_muscular ?? "Otros";
       if (!bibByGroup[g]) bibByGroup[g] = [];
       const equip = ex.equipamiento_requerido ? `[${equipLabels[ex.equipamiento_requerido] ?? ex.equipamiento_requerido}]` : "[sin equipamiento]";
-      bibByGroup[g].push(`- ${ex.nombre} ${equip}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}`);
+      const patron = ex.patron_movimiento ? `[${ex.patron_movimiento}]` : "";
+      const nivel  = ex.nivel_dificultad   ? `[N${ex.nivel_dificultad}]` : "";
+      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}`);
     }
     const bibTexto = Object.entries(bibByGroup)
       .map(([g, exs]) => `### ${g}\n${exs.join("\n")}`)
@@ -107,10 +112,9 @@ Deno.serve(async (req) => {
 Tu tarea es generar rutinas de entrenamiento progresivas, seguras y efectivas \
 basadas en el perfil de la alumna y el historial de entrenamiento disponible.
 
-REGLAS:
+REGLAS GENERALES:
 - Usá SOLO ejercicios de la biblioteca proporcionada. Los nombres deben coincidir EXACTAMENTE (copia y pega el nombre tal cual aparece).
 - No inventes ejercicios nuevos ni uses nombres alternativos.
-- CRÍTICO: cada ejercicio tiene su equipamiento entre corchetes [ej: mancuernas]. Usá ÚNICAMENTE ejercicios cuyo equipamiento esté disponible para la alumna. Ejercicios [sin equipamiento] siempre están permitidos. Si la alumna tiene mancuernas, podés usar ejercicios [mancuernas]. Si no tiene acceso a gimnasio, NUNCA uses ejercicios [máquina], [barra], [polea] etc.
 - Respetá el número de días por semana de la alumna.
 - Aplicá periodización lineal: semana 1 base (volumen moderado, intensidad media), semana 2 progresión (+reps o +series), semana 3 pico (máxima intensidad, menor volumen), semana 4 descarga (−30% volumen para recuperación).
 - Si hay lesiones activas, evitá CUALQUIER ejercicio que comprometa esa zona.
@@ -120,12 +124,33 @@ REGLAS:
 - Variá los ejercicios entre semanas cuando tenga sentido (mismos grupos, distinto estímulo).
 - Para peso_sugerido: si el ejercicio aparece en el historial de pesos, calculá el peso de inicio recomendado para la semana 1 del nuevo ciclo. Lógica: RPE ≤7 o tendencia ↑ → último peso + pequeño incremento (0.5kg si <10kg, 1kg si 10-20kg, 2.5kg si >20kg). RPE 8-9 → mismo peso. RPE 10 o tendencia ↓ → mismo peso o −5%. Sin historial → null. Usá siempre el mismo peso_sugerido en las 4 semanas para el mismo ejercicio (la periodización va en series/reps, no en peso).
 
+REGLA DE EQUIPAMIENTO (CRÍTICO):
+- Cada ejercicio tiene su equipamiento entre corchetes [ej: mancuernas].
+- Usá ÚNICAMENTE ejercicios cuyo equipamiento esté disponible para la alumna.
+- Ejercicios [sin equipamiento] siempre están permitidos.
+- Si la alumna no tiene acceso a gimnasio, NUNCA uses ejercicios [máquina], [barra] o [polea/cables].
+
+REGLA DE NIVEL (CRÍTICO):
+- Cada ejercicio tiene su dificultad marcada como [N1] (básico), [N2] (intermedio) o [N3] (avanzado). Sin marca = sin clasificar, podés usarlos libremente.
+- principiante → usá principalmente N1, algún N2 hacia el final del ciclo. NUNCA N3.
+- intermedio → mix de N1 y N2, podés incluir algún N3 como variante de semana 3.
+- avanzado → podés usar N1/N2/N3 libremente según el objetivo de la sesión.
+- Si la alumna no tiene nivel definido, usá criterio moderado (mix N1+N2).
+
+REGLA DE PATRONES DE MOVIMIENTO:
+- Cada ejercicio tiene su patrón entre corchetes: [empuje_horizontal], [empuje_vertical], [jale_horizontal], [jale_vertical], [bisagra], [sentadilla], [core], [aislamiento], [cardio].
+- En cada sesión de tren superior: incluí al menos 1 empuje (horizontal o vertical) Y 1 jale (horizontal o vertical) para equilibrar la musculatura antagonista.
+- En cada sesión de tren inferior: incluí al menos 1 patrón de sentadilla Y 1 de bisagra para trabajar cuádriceps e isquiotibiales de forma equilibrada.
+- En sesiones de cuerpo completo: respetá ambas reglas anteriores.
+- Los ejercicios de [aislamiento] son complementarios; no deben ser el único trabajo de un grupo muscular en la sesión.
+
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
+(formato: - Nombre [equipamiento][patrón][nivel])
 ${bibTexto}
 
 FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
 {
-  "razonamiento": "2-3 oraciones explicando la lógica central de esta rutina: por qué elegiste esta estructura, qué progresión aplicás y cómo se conecta con el objetivo y el historial de la alumna.",
+  "razonamiento": "2-3 oraciones explicando la lógica central de esta rutina: por qué elegiste esta estructura, qué progresión aplicás y cómo se conecta con el objetivo, el nivel y el historial de la alumna.",
   "ciclo_nombre": "string (ej: Junio 2026)",
   "semanas": [
     {
@@ -134,7 +159,7 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
       "dias": [
         {
           "dia": 1,
-          "enfoque": "string (ej: Tren superior - Empuje)",
+          "enfoque": "string (ej: Tren superior - Empuje + Jale)",
           "ejercicios": [
             {
               "nombre": "string (EXACTAMENTE como figura en la biblioteca, sin cambiar ni una letra)",
@@ -163,6 +188,12 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
       salud: "Salud general",
       rehabilitacion: "Rehabilitación",
       rendimiento: "Rendimiento deportivo",
+    };
+
+    const nivelLabels: Record<string, string> = {
+      principiante: "Principiante (<1 año de entrenamiento)",
+      intermedio: "Intermedio (1–3 años)",
+      avanzado: "Avanzado (+3 años, buena técnica)",
     };
 
     const prevRutinaStr = rutinasAnterior.length
@@ -205,6 +236,7 @@ PERFIL:
 - Modalidad: ${alumna.tipo ?? "no especificado"}
 - Días de entrenamiento por semana: ${alumna.dias ?? "no especificado"}
 - Objetivo: ${objetivoLabels[alumna.objetivo ?? ""] ?? alumna.objetivo ?? "no especificado"}
+- Nivel de experiencia: ${nivelLabels[alumna.nivel ?? ""] ?? alumna.nivel ?? "no especificado — usá criterio moderado"}
 - Tiempo por sesión: ${alumna.tiempo_sesion ? alumna.tiempo_sesion + " minutos" : "no especificado"}
 - Equipamiento disponible: ${equipStr}
 - Lesiones/limitaciones activas: ${alumna.lesiones ?? "ninguna"}
