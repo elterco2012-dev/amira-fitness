@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
     return Response.json({ error: "ANTHROPIC_API_KEY no configurada en los secrets del proyecto" }, { status: 500, headers: CORS });
   }
 
-  let body: { alumna_id?: number; semanas?: number };
+  let body: { alumna_id?: number; semanas?: number; instrucciones?: string };
   try { body = await req.json(); } catch { return Response.json({ error: "JSON inválido" }, { status: 400, headers: CORS }); }
 
-  const { alumna_id, semanas = 4 } = body;
+  const { alumna_id, semanas = 4, instrucciones } = body;
   if (!alumna_id) return Response.json({ error: "alumna_id requerido" }, { status: 400, headers: CORS });
 
   try {
@@ -115,8 +115,9 @@ REGLAS:
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 ${bibTexto}
 
-FORMATO DE RESPUESTA (JSON estricto, sin texto extra):
+FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
 {
+  "razonamiento": "2-3 oraciones explicando la lógica central de esta rutina: por qué elegiste esta estructura, qué progresión aplicás y cómo se conecta con el objetivo y el historial de la alumna.",
   "ciclo_nombre": "string (ej: Junio 2026)",
   "semanas": [
     {
@@ -128,10 +129,10 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra):
           "enfoque": "string (ej: Tren superior - Empuje)",
           "ejercicios": [
             {
-              "nombre": "string (exacto de la biblioteca)",
-              "series": "string (ej: 3)",
+              "nombre": "string (EXACTAMENTE como figura en la biblioteca, sin cambiar ni una letra)",
+              "series": "string numérico (ej: 3)",
               "reps": "string (ej: 10-12)",
-              "tip": "string (consejo técnico)",
+              "tip": "string (consejo técnico breve, máx 80 caracteres)",
               "grupo": "string"
             }
           ]
@@ -185,6 +186,10 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra):
     const mesNombre = meses[(hoy.getMonth() + 1) % 12];
     const anoStr = hoy.getMonth() === 11 ? String(hoy.getFullYear() + 1) : String(hoy.getFullYear());
 
+    const instruccionesStr = instrucciones
+      ? `\nINSTRUCCIONES ESPECÍFICAS DE LA ENTRENADORA PARA ESTE CICLO:\n${instrucciones}\n`
+      : "";
+
     const userPrompt = `Generá una rutina de ${semanas} semanas para la alumna "${alumna.nombre}".
 
 PERFIL:
@@ -194,11 +199,11 @@ PERFIL:
 - Tiempo por sesión: ${alumna.tiempo_sesion ? alumna.tiempo_sesion + " minutos" : "no especificado"}
 - Equipamiento disponible: ${equipStr}
 - Lesiones/limitaciones activas: ${alumna.lesiones ?? "ninguna"}
-
+${instruccionesStr}
 RUTINA ANTERIOR (ciclo ${cicloAnterior}):
 ${prevRutinaStr}
 
-HISTORIAL DE PESOS Y RPE (más reciente por ejercicio):
+HISTORIAL DE PESOS Y RPE (más reciente por ejercicio, ↑ subiendo ↓ bajando = estancado):
 ${pesoHistStr}
 
 FEEDBACKS RECIENTES:
@@ -206,7 +211,8 @@ ${fbResumen || "Sin feedbacks relevantes."}
 
 Generá ${semanas} semanas completas con ${alumna.dias ?? 3} días cada una. \
 El nombre del ciclo debe ser "${mesNombre} ${anoStr}". \
-Respondé ÚNICAMENTE con el JSON, sin explicaciones adicionales.`;
+IMPORTANTE: los nombres de ejercicios deben coincidir EXACTAMENTE con los de la biblioteca. \
+Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin texto antes ni después.`;
 
     // ── 8. Llamada a Claude API con prompt caching ───────────────
     const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {

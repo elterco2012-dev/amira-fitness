@@ -368,24 +368,42 @@
   </div>
 </div>
 
-<!-- Modal IA: preview de rutina generada -->
+<!-- Modal IA: generación de rutina con IA -->
 <div class="modal-bg" id="modal-ia" style="display:none;" onclick="if(event.target===this)closeIAModal()">
-  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-      <h3 style="margin:0;">✨ Rutina generada por IA</h3>
+      <h3 style="margin:0;">✨ Generar rutina con IA</h3>
       <button onclick="closeIAModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tm);line-height:1;">×</button>
     </div>
+
+    <!-- Paso 1: instrucciones -->
+    <div id="ia-input" style="display:none;">
+      <div id="ia-alumna-chip" style="display:inline-flex;align-items:center;gap:6px;background:var(--p);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--pd);font-weight:500;margin-bottom:1rem;"></div>
+      <label style="font-size:12px;font-weight:500;color:var(--t);display:block;margin-bottom:.35rem;">Instrucciones para este ciclo <span style="font-weight:400;color:var(--tm);">(opcional)</span></label>
+      <textarea id="ia-instrucciones" rows="4"
+        placeholder="Ej: este mes quiero foco en piernas y glúteos, incluí más core al final de cada sesión, evitá sentadillas porque le molesta la rodilla derecha, nivel intermedio…"
+        style="width:100%;border:1px solid var(--bm);border-radius:var(--rs);padding:.6rem .75rem;font-size:13px;background:var(--s);color:var(--t);resize:vertical;box-sizing:border-box;"></textarea>
+      <div style="font-size:11px;color:var(--th);margin:.4rem 0 1rem;">Si no escribís nada, Claude usa el perfil de la alumna para decidir.</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-p" onclick="confirmarGenerarIA()" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:#7c3aed;">✨ Generar rutina</button>
+        <button class="btn" onclick="closeIAModal()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: cargando -->
     <div id="ia-loading" style="display:none;text-align:center;padding:2rem 0;">
       <div style="font-size:2rem;margin-bottom:.75rem;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
       <div style="font-size:14px;color:var(--tm);">Claude está generando la rutina…</div>
       <div style="font-size:11px;color:var(--th);margin-top:.5rem;">Esto puede tardar 15–30 segundos</div>
     </div>
+
+    <!-- Paso 3: error + preview -->
     <div id="ia-error" style="display:none;background:var(--rl);border-radius:var(--rs);padding:.75rem 1rem;font-size:13px;color:var(--rd);margin-bottom:1rem;"></div>
     <div id="ia-preview" style="display:none;">
       <div id="ia-preview-content"></div>
       <div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-p" onclick="saveGeneratedRoutine()">💾 Guardar como nuevo ciclo</button>
-        <button class="btn" onclick="generarRutinaIA(true)">🔄 Regenerar</button>
+        <button class="btn" onclick="mostrarInputIA()">🔄 Regenerar</button>
         <button class="btn" onclick="closeIAModal()">Cancelar</button>
       </div>
       <div id="ia-save-msg" style="font-size:12px;margin-top:8px;"></div>
@@ -887,37 +905,46 @@ let _iaWeekSel = 0;
 
 function closeIAModal(){
   document.getElementById('modal-ia').style.display='none';
-  document.getElementById('ia-loading').style.display='none';
-  document.getElementById('ia-preview').style.display='none';
-  document.getElementById('ia-error').style.display='none';
+  ['ia-input','ia-loading','ia-preview','ia-error'].forEach(id=>document.getElementById(id).style.display='none');
 }
 
-async function generarRutinaIA(regenerar=false){
+function generarRutinaIA(){
   const a=getA(S.selA);if(!a)return;
-  if(!regenerar){
+  document.getElementById('modal-ia').style.display='flex';
+  mostrarInputIA();
+}
+
+function mostrarInputIA(){
+  const a=getA(S.selA);if(!a)return;
+  const chip=document.getElementById('ia-alumna-chip');
+  if(chip){
     const perfilOk=a.objetivo||a.tiempo_sesion||(a.equipamiento&&a.equipamiento.length>0);
-    if(!perfilOk){
-      if(!confirm('Esta alumna no tiene perfil IA configurado (objetivo, equipamiento, tiempo). ¿Continuar de todas formas?'))return;
-    }
+    chip.textContent=`${a.nombre} · ${a.dias||3} días/sem${perfilOk?'':' · ⚠️ sin perfil IA'}`;
   }
-  const modal=document.getElementById('modal-ia');
-  modal.style.display='flex';
+  ['ia-loading','ia-preview','ia-error'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('ia-input').style.display='block';
+}
+
+async function confirmarGenerarIA(){
+  const a=getA(S.selA);if(!a)return;
+  const instrucciones=(document.getElementById('ia-instrucciones').value||'').trim();
+  document.getElementById('ia-input').style.display='none';
   document.getElementById('ia-loading').style.display='block';
-  document.getElementById('ia-preview').style.display='none';
   document.getElementById('ia-error').style.display='none';
-  _iaRoutineData=null;
-  _iaWeekSel=0;
+  document.getElementById('ia-preview').style.display='none';
+  _iaRoutineData=null;_iaWeekSel=0;
   try{
+    const body={alumna_id:a.id,semanas:4};
+    if(instrucciones)body.instrucciones=instrucciones;
     const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY},
-      body:JSON.stringify({alumna_id:a.id,semanas:4})
+      body:JSON.stringify(body)
     });
     const data=await resp.json();
-    if(!resp.ok||data.error){
-      throw new Error(data.error||(data.detail?data.detail.slice(0,200):'Error desconocido'));
-    }
+    if(!resp.ok||data.error)throw new Error(data.error||(data.detail?data.detail.slice(0,200):'Error desconocido'));
     _iaRoutineData=data.routine;
+    postProcessRoutine(_iaRoutineData);
     document.getElementById('ia-loading').style.display='none';
     document.getElementById('ia-preview').style.display='block';
     document.getElementById('ia-save-msg').textContent='';
@@ -934,6 +961,61 @@ async function generarRutinaIA(regenerar=false){
   }
 }
 
+// ── Fuzzy matching contra la biblioteca ───────────────────────
+function normalizeEx(s){
+  return(s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function findBestBibMatch(nombre){
+  const bib=DB.biblioteca||[];
+  if(!bib.length)return{match:null,type:'none'};
+  // 1. Exact
+  const exact=bib.find(e=>e.nombre===nombre);
+  if(exact)return{match:exact,type:'exact'};
+  // 2. Normalized exact
+  const normQ=normalizeEx(nombre);
+  const normExact=bib.find(e=>normalizeEx(e.nombre)===normQ);
+  if(normExact)return{match:normExact,type:'corrected'};
+  // 3. Contains (bidirectional, min 5 chars to avoid false positives)
+  const contains=bib.find(e=>{const n=normalizeEx(e.nombre);return n.length>=5&&normQ.length>=5&&(n.includes(normQ)||normQ.includes(n));});
+  if(contains)return{match:contains,type:'corrected'};
+  // 4. Word overlap
+  const qWords=normQ.split(' ').filter(w=>w.length>=4);
+  if(!qWords.length)return{match:null,type:'none'};
+  let best=null,bestScore=0;
+  for(const e of bib){
+    const eWords=normalizeEx(e.nombre).split(' ').filter(w=>w.length>=4);
+    if(!eWords.length)continue;
+    const ov=qWords.filter(w=>eWords.includes(w)).length;
+    const sc=ov/Math.max(qWords.length,eWords.length);
+    if(sc>bestScore){bestScore=sc;best=e;}
+  }
+  if(bestScore>=0.6)return{match:best,type:'corrected'};
+  if(bestScore>=0.35)return{match:best,type:'uncertain'};
+  return{match:null,type:'none'};
+}
+
+function postProcessRoutine(routine){
+  if(!routine?.semanas)return;
+  for(const sem of routine.semanas){
+    for(const dia of sem.dias||[]){
+      for(const ex of dia.ejercicios||[]){
+        const{match,type}=findBestBibMatch(ex.nombre);
+        ex._matchType=type;
+        if((type==='corrected')&&match){
+          ex._originalNombre=ex.nombre;
+          ex.nombre=match.nombre;
+        }else if(type==='uncertain'&&match){
+          ex._suggestedNombre=match.nombre;
+        }
+      }
+    }
+  }
+}
+
+// ── Preview editable ──────────────────────────────────────────
 function refreshIAPreview(){
   const a=getA(S.selA);
   if(!_iaRoutineData||!a)return;
@@ -942,10 +1024,31 @@ function refreshIAPreview(){
 
 function renderIAPreview(routine,a){
   if(!routine||!routine.semanas)return'<div style="color:var(--rd);">Respuesta inesperada de Claude.</div>';
-  const cicloNom=routine.ciclo_nombre||'Ciclo IA';
   if(_iaWeekSel>=routine.semanas.length)_iaWeekSel=0;
 
-  // Tabs de semanas
+  // ── Razonamiento (si Claude lo incluyó) ──
+  let html='';
+  if(routine.razonamiento){
+    html+=`<div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;">
+      <div style="font-size:10px;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">💡 Por qué generé esta rutina</div>
+      <div style="font-size:12px;color:var(--t);line-height:1.55;">${routine.razonamiento}</div>
+    </div>`;
+  }
+
+  // ── Conteo de correcciones ──
+  let corrected=0,unmatched=0;
+  for(const sem of routine.semanas)for(const dia of sem.dias||[])for(const ex of dia.ejercicios||[]){
+    if(ex._matchType==='corrected')corrected++;
+    if(ex._matchType==='uncertain'||ex._matchType==='none')unmatched++;
+  }
+  if(corrected>0||unmatched>0){
+    html+=`<div style="background:${unmatched>0?'#fef3c7':'#ecfdf5'};border:1px solid ${unmatched>0?'#fcd34d':'#6ee7b7'};border-radius:var(--rs);padding:.6rem .9rem;margin-bottom:.75rem;font-size:11px;color:${unmatched>0?'#92400e':'#065f46'};">
+      ${corrected>0?`✓ ${corrected} nombre${corrected>1?'s':''} corregido${corrected>1?'s':''} automáticamente.`:''}
+      ${unmatched>0?`⚠️ ${unmatched} ejercicio${unmatched>1?'s':''} sin coincidencia exacta en la biblioteca — revisalos antes de guardar.`:''}
+    </div>`;
+  }
+
+  // ── Tabs de semanas ──
   const tabs=routine.semanas.map((sem,i)=>`<button
     onclick="_iaWeekSel=${i};refreshIAPreview()"
     style="padding:4px 14px;border:1px solid ${_iaWeekSel===i?'var(--pd)':'var(--bm)'};border-radius:20px;background:${_iaWeekSel===i?'var(--pd)':'var(--s)'};color:${_iaWeekSel===i?'#fff':'var(--t)'};font-size:11px;cursor:pointer;font-weight:${_iaWeekSel===i?'600':'400'};">
@@ -955,7 +1058,7 @@ function renderIAPreview(routine,a){
   const sem=routine.semanas[_iaWeekSel];
   const semIdx=_iaWeekSel;
 
-  let html=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.6rem;">📅 ${cicloNom} · ${a.nombre}</div>
+  html+=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.6rem;">📅 ${routine.ciclo_nombre||'Ciclo IA'} · ${a.nombre}</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">${tabs}</div>
   <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Semana ${sem.semana}${sem.descripcion?' — '+sem.descripcion:''}</div>`;
 
@@ -974,29 +1077,30 @@ function renderIAPreview(routine,a){
     for(let eIdx=0;eIdx<(dia.ejercicios||[]).length;eIdx++){
       const ex=dia.ejercicios[eIdx];
       const tipEsc=(ex.tip||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-      html+=`<tr style="border-top:1px solid var(--b);">
-        <td style="padding:3px 4px;color:var(--t);font-weight:500;font-size:11px;">${ex.nombre||''}</td>
-        <td style="padding:2px 3px;">
-          <input value="${ex.series||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'series',this.value)"
-            style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);">
-        </td>
-        <td style="padding:2px 3px;">
-          <input value="${ex.reps||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'reps',this.value)"
-            style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);">
-        </td>
-        <td style="padding:2px 3px;">
-          <input value="${tipEsc}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'tip',this.value)"
-            style="width:100%;border:1px solid var(--bm);border-radius:4px;padding:2px 4px;font-size:11px;background:var(--s);color:var(--t);">
-        </td>
-        <td style="padding:2px 4px;text-align:center;">
-          <button onclick="iaRemoveEx(${semIdx},${dIdx},${eIdx})" title="Eliminar ejercicio"
-            style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:15px;line-height:1;padding:0;">×</button>
-        </td>
+      const mt=ex._matchType||'exact';
+      let rowStyle='border-top:1px solid var(--b);';
+      if(mt==='none')rowStyle+='background:#fef2f2;';
+      else if(mt==='uncertain')rowStyle+='background:#fffbeb;';
+      let nameCell=`<td style="padding:3px 4px;font-size:11px;">`;
+      if(mt==='corrected'&&ex._originalNombre){
+        nameCell+=`<div style="font-weight:500;color:var(--t);">${ex.nombre}</div><div style="font-size:9px;color:var(--th);">was: ${ex._originalNombre}</div>`;
+      }else if(mt==='uncertain'){
+        nameCell+=`<div style="font-weight:500;color:#92400e;">⚠️ ${ex.nombre}</div>${ex._suggestedNombre?`<div style="font-size:9px;color:var(--th);">¿quisiste decir: ${ex._suggestedNombre}?</div>`:''}`;
+      }else if(mt==='none'){
+        nameCell+=`<div style="font-weight:500;color:var(--rd);">❌ ${ex.nombre}</div><div style="font-size:9px;color:var(--rd);">No encontrado en biblioteca</div>`;
+      }else{
+        nameCell+=`<span style="font-weight:500;color:var(--t);">${ex.nombre}</span>`;
+      }
+      nameCell+='</td>';
+      html+=`<tr style="${rowStyle}">
+        ${nameCell}
+        <td style="padding:2px 3px;"><input value="${ex.series||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'series',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
+        <td style="padding:2px 3px;"><input value="${ex.reps||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'reps',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
+        <td style="padding:2px 3px;"><input value="${tipEsc}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'tip',this.value)" style="width:100%;border:1px solid var(--bm);border-radius:4px;padding:2px 4px;font-size:11px;background:var(--s);color:var(--t);"></td>
+        <td style="padding:2px 4px;text-align:center;"><button onclick="iaRemoveEx(${semIdx},${dIdx},${eIdx})" title="Eliminar" style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:15px;line-height:1;padding:0;">×</button></td>
       </tr>`;
     }
-    html+=`</table>
-      <div style="font-size:10px;color:var(--th);margin-top:4px;">✏️ Podés editar series, reps y tip directamente. × para eliminar un ejercicio.</div>
-    </div>`;
+    html+=`</table><div style="font-size:10px;color:var(--th);margin-top:4px;">✏️ Editá series, reps y tip. × para eliminar.</div></div>`;
   }
   return html;
 }
