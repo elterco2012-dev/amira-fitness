@@ -1116,6 +1116,8 @@ function iaRemoveEx(semIdx,diaIdx,exIdx){
   exs.splice(exIdx,1);
   refreshIAPreview();
 }
+
+async function saveGeneratedRoutine(){
   const a=getA(S.selA);if(!a||!_iaRoutineData)return;
   const routine=_iaRoutineData;
   const msgEl=document.getElementById('ia-save-msg');
