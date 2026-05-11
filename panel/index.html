@@ -198,6 +198,9 @@
     .drawer-body{padding:1.25rem;flex:1;}
     .dfield{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;margin-bottom:1rem;}
     .dfield-item span:first-child{font-size:10px;color:var(--tm);display:block;margin-bottom:1px;}
+    .equip-chip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:1.5px solid var(--b);border-radius:20px;padding:4px 11px;font-size:12px;white-space:nowrap;background:var(--s);color:var(--t);transition:border-color .12s,background .12s,color .12s;user-select:none;}
+    .equip-chip:has(input:checked){background:var(--p);border-color:#7c3aed;color:var(--pd);font-weight:500;}
+    .equip-chip input[type=checkbox]{accent-color:#7c3aed;width:13px;height:13px;cursor:pointer;}
   </style>
 </head>
 <body>
@@ -598,17 +601,17 @@
       </div>
 
     </div>
-    <label>Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:6px 0;">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="mancuernas"> Mancuernas</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="banda_elastica"> Banda elástica</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="kettlebell"> Pesa rusa</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="trx"> TRX</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="fitball"> Esfera</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="step"> Step / cajón</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="barra"> Barra</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="polea"> Polea / cables</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="maquina"> Máquinas de gym</label>
+    <label style="margin-top:.25rem;">Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:5px 0 8px;">
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="mancuernas"> Mancuernas</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="banda_elastica"> Banda elástica</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="kettlebell"> Pesa rusa</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="trx"> TRX</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="fitball"> Esfera</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="step"> Step / cajón</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="barra"> Barra</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="polea"> Polea / cables</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="maquina"> Máquinas de gym</label>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><label>💰 Precio mensual ($)</label><input type="number" id="ea-precio" placeholder="0" min="0" step="100"></div>
@@ -2957,16 +2960,16 @@ function rAlumnas(){
 
     </div>
     <label style="margin-top:.5rem;">Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:4px 0;">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="mancuernas"> Mancuernas</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="banda_elastica"> Banda elástica</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="kettlebell"> Pesa rusa</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="trx"> TRX</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="fitball"> Esfera</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="step"> Step / cajón</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="barra"> Barra</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="polea"> Polea / cables</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="maquina"> Máquinas de gym</label>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:5px 0 8px;">
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="mancuernas"> Mancuernas</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="banda_elastica"> Banda elástica</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="kettlebell"> Pesa rusa</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="trx"> TRX</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="fitball"> Esfera</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="step"> Step / cajón</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="barra"> Barra</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="polea"> Polea / cables</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="maquina"> Máquinas de gym</label>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-top:.5rem;">
       <button class="btn btn-p btn-s" onclick="addAlumna()">Guardar</button>
