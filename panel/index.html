@@ -298,6 +298,20 @@
           <option>Espalda</option><option>Pecho</option><option>Hombros</option><option>Brazos</option><option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
+      <div><label>Equipamiento</label>
+        <select id="m-equip" style="margin-bottom:0;">
+          <option value="sin_equipamiento">Peso corporal</option>
+          <option value="mancuernas">Mancuernas</option>
+          <option value="barra">Barra</option>
+          <option value="maquina">Máquina</option>
+          <option value="banda_elastica">Banda elástica</option>
+          <option value="kettlebell">Kettlebell</option>
+          <option value="polea">Polea / cables</option>
+          <option value="trx">TRX</option>
+          <option value="fitball">Fitball / pelota</option>
+          <option value="step">Step / cajón</option>
+        </select>
+      </div>
       <div><label>Tipo</label>
         <select id="m-tipo" style="margin-bottom:0;">
           <option value="fuerza">Fuerza</option><option value="core">Core</option>
@@ -1226,10 +1240,12 @@ function renderBib(){
   });
   const list=document.getElementById('bib-list');
   if(!list)return;
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Kettlebell',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Fitball',step:'📦 Step'};
   list.innerHTML=filtered.map(e=>`
     <div class="bib-card${bibSelEx?.id===e.id?' selected':''}" onclick="selectBibEx(${e.id})">
       <div class="bib-name">${e.nombre}</div>
       <div class="bib-meta">${e.grupo_muscular||''}</div>
+      ${e.equipamiento_requerido?`<div class="bib-tag" style="font-size:9px;background:var(--a);color:var(--ad);">${EQUIP_LABEL[e.equipamiento_requerido]||e.equipamiento_requerido}</div>`:''}
       ${e.tipo?`<div class="bib-tag">${e.tipo}</div>`:''}
     </div>`).join('')||`<div class="empty" style="grid-column:1/-1;">Sin resultados</div>`;
 }
@@ -1275,7 +1291,7 @@ async function addFromBib(){
 
 // ── Manual nuevo ejercicio ────────────────────────────────────
 let _manualBibOnly=false;
-function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('modal-manual').style.display='flex';}
+function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-equip').value='sin_equipamiento';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('modal-manual').style.display='flex';}
 function closeManual(){document.getElementById('modal-manual').style.display='none';}
 
 async function saveManual(){
@@ -1292,6 +1308,7 @@ async function saveManual(){
     descripcion: document.getElementById('m-tip').value.trim(),
     video: document.getElementById('m-video').value.trim(),
     grupo_muscular: document.getElementById('m-grupo').value,
+    equipamiento_requerido: document.getElementById('m-equip').value,
     tipo: document.getElementById('m-tipo').value
   };
 
@@ -1590,6 +1607,7 @@ function openEditBib(id){
   document.getElementById('eb-tip').value=e.descripcion||'';
   document.getElementById('eb-video').value=e.video||'';
   document.getElementById('eb-grupo').value=e.grupo_muscular||'Core';
+  document.getElementById('eb-equip').value=e.equipamiento_requerido||'sin_equipamiento';
   document.getElementById('eb-tipo').value=e.tipo||'fuerza';
   document.getElementById('eb-obs').value=e.observaciones||'';
   document.getElementById('eb-msg').textContent='';
@@ -1604,6 +1622,7 @@ async function saveEditBib(){
     descripcion:document.getElementById('eb-tip').value.trim(),
     video:document.getElementById('eb-video').value.trim(),
     grupo_muscular:document.getElementById('eb-grupo').value,
+    equipamiento_requerido:document.getElementById('eb-equip').value,
     tipo:document.getElementById('eb-tipo').value,
     observaciones:document.getElementById('eb-obs').value.trim()
   };
@@ -4311,6 +4330,20 @@ initAuth();
           <option>Core</option><option>Piernas</option><option>Glúteos</option>
           <option>Espalda</option><option>Pecho</option><option>Hombros</option>
           <option>Brazos</option><option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
+        </select>
+      </div>
+      <div><label>Equipamiento</label>
+        <select id="eb-equip" style="margin-bottom:0;">
+          <option value="sin_equipamiento">Peso corporal</option>
+          <option value="mancuernas">Mancuernas</option>
+          <option value="barra">Barra</option>
+          <option value="maquina">Máquina</option>
+          <option value="banda_elastica">Banda elástica</option>
+          <option value="kettlebell">Kettlebell</option>
+          <option value="polea">Polea / cables</option>
+          <option value="trx">TRX</option>
+          <option value="fitball">Fitball / pelota</option>
+          <option value="step">Step / cajón</option>
         </select>
       </div>
       <div><label>Tipo</label>

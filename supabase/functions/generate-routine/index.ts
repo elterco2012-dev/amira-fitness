@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
       dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual`),
-      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion&order=grupo_muscular.asc,nombre.asc"),
+      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
       dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,descripcion,created_at&order=created_at.desc&limit=20`),
@@ -85,15 +85,21 @@ Deno.serve(async (req) => {
       .join("\n");
 
     // ── 5. Biblioteca como string cacheada ───────────────────────
-    type BibRow = { nombre: string; grupo_muscular?: string; descripcion?: string };
+    type BibRow = { nombre: string; grupo_muscular?: string; descripcion?: string; equipamiento_requerido?: string };
+    const equipLabels: Record<string, string> = {
+      sin_equipamiento: "sin equipamiento", mancuernas: "mancuernas", barra: "barra",
+      maquina: "máquina", banda_elastica: "banda elástica", kettlebell: "kettlebell",
+      polea: "polea/cables", trx: "TRX", fitball: "fitball", step: "step/cajón"
+    };
     const bibByGroup: Record<string, string[]> = {};
     for (const ex of biblioteca as BibRow[]) {
       const g = ex.grupo_muscular ?? "Otros";
       if (!bibByGroup[g]) bibByGroup[g] = [];
-      bibByGroup[g].push(ex.nombre + (ex.descripcion ? ` (${ex.descripcion.slice(0, 60)})` : ""));
+      const equip = ex.equipamiento_requerido ? `[${equipLabels[ex.equipamiento_requerido] ?? ex.equipamiento_requerido}]` : "[sin equipamiento]";
+      bibByGroup[g].push(`- ${ex.nombre} ${equip}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}`);
     }
     const bibTexto = Object.entries(bibByGroup)
-      .map(([g, exs]) => `### ${g}\n${exs.map(e => `- ${e}`).join("\n")}`)
+      .map(([g, exs]) => `### ${g}\n${exs.join("\n")}`)
       .join("\n\n");
 
     // ── 6. System prompt (parte cacheada) ───────────────────────
@@ -104,6 +110,7 @@ basadas en el perfil de la alumna y el historial de entrenamiento disponible.
 REGLAS:
 - Usá SOLO ejercicios de la biblioteca proporcionada. Los nombres deben coincidir EXACTAMENTE (copia y pega el nombre tal cual aparece).
 - No inventes ejercicios nuevos ni uses nombres alternativos.
+- CRÍTICO: cada ejercicio tiene su equipamiento entre corchetes [ej: mancuernas]. Usá ÚNICAMENTE ejercicios cuyo equipamiento esté disponible para la alumna. Ejercicios [sin equipamiento] siempre están permitidos. Si la alumna tiene mancuernas, podés usar ejercicios [mancuernas]. Si no tiene acceso a gimnasio, NUNCA uses ejercicios [máquina], [barra], [polea] etc.
 - Respetá el número de días por semana de la alumna.
 - Aplicá periodización lineal: semana 1 base (volumen moderado, intensidad media), semana 2 progresión (+reps o +series), semana 3 pico (máxima intensidad, menor volumen), semana 4 descarga (−30% volumen para recuperación).
 - Si hay lesiones activas, evitá CUALQUIER ejercicio que comprometa esa zona.
