@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
   try {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
-      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,objetivo,equipamiento,tiempo_sesion,ciclo_actual`),
+      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual`),
       dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
     if (!alumnas.length) return Response.json({ error: "Alumna no encontrada" }, { status: 404, headers: CORS });
     const alumna = alumnas[0] as {
-      nombre: string; tipo?: string; dias?: number; lesiones?: string | null;
+      nombre: string; tipo?: string; dias?: number; lesiones?: string | null; notas?: string | null;
       objetivo?: string | null; equipamiento?: string[] | null; tiempo_sesion?: number | null; ciclo_actual?: number;
     };
 
@@ -111,6 +111,7 @@ REGLAS:
 - En el historial de pesos: ↑ significa que el peso aumentó (está progresando bien), = significa estancamiento (considerar cambio de estímulo), ↓ significa regresión (revisar el motivo).
 - Para cada ejercicio incluí: nombre (exacto de biblioteca), series (solo número, ej: "3"), reps (ej: "10-12"), tip (consejo técnico breve y concreto, máx 80 caracteres), grupo muscular.
 - Variá los ejercicios entre semanas cuando tenga sentido (mismos grupos, distinto estímulo).
+- Para peso_sugerido: si el ejercicio aparece en el historial de pesos, calculá el peso de inicio recomendado para la semana 1 del nuevo ciclo. Lógica: RPE ≤7 o tendencia ↑ → último peso + pequeño incremento (0.5kg si <10kg, 1kg si 10-20kg, 2.5kg si >20kg). RPE 8-9 → mismo peso. RPE 10 o tendencia ↓ → mismo peso o −5%. Sin historial → null. Usá siempre el mismo peso_sugerido en las 4 semanas para el mismo ejercicio (la periodización va en series/reps, no en peso).
 
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 ${bibTexto}
@@ -133,7 +134,8 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
               "series": "string numérico (ej: 3)",
               "reps": "string (ej: 10-12)",
               "tip": "string (consejo técnico breve, máx 80 caracteres)",
-              "grupo": "string"
+              "grupo": "string",
+              "peso_sugerido": 12.5
             }
           ]
         }
@@ -199,6 +201,7 @@ PERFIL:
 - Tiempo por sesión: ${alumna.tiempo_sesion ? alumna.tiempo_sesion + " minutos" : "no especificado"}
 - Equipamiento disponible: ${equipStr}
 - Lesiones/limitaciones activas: ${alumna.lesiones ?? "ninguna"}
+- Notas del entrenador sobre esta alumna: ${alumna.notas?.trim() || "ninguna"}
 ${instruccionesStr}
 RUTINA ANTERIOR (ciclo ${cicloAnterior}):
 ${prevRutinaStr}
