@@ -504,6 +504,15 @@
           <option value="avanzado">Avanzado (+3 años)</option>
         </select></div>
     </div>
+    <div class="frow">
+      <div style="flex:2;"><label>División de sesiones</label><select id="ea-split" style="margin-bottom:0;">
+          <option value="">— Claude decide</option>
+          <option value="full_body">Full body (cuerpo completo cada sesión)</option>
+          <option value="upper_lower">Tren superior / Tren inferior</option>
+          <option value="push_pull_legs">Empuje / Tirón / Piernas</option>
+          <option value="abc">A / B / C (3 enfoques distintos)</option>
+        </select></div>
+    </div>
     <label>Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:6px 0;">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="mancuernas"> Mancuernas</label>
@@ -1473,6 +1482,7 @@ function openEditA(id){
   document.getElementById('ea-objetivo').value=a.objetivo||'';
   document.getElementById('ea-tiempo').value=a.tiempo_sesion||'';
   document.getElementById('ea-nivel').value=a.nivel||'';
+  document.getElementById('ea-split').value=a.split||'';
   const eq=Array.isArray(a.equipamiento)?a.equipamiento:[];
   document.querySelectorAll('#modal-edit-a input[name="ea-equip"]').forEach(cb=>{cb.checked=eq.includes(cb.value);});
   document.getElementById('ea-precio').value=a.precio||'';
@@ -1492,7 +1502,7 @@ async function saveEditA(){
   const oldEmail=a.email||'';
   const equipamientoVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-equip"]:checked')].map(cb=>cb.value);
   const tiempoVal=parseInt(document.getElementById('ea-tiempo').value)||null;
-  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal};
+  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),split:_ev('ea-split'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
     const newEmail=updates.email||'';
@@ -1608,7 +1618,7 @@ async function addAlumna(){
   const slug=slugUnique(n);
   const _g=v=>document.getElementById(v)?.value?.trim()||null;
   const naEquip=[...document.querySelectorAll('input[name="na-equip"]:checked')].map(cb=>cb.value);
-  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,nivel:_g('na-nivel')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null};
+  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,nivel:_g('na-nivel')||null,split:_g('na-split')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null};
   S.msg='Guardando...';render();
   try{
     const saved=await sbInsert('alumnas',a);
@@ -2758,6 +2768,15 @@ function rAlumnas(){
           <option value="principiante">Principiante (&lt;1 año)</option>
           <option value="intermedio">Intermedio (1–3 años)</option>
           <option value="avanzado">Avanzado (+3 años)</option>
+        </select></div>
+    </div>
+    <div class="frow">
+      <div style="flex:2;"><label>División de sesiones</label><select id="na-split" style="margin-bottom:0;">
+          <option value="">— Claude decide</option>
+          <option value="full_body">Full body (cuerpo completo cada sesión)</option>
+          <option value="upper_lower">Tren superior / Tren inferior</option>
+          <option value="push_pull_legs">Empuje / Tirón / Piernas</option>
+          <option value="abc">A / B / C (3 enfoques distintos)</option>
         </select></div>
     </div>
     <label>Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
