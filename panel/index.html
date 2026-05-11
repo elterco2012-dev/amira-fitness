@@ -1004,11 +1004,16 @@ function postProcessRoutine(routine){
       for(const ex of dia.ejercicios||[]){
         const{match,type}=findBestBibMatch(ex.nombre);
         ex._matchType=type;
-        if((type==='corrected')&&match){
+        if(type==='corrected'&&match){
           ex._originalNombre=ex.nombre;
           ex.nombre=match.nombre;
         }else if(type==='uncertain'&&match){
           ex._suggestedNombre=match.nombre;
+        }
+        // Copiar video y grupo desde la biblioteca cuando hay coincidencia
+        if(match&&(type==='exact'||type==='corrected')){
+          if(match.video)ex.video=match.video;
+          if(match.grupo_muscular)ex.grupo=match.grupo_muscular;
         }
       }
     }
@@ -1081,6 +1086,10 @@ function renderIAPreview(routine,a){
       let rowStyle='border-top:1px solid var(--b);';
       if(mt==='none')rowStyle+='background:#fef2f2;';
       else if(mt==='uncertain')rowStyle+='background:#fffbeb;';
+      const pesoSug=ex.peso_sugerido!=null?parseFloat(ex.peso_sugerido):null;
+      const pesoInput=pesoSug!=null
+        ?`<div style="display:flex;align-items:center;gap:3px;margin-top:2px;"><input type="number" value="${pesoSug}" min="0" step="0.5" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'peso_sugerido',parseFloat(this.value)||null)" style="width:52px;border:1px solid var(--bm);border-radius:4px;padding:1px 4px;font-size:10px;background:var(--s);color:var(--t);text-align:center;"><span style="font-size:9px;color:var(--tm);">kg base</span></div>`
+        :'';
       let nameCell=`<td style="padding:3px 4px;font-size:11px;">`;
       if(mt==='corrected'&&ex._originalNombre){
         nameCell+=`<div style="font-weight:500;color:var(--t);">${ex.nombre}</div><div style="font-size:9px;color:var(--th);">was: ${ex._originalNombre}</div>`;
@@ -1091,7 +1100,7 @@ function renderIAPreview(routine,a){
       }else{
         nameCell+=`<span style="font-weight:500;color:var(--t);">${ex.nombre}</span>`;
       }
-      nameCell+='</td>';
+      nameCell+=pesoInput+'</td>';
       html+=`<tr style="${rowStyle}">
         ${nameCell}
         <td style="padding:2px 3px;"><input value="${ex.series||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'series',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
@@ -1128,15 +1137,11 @@ async function saveGeneratedRoutine(){
     const ops=[];
     for(const sem of(routine.semanas||[])){
       for(const dia of(sem.dias||[])){
-        const exs=(dia.ejercicios||[]).map(ex=>({
-          nombre:ex.nombre||'',
-          series:String(ex.series||'3'),
-          reps:String(ex.reps||'10'),
-          tip:ex.tip||'',
-          nota:'',
-          video:'',
-          grupo:ex.grupo||''
-        }));
+        const exs=(dia.ejercicios||[]).map(ex=>{
+          const obj={nombre:ex.nombre||'',series:String(ex.series||'3'),reps:String(ex.reps||'10'),tip:ex.tip||'',nota:'',video:ex.video||'',grupo:ex.grupo||''};
+          if(ex.peso_sugerido!=null)obj.peso_base=parseFloat(ex.peso_sugerido)||null;
+          return obj;
+        });
         if(exs.length){
           ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem.semana)||1,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
         }
@@ -1155,7 +1160,7 @@ async function saveGeneratedRoutine(){
       const semN=parseInt(sem.semana)||1;
       DB.rutinas[a.id][nuevoCiclo][semN]=[];
       for(const dia of(sem.dias||[])){
-        const exs=(dia.ejercicios||[]).map(ex=>({nombre:ex.nombre||'',series:String(ex.series||'3'),reps:String(ex.reps||'10'),tip:ex.tip||'',nota:'',video:'',grupo:ex.grupo||''}));
+        const exs=(dia.ejercicios||[]).map(ex=>{const o={nombre:ex.nombre||'',series:String(ex.series||'3'),reps:String(ex.reps||'10'),tip:ex.tip||'',nota:'',video:ex.video||'',grupo:ex.grupo||''};if(ex.peso_sugerido!=null)o.peso_base=parseFloat(ex.peso_sugerido)||null;return o;});
         if(exs.length)DB.rutinas[a.id][nuevoCiclo][semN].push({dia:parseInt(dia.dia)||1,ejercicios:exs});
       }
     }
