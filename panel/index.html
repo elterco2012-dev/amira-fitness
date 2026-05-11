@@ -305,10 +305,10 @@
           <option value="barra">Barra</option>
           <option value="maquina">Máquina</option>
           <option value="banda_elastica">Banda elástica</option>
-          <option value="kettlebell">Kettlebell</option>
+          <option value="kettlebell">Pesa rusa</option>
           <option value="polea">Polea / cables</option>
           <option value="trx">TRX</option>
-          <option value="fitball">Fitball / pelota</option>
+          <option value="fitball">Esfera</option>
           <option value="step">Step / cajón</option>
         </select>
       </div>
@@ -1240,7 +1240,7 @@ function renderBib(){
   });
   const list=document.getElementById('bib-list');
   if(!list)return;
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Kettlebell',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Fitball',step:'📦 Step'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step'};
   list.innerHTML=filtered.map(e=>`
     <div class="bib-card${bibSelEx?.id===e.id?' selected':''}" onclick="selectBibEx(${e.id})">
       <div class="bib-name">${e.nombre}</div>
@@ -3353,7 +3353,7 @@ function rBiblioteca(){
     return{gr,total:exs.length,casa:casaCount};
   });
 
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Kettlebell',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Fitball',step:'📦 Step'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step'};
 
   const statsHtml=`<div class="card" style="margin-bottom:1rem;padding:.85rem 1rem;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
@@ -3369,7 +3369,7 @@ function rBiblioteca(){
       <div style="flex:1;min-width:120px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
         <div style="font-size:22px;font-weight:700;color:#1e40af;">${cPortable}</div>
         <div style="font-size:10px;color:#1e40af;font-weight:500;">🏠 Equipo portable</div>
-        <div style="font-size:9px;color:#60a5fa;">Manc · Banda · Kettlebell · TRX · Fitball · Step</div>
+        <div style="font-size:9px;color:#60a5fa;">Manc · Banda · Pesa rusa · TRX · Esfera · Step</div>
       </div>
       <div style="flex:1;min-width:120px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
         <div style="font-size:22px;font-weight:700;color:#6b21a8;">${cGym}</div>
@@ -4394,10 +4394,10 @@ initAuth();
           <option value="barra">Barra</option>
           <option value="maquina">Máquina</option>
           <option value="banda_elastica">Banda elástica</option>
-          <option value="kettlebell">Kettlebell</option>
+          <option value="kettlebell">Pesa rusa</option>
           <option value="polea">Polea / cables</option>
           <option value="trx">TRX</option>
-          <option value="fitball">Fitball / pelota</option>
+          <option value="fitball">Esfera</option>
           <option value="step">Step / cajón</option>
         </select>
       </div>
