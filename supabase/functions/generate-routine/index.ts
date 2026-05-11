@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
   try {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
-      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel,split`),
+      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel,split,dias_disponibles,foco_muscular,adaptar_ciclo_menstrual,estilo_sesion`),
       dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
@@ -57,6 +57,8 @@ Deno.serve(async (req) => {
       nombre: string; tipo?: string; dias?: number; lesiones?: string | null; notas?: string | null;
       objetivo?: string | null; equipamiento?: string[] | null; tiempo_sesion?: number | null;
       ciclo_actual?: number; nivel?: string | null; split?: string | null;
+      dias_disponibles?: string[] | null; foco_muscular?: string | null;
+      adaptar_ciclo_menstrual?: boolean; estilo_sesion?: string | null;
     };
 
     // ── 2. Ciclo anterior: estructura de días ────────────────────
@@ -183,6 +185,31 @@ REGLA ESPECIAL PARA 2 DÍAS POR SEMANA (full_body_ab):
 - Esto garantiza dos estímulos diferentes en la semana para el mismo músculo, lo que mejora la adaptación.
 - Las 4 semanas del ciclo mantienen siempre la estructura A-B.
 
+REGLA DE DÍAS CONSECUTIVOS:
+- Si el perfil indica los días específicos de entrenamiento (ej: lunes, martes, jueves), detectá si hay días seguidos.
+- Con días consecutivos (ej: lunes+martes), NUNCA pongas el mismo grupo muscular principal dos días seguidos: si el lunes trabajás piernas pesadas, el martes debés hacer tren superior o una sesión ligera de recuperación activa.
+- Con días separados (ej: lunes+miércoles+viernes), hay descanso suficiente entre sesiones y podés distribuir los grupos libremente.
+- Si los días no están especificados, asumí distribución ideal (días alternados).
+
+REGLA DE FOCO MUSCULAR:
+- Si la alumna tiene un foco muscular prioritario (ej: "glúteos"), ese grupo debe recibir entre un 30-40% más de volumen semanal total que los demás grupos.
+- En práctica: cada sesión de cuerpo completo o tren inferior debe incluir AL MENOS 2 ejercicios directos de ese grupo. En splits superiores/inferiores, los días de tren inferior deben tener 3+ ejercicios del grupo foco.
+- Dentro del día, los ejercicios del grupo foco van primero o segundo (después de los grandes compuestos pero antes de los complementarios).
+- Si no hay foco especificado, distribuí el volumen de forma equilibrada según el objetivo general.
+
+REGLA DE CICLO MENSTRUAL (cuando adaptar_ciclo_menstrual = true):
+- La periodización de 4 semanas se alinea naturalmente con el ciclo hormonal femenino promedio. Mencionalo en la descripción de cada semana.
+- Semana 1 (base): fase folicular temprana — el estrógeno sube progresivamente. Cargas moderadas, buena tolerancia al volumen. Descripción: "Base — fase folicular, buena tolerancia al volumen".
+- Semana 2 (progresión): pico folicular / ovulación — máxima energía y fuerza disponible. Ideal para cargas más altas. Descripción: "Progresión — pico hormonal, máxima fuerza disponible".
+- Semana 3 (pico): fase lútea temprana — energía alta todavía, pero puede comenzar la retención. Mantener intensidad alta con volumen controlado. Descripción: "Pico — lútea temprana, intensidad alta con volumen moderado".
+- Semana 4 (descarga): fase lútea tardía / premenstrual — energía baja, mayor fatiga y sensibilidad. La descarga de volumen es especialmente importante. Descripción: "Descarga — premenstrual, reducción de volumen para recuperación activa".
+- Para ciclos de 1 semana: generá la semana en base a la fase más común (folicular media) con intensidad efectiva y manejable.
+
+REGLA DE ESTILO DE SESIÓN:
+- "series_rectas" (o sin especificar): método clásico. Cada ejercicio se realiza en sus series completas antes de pasar al siguiente. NO agregues el campo superset_id en el JSON.
+- "superseries": agrupá ejercicios en pares de músculos antagonistas (pecho+espalda, bíceps+tríceps, cuádriceps+isquiotibiales). Los ejercicios del par se realizan uno tras otro sin descanso, luego se descansa. Marcalos con superset_id: el primer par = "A", segundo par = "B", etc. Los ejercicios sin par (core, etc.) no llevan superset_id. Reducí levemente las series totales (2-3 superseries vs 3-4 series rectas) porque el volumen efectivo es mayor. NUNCA formes superseries de músculos sinérgicos (no emparejes press de pecho con press de hombros).
+- "circuito": todos los ejercicios del día se realizan en secuencia sin descanso entre ellos (o con descanso muy breve). Asigná superset_id = "C" a TODOS los ejercicios de la sesión. Elegí 5-8 ejercicios variados (tren superior + tren inferior + core alternados para permitir recuperación parcial). Usá reps más altas (15-20) y cargas moderadas. Indicalo en el enfoque del día: "Circuito — [grupos]".
+
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 (formato: - Nombre [equipamiento][patrón][nivel])
 ${bibTexto}
@@ -206,14 +233,16 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
               "reps": "string (ej: 10-12)",
               "tip": "string (consejo técnico breve, máx 80 caracteres)",
               "grupo": "string",
-              "peso_sugerido": 12.5
+              "peso_sugerido": 12.5,
+              "superset_id": "A"
             }
           ]
         }
       ]
     }
   ]
-}`;
+}
+NOTA sobre superset_id: solo incluí este campo cuando el estilo_sesion sea "superseries" o "circuito". Para series rectas, omití el campo completamente (no lo pongas como null ni como ""). Dos ejercicios con el mismo superset_id se hacen back-to-back sin descanso entre ellos.`;
 
     // ── 7. User prompt (contexto variable) ───────────────────────
     const equipStr = alumna.equipamiento?.length
@@ -290,6 +319,10 @@ PERFIL:
 - División de sesiones: ${splitLabels[alumna.split ?? ""] ?? "no especificado — elegí según días y nivel"}
 - Tiempo por sesión: ${alumna.tiempo_sesion ? alumna.tiempo_sesion + " minutos" : "no especificado"}
 - Equipamiento disponible: ${equipStr}
+- Días específicos: ${alumna.dias_disponibles?.length ? alumna.dias_disponibles.join(", ") : "no especificado"}
+- Foco muscular prioritario: ${alumna.foco_muscular ?? "sin foco especial"}
+- Estilo de sesión: ${alumna.estilo_sesion === "superseries" ? "Superseries — pares de ejercicios antagonistas sin descanso entre ellos" : alumna.estilo_sesion === "circuito" ? "Circuito — todos los ejercicios seguidos con mínimo descanso" : "Series rectas — método clásico"}
+- Adaptar al ciclo menstrual: ${alumna.adaptar_ciclo_menstrual ? "SÍ — ajustá la descripción de cada semana al ciclo hormonal según la REGLA DE CICLO MENSTRUAL" : "no"}
 - Lesiones/limitaciones activas: ${alumna.lesiones ?? "ninguna"}
 - Notas del entrenador sobre esta alumna: ${alumna.notas?.trim() || "ninguna"}
 ${instruccionesStr}

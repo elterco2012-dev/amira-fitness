@@ -528,6 +528,45 @@
         </select>
         <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Si no sabés cuál elegir, dejá "Claude decide" y él lo resolverá según los días y el nivel.</div></div>
     </div>
+    <div class="frow">
+      <div style="flex:2;">
+        <label>Días de entrenamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(opcional — para planificar recuperación entre sesiones)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;padding:4px 0;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="lunes"> Lun</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="martes"> Mar</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="miercoles"> Mié</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="jueves"> Jue</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="viernes"> Vie</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="sabado"> Sáb</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="domingo"> Dom</label>
+        </div>
+      </div>
+    </div>
+    <div class="frow">
+      <div><label>Foco muscular prioritario</label><select id="ea-foco" style="margin-bottom:0;">
+        <option value="">General — sin énfasis especial</option>
+        <option value="glúteos">Glúteos</option>
+        <option value="piernas">Piernas completas</option>
+        <option value="core">Core / Abdomen</option>
+        <option value="tren_superior">Tren superior</option>
+        <option value="tren_inferior">Tren inferior</option>
+        <option value="brazos">Brazos</option>
+      </select></div>
+      <div><label>Estilo de sesión</label><select id="ea-estilo" style="margin-bottom:0;">
+        <option value="">Series rectas — método clásico</option>
+        <option value="superseries">Superseries — pares sin descanso</option>
+        <option value="circuito">Circuito — todos seguidos</option>
+      </select></div>
+    </div>
+    <div class="frow">
+      <div style="flex:2;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
+          <input type="checkbox" id="ea-ciclo-mens" style="width:15px;height:15px;cursor:pointer;">
+          Adaptar planificación al ciclo menstrual
+        </label>
+        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Cuando está activo, Claude ajusta la intensidad semanal al ciclo hormonal: sem 1-2 más carga, sem 4 descarga natural.</div>
+      </div>
+    </div>
     <label>Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:6px 0;">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="ea-equip" value="mancuernas"> Mancuernas</label>
@@ -1511,6 +1550,11 @@ function openEditA(id){
   document.getElementById('ea-tiempo').value=a.tiempo_sesion||'';
   document.getElementById('ea-nivel').value=a.nivel||'';
   document.getElementById('ea-split').value=a.split||'';
+  const diasDisp=Array.isArray(a.dias_disponibles)?a.dias_disponibles:[];
+  document.querySelectorAll('#modal-edit-a input[name="ea-dias-disp"]').forEach(cb=>{cb.checked=diasDisp.includes(cb.value);});
+  document.getElementById('ea-foco').value=a.foco_muscular||'';
+  document.getElementById('ea-estilo').value=a.estilo_sesion||'';
+  document.getElementById('ea-ciclo-mens').checked=!!a.adaptar_ciclo_menstrual;
   const eq=Array.isArray(a.equipamiento)?a.equipamiento:[];
   document.querySelectorAll('#modal-edit-a input[name="ea-equip"]').forEach(cb=>{cb.checked=eq.includes(cb.value);});
   document.getElementById('ea-precio').value=a.precio||'';
@@ -1529,8 +1573,9 @@ async function saveEditA(){
   const _ev=id=>document.getElementById(id)?.value?.trim()||null;
   const oldEmail=a.email||'';
   const equipamientoVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-equip"]:checked')].map(cb=>cb.value);
+  const diasDispVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-dias-disp"]:checked')].map(cb=>cb.value);
   const tiempoVal=parseInt(document.getElementById('ea-tiempo').value)||null;
-  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),split:_ev('ea-split'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal};
+  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),split:_ev('ea-split'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal,dias_disponibles:diasDispVal.length?diasDispVal:null,foco_muscular:_ev('ea-foco')||null,estilo_sesion:_ev('ea-estilo')||null,adaptar_ciclo_menstrual:document.getElementById('ea-ciclo-mens').checked};
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
     const newEmail=updates.email||'';
@@ -1646,7 +1691,8 @@ async function addAlumna(){
   const slug=slugUnique(n);
   const _g=v=>document.getElementById(v)?.value?.trim()||null;
   const naEquip=[...document.querySelectorAll('input[name="na-equip"]:checked')].map(cb=>cb.value);
-  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,nivel:_g('na-nivel')||null,split:_g('na-split')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null};
+  const naDiasDisp=[...document.querySelectorAll('input[name="na-dias-disp"]:checked')].map(cb=>cb.value);
+  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,nivel:_g('na-nivel')||null,split:_g('na-split')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null,dias_disponibles:naDiasDisp.length?naDiasDisp:null,foco_muscular:_g('na-foco')||null,estilo_sesion:_g('na-estilo')||null,adaptar_ciclo_menstrual:!!document.getElementById('na-ciclo-mens')?.checked};
   S.msg='Guardando...';render();
   try{
     const saved=await sbInsert('alumnas',a);
@@ -2809,6 +2855,45 @@ function rAlumnas(){
         </select>
         <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Si no sabés cuál elegir, dejá "Claude decide" y él lo resolverá según los días y el nivel.</div></div>
     </div>
+    <div class="frow">
+      <div style="flex:2;">
+        <label>Días de entrenamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(opcional)</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;padding:4px 0;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="lunes"> Lun</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="martes"> Mar</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="miercoles"> Mié</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="jueves"> Jue</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="viernes"> Vie</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="sabado"> Sáb</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="domingo"> Dom</label>
+        </div>
+      </div>
+    </div>
+    <div class="frow">
+      <div><label>Foco muscular prioritario</label><select id="na-foco" style="margin-bottom:0;">
+        <option value="">General — sin énfasis especial</option>
+        <option value="glúteos">Glúteos</option>
+        <option value="piernas">Piernas completas</option>
+        <option value="core">Core / Abdomen</option>
+        <option value="tren_superior">Tren superior</option>
+        <option value="tren_inferior">Tren inferior</option>
+        <option value="brazos">Brazos</option>
+      </select></div>
+      <div><label>Estilo de sesión</label><select id="na-estilo" style="margin-bottom:0;">
+        <option value="">Series rectas — método clásico</option>
+        <option value="superseries">Superseries — pares sin descanso</option>
+        <option value="circuito">Circuito — todos seguidos</option>
+      </select></div>
+    </div>
+    <div class="frow">
+      <div style="flex:2;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
+          <input type="checkbox" id="na-ciclo-mens" style="width:15px;height:15px;cursor:pointer;">
+          Adaptar planificación al ciclo menstrual
+        </label>
+        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Cuando está activo, Claude ajusta la intensidad semanal al ciclo hormonal: sem 1-2 más carga, sem 4 descarga natural.</div>
+      </div>
+    </div>
     <label>Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:4px 0;">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="mancuernas"> Mancuernas</label>
@@ -3345,14 +3430,18 @@ function rRutinas(){
           }
           return r;
         })();
-        return`<div class="ex-item" style="${borderL}">
+        const ssId=ex.superset_id??null;
+        const isCircuito=ssId==='C';
+        const ssTag=ssId?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:4px;background:${isCircuito?'#dbeafe':'#ede9fe'};color:${isCircuito?'#1d4ed8':'#7c3aed'};">${isCircuito?'CIRCUITO':'SS '+ssId}</span>`:'';
+        const ssLeft=ssId?`border-left:3px solid ${isCircuito?'#3b82f6':'#7c3aed'};`:'';
+        return`<div class="ex-item" style="${borderL||ssLeft}">
           <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:0;">
             <button class="btn btn-s" onclick="moveEx(${i},-1)" ${i===0?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===0?'opacity:.25;cursor:default;':''}">↑</button>
             <button class="btn btn-s" onclick="moveEx(${i},1)" ${i===exs.length-1?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===exs.length-1?'opacity:.25;cursor:default;':''}">↓</button>
           </div>
           <div class="exn">${i+1}</div>
           <div class="ex-body">
-            <div class="ex-name">${ex.nombre}</div>
+            <div class="ex-name">${ex.nombre}${ssTag}</div>
             <div class="ex-det">${ex.series} series × ${ex.reps}</div>
             ${ex.tip?`<div class="ex-tip">${ex.tip}</div>`:''}
             ${ex.video?`<div class="ex-vid">✓ Video vinculado</div>`:''}
