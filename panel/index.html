@@ -506,12 +506,14 @@
     </div>
     <div class="frow">
       <div style="flex:2;"><label>División de sesiones</label><select id="ea-split" style="margin-bottom:0;">
-          <option value="">— Claude decide</option>
-          <option value="full_body">Full body (cuerpo completo cada sesión)</option>
-          <option value="upper_lower">Tren superior / Tren inferior</option>
-          <option value="push_pull_legs">Empuje / Tirón / Piernas</option>
-          <option value="abc">A / B / C (3 enfoques distintos)</option>
-        </select></div>
+          <option value="">Claude decide según días y nivel</option>
+          <option value="full_body">Cuerpo completo — todos los músculos en cada sesión (ideal para 1-3 días o principiantes)</option>
+          <option value="full_body_ab">Cuerpo completo A/B — dos sesiones distintas que se alternan: mismos grupos musculares, ejercicios diferentes para dar más variedad (ideal exactamente 2 días)</option>
+          <option value="upper_lower">Superior / Inferior — un día trabaja arriba (pecho, espalda, hombros, brazos) y el siguiente abajo (piernas, glúteos) (ideal 4 días)</option>
+          <option value="push_pull_legs">Empuje · Tirón · Piernas — día 1: pecho, hombros y tríceps · día 2: espalda y bíceps · día 3: piernas y glúteos (ideal 3 o 6 días)</option>
+          <option value="abc">3 zonas rotativas — ej: día A=piernas y glúteos · día B=pecho y espalda · día C=hombros y brazos (ideal 3+ días, alumnas con experiencia)</option>
+        </select>
+        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Si no sabés cuál elegir, dejá "Claude decide" y él lo resolverá según los días y el nivel.</div></div>
     </div>
     <label>Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:6px 0;">
@@ -2772,12 +2774,14 @@ function rAlumnas(){
     </div>
     <div class="frow">
       <div style="flex:2;"><label>División de sesiones</label><select id="na-split" style="margin-bottom:0;">
-          <option value="">— Claude decide</option>
-          <option value="full_body">Full body (cuerpo completo cada sesión)</option>
-          <option value="upper_lower">Tren superior / Tren inferior</option>
-          <option value="push_pull_legs">Empuje / Tirón / Piernas</option>
-          <option value="abc">A / B / C (3 enfoques distintos)</option>
-        </select></div>
+          <option value="">Claude decide según días y nivel</option>
+          <option value="full_body">Cuerpo completo — todos los músculos en cada sesión (ideal para 1-3 días o principiantes)</option>
+          <option value="full_body_ab">Cuerpo completo A/B — dos sesiones distintas que se alternan: mismos grupos musculares, ejercicios diferentes para dar más variedad (ideal exactamente 2 días)</option>
+          <option value="upper_lower">Superior / Inferior — un día trabaja arriba (pecho, espalda, hombros, brazos) y el siguiente abajo (piernas, glúteos) (ideal 4 días)</option>
+          <option value="push_pull_legs">Empuje · Tirón · Piernas — día 1: pecho, hombros y tríceps · día 2: espalda y bíceps · día 3: piernas y glúteos (ideal 3 o 6 días)</option>
+          <option value="abc">3 zonas rotativas — ej: día A=piernas y glúteos · día B=pecho y espalda · día C=hombros y brazos (ideal 3+ días, alumnas con experiencia)</option>
+        </select>
+        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Si no sabés cuál elegir, dejá "Claude decide" y él lo resolverá según los días y el nivel.</div></div>
     </div>
     <label>Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:4px 0;">

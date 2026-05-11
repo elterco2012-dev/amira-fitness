@@ -160,12 +160,27 @@ REGLA DE CALENTAMIENTO:
 
 REGLA DE DIVISIÓN DE SESIONES:
 - El perfil de la alumna indica su split preferido. Respetalo estrictamente.
-- full_body: cada sesión trabaja todos los grupos principales (piernas + tren superior + core). Ideal para 2-3 días.
+- full_body: cada sesión trabaja todos los grupos principales (piernas + tren superior + core). Ideal para 1-3 días.
+- full_body_ab: para exactamente 2 días. Sesión A y sesión B trabajan los mismos grupos pero con ejercicios distintos. Nunca repitas el mismo ejercicio en A y B dentro de la misma semana.
 - upper_lower: alternás sesiones de tren superior (pecho/espalda/hombros/brazos) con tren inferior (piernas/glúteos/gemelos). Ideal para 4 días.
 - push_pull_legs: día 1=empuje (pecho/hombros/tríceps), día 2=tirón (espalda/bíceps), día 3=piernas y glúteos. Para 3 o 6 días.
 - abc: día A / día B / día C con enfoques distintos definidos por el objetivo y los grupos de la alumna. Para 3+ días.
-- Si no hay split especificado, elegí el más apropiado según días/semana y nivel: 1-2 días→full_body, 3 días principiante→full_body, 3 días intermedio/avanzado→push_pull_legs, 4+ días→upper_lower o push_pull_legs.
-- El nombre del "enfoque" de cada día debe reflejar claramente el split (ej: "Tren superior — Empuje", "Piernas y Glúteos", "Full body — Fuerza").
+- Si no hay split especificado: 1 día→full_body, 2 días→full_body_ab, 3 días principiante→full_body, 3 días intermedio/avanzado→push_pull_legs, 4+ días→upper_lower o push_pull_legs.
+- El nombre del "enfoque" de cada día debe reflejar claramente el split.
+
+REGLA ESPECIAL PARA 1 DÍA POR SEMANA:
+- Con solo 1 sesión semanal, esa sesión es el único estímulo de toda la semana. Debe ser completa y eficiente.
+- Incluí obligatoriamente al menos: 1 patrón sentadilla O bisagra, 1 empuje, 1 jale, 1 core.
+- Priorizá siempre los compuestos multiarticulares. Con tiempo limitado, un curl de bíceps puede quedar afuera; una sentadilla, nunca.
+- Si el tiempo es ≤45 min, elegí los 4-5 ejercicios más impactantes para el objetivo y descartá aislamientos.
+- Enfoque del día: "Cuerpo completo — sesión única semanal".
+
+REGLA ESPECIAL PARA 2 DÍAS POR SEMANA (full_body_ab):
+- Sesión A y sesión B deben cubrir los mismos grupos musculares pero nunca con los mismos ejercicios.
+- Ejemplo: si el día A tiene sentadilla libre, el día B debe tener prensa o zancada (mismo patrón, distinto ejercicio).
+- Si el día A tiene press de pecho con mancuernas, el día B debe tener flexiones o press con banda.
+- Esto garantiza dos estímulos diferentes en la semana para el mismo músculo, lo que mejora la adaptación.
+- Las 4 semanas del ciclo mantienen siempre la estructura A-B.
 
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 (formato: - Nombre [equipamiento][patrón][nivel])
@@ -220,7 +235,8 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
     };
 
     const splitLabels: Record<string, string> = {
-      full_body:       "Full body — cuerpo completo cada sesión",
+      full_body:       "Full body — cuerpo completo cada sesión (aplicar regla especial de 1 día si dias=1)",
+      full_body_ab:    "Full body A/B — dos sesiones distintas que se alternan (aplicar regla especial de 2 días)",
       upper_lower:     "Upper/Lower — tren superior / tren inferior alternado",
       push_pull_legs:  "Push/Pull/Legs — empuje / tirón / piernas",
       abc:             "A/B/C — tres enfoques distintos",
