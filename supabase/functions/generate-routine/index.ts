@@ -117,7 +117,8 @@ REGLAS GENERALES:
 - Usá SOLO ejercicios de la biblioteca proporcionada. Los nombres deben coincidir EXACTAMENTE (copia y pega el nombre tal cual aparece).
 - No inventes ejercicios nuevos ni uses nombres alternativos.
 - Respetá el número de días por semana de la alumna.
-- Aplicá periodización lineal: semana 1 base (volumen moderado, intensidad media), semana 2 progresión (+reps o +series), semana 3 pico (máxima intensidad, menor volumen), semana 4 descarga (−30% volumen para recuperación).
+- Para ciclos de 4 semanas: aplicá periodización lineal: semana 1 base (volumen moderado, intensidad media), semana 2 progresión (+reps o +series), semana 3 pico (máxima intensidad, menor volumen), semana 4 descarga (−30% volumen para recuperación).
+- Para ciclos de 1 semana: generá UNA semana óptima y autosuficiente. NO es la semana 1 de un ciclo progresivo; es la mejor semana posible teniendo en cuenta el objetivo, el nivel y el historial. Usá series y reps que representen un estímulo efectivo y manejable.
 - Si hay lesiones activas, evitá CUALQUIER ejercicio que comprometa esa zona.
 - Ajustá el número de ejercicios por sesión al tiempo disponible: 30min→4-5 ejercicios, 45min→5-6, 60min→6-8, 75min→8-9, 90min→9-10.
 - En el historial de pesos: ↑ significa que el peso aumentó (está progresando bien), = significa estancamiento (considerar cambio de estímulo), ↓ significa regresión (revisar el motivo).
@@ -273,10 +274,13 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
     const anoStr = hoy.getMonth() === 11 ? String(hoy.getFullYear() + 1) : String(hoy.getFullYear());
 
     const instruccionesStr = instrucciones
-      ? `\nINSTRUCCIONES ESPECÍFICAS DE LA ENTRENADORA PARA ESTE CICLO:\n${instrucciones}\n`
+      ? `\nINSTRUCCIONES ESPECÍFICAS DE LA ENTRENADORA PARA ${semanas === 1 ? "ESTA SEMANA" : "ESTE CICLO"}:\n${instrucciones}\n`
       : "";
 
-    const userPrompt = `Generá una rutina de ${semanas} semanas para la alumna "${alumna.nombre}".
+    const modoStr = semanas === 1
+      ? "UNA SEMANA ÓPTIMA Y AUTOSUFICIENTE (no es semana 1 de un ciclo progresivo)"
+      : `UN CICLO COMPLETO DE ${semanas} SEMANAS con periodización progresiva`;
+    const userPrompt = `Generá ${modoStr} para la alumna "${alumna.nombre}".
 
 PERFIL:
 - Modalidad: ${alumna.tipo ?? "no especificado"}
@@ -298,8 +302,9 @@ ${pesoHistStr}
 FEEDBACKS RECIENTES:
 ${fbResumen || "Sin feedbacks relevantes."}
 
-Generá ${semanas} semanas completas con ${alumna.dias ?? 3} días cada una. \
+Generá ${semanas} semana${semanas === 1 ? "" : "s"} con ${alumna.dias ?? 3} día${(alumna.dias ?? 3) === 1 ? "" : "s"} cada una. \
 El nombre del ciclo debe ser "${mesNombre} ${anoStr}". \
+${semanas === 1 ? "Esta es una semana independiente: elegí la mejor combinación de ejercicios para el nivel actual de la alumna, no como base de una progresión futura. " : ""}\
 IMPORTANTE: los nombres de ejercicios deben coincidir EXACTAMENTE con los de la biblioteca. \
 Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin texto antes ni después.`;
 

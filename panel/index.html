@@ -416,7 +416,20 @@
     <!-- Paso 1: instrucciones -->
     <div id="ia-input" style="display:none;">
       <div id="ia-alumna-chip" style="display:inline-flex;align-items:center;gap:6px;background:var(--p);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--pd);font-weight:500;margin-bottom:1rem;"></div>
-      <label style="font-size:12px;font-weight:500;color:var(--t);display:block;margin-bottom:.35rem;">Instrucciones para este ciclo <span style="font-weight:400;color:var(--tm);">(opcional)</span></label>
+      <div style="margin-bottom:1rem;">
+        <div style="font-size:12px;font-weight:500;color:var(--t);margin-bottom:.4rem;">¿Qué querés generar?</div>
+        <div style="display:flex;gap:8px;">
+          <label style="flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid var(--b);border-radius:var(--rs);padding:.6rem .75rem;cursor:pointer;font-size:12px;transition:border-color .15s;" id="ia-sem-lbl-1">
+            <input type="radio" name="ia-semanas" value="1" onchange="iaSemanasChange()" style="accent-color:#7c3aed;">
+            <div><div style="font-weight:500;">📅 1 semana</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">Una semana lista para usar ahora</div></div>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid #7c3aed;border-radius:var(--rs);padding:.6rem .75rem;cursor:pointer;font-size:12px;background:var(--p);transition:border-color .15s;" id="ia-sem-lbl-4">
+            <input type="radio" name="ia-semanas" value="4" checked onchange="iaSemanasChange()" style="accent-color:#7c3aed;">
+            <div><div style="font-weight:500;">🗓 Ciclo completo — 4 semanas</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">Base → Progresión → Pico → Descarga</div></div>
+          </label>
+        </div>
+      </div>
+      <label style="font-size:12px;font-weight:500;color:var(--t);display:block;margin-bottom:.35rem;" id="ia-instr-label">Instrucciones para este ciclo <span style="font-weight:400;color:var(--tm);">(opcional)</span></label>
       <textarea id="ia-instrucciones" rows="4"
         placeholder="Ej: este mes quiero foco en piernas y glúteos, incluí más core al final de cada sesión, evitá sentadillas porque le molesta la rodilla derecha, nivel intermedio…"
         style="width:100%;border:1px solid var(--bm);border-radius:var(--rs);padding:.6rem .75rem;font-size:13px;background:var(--s);color:var(--t);resize:vertical;box-sizing:border-box;"></textarea>
@@ -975,9 +988,20 @@ function mostrarInputIA(){
     chip.textContent=`${a.nombre} · ${a.dias||3} días/sem${perfilOk?'':' · ⚠️ sin perfil IA'}`;
   }
   ['ia-loading','ia-preview','ia-error'].forEach(id=>document.getElementById(id).style.display='none');
+  const defR=document.querySelector('input[name="ia-semanas"][value="4"]');
+  if(defR){defR.checked=true;iaSemanasChange();}
   document.getElementById('ia-input').style.display='block';
 }
 
+function iaSemanasChange(){
+  const v=document.querySelector('input[name="ia-semanas"]:checked')?.value||'4';
+  const lbl1=document.getElementById('ia-sem-lbl-1');
+  const lbl4=document.getElementById('ia-sem-lbl-4');
+  if(lbl1){lbl1.style.borderColor=v==='1'?'#7c3aed':'var(--b)';lbl1.style.background=v==='1'?'var(--p)':'transparent';}
+  if(lbl4){lbl4.style.borderColor=v==='4'?'#7c3aed':'var(--b)';lbl4.style.background=v==='4'?'var(--p)':'transparent';}
+  const instrLabel=document.getElementById('ia-instr-label');
+  if(instrLabel)instrLabel.textContent=v==='1'?'Instrucciones para esta semana (opcional)':'Instrucciones para este ciclo (opcional)';
+}
 async function confirmarGenerarIA(){
   const a=getA(S.selA);if(!a)return;
   const instrucciones=(document.getElementById('ia-instrucciones').value||'').trim();
@@ -987,7 +1011,9 @@ async function confirmarGenerarIA(){
   document.getElementById('ia-preview').style.display='none';
   _iaRoutineData=null;_iaWeekSel=0;
   try{
-    const body={alumna_id:a.id,semanas:4};
+    const semanasEl=document.querySelector('input[name="ia-semanas"]:checked');
+    const semanas=parseInt(semanasEl?.value||'4');
+    const body={alumna_id:a.id,semanas};
     if(instrucciones)body.instrucciones=instrucciones;
     const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
       method:'POST',
