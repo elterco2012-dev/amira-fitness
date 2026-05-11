@@ -491,81 +491,112 @@
       <div><label>Altura (cm)</label><input type="number" id="ea-altura" min="100" max="220"></div>
     </div>
     <div><label>Experiencia</label><select id="ea-exp"><option value="">—</option><option>Nunca entrené</option><option>Algo de experiencia</option><option>Experiencia media</option><option>Avanzada</option></select></div>
-    <div style="font-size:11px;color:var(--tm);margin:.75rem 0 .25rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">✨ Perfil para planificación IA</div>
-    <div class="frow">
-      <div><label>Objetivo principal</label><select id="ea-objetivo">
-        <option value="">—</option>
-        <option value="tonificar">Tonificar y mejorar postura</option>
-        <option value="bajar_peso">Bajar de peso</option>
-        <option value="ganar_fuerza">Ganar fuerza</option>
-        <option value="salud">Mejorar salud general</option>
-        <option value="rehabilitacion">Rehabilitación</option>
-        <option value="rendimiento">Rendimiento deportivo</option>
-      </select></div>
-      <div><label>Tiempo por sesión</label><select id="ea-tiempo">
-        <option value="">—</option>
-        <option value="30">30 min</option>
-        <option value="45">45 min</option>
-        <option value="60">60 min</option>
-        <option value="75">75 min</option>
-        <option value="90">90 min</option>
-      </select></div>
-      <div><label>Nivel</label><select id="ea-nivel" style="margin-bottom:0;">
-          <option value="">— Sin especificar</option>
-          <option value="principiante">Principiante (&lt;1 año)</option>
-          <option value="intermedio">Intermedio (1–3 años)</option>
-          <option value="avanzado">Avanzado (+3 años)</option>
-        </select></div>
-    </div>
-    <div class="frow">
-      <div style="flex:2;"><label>División de sesiones</label><select id="ea-split" style="margin-bottom:0;">
-          <option value="">Claude decide según días y nivel</option>
-          <option value="full_body">Cuerpo completo — todos los músculos en cada sesión (ideal para 1-3 días o principiantes)</option>
-          <option value="full_body_ab">Cuerpo completo A/B — dos sesiones distintas que se alternan: mismos grupos musculares, ejercicios diferentes para dar más variedad (ideal exactamente 2 días)</option>
-          <option value="upper_lower">Superior / Inferior — un día trabaja arriba (pecho, espalda, hombros, brazos) y el siguiente abajo (piernas, glúteos) (ideal 4 días)</option>
-          <option value="push_pull_legs">Empuje · Tirón · Piernas — día 1: pecho, hombros y tríceps · día 2: espalda y bíceps · día 3: piernas y glúteos (ideal 3 o 6 días)</option>
-          <option value="abc">3 zonas rotativas — ej: día A=piernas y glúteos · día B=pecho y espalda · día C=hombros y brazos (ideal 3+ días, alumnas con experiencia)</option>
-        </select>
-        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Si no sabés cuál elegir, dejá "Claude decide" y él lo resolverá según los días y el nivel.</div></div>
-    </div>
-    <div class="frow">
-      <div style="flex:2;">
-        <label>Días de entrenamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(opcional — para planificar recuperación entre sesiones)</span></label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;padding:4px 0;">
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="lunes"> Lun</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="martes"> Mar</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="miercoles"> Mié</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="jueves"> Jue</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="viernes"> Vie</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="sabado"> Sáb</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="domingo"> Dom</label>
+    <div style="font-size:11px;color:var(--tm);margin:.75rem 0 .5rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">✨ Perfil para planificación IA</div>
+    <div style="background:var(--bg2,#f8f8fa);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--b);">
+
+      <!-- 1. Objetivo + Nivel -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">¿Qué quiere lograr?</div>
+        <div class="frow" style="margin-bottom:0;">
+          <div style="flex:2;"><label style="font-size:11px;">Objetivo principal</label><select id="ea-objetivo" style="margin-bottom:0;">
+            <option value="">— Sin especificar</option>
+            <option value="tonificar">Tonificar y mejorar postura</option>
+            <option value="bajar_peso">Bajar de peso</option>
+            <option value="ganar_fuerza">Ganar fuerza</option>
+            <option value="salud">Mejorar salud general</option>
+            <option value="rehabilitacion">Rehabilitación</option>
+            <option value="rendimiento">Rendimiento deportivo</option>
+          </select></div>
+          <div><label style="font-size:11px;">Nivel de experiencia</label><select id="ea-nivel" style="margin-bottom:0;">
+            <option value="">— Sin especificar</option>
+            <option value="principiante">Principiante (&lt;1 año)</option>
+            <option value="intermedio">Intermedio (1–3 años)</option>
+            <option value="avanzado">Avanzado (+3 años)</option>
+          </select></div>
         </div>
       </div>
-    </div>
-    <div class="frow">
-      <div><label>Foco muscular prioritario</label><select id="ea-foco" style="margin-bottom:0;">
-        <option value="">General — sin énfasis especial</option>
-        <option value="glúteos">Glúteos</option>
-        <option value="piernas">Piernas completas</option>
-        <option value="core">Core / Abdomen</option>
-        <option value="tren_superior">Tren superior</option>
-        <option value="tren_inferior">Tren inferior</option>
-        <option value="brazos">Brazos</option>
-      </select></div>
-      <div><label>Estilo de sesión</label><select id="ea-estilo" style="margin-bottom:0;">
-        <option value="">Series rectas — método clásico</option>
-        <option value="superseries">Superseries — pares sin descanso</option>
-        <option value="circuito">Circuito — todos seguidos</option>
-      </select></div>
-    </div>
-    <div class="frow">
-      <div style="flex:2;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
-          <input type="checkbox" id="ea-ciclo-mens" style="width:15px;height:15px;cursor:pointer;">
-          Adaptar planificación al ciclo menstrual
-        </label>
-        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Cuando está activo, Claude ajusta la intensidad semanal al ciclo hormonal: sem 1-2 más carga, sem 4 descarga natural.</div>
+
+      <!-- 2. Tiempo + Días específicos -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">¿Cuándo y cuánto tiempo entrena?</div>
+        <div class="frow" style="margin-bottom:0;align-items:flex-start;">
+          <div><label style="font-size:11px;">Duración por sesión</label><select id="ea-tiempo" style="margin-bottom:0;">
+            <option value="">— Sin especificar</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+            <option value="75">75 min</option>
+            <option value="90">90 min</option>
+          </select></div>
+          <div style="flex:2;">
+            <label style="font-size:11px;">Días específicos <span style="font-weight:400;color:var(--tm);">(opcional)</span></label>
+            <div style="display:flex;flex-wrap:wrap;gap:5px 12px;font-size:12px;margin-top:5px;">
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="lunes"> Lun</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="martes"> Mar</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="miercoles"> Mié</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="jueves"> Jue</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="viernes"> Vie</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="sabado"> Sáb</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="ea-dias-disp" value="domingo"> Dom</label>
+            </div>
+            <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Si hay días seguidos (ej: Lun+Mar), Claude evita el mismo grupo muscular dos veces consecutivas.</div>
+          </div>
+        </div>
       </div>
+
+      <!-- 3. División de sesiones -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">¿Cómo estructuramos las sesiones?</div>
+        <label style="font-size:11px;">División de sesiones</label>
+        <select id="ea-split" style="margin-bottom:0;">
+          <option value="">Claude decide según días y nivel</option>
+          <option value="full_body">Cuerpo completo — todos los músculos en cada sesión (ideal 1–3 días o principiantes)</option>
+          <option value="full_body_ab">Cuerpo completo A/B — sesión A y sesión B, mismos grupos pero ejercicios distintos (ideal exactamente 2 días)</option>
+          <option value="upper_lower">Superior / Inferior — un día tren superior, el otro tren inferior (ideal 4 días)</option>
+          <option value="push_pull_legs">Empuje · Tirón · Piernas — día 1: pecho+hombros+tríceps · día 2: espalda+bíceps · día 3: piernas+glúteos (ideal 3 o 6 días)</option>
+          <option value="abc">3 zonas rotativas — día A / día B / día C con enfoques distintos (ideal 3+ días, alumnas con experiencia)</option>
+        </select>
+        <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Si no sabés cuál elegir, dejá "Claude decide" — él lo resuelve automáticamente según los días de entrenamiento y el nivel.</div>
+      </div>
+
+      <!-- 4. Zona de énfasis + Estilo -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Personalización</div>
+        <div class="frow" style="margin-bottom:0;">
+          <div style="flex:1;">
+            <label style="font-size:11px;">Zona de énfasis muscular</label>
+            <select id="ea-foco" style="margin-bottom:0;">
+              <option value="">General — sin énfasis especial</option>
+              <option value="glúteos">Glúteos — más ejercicios directos de glúteos</option>
+              <option value="piernas">Piernas — cuádriceps, isquios y gemelos</option>
+              <option value="core">Core / Abdomen</option>
+              <option value="tren_superior">Tren superior — pecho, espalda y hombros</option>
+              <option value="tren_inferior">Tren inferior — piernas y glúteos</option>
+              <option value="brazos">Brazos — bíceps y tríceps</option>
+            </select>
+            <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Claude da más volumen a esa zona en cada sesión.</div>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:11px;">Estilo de entrenamiento</label>
+            <select id="ea-estilo" style="margin-bottom:0;">
+              <option value="">Series rectas — el método clásico</option>
+              <option value="superseries">Superseries — pares de ejercicios sin descanso entre ellos (ahorra tiempo, más intensidad)</option>
+              <option value="circuito">Circuito — todos los ejercicios seguidos con mínimo descanso (cardio + fuerza)</option>
+            </select>
+            <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Cambia cómo se ordenan los ejercicios dentro de cada sesión.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Ciclo menstrual -->
+      <div style="background:var(--bg,#fff);border:1px solid var(--b);border-radius:8px;padding:8px 12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;">
+          <input type="checkbox" id="ea-ciclo-mens" style="width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+          <span style="font-size:12px;font-weight:600;">Adaptar al ciclo menstrual</span>
+        </label>
+        <div style="font-size:10px;color:var(--th);margin-top:5px;line-height:1.4;padding-left:23px;">Claude ajusta la intensidad de cada semana al ciclo hormonal: sem 1 base (folicular), sem 2 pico de fuerza (ovulación), sem 3 alta intensidad (lútea temprana), sem 4 descarga natural (premenstrual).</div>
+      </div>
+
     </div>
     <label>Equipamiento disponible <span style="font-size:10px;color:var(--tm);font-weight:400;">(para entrenamientos en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:6px 0;">
@@ -2818,83 +2849,114 @@ function rAlumnas(){
       <div><label>¿Fuma?</label><select id="na-fuma"><option value="">—</option><option>No</option><option>Sí</option></select></div>
       <div><label>Experiencia</label><select id="na-exp"><option value="">—</option><option>Nunca entrené</option><option>Algo de experiencia</option><option>Experiencia media</option><option>Avanzada</option></select></div>
     </div>
-    <div style="font-size:11px;color:var(--tm);margin:.75rem 0 .25rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">✨ Perfil para planificación IA</div>
-    <div class="frow">
-      <div><label>Objetivo principal</label><select id="na-objetivo">
-        <option value="">—</option>
-        <option value="tonificar">Tonificar y mejorar postura</option>
-        <option value="bajar_peso">Bajar de peso</option>
-        <option value="ganar_fuerza">Ganar fuerza</option>
-        <option value="salud">Mejorar salud general</option>
-        <option value="rehabilitacion">Rehabilitación</option>
-        <option value="rendimiento">Rendimiento deportivo</option>
-      </select></div>
-      <div><label>Tiempo por sesión</label><select id="na-tiempo">
-        <option value="">—</option>
-        <option value="30">30 min</option>
-        <option value="45">45 min</option>
-        <option value="60">60 min</option>
-        <option value="75">75 min</option>
-        <option value="90">90 min</option>
-      </select></div>
-      <div><label>Nivel</label><select id="na-nivel" style="margin-bottom:0;">
-          <option value="">— Sin especificar</option>
-          <option value="principiante">Principiante (&lt;1 año)</option>
-          <option value="intermedio">Intermedio (1–3 años)</option>
-          <option value="avanzado">Avanzado (+3 años)</option>
-        </select></div>
-    </div>
-    <div class="frow">
-      <div style="flex:2;"><label>División de sesiones</label><select id="na-split" style="margin-bottom:0;">
-          <option value="">Claude decide según días y nivel</option>
-          <option value="full_body">Cuerpo completo — todos los músculos en cada sesión (ideal para 1-3 días o principiantes)</option>
-          <option value="full_body_ab">Cuerpo completo A/B — dos sesiones distintas que se alternan: mismos grupos musculares, ejercicios diferentes para dar más variedad (ideal exactamente 2 días)</option>
-          <option value="upper_lower">Superior / Inferior — un día trabaja arriba (pecho, espalda, hombros, brazos) y el siguiente abajo (piernas, glúteos) (ideal 4 días)</option>
-          <option value="push_pull_legs">Empuje · Tirón · Piernas — día 1: pecho, hombros y tríceps · día 2: espalda y bíceps · día 3: piernas y glúteos (ideal 3 o 6 días)</option>
-          <option value="abc">3 zonas rotativas — ej: día A=piernas y glúteos · día B=pecho y espalda · día C=hombros y brazos (ideal 3+ días, alumnas con experiencia)</option>
-        </select>
-        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Si no sabés cuál elegir, dejá "Claude decide" y él lo resolverá según los días y el nivel.</div></div>
-    </div>
-    <div class="frow">
-      <div style="flex:2;">
-        <label>Días de entrenamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(opcional)</span></label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;padding:4px 0;">
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="lunes"> Lun</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="martes"> Mar</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="miercoles"> Mié</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="jueves"> Jue</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="viernes"> Vie</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="sabado"> Sáb</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="domingo"> Dom</label>
+    <div style="font-size:11px;color:var(--tm);margin:.75rem 0 .5rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">✨ Perfil para planificación IA</div>
+    <div style="background:var(--bg2,#f8f8fa);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--b);">
+
+      <!-- 1. Objetivo + Nivel -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">¿Qué quiere lograr?</div>
+        <div class="frow" style="margin-bottom:0;">
+          <div style="flex:2;"><label style="font-size:11px;">Objetivo principal</label><select id="na-objetivo" style="margin-bottom:0;">
+            <option value="">— Sin especificar</option>
+            <option value="tonificar">Tonificar y mejorar postura</option>
+            <option value="bajar_peso">Bajar de peso</option>
+            <option value="ganar_fuerza">Ganar fuerza</option>
+            <option value="salud">Mejorar salud general</option>
+            <option value="rehabilitacion">Rehabilitación</option>
+            <option value="rendimiento">Rendimiento deportivo</option>
+          </select></div>
+          <div><label style="font-size:11px;">Nivel de experiencia</label><select id="na-nivel" style="margin-bottom:0;">
+            <option value="">— Sin especificar</option>
+            <option value="principiante">Principiante (&lt;1 año)</option>
+            <option value="intermedio">Intermedio (1–3 años)</option>
+            <option value="avanzado">Avanzado (+3 años)</option>
+          </select></div>
         </div>
       </div>
-    </div>
-    <div class="frow">
-      <div><label>Foco muscular prioritario</label><select id="na-foco" style="margin-bottom:0;">
-        <option value="">General — sin énfasis especial</option>
-        <option value="glúteos">Glúteos</option>
-        <option value="piernas">Piernas completas</option>
-        <option value="core">Core / Abdomen</option>
-        <option value="tren_superior">Tren superior</option>
-        <option value="tren_inferior">Tren inferior</option>
-        <option value="brazos">Brazos</option>
-      </select></div>
-      <div><label>Estilo de sesión</label><select id="na-estilo" style="margin-bottom:0;">
-        <option value="">Series rectas — método clásico</option>
-        <option value="superseries">Superseries — pares sin descanso</option>
-        <option value="circuito">Circuito — todos seguidos</option>
-      </select></div>
-    </div>
-    <div class="frow">
-      <div style="flex:2;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
-          <input type="checkbox" id="na-ciclo-mens" style="width:15px;height:15px;cursor:pointer;">
-          Adaptar planificación al ciclo menstrual
-        </label>
-        <div style="font-size:10px;color:var(--th);margin-top:3px;line-height:1.4;">Cuando está activo, Claude ajusta la intensidad semanal al ciclo hormonal: sem 1-2 más carga, sem 4 descarga natural.</div>
+
+      <!-- 2. Tiempo + Días específicos -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">¿Cuándo y cuánto tiempo entrena?</div>
+        <div class="frow" style="margin-bottom:0;align-items:flex-start;">
+          <div><label style="font-size:11px;">Duración por sesión</label><select id="na-tiempo" style="margin-bottom:0;">
+            <option value="">— Sin especificar</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+            <option value="75">75 min</option>
+            <option value="90">90 min</option>
+          </select></div>
+          <div style="flex:2;">
+            <label style="font-size:11px;">Días específicos <span style="font-weight:400;color:var(--tm);">(opcional)</span></label>
+            <div style="display:flex;flex-wrap:wrap;gap:5px 12px;font-size:12px;margin-top:5px;">
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="lunes"> Lun</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="martes"> Mar</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="miercoles"> Mié</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="jueves"> Jue</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="viernes"> Vie</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="sabado"> Sáb</label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" name="na-dias-disp" value="domingo"> Dom</label>
+            </div>
+            <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Si hay días seguidos (ej: Lun+Mar), Claude evita el mismo grupo muscular dos veces consecutivas.</div>
+          </div>
+        </div>
       </div>
+
+      <!-- 3. División de sesiones -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">¿Cómo estructuramos las sesiones?</div>
+        <label style="font-size:11px;">División de sesiones</label>
+        <select id="na-split" style="margin-bottom:0;">
+          <option value="">Claude decide según días y nivel</option>
+          <option value="full_body">Cuerpo completo — todos los músculos en cada sesión (ideal 1–3 días o principiantes)</option>
+          <option value="full_body_ab">Cuerpo completo A/B — sesión A y sesión B, mismos grupos pero ejercicios distintos (ideal exactamente 2 días)</option>
+          <option value="upper_lower">Superior / Inferior — un día tren superior, el otro tren inferior (ideal 4 días)</option>
+          <option value="push_pull_legs">Empuje · Tirón · Piernas — día 1: pecho+hombros+tríceps · día 2: espalda+bíceps · día 3: piernas+glúteos (ideal 3 o 6 días)</option>
+          <option value="abc">3 zonas rotativas — día A / día B / día C con enfoques distintos (ideal 3+ días, alumnas con experiencia)</option>
+        </select>
+        <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Si no sabés cuál elegir, dejá "Claude decide" — él lo resuelve automáticamente según los días de entrenamiento y el nivel.</div>
+      </div>
+
+      <!-- 4. Zona de énfasis + Estilo -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Personalización</div>
+        <div class="frow" style="margin-bottom:0;">
+          <div style="flex:1;">
+            <label style="font-size:11px;">Zona de énfasis muscular</label>
+            <select id="na-foco" style="margin-bottom:0;">
+              <option value="">General — sin énfasis especial</option>
+              <option value="glúteos">Glúteos — más ejercicios directos de glúteos</option>
+              <option value="piernas">Piernas — cuádriceps, isquios y gemelos</option>
+              <option value="core">Core / Abdomen</option>
+              <option value="tren_superior">Tren superior — pecho, espalda y hombros</option>
+              <option value="tren_inferior">Tren inferior — piernas y glúteos</option>
+              <option value="brazos">Brazos — bíceps y tríceps</option>
+            </select>
+            <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Claude da más volumen a esa zona en cada sesión.</div>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:11px;">Estilo de entrenamiento</label>
+            <select id="na-estilo" style="margin-bottom:0;">
+              <option value="">Series rectas — el método clásico</option>
+              <option value="superseries">Superseries — pares de ejercicios sin descanso entre ellos (ahorra tiempo, más intensidad)</option>
+              <option value="circuito">Circuito — todos los ejercicios seguidos con mínimo descanso (cardio + fuerza)</option>
+            </select>
+            <div style="font-size:10px;color:var(--th);margin-top:4px;line-height:1.3;">Cambia cómo se ordenan los ejercicios dentro de cada sesión.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Ciclo menstrual -->
+      <div style="background:var(--bg,#fff);border:1px solid var(--b);border-radius:8px;padding:8px 12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;">
+          <input type="checkbox" id="na-ciclo-mens" style="width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+          <span style="font-size:12px;font-weight:600;">Adaptar al ciclo menstrual</span>
+        </label>
+        <div style="font-size:10px;color:var(--th);margin-top:5px;line-height:1.4;padding-left:23px;">Claude ajusta la intensidad de cada semana al ciclo hormonal: sem 1 base (folicular), sem 2 pico de fuerza (ovulación), sem 3 alta intensidad (lútea temprana), sem 4 descarga natural (premenstrual).</div>
+      </div>
+
     </div>
-    <label>Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
+    <label style="margin-top:.5rem;">Equipamiento <span style="font-size:10px;color:var(--tm);font-weight:400;">(si entrena en casa)</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;padding:4px 0;">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="mancuernas"> Mancuernas</label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="na-equip" value="banda_elastica"> Banda elástica</label>
