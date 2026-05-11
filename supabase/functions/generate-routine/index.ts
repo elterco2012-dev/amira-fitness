@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
   try {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
-      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel`),
-      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad&order=grupo_muscular.asc,nombre.asc"),
+      dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel,split`),
+      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
       dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,descripcion,created_at&order=created_at.desc&limit=20`),
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const alumna = alumnas[0] as {
       nombre: string; tipo?: string; dias?: number; lesiones?: string | null; notas?: string | null;
       objetivo?: string | null; equipamiento?: string[] | null; tiempo_sesion?: number | null;
-      ciclo_actual?: number; nivel?: string | null;
+      ciclo_actual?: number; nivel?: string | null; split?: string | null;
     };
 
     // ── 2. Ciclo anterior: estructura de días ────────────────────
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
 
     // ── 5. Biblioteca con patrón y nivel ─────────────────────────
     type BibRow = {
-      nombre: string; grupo_muscular?: string; descripcion?: string;
+      nombre: string; grupo_muscular?: string; descripcion?: string; observaciones?: string | null;
       equipamiento_requerido?: string; patron_movimiento?: string | null; nivel_dificultad?: number | null;
     };
     const equipLabels: Record<string, string> = {
@@ -101,7 +101,8 @@ Deno.serve(async (req) => {
       const equip = ex.equipamiento_requerido ? `[${equipLabels[ex.equipamiento_requerido] ?? ex.equipamiento_requerido}]` : "[sin equipamiento]";
       const patron = ex.patron_movimiento ? `[${ex.patron_movimiento}]` : "";
       const nivel  = ex.nivel_dificultad   ? `[N${ex.nivel_dificultad}]` : "";
-      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}`);
+      const obs    = ex.observaciones      ? ` ⚠️ ${ex.observaciones.slice(0, 80)}` : "";
+      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}${obs}`);
     }
     const bibTexto = Object.entries(bibByGroup)
       .map(([g, exs]) => `### ${g}\n${exs.join("\n")}`)
@@ -143,6 +144,28 @@ REGLA DE PATRONES DE MOVIMIENTO:
 - En cada sesión de tren inferior: incluí al menos 1 patrón de sentadilla Y 1 de bisagra para trabajar cuádriceps e isquiotibiales de forma equilibrada.
 - En sesiones de cuerpo completo: respetá ambas reglas anteriores.
 - Los ejercicios de [aislamiento] son complementarios; no deben ser el único trabajo de un grupo muscular en la sesión.
+
+REGLA DE ORDEN DENTRO DE CADA SESIÓN:
+- Siempre ordená los ejercicios de mayor a menor complejidad e impacto neurológico:
+  1. Primero: multiarticulares pesados (sentadilla, peso muerto, press con barra, remo con barra, dominada)
+  2. Segundo: multiarticulares con mancuernas o máquina (prensa, press inclinado, remo con mancuerna)
+  3. Tercero: ejercicios complementarios y unilaterales (zancada, hip thrust, pull-over)
+  4. Último: aislamientos (curl de bíceps, extensión de tríceps, elevación lateral, core)
+- Esta regla es fija: nunca pongas un aislamiento antes de un compuesto aunque sean del mismo grupo.
+
+REGLA DE CALENTAMIENTO:
+- NO incluyas ejercicios de los grupos "Calentamiento" ni "Estiramiento" en la rutina generada.
+- La entrenadora maneja el calentamiento y vuelta a la calma por separado.
+- Todos los ejercicios de la rutina deben ser de trabajo efectivo.
+
+REGLA DE DIVISIÓN DE SESIONES:
+- El perfil de la alumna indica su split preferido. Respetalo estrictamente.
+- full_body: cada sesión trabaja todos los grupos principales (piernas + tren superior + core). Ideal para 2-3 días.
+- upper_lower: alternás sesiones de tren superior (pecho/espalda/hombros/brazos) con tren inferior (piernas/glúteos/gemelos). Ideal para 4 días.
+- push_pull_legs: día 1=empuje (pecho/hombros/tríceps), día 2=tirón (espalda/bíceps), día 3=piernas y glúteos. Para 3 o 6 días.
+- abc: día A / día B / día C con enfoques distintos definidos por el objetivo y los grupos de la alumna. Para 3+ días.
+- Si no hay split especificado, elegí el más apropiado según días/semana y nivel: 1-2 días→full_body, 3 días principiante→full_body, 3 días intermedio/avanzado→push_pull_legs, 4+ días→upper_lower o push_pull_legs.
+- El nombre del "enfoque" de cada día debe reflejar claramente el split (ej: "Tren superior — Empuje", "Piernas y Glúteos", "Full body — Fuerza").
 
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 (formato: - Nombre [equipamiento][patrón][nivel])
@@ -196,6 +219,13 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
       avanzado: "Avanzado (+3 años, buena técnica)",
     };
 
+    const splitLabels: Record<string, string> = {
+      full_body:       "Full body — cuerpo completo cada sesión",
+      upper_lower:     "Upper/Lower — tren superior / tren inferior alternado",
+      push_pull_legs:  "Push/Pull/Legs — empuje / tirón / piernas",
+      abc:             "A/B/C — tres enfoques distintos",
+    };
+
     const prevRutinaStr = rutinasAnterior.length
       ? rutinasAnterior.map(r => {
           const exNames = (r.ejercicios as Array<{ nombre: string }>).map(e => e.nombre).join(", ");
@@ -237,6 +267,7 @@ PERFIL:
 - Días de entrenamiento por semana: ${alumna.dias ?? "no especificado"}
 - Objetivo: ${objetivoLabels[alumna.objetivo ?? ""] ?? alumna.objetivo ?? "no especificado"}
 - Nivel de experiencia: ${nivelLabels[alumna.nivel ?? ""] ?? alumna.nivel ?? "no especificado — usá criterio moderado"}
+- División de sesiones: ${splitLabels[alumna.split ?? ""] ?? "no especificado — elegí según días y nivel"}
 - Tiempo por sesión: ${alumna.tiempo_sesion ? alumna.tiempo_sesion + " minutos" : "no especificado"}
 - Equipamiento disponible: ${equipStr}
 - Lesiones/limitaciones activas: ${alumna.lesiones ?? "ninguna"}
