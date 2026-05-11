@@ -201,6 +201,9 @@
     .equip-chip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:1.5px solid var(--b);border-radius:20px;padding:4px 11px;font-size:12px;white-space:nowrap;background:var(--s);color:var(--t);transition:border-color .12s,background .12s,color .12s;user-select:none;}
     .equip-chip:has(input:checked){background:var(--p);border-color:#7c3aed;color:var(--pd);font-weight:500;}
     .equip-chip input[type=checkbox]{accent-color:#7c3aed;width:13px;height:13px;cursor:pointer;}
+    .ia-chip{border:1.5px solid var(--b);border-radius:20px;padding:3px 10px;font-size:11px;background:var(--s);color:var(--tm);cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s,color .12s;white-space:nowrap;}
+    .ia-chip:hover{border-color:#7c3aed;color:var(--pd);}
+    .ia-chip.active{background:var(--p);border-color:#7c3aed;color:var(--pd);font-weight:500;}
   </style>
 </head>
 <body>
@@ -418,7 +421,9 @@
 
     <!-- Paso 1: instrucciones -->
     <div id="ia-input" style="display:none;">
-      <div id="ia-alumna-chip" style="display:inline-flex;align-items:center;gap:6px;background:var(--p);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--pd);font-weight:500;margin-bottom:1rem;"></div>
+      <div id="ia-alumna-chip" style="display:inline-flex;align-items:center;gap:6px;background:var(--p);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--pd);font-weight:500;margin-bottom:.75rem;"></div>
+      <!-- Resumen de perfil -->
+      <div id="ia-profile-summary" style="margin-bottom:.75rem;"></div>
       <div style="margin-bottom:1rem;">
         <div style="font-size:12px;font-weight:500;color:var(--t);margin-bottom:.4rem;">¿Qué querés generar?</div>
         <div style="display:flex;gap:8px;">
@@ -433,10 +438,21 @@
         </div>
       </div>
       <label style="font-size:12px;font-weight:500;color:var(--t);display:block;margin-bottom:.35rem;" id="ia-instr-label">Instrucciones para este ciclo <span style="font-weight:400;color:var(--tm);">(opcional)</span></label>
-      <textarea id="ia-instrucciones" rows="4"
-        placeholder="Ej: este mes quiero foco en piernas y glúteos, incluí más core al final de cada sesión, evitá sentadillas porque le molesta la rodilla derecha, nivel intermedio…"
+      <!-- Chips de instrucción rápida -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:.5rem;">
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Bajar la intensidad esta semana, el cuerpo necesita recuperarse')">↓ Bajar intensidad</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Subir la intensidad, la alumna está lista para más carga')">↑ Subir intensidad</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Poner más énfasis en glúteos, incluir al menos 2 ejercicios directos de glúteos por sesión')">🍑 + Glúteos</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Más trabajo de core al final de cada sesión')">🔲 + Core</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Sin saltos ni ejercicios de alto impacto')">🚫 Sin saltos</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Sesión corta y eficiente, priorizar los compuestos más impactantes')">⏱ Sesión corta</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Cambiar los ejercicios respecto al ciclo anterior, evitar repetición para dar un estímulo nuevo')">🔄 Cambiar ejercicios</button>
+        <button type="button" class="ia-chip" onclick="toggleIAChip(this,'Reducir trabajo de piernas esta semana')">🦵 Menos piernas</button>
+      </div>
+      <textarea id="ia-instrucciones" rows="3"
+        placeholder="Ej: este mes quiero foco en piernas y glúteos, incluí más core al final de cada sesión, evitá sentadillas porque le molesta la rodilla derecha…"
         style="width:100%;border:1px solid var(--bm);border-radius:var(--rs);padding:.6rem .75rem;font-size:13px;background:var(--s);color:var(--t);resize:vertical;box-sizing:border-box;"></textarea>
-      <div style="font-size:11px;color:var(--th);margin:.4rem 0 1rem;">Si no escribís nada, Claude usa el perfil de la alumna para decidir.</div>
+      <div style="font-size:11px;color:var(--th);margin:.4rem 0 1rem;">Si no escribís nada, Claude usa el perfil de la alumna para decidir. Los chips de arriba agregan instrucciones al texto automáticamente.</div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-p" onclick="confirmarGenerarIA()" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:#7c3aed;">✨ Generar rutina</button>
         <button class="btn" onclick="closeIAModal()">Cancelar</button>
@@ -1042,6 +1058,99 @@ async function confirmarNuevoCiclo(){
 let _iaRoutineData = null;
 let _iaWeekSel = 0;
 
+// Chips de instrucción rápida
+function toggleIAChip(btn, texto) {
+  const ta = document.getElementById('ia-instrucciones');
+  if (!ta) return;
+  const activo = btn.classList.toggle('active');
+  if (activo) {
+    ta.value = ta.value ? ta.value.trim() + '. ' + texto : texto;
+  } else {
+    ta.value = ta.value.replace('. ' + texto, '').replace(texto + '. ', '').replace(texto, '').trim();
+    if (ta.value.startsWith('. ')) ta.value = ta.value.slice(2);
+  }
+}
+
+// Resumen de perfil en el modal IA
+function iaProfileSummaryHTML(a) {
+  const OBJ = {tonificar:'Tonificar',bajar_peso:'Bajar de peso',ganar_fuerza:'Ganar fuerza',salud:'Salud general',rehabilitacion:'Rehabilitación',rendimiento:'Rendimiento'};
+  const NIV = {principiante:'Principiante',intermedio:'Intermedio',avanzado:'Avanzado'};
+  const SPL = {full_body:'Cuerpo completo',full_body_ab:'Full body A/B',upper_lower:'Superior/Inferior',push_pull_legs:'Empuje·Tirón·Piernas',abc:'A/B/C'};
+  const EST = {superseries:'Superseries',circuito:'Circuito'};
+  const chips = [];
+  if (a.objetivo) chips.push({t:`🎯 ${OBJ[a.objetivo]||a.objetivo}`,ok:true});
+  else chips.push({t:'⚠️ Sin objetivo',ok:false});
+  if (a.nivel) chips.push({t:`⭐ ${NIV[a.nivel]||a.nivel}`,ok:true});
+  else chips.push({t:'⚠️ Sin nivel',ok:false});
+  if (a.tiempo_sesion) chips.push({t:`⏱ ${a.tiempo_sesion} min`,ok:true});
+  else chips.push({t:'⚠️ Sin duración',ok:false});
+  chips.push({t:`📅 ${a.dias||3} días/sem`,ok:true});
+  if (a.split) chips.push({t:`🗓 ${SPL[a.split]||a.split}`,ok:true});
+  else chips.push({t:'🗓 Claude decide el split',ok:true});
+  if (a.foco_muscular) chips.push({t:`🎯 ${a.foco_muscular}`,ok:true});
+  if (a.estilo_sesion) chips.push({t:`💪 ${EST[a.estilo_sesion]||a.estilo_sesion}`,ok:true});
+  if (a.dias_disponibles?.length) chips.push({t:`📆 ${a.dias_disponibles.map(d=>d.slice(0,3)).join('+')}`,ok:true});
+  if (a.adaptarCicloMenstrual||a.adaptar_ciclo_menstrual) chips.push({t:'🌙 Ciclo menstrual',ok:true});
+  if (a.equipamiento?.length) chips.push({t:`🏋️ ${a.equipamiento.length} equipos`,ok:true});
+  else if (a.tipo==='casa'||a.tipo==='home') chips.push({t:'⚠️ Sin equipamiento',ok:false});
+
+  const faltantes = [];
+  if (!a.objetivo) faltantes.push('objetivo');
+  if (!a.nivel) faltantes.push('nivel de experiencia');
+  if (!a.tiempo_sesion) faltantes.push('duración de sesión');
+
+  return `<div style="background:var(--bg2,#f5f5f7);border-radius:8px;padding:8px 12px;border:1px solid var(--b);">
+    <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Perfil que usará Claude</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+      ${chips.map(c=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;background:${c.ok?'var(--s)':'#fef3c7'};border:1px solid ${c.ok?'var(--b)':'#f59e0b'};color:${c.ok?'var(--t)':'#92400e'};">${c.t}</span>`).join('')}
+    </div>
+    ${a.lesiones?`<div style="font-size:11px;color:#d97706;margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
+    ${faltantes.length?`<div style="font-size:10px;color:var(--th);margin-top:5px;">Perfil incompleto — falta: ${faltantes.join(', ')}. Sin estos datos Claude generará una rutina genérica.</div>`:''}
+  </div>`;
+}
+
+// Clasificar ejercicios de la biblioteca con IA
+async function clasificarConIA() {
+  const sinClasificar = DB.biblioteca.filter(e => !e.patron_movimiento || !e.nivel_dificultad || !e.equipamiento_requerido);
+  if (!sinClasificar.length) {
+    S.msg = '✅ Todos los ejercicios ya tienen patron, nivel y equipamiento completos';
+    render(); setTimeout(()=>{S.msg='';render();}, 5000); return;
+  }
+  if (!confirm(`Claude va a clasificar ${sinClasificar.length} ejercicio${sinClasificar.length>1?'s':''} con campos vacíos (patrón, nivel, equipamiento).\n\nEsto puede tardar 15–30 segundos y usa IA. ¿Continuar?`)) return;
+  const btn = document.getElementById('bib-clasificar-btn');
+  if (btn) { btn.textContent = '⚙️ Clasificando...'; btn.disabled = true; }
+  try {
+    const resp = await fetch(`${SB_URL}/functions/v1/classify-exercises`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({ejercicios: sinClasificar.map(e=>({id:e.id,nombre:e.nombre,grupo_muscular:e.grupo_muscular,descripcion:e.descripcion}))})
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Error desconocido');
+    const clases = data.clasificaciones;
+    if (!Array.isArray(clases)) throw new Error('Respuesta inválida del servidor');
+    let actualizados = 0;
+    for (const c of clases) {
+      const ej = DB.biblioteca.find(e => e.id === c.id);
+      if (!ej) continue;
+      const upd = {};
+      if (!ej.patron_movimiento && c.patron_movimiento) upd.patron_movimiento = c.patron_movimiento;
+      if (!ej.nivel_dificultad && c.nivel_dificultad) upd.nivel_dificultad = c.nivel_dificultad;
+      if (!ej.equipamiento_requerido && c.equipamiento_requerido) upd.equipamiento_requerido = c.equipamiento_requerido;
+      if (Object.keys(upd).length) {
+        await sbPatch('ejercicios_biblioteca', `id=eq.${c.id}`, upd);
+        Object.assign(ej, upd); actualizados++;
+      }
+    }
+    S.msg = `✅ ${actualizados} ejercicio${actualizados!==1?'s':''} clasificado${actualizados!==1?'s':''} correctamente`;
+    render(); setTimeout(()=>{S.msg='';render();}, 6000);
+  } catch(e) {
+    alert('Error al clasificar ejercicios: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '✨ Completar con IA'; btn.disabled = false; }
+  }
+}
+
 function closeIAModal(){
   document.getElementById('modal-ia').style.display='none';
   ['ia-input','ia-loading','ia-preview','ia-error'].forEach(id=>document.getElementById(id).style.display='none');
@@ -1060,6 +1169,12 @@ function mostrarInputIA(){
     const perfilOk=a.objetivo||a.tiempo_sesion||(a.equipamiento&&a.equipamiento.length>0);
     chip.textContent=`${a.nombre} · ${a.dias||3} días/sem${perfilOk?'':' · ⚠️ sin perfil IA'}`;
   }
+  const summary=document.getElementById('ia-profile-summary');
+  if(summary) summary.innerHTML=iaProfileSummaryHTML(a);
+  // Resetear chips de instrucción y textarea
+  document.querySelectorAll('.ia-chip').forEach(c=>c.classList.remove('active'));
+  const ta=document.getElementById('ia-instrucciones');
+  if(ta) ta.value='';
   ['ia-loading','ia-preview','ia-error'].forEach(id=>document.getElementById(id).style.display='none');
   const defR=document.querySelector('input[name="ia-semanas"][value="4"]');
   if(defR){defR.checked=true;iaSemanasChange();}
@@ -3651,6 +3766,7 @@ function rBiblioteca(){
       ${grupos.map(gr=>`<option value="${gr}">${gr}</option>`).join('')}
     </select>
     <button class="btn btn-p btn-s" onclick="openManualBib()">+ Agregar a biblioteca</button>
+    <button class="btn btn-s" id="bib-clasificar-btn" onclick="clasificarConIA()" style="border-color:#7c3aed;color:#7c3aed;">✨ Completar con IA</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
     ${filtered.map(e=>{
