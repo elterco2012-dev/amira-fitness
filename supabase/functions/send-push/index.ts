@@ -163,21 +163,29 @@ Deno.serve(async (req) => {
     if (!subs.length) return Response.json({ sent: 0, failed: 0, total: 0, reason: "no_subscriptions" }, { headers: CORS });
 
     const alumnaIds = [...new Set(subs.map(s => s.alumna_id))];
-    let alumnas: Array<{ id: number; nombre: string; slug: string; horario_entreno?: { dias?: number[] } }> = [];
+    let alumnas: Array<{ id: number; nombre: string; slug: string; dias_disponibles?: string[] | null }> = [];
     try {
-      alumnas = await dbGet(`alumnas?select=id,nombre,slug,horario_entreno&id=in.(${alumnaIds.join(",")})`) as typeof alumnas;
+      alumnas = await dbGet(`alumnas?select=id,nombre,slug,dias_disponibles&id=in.(${alumnaIds.join(",")})`) as typeof alumnas;
     } catch (_) { /* names are optional */ }
     const alumnaMap = new Map(alumnas.map(a => [a.id, a]));
+
+    // Mapeo de nombre de día → número UTC (0=Dom … 6=Sáb)
+    const DOW: Record<string, number> = {
+      domingo: 0, lunes: 1, martes: 2, miercoles: 3,
+      jueves: 4, viernes: 5, sabado: 6,
+    };
 
     // Filter by training day when requested (used by cron, not manual panel sends)
     let filteredSubs = subs;
     if (filterByDay && !alumnaFilter) {
-      // Argentina is UTC-3; at 12:00 UTC the local day matches UTC day
-      const todayDow = new Date().getUTCDay(); // 0=Sun … 6=Sat
+      // Argentina UTC-3: a las 12:00 UTC el día local coincide con el UTC
+      const todayDow = new Date().getUTCDay();
       filteredSubs = subs.filter(s => {
         const alumna = alumnaMap.get(s.alumna_id);
-        const dias = alumna?.horario_entreno?.dias ?? [];
-        return dias.includes(todayDow);
+        const diasDisp = alumna?.dias_disponibles ?? [];
+        // Sin días específicos → enviar siempre (mejor notificar de más que de menos)
+        if (!diasDisp.length) return true;
+        return diasDisp.some(d => DOW[d] === todayDow);
       });
     }
 
