@@ -48,19 +48,19 @@ async function makeVapidJwt(endpoint: string): Promise<string> {
   const h = b64u(TE.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
   const p = b64u(TE.encode(JSON.stringify({ aud: origin, sub: "mailto:hola@amira.fitness", exp: now + 43200 })));
 
-  const d = fromb64u(VAPID_PRIVATE);
-  const pkcs8 = cat(
-    new Uint8Array([
-      0x30, 0x41, 0x02, 0x01, 0x00, 0x30, 0x13,
-      0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
-      0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07,
-      0x04, 0x27, 0x30, 0x25, 0x02, 0x01, 0x01, 0x04, 0x20,
-    ]),
-    d
-  );
-
+  // Use JWK format — avoids manual PKCS8 construction which breaks if key has whitespace or wrong length
+  const pub = fromb64u(VAPID_PUBLIC.trim());
   const privKey = await crypto.subtle.importKey(
-    "pkcs8", pkcs8, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
+    "jwk",
+    {
+      kty: "EC", crv: "P-256",
+      d: VAPID_PRIVATE.trim().replace(/=/g, ""),
+      x: b64u(pub.slice(1, 33)),
+      y: b64u(pub.slice(33, 65)),
+    },
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"]
   );
   const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, privKey, TE.encode(`${h}.${p}`));
   return `${h}.${p}.${b64u(sig)}`;
@@ -95,10 +95,9 @@ async function buildPushBody(payload: string, p256dhB64u: string, authB64u: stri
 }
 
 async function sendPush(endpoint: string, p256dh: string, auth: string, payload: string): Promise<{ ok: boolean; status: number; body: string }> {
-  const [jwt, pushBody] = await Promise.all([
-    makeVapidJwt(endpoint),
-    buildPushBody(payload, p256dh, auth)
-  ]);
+  let jwt: string, pushBody: Uint8Array;
+  try { jwt = await makeVapidJwt(endpoint); } catch (e) { throw new Error(`VAPID: ${e}`); }
+  try { pushBody = await buildPushBody(payload, p256dh, auth); } catch (e) { throw new Error(`BODY: ${e}`); }
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
