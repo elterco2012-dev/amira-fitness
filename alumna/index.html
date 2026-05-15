@@ -927,7 +927,51 @@ function mostrarBannerPush(alumnaId){
   document.body.appendChild(banner);
 }
 
-function rechazarPush(){
+function cerrarModalDias() {
+  const m = document.getElementById('modal-dias');
+  if(m) m.remove();
+  renderNotas();
+}
+
+function _renderModalDiasBtns(alumnaId) {
+  const c = document.getElementById('modal-dias-btns');
+  if(!c) return;
+  const a = getAlumna();
+  const curr = Array.isArray(a?.dias_disponibles) ? a.dias_disponibles : [];
+  const nom = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  c.innerHTML = nom.map((n,d) => {
+    const sel = curr.includes(_DIA_NAMES[d]);
+    return `<button onclick="toggleDiaModal(${alumnaId},${d})" style="padding:9px 16px;border-radius:20px;font-size:13px;font-weight:${sel?'600':'400'};border:2px solid ${sel?'var(--v)':'var(--bm)'};background:${sel?'var(--vl)':'var(--s)'};color:${sel?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;">${n}</button>`;
+  }).join('');
+  const ok = document.getElementById('modal-dias-ok');
+  if(ok) ok.textContent = curr.length ? `Listo — ${curr.length} día${curr.length>1?'s':''} ✓` : 'Listo ✓';
+}
+
+async function toggleDiaModal(alumnaId, dia) {
+  await toggleDiaHorario(alumnaId, dia);
+  _renderModalDiasBtns(alumnaId);
+}
+
+function mostrarModalDias(alumnaId) {
+  if(document.getElementById('modal-dias')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-dias';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s;';
+  overlay.innerHTML = `<div style="background:var(--bg,#fff);border-radius:20px 20px 0 0;padding:1.75rem 1.5rem 1.5rem;width:100%;max-width:430px;box-sizing:border-box;animation:slideUp .3s;">
+    <div style="text-align:center;margin-bottom:1.25rem;">
+      <div style="font-size:2.2rem;margin-bottom:8px;">📅</div>
+      <div style="font-size:17px;font-weight:600;color:var(--t);margin-bottom:6px;">¿Cuándo entrenás?</div>
+      <div style="font-size:12px;color:var(--tm);line-height:1.6;">Elegí los días y te avisamos a las 9AM solo esos días.<br>Podés cambiarlo cuando quieras.</div>
+    </div>
+    <div id="modal-dias-btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:1.5rem;"></div>
+    <button id="modal-dias-ok" onclick="cerrarModalDias()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp,12px);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:4px;">Listo ✓</button>
+    <button onclick="cerrarModalDias()" style="width:100%;padding:8px;background:none;border:none;color:var(--tm);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Seleccionar después</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  _renderModalDiasBtns(alumnaId);
+}
+
+
   // Snooze 7 days — not permanent, so the banner shows again later
   localStorage.setItem('af-push-asked','snoozed:' + Date.now());
   const b = document.getElementById('push-banner');
@@ -978,8 +1022,7 @@ async function activarPush(alumnaId){
     });
     localStorage.setItem('af-push-asked','granted');
     await guardarSuscripcion(alumnaId, sub);
-    // Mostrar confirmación
-    mostrarToast('✓ Recordatorios activados 💪');
+    mostrarModalDias(alumnaId);
   }catch(e){
     console.warn('Push subscription error:', e);
     localStorage.setItem('af-push-asked','denied');
@@ -1017,7 +1060,8 @@ async function activarPushManual(alumnaId){
     if(!sub) sub = await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUB_KEY)});
     localStorage.setItem('af-push-asked','granted');
     await guardarSuscripcion(alumnaId, sub);
-    mostrarToast('✓ Recordatorios activados 💪');
+    mostrarModalDias(alumnaId);
+    return;
   }catch(e){
     console.warn('Push error:', e);
     localStorage.setItem('af-push-asked','denied');
