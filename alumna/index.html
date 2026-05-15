@@ -972,6 +972,7 @@ function mostrarModalDias(alumnaId) {
 }
 
 
+function rechazarPush(){
   // Snooze 7 days — not permanent, so the banner shows again later
   localStorage.setItem('af-push-asked','snoozed:' + Date.now());
   const b = document.getElementById('push-banner');
