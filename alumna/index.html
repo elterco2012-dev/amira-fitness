@@ -845,7 +845,12 @@ function urlB64ToUint8(b64){
 async function setupPush(alumnaId){
   if(!swReg || !('PushManager' in window)) return;
   const prev = localStorage.getItem('af-push-asked');
-  if(prev === 'denied') return;
+  if(prev === 'denied') return; // browser denied permission — nothing we can do
+  if(prev && prev.startsWith('snoozed:')) {
+    const snoozedAt = parseInt(prev.split(':')[1]);
+    if(Date.now() - snoozedAt < 7 * 24 * 60 * 60 * 1000) return; // still snoozed
+    localStorage.removeItem('af-push-asked'); // snooze expired → show banner again
+  }
 
   await swReg.ready;
   const existing = await swReg.pushManager.getSubscription();
@@ -915,9 +920,34 @@ function mostrarBannerPush(alumnaId){
 }
 
 function rechazarPush(){
-  localStorage.setItem('af-push-asked','denied');
+  // Snooze 7 days — not permanent, so the banner shows again later
+  localStorage.setItem('af-push-asked','snoozed:' + Date.now());
   const b = document.getElementById('push-banner');
   if(b) b.remove();
+  const n = document.getElementById('push-nudge');
+  if(n) n.remove();
+}
+
+function pushNudgeHTML(alumnaId){
+  const prev = localStorage.getItem('af-push-asked');
+  if(prev === 'granted') return '';
+  if(prev === 'denied') return ''; // browser blocked — user must fix in browser settings
+  if(prev && prev.startsWith('snoozed:')){
+    const snoozedAt = parseInt(prev.split(':')[1]);
+    if(Date.now() - snoozedAt < 7*24*60*60*1000) return ''; // still snoozed
+  }
+  if(!('PushManager' in window)) return ''; // browser doesn't support push
+  return `<div id="push-nudge" style="margin:0 0 12px;background:#fefce8;border:1.5px solid #fde047;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:20px;flex-shrink:0;">🔔</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:600;color:#713f12;margin-bottom:1px;">Activá los recordatorios</div>
+      <div style="font-size:11px;color:#92400e;line-height:1.4;">Te avisamos a las 9AM cuando tenés entrenamiento</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button onclick="activarPushManual(${alumnaId})" style="background:#ca8a04;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar</button>
+      <button onclick="rechazarPush()" style="background:none;border:none;color:#92400e;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>
+    </div>
+  </div>`;
 }
 
 async function activarPush(alumnaId){
@@ -2035,7 +2065,7 @@ function renderRutina(){
   const stats = calcStats(a.id);
   const pctCiclo = stats.cicloTotal>0 ? Math.round((stats.cicloDone/stats.cicloTotal)*100) : 0;
 
-  let html = `
+  let html = pushNudgeHTML(a.id) + `
     <div class="hero">
       <div class="av av-${a.color||'teal'}" onclick="document.getElementById('fp-${a.id}').click()">
         ${avContent}
