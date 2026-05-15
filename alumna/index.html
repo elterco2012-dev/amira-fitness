@@ -2537,7 +2537,7 @@ function renderNotas(){
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">
       ${[0,1,2,3,4,5,6].map(d=>`<button onclick="toggleDiaHorario(${a.id},${d})" style="padding:5px 10px;border-radius:20px;font-size:12px;border:1px solid ${_diasDisp.includes(_DIA_NAMES[d])?'var(--v)':'var(--bm)'};background:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vl)':'var(--s2)'};color:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;">${_diasNom[d]}</button>`).join('')}
     </div>
-    ${_diasDisp.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasDisp.map(d=>_diasNom[_DIA_NAMES.indexOf(d)]||d).join(', ')}</div>`:'<div style="font-size:11px;color:var(--th);">Sin días seleccionados — tocá los días para activar recordatorios</div>'}
+    ${_diasDisp.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasDisp.map(d=>_diasNom[_DIA_NAMES.indexOf(d)]||d).join(', ')}</div>`:'<div style="font-size:11px;color:#b45309;">⚠️ Sin días seleccionados — tocá los días para que el recordatorio llegue solo cuando corresponde</div>'}
   </div>`;
   const _pushSupported='PushManager' in window&&'serviceWorker' in navigator;
   const _pushAsked=localStorage.getItem('af-push-asked');
