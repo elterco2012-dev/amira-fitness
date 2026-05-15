@@ -845,7 +845,15 @@ function urlB64ToUint8(b64){
 async function setupPush(alumnaId){
   if(!swReg || !('PushManager' in window)) return;
   const prev = localStorage.getItem('af-push-asked');
-  if(prev === 'denied') return; // browser denied permission — nothing we can do
+  // 'denied' can mean: (a) browser actually blocked, or (b) user clicked "Ahora no" in the old code.
+  // If the browser permission is still 'default', it was case (b) — clear it so the banner shows.
+  if(prev === 'denied'){
+    if(typeof Notification !== 'undefined' && Notification.permission === 'default'){
+      localStorage.removeItem('af-push-asked'); // old user-dismiss, not a real browser block
+    } else {
+      return; // truly blocked by browser — can't show the prompt
+    }
+  }
   if(prev && prev.startsWith('snoozed:')) {
     const snoozedAt = parseInt(prev.split(':')[1]);
     if(Date.now() - snoozedAt < 7 * 24 * 60 * 60 * 1000) return; // still snoozed
@@ -931,7 +939,11 @@ function rechazarPush(){
 function pushNudgeHTML(alumnaId){
   const prev = localStorage.getItem('af-push-asked');
   if(prev === 'granted') return '';
-  if(prev === 'denied') return ''; // browser blocked — user must fix in browser settings
+  // Only hide nudge if browser truly blocked — old code stored 'denied' for user dismissals too
+  if(prev === 'denied'){
+    if(typeof Notification === 'undefined' || Notification.permission === 'denied') return '';
+    // else: it was a soft dismiss, fall through and show the nudge
+  }
   if(prev && prev.startsWith('snoozed:')){
     const snoozedAt = parseInt(prev.split(':')[1]);
     if(Date.now() - snoozedAt < 7*24*60*60*1000) return ''; // still snoozed
@@ -2287,17 +2299,18 @@ function renderRutina(){
   scr.innerHTML=html;
 }
 
+const _DIA_NAMES=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+
 async function toggleDiaHorario(aId,dia){
   const a=getAlumna();if(!a)return;
-  const hor={...(a.horario_entreno||{})};
-  const dias=[...(hor.dias||[])];
-  const idx=dias.indexOf(dia);
-  if(idx>=0)dias.splice(idx,1);else dias.push(dia);
-  dias.sort();
-  hor.dias=dias;
-  a.horario_entreno=hor;
-  try{await sbPatch('alumnas',`id=eq.${aId}`,{horario_entreno:hor});}
-  catch(e){console.warn('horario_entreno:',e);}
+  const curr=Array.isArray(a.dias_disponibles)?[...a.dias_disponibles]:[];
+  const nombre=_DIA_NAMES[dia];
+  const idx=curr.indexOf(nombre);
+  if(idx>=0)curr.splice(idx,1);else curr.push(nombre);
+  curr.sort((x,y)=>_DIA_NAMES.indexOf(x)-_DIA_NAMES.indexOf(y));
+  a.dias_disponibles=curr.length?curr:null;
+  try{await sbPatch('alumnas',`id=eq.${aId}`,{dias_disponibles:curr.length?curr:null});}
+  catch(e){console.warn('dias_disponibles:',e);}
   renderNotas();
 }
 
@@ -2516,16 +2529,15 @@ function renderNotas(){
     </div>`;
   }
   // Recordatorios de entrenamiento
-  const _hor=a.horario_entreno||{};
-  const _diasSel=_hor.dias||[];
+  const _diasDisp=Array.isArray(a.dias_disponibles)?a.dias_disponibles:[];
   const _diasNom=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const _horHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">🔔 Mis días de entrenamiento</div>
     <div style="font-size:12px;color:var(--tm);margin-bottom:.65rem;">Usamos esto para recordarte entrenar cuando abrís la app.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">
-      ${[0,1,2,3,4,5,6].map(d=>`<button onclick="toggleDiaHorario(${a.id},${d})" style="padding:5px 10px;border-radius:20px;font-size:12px;border:1px solid ${_diasSel.includes(d)?'var(--v)':'var(--bm)'};background:${_diasSel.includes(d)?'var(--vl)':'var(--s2)'};color:${_diasSel.includes(d)?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;">${_diasNom[d]}</button>`).join('')}
+      ${[0,1,2,3,4,5,6].map(d=>`<button onclick="toggleDiaHorario(${a.id},${d})" style="padding:5px 10px;border-radius:20px;font-size:12px;border:1px solid ${_diasDisp.includes(_DIA_NAMES[d])?'var(--v)':'var(--bm)'};background:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vl)':'var(--s2)'};color:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;">${_diasNom[d]}</button>`).join('')}
     </div>
-    ${_diasSel.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasSel.map(d=>_diasNom[d]).join(', ')}</div>`:'<div style="font-size:11px;color:var(--th);">Sin días seleccionados</div>'}
+    ${_diasDisp.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasDisp.map(d=>_diasNom[_DIA_NAMES.indexOf(d)]||d).join(', ')}</div>`:'<div style="font-size:11px;color:var(--th);">Sin días seleccionados — tocá los días para activar recordatorios</div>'}
   </div>`;
   const _pushSupported='PushManager' in window&&'serviceWorker' in navigator;
   const _pushAsked=localStorage.getItem('af-push-asked');
