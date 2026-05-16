@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     .map(e => `- id:${e.id} | ${e.nombre} | ${e.grupo_muscular ?? ""} | ${e.descripcion ?? ""}`)
     .join("\n");
 
-  const prompt = `Clasificá cada ejercicio de fitness con exactamente estos 3 campos.
+  const prompt = `Clasificá cada ejercicio de fitness con exactamente estos 6 campos.
 
 PATRON_MOVIMIENTO — elegí uno:
 • empuje_horizontal — press pecho, flexiones, press banco inclinado/plano
@@ -58,11 +58,29 @@ EQUIPAMIENTO_REQUERIDO — elegí el principal:
 • fitball          — pelota de estabilidad
 • step             — step, cajón o banco bajo
 
+POSICION_EJERCICIO — elegí una:
+• de_pie              — ejercicio realizado de pie (sentadillas, peso muerto, press militar, curl de pie)
+• sentada             — sentada en banco, silla o máquina (press en máquina, curl sentado, extensión cuádriceps)
+• acostada_boca_arriba — tumbada boca arriba (press de pecho en suelo, puente de glúteos, curl abdominal)
+• acostada_boca_abajo  — tumbada boca abajo / plancha (flexiones, curl femoral en suelo)
+• inclinada           — en banco inclinado/declinado o inclinada hacia adelante (press inclinado, kickback)
+• en_cuadrupedia      — en cuatro apoyos (patada de glúteo en suelo, bird-dog)
+• arrodillada         — de rodillas (nordic curl, press de hombros arrodillado)
+
+BILATERAL — true o false:
+• true  — trabaja ambos lados a la vez (sentadilla, press, remo bilateral, curl con barra)
+• false — trabaja un lado a la vez o alternado (zancada, peso muerto a una pierna, curl alterno, kickback)
+
+IMPACTO — bajo, medio o alto:
+• bajo  — sin impacto (ejercicios de suelo, máquina, polea, sentados, peso muerto controlado)
+• medio — impacto moderado (flexiones, step-up, chin-up, fondos, nordic curl)
+• alto  — impacto articular alto (saltos, plyos, jump squat, box jump, flexiones explosivas, skipping)
+
 EJERCICIOS A CLASIFICAR:
 ${lista}
 
 Respondé ÚNICAMENTE con un array JSON (sin texto extra, sin markdown):
-[{"id": 1, "patron_movimiento": "...", "nivel_dificultad": 1, "equipamiento_requerido": "..."}, ...]`;
+[{"id": 1, "patron_movimiento": "...", "nivel_dificultad": 1, "equipamiento_requerido": "...", "posicion_ejercicio": "...", "bilateral": true, "impacto": "bajo"}, ...]`;
 
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
