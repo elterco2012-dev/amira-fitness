@@ -2304,6 +2304,13 @@ async function aprobar(id){
   }
   const elNotas=document.getElementById('na-notas');
   if(elNotas&&reg.objetivos&&reg.objetivos!=='—')elNotas.value=reg.objetivos;
+  const elObj=document.getElementById('na-objetivo');
+  if(elObj&&reg.objetivos&&reg.objetivos!=='—'){
+    // mapear objetivos del registro al campo objetivo cuando hay coincidencia
+    const objMap={Tonificar:'tonificar','Tonificación':'tonificar','Bajar de peso':'bajar_peso','Bajar peso':'bajar_peso','Ganar fuerza':'ganar_fuerza','Salud':'salud','Rehabilitación':'rehabilitacion','Rendimiento':'rendimiento'};
+    const mapped=Object.entries(objMap).find(([k])=>reg.objetivos.toLowerCase().includes(k.toLowerCase()));
+    if(mapped) elObj.value=mapped[1];
+  }
   const _pf=(id,val)=>{const el=document.getElementById(id);if(el&&val&&val!=='—')el.value=val;};
   _pf('na-genero',reg.genero);
   _pf('na-ubicacion',reg.ubicacion);
@@ -2675,7 +2682,7 @@ function drawerPagos(a){
 }
 
 function drawerFicha(a){
-  const regData=DB.registros.find(r=>r.alumna_id===a.id);
+  const regData=DB.registros.find(r=>r.alumna_id===a.id&&(r.tipo==='ficha_salud'||r.lesiones||r.control_medico||r.enfermedad||r.medicacion));
   const nac=a.nacimiento||regData?.nacimiento;
   const nf=fmtNac(nac); const edad=calcEdad(nac);
   const fields=[
@@ -3163,7 +3170,7 @@ function rAlumnas(){
 }
 
 function alumnaCardHTML(a){
-  const ficha=DB.registros.find(r=>r.alumna_id===a.id);
+  const ficha=DB.registros.find(r=>r.alumna_id===a.id&&(r.tipo==='ficha_salud'||r.lesiones||r.control_medico||r.enfermedad||r.medicacion));
   const regData=DB.registros.find(r=>r.estado==='aprobado'&&r.nombre===a.nombre&&!r.alumna_id);
   const fichaOpen=S['ficha_open_'+a.id];
   const regOpen=S['reg_open_'+a.id];
