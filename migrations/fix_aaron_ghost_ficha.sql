@@ -19,11 +19,11 @@ SELECT 'registro' AS source, r.id, r.nombre, r.alumna_id::text, r.lesiones
 
 -- STEP 2 — Remove health-ficha registros linked to current Aaron
 -- (only removes records with health data, keeps the plain registration record)
+-- Note: does NOT use the "tipo" column since it may not exist yet in production
 WITH aaron AS (SELECT id FROM alumnas WHERE slug = 'aaron-armoa')
 DELETE FROM registros
  WHERE alumna_id = (SELECT id FROM aaron)
-   AND (tipo = 'ficha_salud'
-        OR lesiones IS NOT NULL
+   AND (lesiones IS NOT NULL
         OR control_medico IS NOT NULL
         OR enfermedad IS NOT NULL
         OR medicacion IS NOT NULL);
