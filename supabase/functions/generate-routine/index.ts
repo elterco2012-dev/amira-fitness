@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
       dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel,split,dias_disponibles,foco_muscular,adaptar_ciclo_menstrual,estilo_sesion`),
-      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones&order=grupo_muscular.asc,nombre.asc"),
+      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones,posicion_ejercicio,bilateral,impacto&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
       dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,descripcion,created_at&order=created_at.desc&limit=20`),
@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
     type BibRow = {
       nombre: string; grupo_muscular?: string; descripcion?: string; observaciones?: string | null;
       equipamiento_requerido?: string; patron_movimiento?: string | null; nivel_dificultad?: number | null;
+      posicion_ejercicio?: string | null; bilateral?: boolean | null; impacto?: string | null;
     };
     const equipLabels: Record<string, string> = {
       sin_equipamiento: "sin equipamiento", mancuernas: "mancuernas", barra: "barra",
@@ -103,8 +104,11 @@ Deno.serve(async (req) => {
       const equip = ex.equipamiento_requerido ? `[${equipLabels[ex.equipamiento_requerido] ?? ex.equipamiento_requerido}]` : "[sin equipamiento]";
       const patron = ex.patron_movimiento ? `[${ex.patron_movimiento}]` : "";
       const nivel  = ex.nivel_dificultad   ? `[N${ex.nivel_dificultad}]` : "";
+      const pos    = ex.posicion_ejercicio  ? `[${ex.posicion_ejercicio.replace(/_/g," ")}]` : "";
+      const uni    = ex.bilateral === false  ? "[unilateral]" : "";
+      const imp    = ex.impacto             ? `[${ex.impacto} impacto]` : "";
       const obs    = ex.observaciones      ? ` ⚠️ ${ex.observaciones.slice(0, 80)}` : "";
-      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}${obs}`);
+      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${pos}${uni}${imp}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}${obs}`);
     }
     const bibTexto = Object.entries(bibByGroup)
       .map(([g, exs]) => `### ${g}\n${exs.join("\n")}`)
@@ -155,6 +159,16 @@ REGLA DE ORDEN DENTRO DE CADA SESIÓN:
   3. Tercero: ejercicios complementarios y unilaterales (zancada, hip thrust, pull-over)
   4. Último: aislamientos (curl de bíceps, extensión de tríceps, elevación lateral, core)
 - Esta regla es fija: nunca pongas un aislamiento antes de un compuesto aunque sean del mismo grupo.
+
+REGLA DE POSICIÓN EN SESIÓN:
+- Cada ejercicio tiene su posición marcada: [de pie], [sentada], [acostada boca arriba], [acostada boca abajo], [inclinada], [en cuadrupedia], [arrodillada].
+- Evitá más de 3 ejercicios consecutivos en la misma posición (especialmente en el suelo). Alternár posiciones hace la sesión más variada y fluida.
+- Los ejercicios marcados [unilateral] trabajan un solo lado a la vez. Incluí al menos 1 ejercicio [unilateral] por sesión para trabajar simetrías y prevenir compensaciones.
+
+REGLA DE IMPACTO:
+- Cada ejercicio tiene su nivel de impacto: [bajo impacto], [medio impacto], [alto impacto].
+- principiante → 0 ejercicios de [alto impacto]. intermedio → máximo 1. avanzado → hasta 2 por sesión.
+- Si hay lesiones activas, usá predominantemente ejercicios de [bajo impacto] en las zonas afectadas.
 
 REGLA DE CALENTAMIENTO:
 - NO incluyas ejercicios de los grupos "Calentamiento" ni "Estiramiento" en la rutina generada.
@@ -211,7 +225,7 @@ REGLA DE ESTILO DE SESIÓN:
 - "circuito": todos los ejercicios del día se realizan en secuencia sin descanso entre ellos (o con descanso muy breve). Asigná superset_id = "C" a TODOS los ejercicios de la sesión. Elegí 5-8 ejercicios variados (tren superior + tren inferior + core alternados para permitir recuperación parcial). Usá reps más altas (15-20) y cargas moderadas. Indicalo en el enfoque del día: "Circuito — [grupos]".
 
 BIBLIOTECA DE EJERCICIOS DISPONIBLES:
-(formato: - Nombre [equipamiento][patrón][nivel])
+(formato: - Nombre [equipamiento][patrón][nivel][posición][unilateral?][impacto])
 ${bibTexto}
 
 FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
