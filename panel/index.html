@@ -2275,6 +2275,18 @@ async function aprobar(id){
   reg.estado='aprobado';
   prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
   const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
+
+  // Si el registro ya tiene alumna_id = es alumna existente que actualizó su ficha
+  // → ir a su perfil, no crear nueva alumna
+  if(reg.alumna_id){
+    S.selA=reg.alumna_id;
+    S.msg=`✅ Ficha de ${reg.nombre} revisada — sus datos de salud fueron actualizados`;
+    go('alumnas');
+    setTimeout(()=>{S.msg='';render();},5000);
+    return;
+  }
+
+  // Alumna nueva → pre-rellenar formulario de alta
   S._fromRegId=id;
   S.addA=true;
   go('alumnas');  // render corre primero — los inputs existen después de esto
