@@ -1797,7 +1797,14 @@ async function saveEditA(){
       :`Guardado ✓${pin?' · PIN: '+pin:''}`;
     closeEditA();render();
     setTimeout(()=>{S.msg='';render();},6000);
-  }catch(e){document.getElementById('ea-msg').textContent='Error: '+e.message;}
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('23505')||msg.includes('email_unique')||msg.includes('duplicate key')){
+      document.getElementById('ea-msg').textContent='Ese email ya pertenece a otra alumna — no se puede usar el mismo email en dos perfiles.';
+    } else {
+      document.getElementById('ea-msg').textContent='Error: '+msg;
+    }
+  }
 }
 
 // ── CRUD Alumnas ──────────────────────────────────────────────
@@ -1895,7 +1902,16 @@ async function addAlumna(){
       S.addA=false;S.msg='Alumna creada ✓'+(email&&!pin?' (sin PIN: falta fecha de nacimiento)':'');render();
     }
     setTimeout(()=>{S.msg='';render();},4000);
-  }catch(e){S.msg='';S.err='Error: '+e.message;render();console.error('addAlumna error:',e);}
+  }catch(e){
+    S.msg='';
+    if(e.message&&(e.message.includes('23505')||e.message.includes('email_unique')||e.message.includes('duplicate key'))){
+      const emailVal=document.getElementById('na-email')?.value?.trim()||'';
+      S.err=`El email "${emailVal}" ya pertenece a otra alumna. Buscala en la lista y editá sus datos desde ahí.`;
+    } else {
+      S.err='Error: '+e.message;
+    }
+    render();console.error('addAlumna error:',e);
+  }
 }
 
 function openEditBib(id){
@@ -2259,6 +2275,18 @@ async function aprobar(id){
   reg.estado='aprobado';
   prevReg=DB.registros.filter(r=>r.estado==='pendiente').length;
   const _nb=document.getElementById('nb-reg');if(_nb){if(prevReg>0){_nb.style.display='inline';_nb.textContent=prevReg;}else _nb.style.display='none';}
+
+  // Si el registro ya tiene alumna_id = es alumna existente que actualizó su ficha
+  // → ir a su perfil, no crear nueva alumna
+  if(reg.alumna_id){
+    S.selA=reg.alumna_id;
+    S.msg=`✅ Ficha de ${reg.nombre} revisada — sus datos de salud fueron actualizados`;
+    go('alumnas');
+    setTimeout(()=>{S.msg='';render();},5000);
+    return;
+  }
+
+  // Alumna nueva → pre-rellenar formulario de alta
   S._fromRegId=id;
   S.addA=true;
   go('alumnas');  // render corre primero — los inputs existen después de esto

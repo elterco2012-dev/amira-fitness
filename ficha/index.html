@@ -340,11 +340,30 @@ async function enviar(){
     estado:'pendiente'
   };
 
-  // Asociar a alumna si viene de URL personalizada
-  if(fichaAlumnaId) datos.alumna_id = fichaAlumnaId;
-  
-  // Guardar en Supabase (sin id — la DB lo genera con autoincrement)
-  try{await sbInsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+  if(fichaAlumnaId){
+    // Alumna existente: actualizar sus datos de salud y guardar como aprobado (sin revisión manual)
+    datos.alumna_id = fichaAlumnaId;
+    datos.estado = 'aprobado';
+    const healthUpd = {};
+    if(datos.lesiones && datos.lesiones !== 'Sin lesiones') healthUpd.lesiones = datos.lesiones;
+    if(datos.tel) healthUpd.tel = datos.tel;
+    const extras = [
+      datos.enfermedad && datos.enfermedad !== 'Ninguna'           ? `Enfermedad: ${datos.enfermedad}` : null,
+      datos.medicacion && datos.medicacion !== 'No'                ? `Medicación: ${datos.medicacion}` : null,
+      datos.patologia_cardio && datos.patologia_cardio !== '—'     ? `Cardio: ${datos.patologia_cardio}` : null,
+      datos.lesiones_previas && datos.lesiones_previas !== 'Sin antecedentes' ? `Lesiones previas: ${datos.lesiones_previas}` : null,
+      datos.dolor_zonas && datos.dolor_zonas !== '—'               ? `Dolor frecuente: ${datos.dolor_zonas}` : null,
+      datos.control_medico && datos.control_medico !== '—'         ? `Último control médico: ${datos.control_medico}` : null,
+      datos.extra && datos.extra !== '—'                           ? `Observaciones: ${datos.extra}` : null,
+    ].filter(Boolean).join(' · ');
+    if(extras) healthUpd.notas = extras;
+    try{await sbPatch('alumnas',`id=eq.${fichaAlumnaId}`,healthUpd);}catch(e){console.warn('patch alumna:',e);}
+    try{await sbInsert('registros',datos);}catch(e){console.warn('insert registro:',e);}
+  } else {
+    // Alumna nueva: crear registro pendiente para revisión
+    datos.estado = 'pendiente';
+    try{await sbInsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+  }
   
   // Marcar como completada en localStorage (no se puede reenviar)
   if(fichaSlug) localStorage.setItem(fichaKey, '1');
