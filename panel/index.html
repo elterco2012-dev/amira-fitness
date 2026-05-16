@@ -1909,6 +1909,9 @@ function openEditBib(id){
   document.getElementById('eb-tipo').value=e.tipo||'fuerza';
   document.getElementById('eb-patron').value=e.patron_movimiento||'';
   document.getElementById('eb-nivel').value=e.nivel_dificultad||'';
+  document.getElementById('eb-posicion').value=e.posicion_ejercicio||'';
+  document.getElementById('eb-bilateral').value=e.bilateral===false?'false':'true';
+  document.getElementById('eb-impacto').value=e.impacto||'';
   document.getElementById('eb-obs').value=e.observaciones||'';
   document.getElementById('eb-msg').textContent='';
   document.getElementById('modal-edit-bib').style.display='flex';
@@ -1926,6 +1929,9 @@ async function saveEditBib(){
     tipo:document.getElementById('eb-tipo').value,
     patron_movimiento:document.getElementById('eb-patron').value||null,
     nivel_dificultad:parseInt(document.getElementById('eb-nivel').value)||null,
+    posicion_ejercicio:document.getElementById('eb-posicion').value||null,
+    bilateral:document.getElementById('eb-bilateral').value!=='false',
+    impacto:document.getElementById('eb-impacto').value||null,
     observaciones:document.getElementById('eb-obs').value.trim()
   };
   document.getElementById('eb-msg').textContent='Guardando...';
@@ -4827,6 +4833,28 @@ initAuth();
           <option value="1">1 — Básico</option>
           <option value="2">2 — Intermedio</option>
           <option value="3">3 — Avanzado</option>
+        </select></div>
+    </div>
+    <div class="frow" style="margin-top:8px;">
+      <div><label>Posición</label><select id="eb-posicion" style="margin-bottom:0;">
+          <option value="">— Sin especificar</option>
+          <option value="de_pie">De pie</option>
+          <option value="sentada">Sentada</option>
+          <option value="acostada_boca_arriba">Acostada boca arriba</option>
+          <option value="acostada_boca_abajo">Acostada boca abajo</option>
+          <option value="inclinada">Inclinada</option>
+          <option value="en_cuadrupedia">En cuadrupedia</option>
+          <option value="arrodillada">Arrodillada</option>
+        </select></div>
+      <div><label>Bilateral</label><select id="eb-bilateral" style="margin-bottom:0;">
+          <option value="true">Bilateral</option>
+          <option value="false">Unilateral</option>
+        </select></div>
+      <div><label>Impacto</label><select id="eb-impacto" style="margin-bottom:0;">
+          <option value="">— Sin especificar</option>
+          <option value="bajo">Bajo</option>
+          <option value="medio">Medio</option>
+          <option value="alto">Alto</option>
         </select></div>
     </div>
     <label style="margin-top:10px;">Observaciones adicionales</label>
