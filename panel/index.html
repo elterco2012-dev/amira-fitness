@@ -2100,7 +2100,13 @@ async function deleteAlumna(id){
 }
 async function confirmDeleteAlumna(){
   const id=S._confirmDeleteId; S._confirmDeleteId=null;
-  try{await sbDelete('alumnas',`id=eq.${id}`);DB.alumnas=DB.alumnas.filter(a=>a.id!==id);delete DB.rutinas[id];if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;}
+  try{
+    // Unlink registros so orphaned data won't ghost-attach to a future re-registration
+    await sbPatch('registros',`alumna_id=eq.${id}`,{alumna_id:null}).catch(()=>{});
+    DB.registros.forEach(r=>{if(r.alumna_id===id)r.alumna_id=null;});
+    await sbDelete('alumnas',`id=eq.${id}`);
+    DB.alumnas=DB.alumnas.filter(a=>a.id!==id);delete DB.rutinas[id];if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;
+  }
   catch(e){S.err='Error al eliminar';render();return;}
   render();
 }
