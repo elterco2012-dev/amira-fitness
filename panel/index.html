@@ -348,6 +348,28 @@
           <option value="3">3 — Avanzado</option>
         </select></div>
     </div>
+    <div class="frow" style="margin-top:8px;">
+      <div><label>Posición</label><select id="m-posicion" style="margin-bottom:0;">
+          <option value="">— Sin especificar</option>
+          <option value="de_pie">De pie</option>
+          <option value="sentada">Sentada</option>
+          <option value="acostada_boca_arriba">Acostada boca arriba</option>
+          <option value="acostada_boca_abajo">Acostada boca abajo</option>
+          <option value="inclinada">Inclinada</option>
+          <option value="en_cuadrupedia">En cuadrupedia</option>
+          <option value="arrodillada">Arrodillada</option>
+        </select></div>
+      <div><label>Bilateral</label><select id="m-bilateral" style="margin-bottom:0;">
+          <option value="true">Bilateral</option>
+          <option value="false">Unilateral</option>
+        </select></div>
+      <div><label>Impacto</label><select id="m-impacto" style="margin-bottom:0;">
+          <option value="">— Sin especificar</option>
+          <option value="bajo">Bajo</option>
+          <option value="medio">Medio</option>
+          <option value="alto">Alto</option>
+        </select></div>
+    </div>
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b);">
       <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Parámetros para esta rutina:</div>
       <div class="frow">
@@ -1111,12 +1133,12 @@ function iaProfileSummaryHTML(a) {
 
 // Clasificar ejercicios de la biblioteca con IA
 async function clasificarConIA() {
-  const sinClasificar = DB.biblioteca.filter(e => !e.patron_movimiento || !e.nivel_dificultad || !e.equipamiento_requerido);
+  const sinClasificar = DB.biblioteca.filter(e => !e.patron_movimiento || !e.nivel_dificultad || !e.equipamiento_requerido || !e.posicion_ejercicio || !e.impacto);
   if (!sinClasificar.length) {
-    S.msg = '✅ Todos los ejercicios ya tienen patron, nivel y equipamiento completos';
+    S.msg = '✅ Todos los ejercicios ya tienen todos los campos completos';
     render(); setTimeout(()=>{S.msg='';render();}, 5000); return;
   }
-  if (!confirm(`Claude va a clasificar ${sinClasificar.length} ejercicio${sinClasificar.length>1?'s':''} con campos vacíos (patrón, nivel, equipamiento).\n\nEsto puede tardar 15–30 segundos y usa IA. ¿Continuar?`)) return;
+  if (!confirm(`Claude va a clasificar ${sinClasificar.length} ejercicio${sinClasificar.length>1?'s':''} con campos vacíos (patrón, nivel, equipamiento, posición, bilateral, impacto).\n\nEsto puede tardar 15–30 segundos y usa IA. ¿Continuar?`)) return;
   const btn = document.getElementById('bib-clasificar-btn');
   if (btn) { btn.textContent = '⚙️ Clasificando...'; btn.disabled = true; }
   try {
@@ -1137,6 +1159,9 @@ async function clasificarConIA() {
       if (!ej.patron_movimiento && c.patron_movimiento) upd.patron_movimiento = c.patron_movimiento;
       if (!ej.nivel_dificultad && c.nivel_dificultad) upd.nivel_dificultad = c.nivel_dificultad;
       if (!ej.equipamiento_requerido && c.equipamiento_requerido) upd.equipamiento_requerido = c.equipamiento_requerido;
+      if (!ej.posicion_ejercicio && c.posicion_ejercicio) upd.posicion_ejercicio = c.posicion_ejercicio;
+      if ((ej.bilateral === null || ej.bilateral === undefined) && c.bilateral !== undefined) upd.bilateral = c.bilateral ?? true;
+      if (!ej.impacto && c.impacto) upd.impacto = c.impacto;
       if (Object.keys(upd).length) {
         await sbPatch('ejercicios_biblioteca', `id=eq.${c.id}`, upd);
         Object.assign(ej, upd); actualizados++;
@@ -1496,12 +1521,16 @@ function renderBib(){
   const list=document.getElementById('bib-list');
   if(!list)return;
   const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step'};
+  const POS_LABEL={de_pie:'🧍 De pie',sentada:'🪑 Sentada',acostada_boca_arriba:'⬆️ B. arriba',acostada_boca_abajo:'⬇️ B. abajo',inclinada:'📐 Inclinada',en_cuadrupedia:'🐾 Cuadrup.',arrodillada:'🙏 Arrodillada'};
+  const IMP_LABEL={bajo:'🟢 Bajo',medio:'🟡 Medio',alto:'🔴 Alto'};
   list.innerHTML=filtered.map(e=>`
     <div class="bib-card${bibSelEx?.id===e.id?' selected':''}" onclick="selectBibEx(${e.id})">
       <div class="bib-name">${e.nombre}</div>
       <div class="bib-meta">${e.grupo_muscular||''}</div>
       ${e.equipamiento_requerido?`<div class="bib-tag" style="font-size:9px;background:var(--a);color:var(--ad);">${EQUIP_LABEL[e.equipamiento_requerido]||e.equipamiento_requerido}</div>`:''}
-      ${e.tipo?`<div class="bib-tag">${e.tipo}</div>`:''}
+      ${e.posicion_ejercicio?`<div class="bib-tag" style="font-size:9px;">${POS_LABEL[e.posicion_ejercicio]||e.posicion_ejercicio}</div>`:''}
+      ${e.bilateral===false?`<div class="bib-tag" style="font-size:9px;background:#f0f4ff;color:#4f6ef7;">Unilateral</div>`:''}
+      ${e.impacto?`<div class="bib-tag" style="font-size:9px;">${IMP_LABEL[e.impacto]||e.impacto}</div>`:''}
     </div>`).join('')||`<div class="empty" style="grid-column:1/-1;">Sin resultados</div>`;
 }
 
@@ -1546,7 +1575,7 @@ async function addFromBib(){
 
 // ── Manual nuevo ejercicio ────────────────────────────────────
 let _manualBibOnly=false;
-function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-equip').value='sin_equipamiento';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('modal-manual').style.display='flex';}
+function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-equip').value='sin_equipamiento';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('m-posicion').value='';document.getElementById('m-bilateral').value='true';document.getElementById('m-impacto').value='';document.getElementById('modal-manual').style.display='flex';}
 function closeManual(){document.getElementById('modal-manual').style.display='none';}
 
 async function saveManual(){
@@ -1566,7 +1595,10 @@ async function saveManual(){
     equipamiento_requerido: document.getElementById('m-equip').value,
     tipo: document.getElementById('m-tipo').value,
     patron_movimiento: document.getElementById('m-patron').value||null,
-    nivel_dificultad: parseInt(document.getElementById('m-nivel').value)||null
+    nivel_dificultad: parseInt(document.getElementById('m-nivel').value)||null,
+    posicion_ejercicio: document.getElementById('m-posicion').value||null,
+    bilateral: document.getElementById('m-bilateral').value !== 'false',
+    impacto: document.getElementById('m-impacto').value||null
   };
 
   try{
