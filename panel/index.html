@@ -1238,11 +1238,16 @@ async function confirmarGenerarIA(){
     if(instrucciones)body.instrucciones=instrucciones;
     const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+getToken()},
       body:JSON.stringify(body)
     });
-    const data=await resp.json();
-    if(!resp.ok||data.error)throw new Error(data.error||(data.detail?data.detail.slice(0,200):'Error desconocido'));
+    const rawText=await resp.text();
+    let data={};
+    try{data=JSON.parse(rawText);}catch(_){data={_raw:rawText.slice(0,400)};}
+    if(!resp.ok||data.error){
+      const msg=data.error||data.message||data.detail||(data._raw?`[${resp.status}] ${data._raw}`:`HTTP ${resp.status}`);
+      throw new Error(msg);
+    }
     _iaRoutineData=data.routine;
     postProcessRoutine(_iaRoutineData);
     document.getElementById('ia-loading').style.display='none';
@@ -3495,6 +3500,8 @@ async function copiarDiaRapido(dstDia){
 }
 
 function rRutinas(){
+  const activas=DB.alumnas.filter(al=>al.estado!=='baja');
+  if(S.selA&&getA(S.selA)?.estado==='baja'){S.selA=activas[0]?.id||null;}
   const a=getA(S.selA);
   if(!a)return`<div class="ptitle">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
   const cicloActual=a.ciclo_actual||1;
@@ -3504,7 +3511,7 @@ function rRutinas(){
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.filter(al=>al.estado!=='baja').map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${a.lesiones}</div>`:''}
   <div class="card">
