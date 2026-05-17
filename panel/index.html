@@ -3228,6 +3228,7 @@ function alumnaCardHTML(a){
     const tel=a.tel||regData?.tel;
     const mail=a.email||regData?.mail;
     perfilHTML='<div style="background:var(--s2);border-radius:var(--rs);padding:.85rem;border:1px solid var(--b);margin-bottom:8px;">'
+      // — Datos personales —
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">'
       +(mail?'<div><span style="color:var(--tm);">Mail:</span> '+mail+'</div>':'')
       +(tel?'<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/'+tel.replace(/\D/g,'')+'" target="_blank" style="color:var(--v);font-weight:500;">'+tel+'</a></div>':'')
@@ -3241,31 +3242,27 @@ function alumnaCardHTML(a){
       +(exp?'<div><span style="color:var(--tm);">Experiencia:</span> '+exp+'</div>':'')
       +(obj?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> '+obj+'</div>':'')
       +(extra?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> '+extra+'</div>':'')
-      +'</div></div>';
-  }
-
-  let fichaHTML='';
-  if(fichaOpen&&ficha){
-    fichaHTML='<div style="background:var(--p);border-radius:var(--rs);padding:.85rem;border:1px solid rgba(60,52,137,0.15);margin-bottom:8px;">'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">'
-      +(ficha.edad?'<div><span style="color:var(--tm);">Edad:</span> <strong>'+ficha.edad+' años</strong></div>':'')
-      +(ficha.mail?'<div><span style="color:var(--tm);">Mail:</span> '+ficha.mail+'</div>':'')
-      +(ficha.tel?'<div><span style="color:var(--tm);">WhatsApp:</span> '+ficha.tel+'</div>':'')
-      +(ficha.ubicacion?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Ubicación:</span> '+ficha.ubicacion+'</div>':'')
-      +(ficha.objetivos?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> <strong>'+ficha.objetivos+'</strong></div>':'')
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Último control médico:</span> '+(ficha.control_medico||'—')+'</div>'
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Enfermedades:</span> '+(ficha.enfermedad||'—')+'</div>'
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Medicación:</span> '+(ficha.medicacion||'—')+'</div>'
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Patología cardiovascular:</span> '+(ficha.patologia_cardio||'—')+'</div>'
-      +(ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'
-        ?'<div style="grid-column:1/-1;background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+ficha.lesiones+'</div>'
-        :'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones:</span> '+(ficha.lesiones||'—')+'</div>')
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones previas:</span> '+(ficha.lesiones_previas||'—')+'</div>'
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Dolor frecuente:</span> '+(ficha.dolor_zonas||'—')+'</div>'
-      +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Actividad actual:</span> '+(ficha.actividad_actual||'—')+'</div>'
-      +(ficha.extra&&ficha.extra!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas extra:</span> '+ficha.extra+'</div>':'')
-      +'<div style="grid-column:1/-1;font-size:10px;color:var(--th);margin-top:4px;">Completada el '+(ficha.fecha||'—')+'</div>'
-      +'</div></div>';
+      +'</div>'
+      // — Ficha de salud —
+      +(ficha
+        ?'<div style="border-top:1px solid var(--b);margin-top:.75rem;padding-top:.75rem;">'
+          +'<div style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Ficha de salud</div>'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">'
+          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Último control médico:</span> '+(ficha.control_medico||'—')+'</div>'
+          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Enfermedades:</span> '+(ficha.enfermedad||'—')+'</div>'
+          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Medicación:</span> '+(ficha.medicacion||'—')+'</div>'
+          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Patología cardiovascular:</span> '+(ficha.patologia_cardio||'—')+'</div>'
+          +(ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'
+            ?'<div style="grid-column:1/-1;background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+ficha.lesiones+'</div>'
+            :'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones:</span> '+(ficha.lesiones||'—')+'</div>')
+          +(ficha.lesiones_previas&&ficha.lesiones_previas!=='Sin antecedentes'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones previas:</span> '+ficha.lesiones_previas+'</div>':'')
+          +(ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Dolor frecuente:</span> '+ficha.dolor_zonas+'</div>':'')
+          +(ficha.actividad_actual&&ficha.actividad_actual!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Actividad actual:</span> '+ficha.actividad_actual+'</div>':'')
+          +(ficha.extra&&ficha.extra!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas extra:</span> '+ficha.extra+'</div>':'')
+          +'<div style="grid-column:1/-1;font-size:10px;color:var(--th);margin-top:2px;">Completada el '+(ficha.fecha||'—')+'</div>'
+          +'</div></div>'
+        :'<div style="border-top:1px solid var(--b);margin-top:.75rem;padding-top:.5rem;font-size:11px;color:var(--th);">Sin ficha de salud · <a href="/ficha/'+a.slug+'" target="_blank" style="color:var(--v);">Enviar formulario →</a></div>')
+      +'</div>';
   }
 
   let notasHTML='';
@@ -3297,10 +3294,6 @@ function alumnaCardHTML(a){
       +'</div>'
     :'';
 
-  const fichaBtn=ficha
-    ?'<button class="btn btn-s'+(fichaOpen?' btn-p':'')+'" onclick="S[\'ficha_open_'+a.id+'\']=!S[\'ficha_open_'+a.id+'\'];render()">📋 Ficha</button>'
-    :'<span style="font-size:11px;color:var(--th);padding:2px 4px;">Sin ficha · <a href="/ficha/'+a.slug+'" target="_blank" style="color:var(--v);">Enviar</a></span>';
-
   return`<div class="card" style="padding:1rem 1.25rem;margin-bottom:.75rem;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
       <div class="av av-${a.color}" style="width:40px;height:40px;font-size:15px;cursor:pointer;position:relative;flex-shrink:0;" onclick="document.getElementById('fp-p-${a.id}').click()" title="Cambiar foto">
@@ -3331,11 +3324,11 @@ function alumnaCardHTML(a){
     </div>
     ${histRows}
     <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
-      <button class="btn btn-s${regOpen?' btn-p':''}" onclick="S['reg_open_${a.id}']=!S['reg_open_${a.id}'];render()">📝 Perfil</button>
-      ${fichaBtn}
+      <button class="btn btn-s${regOpen?' btn-p':''}" onclick="S['reg_open_${a.id}']=!S['reg_open_${a.id}'];render()">📝 Perfil${ficha?' ✓':''}</button>
+      ${!ficha?`<span style="font-size:11px;color:var(--th);padding:2px 4px;">Sin ficha · <a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar →</a></span>`:''}
       <button class="btn btn-s${nsOpen?' btn-p':''}" onclick="S['notas_open_${a.id}']=!S['notas_open_${a.id}'];render()">📓 Notas${notas.length?' ('+notas.length+')':''}</button>
     </div>
-    ${perfilHTML}${fichaHTML}${notasHTML}
+    ${perfilHTML}${notasHTML}
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--b);padding-top:8px;">
       <button class="btn btn-p btn-s" onclick="openDrawer(${a.id})">Ver detalle</button>
       <button class="btn btn-s" onclick="S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>
