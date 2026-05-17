@@ -2100,7 +2100,13 @@ async function deleteAlumna(id){
 }
 async function confirmDeleteAlumna(){
   const id=S._confirmDeleteId; S._confirmDeleteId=null;
-  try{await sbDelete('alumnas',`id=eq.${id}`);DB.alumnas=DB.alumnas.filter(a=>a.id!==id);delete DB.rutinas[id];if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;}
+  try{
+    // Unlink registros so orphaned data won't ghost-attach to a future re-registration
+    await sbPatch('registros',`alumna_id=eq.${id}`,{alumna_id:null}).catch(()=>{});
+    DB.registros.forEach(r=>{if(r.alumna_id===id)r.alumna_id=null;});
+    await sbDelete('alumnas',`id=eq.${id}`);
+    DB.alumnas=DB.alumnas.filter(a=>a.id!==id);delete DB.rutinas[id];if(S.selA===id)S.selA=DB.alumnas[0]?.id||null;
+  }
   catch(e){S.err='Error al eliminar';render();return;}
   render();
 }
@@ -2317,7 +2323,9 @@ async function aprobar(id){
   _pf('na-fuma',reg.fuma);
   _pf('na-peso',reg.peso);
   _pf('na-altura',reg.altura);
-  _pf('na-exp',reg.exp);
+  // Map registration chip values to panel select values
+  const expMap={'Entreno hace tiempo':'Experiencia media','Nunca entrené':'Nunca entrené','Algo de experiencia':'Algo de experiencia'};
+  _pf('na-exp',expMap[reg.exp]||reg.exp);
 }
 async function rechazar(id){
   if(!confirm('¿Rechazás?'))return;
@@ -2682,7 +2690,7 @@ function drawerPagos(a){
 }
 
 function drawerFicha(a){
-  const regData=DB.registros.find(r=>r.alumna_id===a.id&&(r.tipo==='ficha_salud'||r.lesiones||r.control_medico||r.enfermedad||r.medicacion));
+  const regData=DB.registros.find(r=>r.alumna_id===a.id&&r.tipo==='ficha_salud');
   const nac=a.nacimiento||regData?.nacimiento;
   const nf=fmtNac(nac); const edad=calcEdad(nac);
   const fields=[
@@ -2697,9 +2705,6 @@ function drawerFicha(a){
     a.exp||regData?.exp?['Experiencia',a.exp||regData.exp]:null,
   ].filter(Boolean);
   const obj=regData?.objetivos&&regData?.objetivos!=='—'?regData.objetivos:null;
-  if(!fields.length&&!regData){
-    return`<div class="empty">Sin datos de perfil.<br><a href="/ficha/${a.slug}" target="_blank" style="color:var(--v);">Enviar formulario de ficha →</a></div>`;
-  }
   let html='';
   if(fields.length){
     html+=`<div class="dfield">${fields.map(([l,v])=>`<div class="dfield-item"><span>${l}</span><span style="font-weight:500;">${v}</span></div>`).join('')}</div>`;
@@ -2738,6 +2743,9 @@ function drawerFicha(a){
         <div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el ${regData.fecha||'—'}</div>
       </div>
     </div>`;
+  }
+  if(!regData){
+    html+=`<div style="text-align:center;padding:.75rem 0;"><a href="/ficha/${a.slug}" target="_blank" style="font-size:12px;color:var(--v);">📋 Enviar formulario de ficha de salud →</a></div>`;
   }
   return html||'<div class="empty">Sin datos de ficha.</div>';
 }
@@ -3170,7 +3178,7 @@ function rAlumnas(){
 }
 
 function alumnaCardHTML(a){
-  const ficha=DB.registros.find(r=>r.alumna_id===a.id&&(r.tipo==='ficha_salud'||r.lesiones||r.control_medico||r.enfermedad||r.medicacion));
+  const ficha=DB.registros.find(r=>r.alumna_id===a.id&&r.tipo==='ficha_salud');
   const regData=DB.registros.find(r=>r.estado==='aprobado'&&r.nombre===a.nombre&&!r.alumna_id);
   const fichaOpen=S['ficha_open_'+a.id];
   const regOpen=S['reg_open_'+a.id];
@@ -4289,8 +4297,8 @@ function rRegistros(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
       <div><span style="color:var(--tm);">WhatsApp:</span> ${r.tel||'—'}</div><div><span style="color:var(--tm);">Mail:</span> ${r.mail||'—'}</div>
       <div><span style="color:var(--tm);">Nacimiento:</span> ${r.nacimiento||'—'}</div><div><span style="color:var(--tm);">Género:</span> ${r.genero||'—'}</div>
-      <div><span style="color:var(--tm);">Objetivos:</span> ${r.objetivos||'—'}</div><div><span style="color:var(--tm);">Modalidad:</span> ${r.modalidad||'—'}</div>
-      <div><span style="color:var(--tm);">Lugar entrena:</span> ${r.lugar_entrenamiento||'—'}</div><div><span style="color:var(--tm);">¿Fumá?:</span> ${r.fuma||'—'}</div>
+      <div><span style="color:var(--tm);">Objetivos:</span> ${r.objetivos||'—'}</div><div><span style="color:var(--tm);">Lugar entrena:</span> ${r.lugar_entrenamiento||'—'}</div>
+      <div><span style="color:var(--tm);">¿Fumá?:</span> ${r.fuma||'—'}</div><div></div>
       <div><span style="color:var(--tm);">Peso:</span> ${r.peso&&r.peso!=='—'?r.peso+'kg':'—'}</div><div><span style="color:var(--tm);">Altura:</span> ${r.altura&&r.altura!=='—'?r.altura+'cm':'—'}</div>
       <div><span style="color:var(--tm);">Experiencia:</span> ${r.exp||'—'}</div><div><span style="color:var(--tm);">Días/sem:</span> ${r.dias||'—'}</div>
     </div>
