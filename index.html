@@ -5,7 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1D9E75">
   <meta name="description" content="Entrenamiento personalizado a distancia con seguimiento semanal real. Amira Lezcano, entrenadora personal — Buenos Aires.">
-  <title>Amira Fitness — Entrenamiento personalizado</title>
+  <title>Amira Fitness — Entrenamiento personalizado · Buenos Aires</title>
+
+  <!-- Open Graph — cómo se ve cuando alguien comparte el link en WA, IG, etc. -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://amira.fitness/">
+  <meta property="og:title" content="Amira Fitness — Entrenamiento personalizado">
+  <meta property="og:description" content="Entrenadora personal en Buenos Aires. Rutina tuya, seguimiento semanal real, te respondo yo. Sin contratos.">
+  <meta property="og:image" content="https://amira.fitness/foto-amira.jpg">
+  <meta property="og:locale" content="es_AR">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Amira Fitness — Entrenamiento personalizado">
+  <meta name="twitter:description" content="Entrenadora personal en Buenos Aires. Rutina tuya, seguimiento semanal real.">
+  <meta name="twitter:image" content="https://amira.fitness/foto-amira.jpg">
+
+  <!-- Schema local — ayuda a aparecer en Google Maps / búsquedas locales -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"LocalBusiness",
+    "name":"Amira Fitness",
+    "description":"Entrenadora personal online con seguimiento semanal. Rutinas personalizadas para mujeres en Buenos Aires.",
+    "@id":"https://amira.fitness",
+    "url":"https://amira.fitness",
+    "telephone":"+5492226500790",
+    "image":"https://amira.fitness/foto-amira.jpg",
+    "priceRange":"$$",
+    "address":{"@type":"PostalAddress","addressLocality":"Buenos Aires","addressCountry":"AR"},
+    "sameAs":["https://instagram.com/amirafitnessba"],
+    "openingHours":"Mo-Fr 08:00-20:00"
+  }
+  </script>
+
+  <!-- Google Analytics — reemplazá G-XXXXXXXXXX con tu Measurement ID -->
+  <!-- Crear cuenta en analytics.google.com → Nueva propiedad → Flujo web → copiar G-XXXXXXX -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-XXXXXXXXXX');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
@@ -338,5 +373,14 @@
   </span>
 </footer>
 
+<script>
+(function(){try{
+  fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},
+    body:JSON.stringify({page:'/',referrer:document.referrer||null})
+  }).catch(function(){});
+}catch(e){}})();
+</script>
 </body>
 </html>
