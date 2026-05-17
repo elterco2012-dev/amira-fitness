@@ -264,6 +264,13 @@ async function cargarAlumna(){
         document.querySelectorAll('#ch-lugar .chip').forEach(c=>{if(c.textContent.trim()===lLabel)c.classList.add('on','single');});
         document.getElementById('row-lugar').style.display='none';
       }
+
+      // All personal fields are auto-filled — skip step 1 entirely, go straight to health questions
+      // Hide step 1 dot from the progress indicator and remove the back button from step 2
+      const d1=document.getElementById('d1');if(d1)d1.style.display='none';
+      const l1=document.getElementById('l1');if(l1)l1.style.display='none';
+      const backBtn=document.querySelector('#s2 .btn-back');if(backBtn)backBtn.style.display='none';
+      goTo(2);
     }
   }catch(e){}
 }
