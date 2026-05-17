@@ -4261,10 +4261,31 @@ function rAnalisis(){
     const bioViews=cnt['/bio/view']||0;
     const bioClicks=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').reduce((a,[,n])=>a+n,0);
     const bioDetail=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>`${p.replace('/bio/','')}: ${n}`).join(' · ');
-    // Barras solo de páginas del sitio (sin doble conteo de llegadas desde bio)
-    const pages=[['/', '🌐 Inicio'],['/registro','📝 Registro'],['/ficha','📋 Ficha']];
-    const bars=pages.map(([p,label])=>{const n=cnt[p]||0;const pct=siteTotal>0?Math.round(n/siteTotal*100):0;return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.45rem;"><div style="flex:1;font-size:13px;">${label}</div><div style="font-size:13px;font-weight:500;min-width:28px;text-align:right;">${n}</div><div style="width:70px;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--v);border-radius:3px;"></div></div></div>`;}).join('');
-    return`<div class="card" style="margin-bottom:1rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio (últimos 30 días)</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;"><div class="metric"><div class="mlabel">Visitas 7d</div><div class="mval g">${last7}</div></div><div class="metric"><div class="mlabel">Visitas 30d</div><div class="mval">${siteTotal}</div></div><div class="metric"><div class="mlabel">Clics en bio</div><div class="mval">${bioClicks}</div></div></div>${bars}<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--b);display:flex;gap:1.5rem;font-size:11px;color:var(--tm);"><span>📲 Bio abierta: <strong>${bioViews}</strong></span><span>👆 Clics: <strong>${bioClicks}</strong>${bioDetail?` (${bioDetail})`:''}</span></div></div>`;
+    // Desde Instagram: visitas al sitio con referrer que contiene /bio
+    const desdeIG=siteRows.filter(r=>r.referrer&&r.referrer.includes('/bio')).length;
+    // Barras solo páginas públicas (ficha es privada, siempre 0 acá)
+    const pages=[['/', '🌐 Inicio'],['/registro','📝 Registro']];
+    const maxN=Math.max(...pages.map(([p])=>cnt[p]||0),1);
+    const bars=pages.map(([p,label])=>{const n=cnt[p]||0;const pct=Math.round(n/maxN*100);return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.45rem;"><div style="flex:1;font-size:13px;">${label}</div><div style="font-size:13px;font-weight:500;min-width:28px;text-align:right;">${n}</div><div style="width:70px;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--v);border-radius:3px;"></div></div></div>`;}).join('');
+    // Detalle de clics en bio con labels amigables
+    const bioLabelMap={wa:'💬 WA',registro:'📝 Registro',sitio:'🌐 Sitio',instagram:'📸 Instagram'};
+    const bioDetailRows=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>{const k=p.replace('/bio/','');return`<span style="background:var(--s2);border-radius:6px;padding:2px 7px;">${bioLabelMap[k]||k}: <strong>${n}</strong></span>`;}).join('');
+    return`<div class="card" style="margin-bottom:1rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;">
+<div class="metric"><div class="mlabel">Esta semana</div><div class="mval g">${last7}</div></div>
+<div class="metric"><div class="mlabel">Este mes</div><div class="mval">${siteTotal}</div></div>
+<div class="metric"><div class="mlabel">Desde Instagram</div><div class="mval">${desdeIG}</div></div>
+</div>
+${bars}
+<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
+<div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem;">📲 Link en bio de Instagram</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--tm);">
+<span>Aperturas: <strong>${bioViews}</strong></span><span style="color:var(--b);">|</span><span>Clics: <strong>${bioClicks}</strong></span>
+</div>
+${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4rem;font-size:11px;color:var(--tm);">${bioDetailRows}</div>`:''}
+</div>
+</div>`;
   })();
 
   return`<div class="ptitle">Análisis</div>
