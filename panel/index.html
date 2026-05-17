@@ -260,9 +260,9 @@
       <input type="text" id="bib-q" placeholder="Buscar ejercicio..." oninput="renderBib()" style="margin-bottom:0;">
       <select id="bib-grupo" onchange="renderBib()" style="margin-bottom:0;width:140px;">
         <option value="">Todos los grupos</option>
-        <option>Aductores</option><option>Brazos</option><option>Bíceps</option><option>Core</option>
+        <option>Aductores</option><option>Bíceps</option><option>Core</option>
         <option>Cuádriceps</option><option>Espalda</option><option>Gemelos</option><option>Glúteos</option>
-        <option>Hombros</option><option>Isquiotibiales</option><option>Pecho</option><option>Piernas</option><option>Tríceps</option>
+        <option>Hombros</option><option>Isquiotibiales</option><option>Pecho</option><option>Tríceps</option>
       </select>
     </div>
     <div class="bib-grid" id="bib-list"></div>
@@ -301,9 +301,9 @@
     <div class="frow">
       <div><label>Grupo muscular</label>
         <select id="m-grupo" style="margin-bottom:0;">
-          <option>Aductores</option><option>Brazos</option><option>Bíceps</option><option>Core</option>
+          <option>Aductores</option><option>Bíceps</option><option>Core</option>
           <option>Cuádriceps</option><option>Espalda</option><option>Gemelos</option><option>Glúteos</option>
-          <option>Hombros</option><option>Isquiotibiales</option><option>Pecho</option><option>Piernas</option><option>Tríceps</option>
+          <option>Hombros</option><option>Isquiotibiales</option><option>Pecho</option><option>Tríceps</option>
           <option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
@@ -819,7 +819,7 @@ function getEx(aId,ciclo,sem,dia){
 }
 function copyL(slug){navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{S.msg='Copiado ✓';render();setTimeout(()=>{S.msg='';render();},1200);});}
 function sbSt(ok,msg){S.sbOk=ok;const d=document.getElementById('sbd'),l=document.getElementById('sbl');if(d)d.className='dot '+(ok?'ok':'err');if(l)l.textContent=msg;}
-function grupoColor(g){const m={Aductores:'#7C5CBF',Core:'#1D9E75',Piernas:'#3C3489',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Brazos:'#854F0B',Calentamiento:'#0891b2',Estiramiento:'#6d28d9'};return m[g]||'#6b7280';}
+function grupoColor(g){const m={Aductores:'#7C5CBF',Core:'#1D9E75',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Calentamiento:'#0891b2',Estiramiento:'#6d28d9'};return m[g]||'#6b7280';}
 
 // ── Load ──────────────────────────────────────────────────────
 async function loadAll(){
@@ -3821,7 +3821,7 @@ function rBiblioteca(){
   const cPortable=DB.biblioteca.filter(e=>PORTABLE.includes(e.equipamiento_requerido)).length;
   const cGym=DB.biblioteca.filter(e=>GYM.includes(e.equipamiento_requerido)).length;
 
-  const MAIN_GRUPOS=['Aductores','Brazos','Bíceps','Core','Cuádriceps','Espalda','Gemelos','Glúteos','Hombros','Isquiotibiales','Pecho','Piernas','Tríceps'];
+  const MAIN_GRUPOS=['Aductores','Bíceps','Core','Cuádriceps','Espalda','Gemelos','Glúteos','Hombros','Isquiotibiales','Pecho','Tríceps'];
   const grupoStats=MAIN_GRUPOS.map(gr=>{
     const exs=DB.biblioteca.filter(e=>e.grupo_muscular===gr);
     const casaCount=exs.filter(e=>!GYM.includes(e.equipamiento_requerido)).length;
@@ -5043,9 +5043,9 @@ initAuth();
     <div class="frow">
       <div><label>Grupo muscular</label>
         <select id="eb-grupo" style="margin-bottom:0;">
-          <option>Aductores</option><option>Brazos</option><option>Bíceps</option><option>Core</option>
+          <option>Aductores</option><option>Bíceps</option><option>Core</option>
           <option>Cuádriceps</option><option>Espalda</option><option>Gemelos</option><option>Glúteos</option>
-          <option>Hombros</option><option>Isquiotibiales</option><option>Pecho</option><option>Piernas</option><option>Tríceps</option>
+          <option>Hombros</option><option>Isquiotibiales</option><option>Pecho</option><option>Tríceps</option>
           <option>Calentamiento</option><option>Estiramiento</option><option>Otro</option>
         </select>
       </div>
