@@ -673,7 +673,7 @@ if(!localStorage.getItem('af-amira-ph')){
   localStorage.setItem('af-amira-ph','5492226500790');
 }
 const COLORS=['teal','purple','amber','coral'];
-let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[]};
+let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[],pageViews:null};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_bulkWA:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
@@ -4162,6 +4162,15 @@ function rHistorial(){
   `}`;
 }
 
+async function loadPageViews(){
+  const since=new Date(Date.now()-30*86400000).toISOString();
+  try{
+    const rows=await sbGet('page_views',`select=page,created_at&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=5000`);
+    DB.pageViews=Array.isArray(rows)?rows:[];
+  }catch(e){DB.pageViews=[];}
+  render();
+}
+
 function rAnalisis(){
   const all=DB.alumnas;
   const now=new Date();
@@ -4237,7 +4246,24 @@ function rAnalisis(){
   const act7=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=7).length;
   const act30=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=30).length;
 
+  // ── Widget visitas al sitio ─────────────────────────────────
+  const pvWidget=(()=>{
+    if(DB.pageViews===null)return`<div class="card" style="margin-bottom:1rem;"><div style="display:flex;align-items:center;justify-content:space-between;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio</div><button class="btn btn-s" onclick="loadPageViews()">Cargar</button></div><div style="font-size:12px;color:var(--th);margin-top:.4rem;">Requiere ejecutar migrations/create_page_views.sql en Supabase primero</div></div>`;
+    const rows=DB.pageViews;
+    if(!rows.length)return`<div class="card" style="margin-bottom:1rem;"><div class="ctitle">🌐 Visitas al sitio</div><div style="font-size:12px;color:var(--th);">Sin datos aún — ejecutá la migración SQL o esperá que entre alguien al sitio.</div></div>`;
+    const cnt={};rows.forEach(r=>{cnt[r.page]=(cnt[r.page]||0)+1;});
+    const total=rows.length;
+    const ago7=Date.now()-7*86400000;
+    const last7=rows.filter(r=>new Date(r.created_at).getTime()>ago7).length;
+    const bioTotal=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')).reduce((a,[,n])=>a+n,0);
+    const bioDetail=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!='/bio/view').map(([p,n])=>`${p.replace('/bio/','')}: ${n}`).join(' · ');
+    const pages=[['/', '🌐 Inicio'],['/registro','📝 Registro'],['/ficha','📋 Ficha']];
+    const bars=pages.map(([p,label])=>{const n=cnt[p]||0;const pct=total>0?Math.round(n/total*100):0;return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.45rem;"><div style="flex:1;font-size:13px;">${label}</div><div style="font-size:13px;font-weight:500;min-width:28px;text-align:right;">${n}</div><div style="width:70px;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--v);border-radius:3px;"></div></div></div>`;}).join('');
+    return`<div class="card" style="margin-bottom:1rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio (últimos 30 días)</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;"><div class="metric"><div class="mlabel">Últimos 7d</div><div class="mval g">${last7}</div></div><div class="metric"><div class="mlabel">Últimos 30d</div><div class="mval">${total}</div></div><div class="metric"><div class="mlabel">Clics bio IG</div><div class="mval">${bioTotal}</div></div></div>${bars}${bioDetail?`<div style="font-size:11px;color:var(--tm);margin-top:.5rem;">Bio: ${bioDetail}</div>`:''}</div>`;
+  })();
+
   return`<div class="ptitle">Análisis</div>
+  ${pvWidget}
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.5rem;">
     <div class="metric"><div class="mlabel">Activas hoy</div><div class="mval g">${actHoy}</div></div>
     <div class="metric"><div class="mlabel">Activas (7d)</div><div class="mval">${act7}</div></div>
