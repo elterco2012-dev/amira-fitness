@@ -3495,6 +3495,8 @@ async function copiarDiaRapido(dstDia){
 }
 
 function rRutinas(){
+  const activas=DB.alumnas.filter(al=>al.estado!=='baja');
+  if(S.selA&&getA(S.selA)?.estado==='baja'){S.selA=activas[0]?.id||null;}
   const a=getA(S.selA);
   if(!a)return`<div class="ptitle">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
   const cicloActual=a.ciclo_actual||1;
@@ -3504,7 +3506,7 @@ function rRutinas(){
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.filter(al=>al.estado!=='baja').map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
   ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${a.lesiones}</div>`:''}
   <div class="card">
