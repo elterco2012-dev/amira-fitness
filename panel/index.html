@@ -4373,36 +4373,31 @@ function rRecordatorios(){
     ${inactivasRows}
     <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn btn-p" onclick="envCheckInInactivas()">👋 Check-in a todas (${inactivas.length})</button></div>
   </div>`:'';
-  const pushRows=DB.alumnas.map(a=>{
-    const tiene=subIds.has(a.id);
-    const badge=tiene?`<span style="font-size:11px;color:#16a34a;font-weight:500;">● activadas</span>`:`<span style="font-size:11px;color:var(--th);">sin push</span>`;
-    const btn=tiene?`<button class="btn btn-s" onclick="enviarPush(${a.id})">📲 Enviar</button>`:`<span style="font-size:11px;color:var(--th);padding:0 8px;">—</span>`;
-    return`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${a.nombre}</div><div>${badge}</div></div>${btn}</div>`;
+
+  const alumnaRows=DB.alumnas.map(a=>{
+    const tp=subIds.has(a.id);
+    const pushBadge=tp?`<span style="font-size:11px;color:#16a34a;font-weight:500;">● push</span>`:`<span style="font-size:11px;color:var(--th);">sin push</span>`;
+    const waGroup=a.tel
+      ?`<button class="btn btn-s" onclick="envRec(${a.id})" title="Recordatorio WA">💬 Rec</button><button class="btn btn-s" onclick="envRes(${a.id})" title="Resumen semanal WA">📋 Res</button>`
+      :`<span style="font-size:11px;color:var(--rd);">sin WA</span>`;
+    const pushGroup=tp?`<button class="btn btn-s" onclick="enviarPush(${a.id})" title="Push de entrenamiento">📲</button><button class="btn btn-s btn-p" onclick="envResPush(${a.id})" title="Resumen push">📊</button>`:'';
+    const sep=tp&&a.tel?`<span style="font-size:11px;color:var(--b);padding:0 3px;align-self:center;">|</span>`:'';
+    return`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${a.nombre}</div><div>${pushBadge}</div></div><div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;">${waGroup}${sep}${pushGroup}</div></div>`;
   }).join('');
+
   return`<div class="ptitle">Recordatorios</div>
   ${sinWA.length>0?`<div class="card" style="background:var(--rl);border-color:var(--rd);margin-bottom:1rem;"><div style="font-size:13px;color:var(--rd);font-weight:500;">⚠️ ${sinWA.map(a=>a.nombre.split(' ')[0]).join(', ')} — sin WhatsApp. Editá su perfil.</div></div>`:''}
   <div class="card">
-    <div class="ctitle">Notificaciones push</div>
-    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Se envían automáticamente a las 9AM · Configurar pg_cron para horario distinto</div>
-    ${pushRows}
-    ${conPush.length>0?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn" onclick="enviarPush(null)">📲 Enviar a todas (${conPush.length})</button></div>`:'<div style="font-size:12px;color:var(--th);margin-top:.5rem;">Ninguna alumna tiene push activado aún. Las alumnas lo activan desde su app.</div>'}
-    ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}
-  </div>
-  <div class="card">
-    <div class="ctitle">Recordatorio por WhatsApp</div>
-    ${DB.alumnas.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}${!a.tel?` <span style="font-size:11px;color:var(--rd);">(sin WhatsApp)</span>`:''}</div><button class="btn btn-s" onclick="envRec(${a.id})">💬 Recordar</button></div>`).join('')}
-  </div>
-  <div class="card">
-    <div class="ctitle">Resumen semanal</div>
-    ${DB.alumnas.map(a=>{
-      const tp=subIds.has(a.id);
-      const waBtn=a.tel?`<button class="btn btn-s" onclick="envRes(${a.id})">💬 WA</button>`:'';
-      const pushBtn=tp?`<button class="btn btn-s btn-p" onclick="envResPush(${a.id})">📲 Push</button>`:`<span style="font-size:11px;color:var(--th);padding:4px 6px;">sin push</span>`;
-      return`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div><div style="display:flex;gap:4px;">${waBtn}${pushBtn}</div></div>`;
-    }).join('')}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
+      <div class="ctitle" style="margin:0;">Alumnas</div>
+      <div style="font-size:11px;color:var(--th);">${conPush.length} con push · ${DB.alumnas.length-sinWA.length} con WA</div>
+    </div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">💬 Rec = recordatorio · 📋 Res = resumen semanal · 📲 = push entreno · 📊 = resumen push</div>
+    ${alumnaRows}
     <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);display:flex;gap:6px;flex-wrap:wrap;">
-      ${DB.alumnas.length>1?`<button class="btn" onclick="envResumenGeneral()">📊 WA general (todas)</button>`:''}
-      ${conPush.length>0?`<button class="btn btn-p" onclick="envResPushTodas()">📲 Push a todas (${conPush.length})</button>`:''}
+      ${DB.alumnas.length>1?`<button class="btn" onclick="envResumenGeneral()">📋 Resumen WA (todas)</button>`:''}
+      ${conPush.length>0?`<button class="btn" onclick="enviarPush(null)">📲 Push a todas (${conPush.length})</button>`:''}
+      ${conPush.length>0?`<button class="btn btn-p" onclick="envResPushTodas()">📊 Resumen push a todas (${conPush.length})</button>`:''}
     </div>
     ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}
   </div>
@@ -4432,10 +4427,10 @@ function rRecordatorios(){
     ${S._tplSel&&!S._tplEdit?(()=>{
       const tpl=getTpls().find(t=>t.key===S._tplSel);
       const conWA=DB.alumnas.filter(a=>a.tel);
-      const sinWA=DB.alumnas.filter(a=>!a.tel);
+      const sinWA2=DB.alumnas.filter(a=>!a.tel);
       return`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;font-size:12px;color:var(--tm);margin-bottom:.75rem;line-height:1.6;font-style:italic;">"${tpl.msg}"</div>
       ${conWA.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre.split(' ')[0]}</div><button class="btn btn-s" onclick="envTemplate(${a.id},'${S._tplSel}')">💬 Enviar</button></div>`).join('')}
-      ${sinWA.length?`<div style="font-size:11px;color:var(--th);margin-top:.5rem;">Sin WhatsApp: ${sinWA.map(a=>a.nombre.split(' ')[0]).join(', ')}</div>`:''}`;
+      ${sinWA2.length?`<div style="font-size:11px;color:var(--th);margin-top:.5rem;">Sin WhatsApp: ${sinWA2.map(a=>a.nombre.split(' ')[0]).join(', ')}</div>`:''}`;
     })():`<div style="font-size:12px;color:var(--th);">Seleccioná un template para ver la vista previa.</div>`}
   </div>
   <div class="card">
