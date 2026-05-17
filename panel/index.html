@@ -4376,8 +4376,17 @@ function rRecordatorios(){
   </div>
   <div class="card">
     <div class="ctitle">Resumen semanal</div>
-    ${DB.alumnas.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div><button class="btn btn-s" onclick="envRes(${a.id})">Enviar resumen</button></div>`).join('')}
-    ${DB.alumnas.length>1?`<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn" onclick="envResumenGeneral()">📊 Resumen general (todas)</button></div>`:''}
+    ${DB.alumnas.map(a=>{
+      const tp=subIds.has(a.id);
+      const waBtn=a.tel?`<button class="btn btn-s" onclick="envRes(${a.id})">💬 WA</button>`:'';
+      const pushBtn=tp?`<button class="btn btn-s btn-p" onclick="envResPush(${a.id})">📲 Push</button>`:`<span style="font-size:11px;color:var(--th);padding:4px 6px;">sin push</span>`;
+      return`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre}</div><div style="display:flex;gap:4px;">${waBtn}${pushBtn}</div></div>`;
+    }).join('')}
+    <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);display:flex;gap:6px;flex-wrap:wrap;">
+      ${DB.alumnas.length>1?`<button class="btn" onclick="envResumenGeneral()">📊 WA general (todas)</button>`:''}
+      ${conPush.length>0?`<button class="btn btn-p" onclick="envResPushTodas()">📲 Push a todas (${conPush.length})</button>`:''}
+    </div>
+    ${S.msg?`<div class="sm" style="margin-top:.5rem;">${S.msg}</div>`:''}
   </div>
   <div class="card">
     <div class="ctitle">Templates de WhatsApp</div>
@@ -4548,11 +4557,7 @@ function envTemplate(aId, key){
 
 async function envRes(aId){
   const a=getA(aId); if(!a)return;
-  // Asegurar que tenemos el historial cargado
-  if(!DB.progreso?.[aId]){
-    S.msg='Cargando historial...';render();
-    await loadHistorial(aId);
-  }
+  if(!DB.progreso?.[aId]){S.msg='Cargando historial...';render();await loadHistorial(aId);}
   const rows=(DB.progreso?.[aId])||[];
   const ciclo=parseInt(a.ciclo_actual)||1;
   const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
@@ -4567,6 +4572,57 @@ async function envRes(aId){
   const tel=a.tel?a.tel.replace(/\D/g,''):'';
   if(!tel){S.msg='Esta alumna no tiene WhatsApp cargado.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
   waOpen(tel, msg);
+}
+
+function _buildResumenPush(a){
+  const rows=(DB.progreso?.[a.id])||[];
+  const ciclo=parseInt(a.ciclo_actual)||1;
+  const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
+  const diasHechos=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>`${r.semana}-${r.dia}`)).size;
+  const nombre=a.nombre.split(' ')[0];
+  const cicloNom=a.ciclos_nombres?.[ciclo]||('Ciclo '+ciclo);
+  const icon=semanasHechas.size>=4?'🏆':semanasHechas.size>=2?'💪':'💡';
+  return{
+    title:`${icon} Resumen de ${nombre} — ${cicloNom}`,
+    body:`✅ Semanas: ${semanasHechas.size}/4 · 💪 Días: ${diasHechos} · ¡Seguimos! 🔥`
+  };
+}
+
+async function envResPush(aId){
+  const a=getA(aId); if(!a)return;
+  if(!DB.progreso?.[aId]){S.msg='Cargando...';render();await loadHistorial(aId);}
+  const {title,body}=_buildResumenPush(a);
+  S.msg='Enviando push...';render();
+  try{
+    const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({alumna_id:aId,title,body})
+    });
+    const d=await r.json().catch(()=>({}));
+    S.msg=d.sent>0?`✓ Push enviada a ${a.nombre.split(' ')[0]}`:`Sin push activo (${d.reason||'error'})`;
+    render();setTimeout(()=>{S.msg='';render();},4000);
+  }catch(e){S.msg='Error: '+e.message;render();}
+}
+
+async function envResPushTodas(){
+  const subIds=new Set(DB.pushSubs.map(s=>s.alumna_id));
+  const conPush=DB.alumnas.filter(a=>subIds.has(a.id));
+  if(!conPush.length){S.msg='Ninguna alumna tiene push activado.';render();setTimeout(()=>{S.msg='';render();},3000);return;}
+  S.msg=`Enviando a ${conPush.length} alumnas...`;render();
+  let ok=0;
+  for(const a of conPush){
+    if(!DB.progreso?.[a.id])await loadHistorial(a.id).catch(()=>{});
+    const {title,body}=_buildResumenPush(a);
+    try{
+      const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
+        method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},
+        body:JSON.stringify({alumna_id:a.id,title,body})
+      });
+      const d=await r.json().catch(()=>({}));
+      if(d.sent>0)ok++;
+    }catch{}
+  }
+  S.msg=`✓ ${ok} de ${conPush.length} push enviadas`;render();setTimeout(()=>{S.msg='';render();},5000);
 }
 
 function rAvisos(){
