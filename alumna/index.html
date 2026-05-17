@@ -1767,6 +1767,19 @@ async function toggleDone(aId,i,nextName){
             const rachaC=calcRacha(aId,selCiclo);
             setTimeout(()=>mostrarCierreCiclo(aId,alm.nombre.split(' ')[0],{dias:diasH,exs:exsH,racha:rachaC}),1500);
           }
+          // Semana completa — enviar push si terminó todos los días de la semana
+          const dCount=parseInt(alm.dias)||3;
+          const semCompleta=[1,2,3,4,5].slice(0,dCount).every(d=>{
+            const exsD=getExs(aId,selCiclo,selSem,d);
+            return exsD.length>0&&exsD.every((_3,idx3)=>done[dKey(aId,selSem,d,idx3)]);
+          });
+          if(semCompleta){
+            const semPushKey=`af-sem-push-${aId}-c${selCiclo}-${selSem}`;
+            if(!localStorage.getItem(semPushKey)){
+              localStorage.setItem(semPushKey,'1');
+              fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`🏆 ¡Semana ${selSem} completa, ${alm.nombre.split(' ')[0]}!`,body:'Terminaste todos tus días de esta semana. ¡Sos increíble! 🔥'})}).catch(()=>{});
+            }
+          }
         }
       }
     }
