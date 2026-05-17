@@ -1238,7 +1238,7 @@ async function confirmarGenerarIA(){
     if(instrucciones)body.instrucciones=instrucciones;
     const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+getToken()},
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+localStorage.getItem('af-access-token')},
       body:JSON.stringify(body)
     });
     const rawText=await resp.text();
