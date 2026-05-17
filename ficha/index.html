@@ -92,14 +92,14 @@
   <div class="step-card active" id="s1">
     <h2>Datos personales</h2>
     <p>Completá esta ficha antes de empezar. La información es confidencial y ayuda a Amira a diseñar tu plan de forma segura.</p>
-    <div class="frow"><div><label>Nombre y apellido *</label><input id="f-nombre" type="text" placeholder="Tu nombre completo"></div><div><label>Edad *</label><input id="f-edad" type="number" placeholder="Ej: 28" min="14" max="99"></div></div>
-    <label>Correo electrónico *</label><input id="f-mail" type="email" placeholder="tu@mail.com">
-    <label>WhatsApp *</label><input id="f-tel" type="tel" placeholder="Ej: 1123456789">
-    <label>¿Dónde entrenarás?</label>
+    <div class="frow"><div><label>Nombre y apellido *</label><input id="f-nombre" type="text" placeholder="Tu nombre completo"></div><div id="row-edad"><label>Edad *</label><input id="f-edad" type="number" placeholder="Ej: 28" min="14" max="99"></div></div>
+    <div id="row-mail"><label>Correo electrónico *</label><input id="f-mail" type="email" placeholder="tu@mail.com"></div>
+    <div id="row-tel"><label>WhatsApp *</label><input id="f-tel" type="tel" placeholder="Ej: 1123456789"></div>
+    <div id="row-lugar"><label>¿Dónde entrenarás?</label>
     <div class="chips" id="ch-lugar">
       <div class="chip single" onclick="cs(this,'ch-lugar')">Gimnasio</div>
       <div class="chip single" onclick="cs(this,'ch-lugar')">En casa</div>
-    </div>
+    </div></div>
     <div class="nav-btns"><button class="btn btn-p" onclick="next(1)">Continuar →</button></div>
   </div>
 
@@ -239,6 +239,31 @@ async function cargarAlumna(){
       // Actualizar título
       const h=document.querySelector('.header h1');
       if(h) h.textContent=`Ficha de salud — ${a.nombre.split(' ')[0]}`;
+
+      // Auto-fill known fields and hide them — alumna data already exists
+      if(a.email){
+        document.getElementById('f-mail').value=a.email;
+        document.getElementById('row-mail').style.display='none';
+      }
+      if(a.tel){
+        document.getElementById('f-tel').value=a.tel;
+        document.getElementById('row-tel').style.display='none';
+      }
+      if(a.nacimiento){
+        const hoy=new Date();const nac=new Date(a.nacimiento);
+        let edad=hoy.getFullYear()-nac.getFullYear();
+        const dm=hoy.getMonth()-nac.getMonth();
+        if(dm<0||(dm===0&&hoy.getDate()<nac.getDate()))edad--;
+        document.getElementById('f-edad').value=edad;
+        document.getElementById('row-edad').style.display='none';
+      }
+      // Pre-select lugar from alumna tipo and hide the section
+      const lugarMap={gym:'Gimnasio',Gimnasio:'Gimnasio',home:'En casa','En casa':'En casa'};
+      const lLabel=lugarMap[a.tipo]||null;
+      if(lLabel){
+        document.querySelectorAll('#ch-lugar .chip').forEach(c=>{if(c.textContent.trim()===lLabel)c.classList.add('on','single');});
+        document.getElementById('row-lugar').style.display='none';
+      }
     }
   }catch(e){}
 }
@@ -270,9 +295,12 @@ function goTo(n){
 function validate(n){
   if(n===1){
     if(!document.getElementById('f-nombre').value.trim()){alert('El nombre es obligatorio.');return false;}
-    if(!document.getElementById('f-edad').value){alert('La edad es obligatoria.');return false;}
-    if(!document.getElementById('f-mail').value.trim()){alert('El mail es obligatorio.');return false;}
-    if(!document.getElementById('f-tel').value.trim()){alert('El WhatsApp es obligatorio.');return false;}
+    // For existing alumnas, edad/mail/tel are auto-filled — only validate for new registrations
+    if(!fichaAlumnaId){
+      if(!document.getElementById('f-edad').value){alert('La edad es obligatoria.');return false;}
+      if(!document.getElementById('f-mail').value.trim()){alert('El mail es obligatorio.');return false;}
+      if(!document.getElementById('f-tel').value.trim()){alert('El WhatsApp es obligatorio.');return false;}
+    }
   }
   if(n===4){
     if(!document.getElementById('acepto').checked){
