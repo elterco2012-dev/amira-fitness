@@ -12,13 +12,13 @@
       --v:#1D9E75;--vl:#E1F5EE;--vm:#5DCAA5;--vd:#0F6E56;
       --p:#EEEDFE;--pd:#3C3489;--a:#FAEEDA;--ad:#633806;
       --rl:#FCEBEB;--rd:#A32D2D;
-      --bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;
+      --bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;--bg2:#ebebea;
       --t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
       --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.13);
       --r:14px;--rs:9px;--rp:30px;
     }
     [data-theme=dark]{
-      --bg:#111110;--s:#1c1c1a;--s2:#242422;
+      --bg:#111110;--s:#1c1c1a;--s2:#242422;--bg2:#2e2e2b;
       --t:#f0ede8;--tm:#9ca3af;--th:#6b7280;
       --b:rgba(255,255,255,0.07);--bm:rgba(255,255,255,0.12);
       --vl:#0a2e20;--vm:#1a6b50;--p:#1e1c3a;--pd:#a5a0e8;
@@ -807,7 +807,7 @@ function slugUnique(nombre){
 function fmtNac(str){if(!str||str==='\u2014')return null;const p=str.split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:str;}
 function calcEdad(nac){if(!nac||nac==='\u2014')return null;const b=new Date(nac);if(isNaN(b))return null;const n=new Date();let age=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))age--;return age;}
 function esLesionReal(v){if(!v)return false;const n=v.trim().toLowerCase();return n!=='no'&&n!=='\u2014'&&n!=='sin lesiones'&&n!=='ninguna'&&n.length>0;}
-function tipoHtml(tipo){const m={gym:'<span class="badge bg">Gimnasio</span>',casa:'<span class="badge" style="background:#fef3c7;color:#92400e;">Casa</span>',otro:'<span class="badge bd">Otro</span>',distancia:'<span class="badge bd">A distancia</span>'};return m[tipo]||`<span class="badge bd">${tipo||'\u2014'}</span>`;}
+function tipoHtml(tipo){const m={gym:'<span class="badge bg">Gimnasio</span>',casa:'<span class="badge" style="background:var(--a);color:var(--ad);">Casa</span>',otro:'<span class="badge bd">Otro</span>',distancia:'<span class="badge bd">A distancia</span>'};return m[tipo]||`<span class="badge bd">${tipo||'\u2014'}</span>`;}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function getA(id){return DB.alumnas.find(a=>a.id===id);}
 function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
@@ -1130,7 +1130,7 @@ function iaProfileSummaryHTML(a) {
   return `<div style="background:var(--bg2,#f5f5f7);border-radius:8px;padding:8px 12px;border:1px solid var(--b);">
     <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Perfil que usará Claude</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;">
-      ${chips.map(c=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;background:${c.ok?'var(--s)':'#fef3c7'};border:1px solid ${c.ok?'var(--b)':'#f59e0b'};color:${c.ok?'var(--t)':'#92400e'};">${c.t}</span>`).join('')}
+      ${chips.map(c=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;background:${c.ok?'var(--s)':'var(--a)'};border:1px solid ${c.ok?'var(--b)':'var(--bm)'};color:${c.ok?'var(--t)':'var(--ad)'};">${c.t}</span>`).join('')}
     </div>
     ${esLesionReal(a.lesiones)?`<div style="font-size:11px;color:#d97706;margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
     ${faltantes.length?`<div style="font-size:10px;color:var(--th);margin-top:5px;">Perfil incompleto — falta: ${faltantes.join(', ')}. Sin estos datos Claude generará una rutina genérica.</div>`:''}
@@ -1345,7 +1345,7 @@ function renderIAPreview(routine,a){
     if(ex._matchType==='uncertain'||ex._matchType==='none')unmatched++;
   }
   if(corrected>0||unmatched>0){
-    html+=`<div style="background:${unmatched>0?'#fef3c7':'#ecfdf5'};border:1px solid ${unmatched>0?'#fcd34d':'#6ee7b7'};border-radius:var(--rs);padding:.6rem .9rem;margin-bottom:.75rem;font-size:11px;color:${unmatched>0?'#92400e':'#065f46'};">
+    html+=`<div style="background:${unmatched>0?'var(--a)':'var(--vl)'};border:1px solid var(--bm);border-radius:var(--rs);padding:.6rem .9rem;margin-bottom:.75rem;font-size:11px;color:${unmatched>0?'var(--ad)':'var(--vm)'};">
       ${corrected>0?`✓ ${corrected} nombre${corrected>1?'s':''} corregido${corrected>1?'s':''} automáticamente.`:''}
       ${unmatched>0?`⚠️ ${unmatched} ejercicio${unmatched>1?'s':''} sin coincidencia exacta en la biblioteca — revisalos antes de guardar.`:''}
     </div>`;
@@ -1382,8 +1382,8 @@ function renderIAPreview(routine,a){
       const tipEsc=(ex.tip||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       const mt=ex._matchType||'exact';
       let rowStyle='border-top:1px solid var(--b);';
-      if(mt==='none')rowStyle+='background:#fef2f2;';
-      else if(mt==='uncertain')rowStyle+='background:#fffbeb;';
+      if(mt==='none')rowStyle+='background:var(--rl);';
+      else if(mt==='uncertain')rowStyle+='background:var(--a);';
       const pesoSug=ex.peso_sugerido!=null?parseFloat(ex.peso_sugerido):null;
       const pesoInput=pesoSug!=null
         ?`<div style="display:flex;align-items:center;gap:3px;margin-top:2px;"><input type="number" value="${pesoSug}" min="0" step="0.5" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'peso_sugerido',parseFloat(this.value)||null)" style="width:52px;border:1px solid var(--bm);border-radius:4px;padding:1px 4px;font-size:10px;background:var(--s);color:var(--t);text-align:center;"><span style="font-size:9px;color:var(--tm);">kg base</span></div>`
@@ -1535,7 +1535,7 @@ function renderBib(){
       <div class="bib-meta">${e.grupo_muscular||''}</div>
       ${e.equipamiento_requerido?`<div class="bib-tag" style="font-size:9px;background:var(--a);color:var(--ad);">${EQUIP_LABEL[e.equipamiento_requerido]||e.equipamiento_requerido}</div>`:''}
       ${e.posicion_ejercicio?`<div class="bib-tag" style="font-size:9px;">${POS_LABEL[e.posicion_ejercicio]||e.posicion_ejercicio}</div>`:''}
-      ${e.bilateral===false?`<div class="bib-tag" style="font-size:9px;background:#f0f4ff;color:#4f6ef7;">Unilateral</div>`:''}
+      ${e.bilateral===false?`<div class="bib-tag" style="font-size:9px;background:var(--p);color:var(--pd);">Unilateral</div>`:''}
       ${e.impacto?`<div class="bib-tag" style="font-size:9px;">${IMP_LABEL[e.impacto]||e.impacto}</div>`:''}
     </div>`).join('')||`<div class="empty" style="grid-column:1/-1;">Sin resultados</div>`;
 }
@@ -2938,7 +2938,7 @@ function rInicio(){
       <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
     </div>`;
   })()}
-  ${cumples7.length>0?`<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;display:flex;gap:10px;align-items:flex-start;">
+  ${cumples7.length>0?`<div style="background:var(--a);border:1px solid var(--bm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;display:flex;gap:10px;align-items:flex-start;">
     <span style="font-size:1.4rem;flex-shrink:0;">🎂</span>
     <div>${cumples7.map(a=>{
       const d=a._diasCumple;
@@ -3834,28 +3834,28 @@ function rBiblioteca(){
       <div style="font-size:10px;color:var(--th);">para que la IA funcione bien: ≥6 por grupo en cada categoría</div>
     </div>
     <div style="display:flex;gap:10px;margin-bottom:.75rem;flex-wrap:wrap;">
-      <div style="flex:1;min-width:120px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#166534;">${cSinEquip}</div>
-        <div style="font-size:10px;color:#166534;font-weight:500;">💪 Peso corporal</div>
-        <div style="font-size:9px;color:#4b7c59;">Casa y gym</div>
+      <div style="flex:1;min-width:120px;background:var(--vl);border:1px solid var(--b);border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--vm);">${cSinEquip}</div>
+        <div style="font-size:10px;color:var(--vm);font-weight:500;">💪 Peso corporal</div>
+        <div style="font-size:9px;color:var(--tm);">Casa y gym</div>
       </div>
-      <div style="flex:1;min-width:120px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#1e40af;">${cPortable}</div>
-        <div style="font-size:10px;color:#1e40af;font-weight:500;">🏠 Equipo portable</div>
-        <div style="font-size:9px;color:#60a5fa;">Manc · Banda · Pesa rusa · TRX · Esfera · Step</div>
+      <div style="flex:1;min-width:120px;background:var(--p);border:1px solid var(--b);border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--pd);">${cPortable}</div>
+        <div style="font-size:10px;color:var(--pd);font-weight:500;">🏠 Equipo portable</div>
+        <div style="font-size:9px;color:var(--tm);">Manc · Banda · Pesa rusa · TRX · Esfera · Step</div>
       </div>
-      <div style="flex:1;min-width:120px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#6b21a8;">${cGym}</div>
-        <div style="font-size:10px;color:#6b21a8;font-weight:500;">🏋️ Solo gimnasio</div>
-        <div style="font-size:9px;color:#a78bfa;">Máquinas · Barra · Polea/cables</div>
+      <div style="flex:1;min-width:120px;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:.5rem .75rem;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--t);">${cGym}</div>
+        <div style="font-size:10px;color:var(--t);font-weight:500;">🏋️ Solo gimnasio</div>
+        <div style="font-size:9px;color:var(--tm);">Máquinas · Barra · Polea/cables</div>
       </div>
     </div>
     <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">Cobertura casa por grupo muscular</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       ${grupoStats.map(({gr,total,casa})=>{
-        const color=casa>=6?'#166534':casa>=3?'#92400e':'#991b1b';
-        const bg=casa>=6?'#f0fdf4':casa>=3?'#fffbeb':'#fef2f2';
-        const border=casa>=6?'#bbf7d0':casa>=3?'#fcd34d':'#fecaca';
+        const color=casa>=6?'var(--vm)':casa>=3?'var(--ad)':'var(--rd)';
+        const bg=casa>=6?'var(--vl)':casa>=3?'var(--a)':'var(--rl)';
+        const border=casa>=6?'var(--bm)':casa>=3?'var(--bm)':'var(--bm)';
         const icon=casa>=6?'✅':casa>=3?'⚠️':'❌';
         return`<div style="background:${bg};border:1px solid ${border};border-radius:20px;padding:3px 10px;font-size:10px;color:${color};font-weight:500;" title="${gr}: ${casa} ejercicios sin equipamiento de gym">${icon} ${gr} <span style="opacity:.7;">${casa}</span></div>`;
       }).join('')}
@@ -3889,8 +3889,8 @@ function rBiblioteca(){
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;">
           ${equLbl?`<span style="font-size:10px;color:var(--tm);">${equLbl}</span>`:''}
-          ${e.patron_movimiento?`<span style="font-size:9px;background:#f1f5f9;color:#475569;border-radius:10px;padding:1px 6px;">${e.patron_movimiento.replace(/_/g,' ')}</span>`:''}
-          ${e.nivel_dificultad?`<span style="font-size:9px;background:${e.nivel_dificultad===1?'#f0fdf4':e.nivel_dificultad===2?'#fefce8':'#fef2f2'};color:${e.nivel_dificultad===1?'#166534':e.nivel_dificultad===2?'#854d0e':'#991b1b'};border-radius:10px;padding:1px 6px;">N${e.nivel_dificultad}</span>`:''}
+          ${e.patron_movimiento?`<span style="font-size:9px;background:var(--s2);color:var(--tm);border-radius:10px;padding:1px 6px;">${e.patron_movimiento.replace(/_/g,' ')}</span>`:''}
+          ${e.nivel_dificultad?`<span style="font-size:9px;background:${e.nivel_dificultad===1?'var(--vl)':e.nivel_dificultad===2?'var(--a)':'var(--rl)'};color:${e.nivel_dificultad===1?'var(--vm)':e.nivel_dificultad===2?'var(--ad)':'var(--rd)'};border-radius:10px;padding:1px 6px;">N${e.nivel_dificultad}</span>`:''}
         </div>
         ${e.descripcion?`<div style="font-size:11px;color:var(--vd);margin-bottom:5px;line-height:1.4;">${e.descripcion}</div>`:''}
         ${e.video?`<div style="font-size:10px;color:#185FA5;margin-bottom:6px;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);margin-bottom:6px;">Sin video</div>'}
