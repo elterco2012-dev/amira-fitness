@@ -803,6 +803,7 @@ function slugUnique(nombre){
 }
 function fmtNac(str){if(!str||str==='\u2014')return null;const p=str.split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:str;}
 function calcEdad(nac){if(!nac||nac==='\u2014')return null;const b=new Date(nac);if(isNaN(b))return null;const n=new Date();let age=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))age--;return age;}
+function esLesionReal(v){if(!v)return false;const n=v.trim().toLowerCase();return n!=='no'&&n!=='\u2014'&&n!=='sin lesiones'&&n!=='ninguna'&&n.length>0;}
 function tipoHtml(tipo){const m={gym:'<span class="badge bg">Gimnasio</span>',casa:'<span class="badge" style="background:#fef3c7;color:#92400e;">Casa</span>',otro:'<span class="badge bd">Otro</span>',distancia:'<span class="badge bd">A distancia</span>'};return m[tipo]||`<span class="badge bd">${tipo||'\u2014'}</span>`;}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function getA(id){return DB.alumnas.find(a=>a.id===id);}
@@ -1126,7 +1127,7 @@ function iaProfileSummaryHTML(a) {
     <div style="display:flex;flex-wrap:wrap;gap:4px;">
       ${chips.map(c=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;background:${c.ok?'var(--s)':'#fef3c7'};border:1px solid ${c.ok?'var(--b)':'#f59e0b'};color:${c.ok?'var(--t)':'#92400e'};">${c.t}</span>`).join('')}
     </div>
-    ${a.lesiones?`<div style="font-size:11px;color:#d97706;margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
+    ${esLesionReal(a.lesiones)?`<div style="font-size:11px;color:#d97706;margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
     ${faltantes.length?`<div style="font-size:10px;color:var(--th);margin-top:5px;">Perfil incompleto — falta: ${faltantes.join(', ')}. Sin estos datos Claude generará una rutina genérica.</div>`:''}
   </div>`;
 }
@@ -2445,7 +2446,7 @@ function drawerResumen(a){
       ${alertas.map(f=>`<div style="font-size:12px;color:var(--rd);padding:2px 0;">🚨 ${f.ejercicio_nombre||'Ejercicio'}${f.nota?' — '+f.nota:''}</div>`).join('')}
     </div>`;
   }
-  if(a.lesiones){
+  if(esLesionReal(a.lesiones)){
     html+=`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .75rem;font-size:12px;color:var(--rd);margin-bottom:.75rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`;
   }
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
@@ -3339,7 +3340,7 @@ function alumnaCardHTML(a){
         ${menuHTML}
       </div>
     </div>
-    ${a.lesiones?`<div style="background:var(--rl);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--rd);margin-bottom:6px;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`:''}
+    ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--rd);margin-bottom:6px;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`:''}
     ${a.notas_privadas?`<div style="background:var(--p);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--pd);margin-bottom:6px;">🔒 ${a.notas_privadas}</div>`:''}
     ${a.notas?`<div class="nota" style="margin-bottom:6px;">${a.notas}</div>`:''}
     <div style="display:flex;align-items:center;gap:8px;padding:.45rem 0;border-top:1px solid var(--b);border-bottom:1px solid var(--b);margin-bottom:8px;flex-wrap:wrap;">
@@ -3496,7 +3497,7 @@ function rRutinas(){
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
     ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
   </div>
-  ${a.lesiones?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${a.lesiones}</div>`:''}
+  ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${a.lesiones}</div>`:''}
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -4688,7 +4689,7 @@ async function saveFichaEdit(aId,regId){
     await sbPatch('registros',`id=eq.${regId}`,updates);
     const reg=DB.registros.find(r=>r.id===regId);if(reg)Object.assign(reg,updates);
     // Keep alumna's active lesion banner in sync
-    const lesAlerta=lesiones!=='Sin lesiones'&&lesiones?lesiones:null;
+    const lesAlerta=esLesionReal(lesiones)?lesiones:null;
     await sbPatch('alumnas',`id=eq.${aId}`,{lesiones:lesAlerta}).catch(()=>{});
     const al=getA(aId);if(al)al.lesiones=lesAlerta;
     S['ficha_edit_'+aId]=false;
