@@ -495,6 +495,7 @@
       <div id="ia-preview-content"></div>
       <div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-p" onclick="saveGeneratedRoutine()">💾 Guardar como nuevo ciclo</button>
+        <button class="btn" style="background:var(--vl);color:var(--vd);border-color:var(--vm);" onclick="saveGeneratedRoutineEnSemana()">📌 Guardar en semana actual</button>
         <button class="btn" onclick="mostrarInputIA()">🔄 Regenerar</button>
         <button class="btn" onclick="closeIAModal()">Cancelar</button>
       </div>
@@ -1472,6 +1473,41 @@ async function saveGeneratedRoutine(){
     S.selCiclo=nuevoCiclo;S.selSem=1;S.selDia=1;
     closeIAModal();
     S.msg=`✨ ${nomCiclo} generado con IA y guardado.`;
+    render();setTimeout(()=>{S.msg='';render();},4000);
+  }catch(e){msgEl.textContent='Error al guardar: '+e.message;}
+}
+
+async function saveGeneratedRoutineEnSemana(){
+  const a=getA(S.selA);if(!a||!_iaRoutineData)return;
+  const routine=_iaRoutineData;
+  const msgEl=document.getElementById('ia-save-msg');
+  msgEl.textContent='Guardando en semana '+S.selSem+'...';
+  try{
+    const ciclo=S.selCiclo;
+    const semana=S.selSem;
+    const primeraSem=(routine.semanas||[])[0];
+    if(!primeraSem){throw new Error('Sin datos de semana generada');}
+    const ops=[];
+    for(const dia of(primeraSem.dias||[])){
+      const exs=(dia.ejercicios||[]).map(ex=>{
+        const obj={nombre:ex.nombre||'',series:String(ex.series||'3'),reps:String(ex.reps||'10'),tip:ex.tip||'',nota:'',video:ex.video||'',grupo:ex.grupo||''};
+        if(ex.peso_sugerido!=null)obj.peso_base=parseFloat(ex.peso_sugerido)||null;
+        return obj;
+      });
+      if(exs.length){
+        ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo,semana,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
+      }
+    }
+    await Promise.all(ops);
+    if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
+    if(!DB.rutinas[a.id][ciclo])DB.rutinas[a.id][ciclo]={};
+    DB.rutinas[a.id][ciclo][semana]=[];
+    for(const dia of(primeraSem.dias||[])){
+      const exs=(dia.ejercicios||[]).map(ex=>{const o={nombre:ex.nombre||'',series:String(ex.series||'3'),reps:String(ex.reps||'10'),tip:ex.tip||'',nota:'',video:ex.video||'',grupo:ex.grupo||''};if(ex.peso_sugerido!=null)o.peso_base=parseFloat(ex.peso_sugerido)||null;return o;});
+      if(exs.length)DB.rutinas[a.id][ciclo][semana].push({dia:parseInt(dia.dia)||1,ejercicios:exs});
+    }
+    closeIAModal();
+    S.msg=`✨ Rutina IA guardada en ${a.ciclos_nombres?.[ciclo]||'Ciclo '+ciclo} · Sem ${semana}.`;
     render();setTimeout(()=>{S.msg='';render();},4000);
   }catch(e){msgEl.textContent='Error al guardar: '+e.message;}
 }
