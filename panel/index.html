@@ -3244,24 +3244,53 @@ function alumnaCardHTML(a){
       +(extra?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> '+extra+'</div>':'')
       +'</div>'
       // — Ficha de salud —
-      +(ficha
-        ?'<div style="border-top:1px solid var(--b);margin-top:.75rem;padding-top:.75rem;">'
-          +'<div style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Ficha de salud</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">'
-          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Último control médico:</span> '+(ficha.control_medico||'—')+'</div>'
-          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Enfermedades:</span> '+(ficha.enfermedad||'—')+'</div>'
-          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Medicación:</span> '+(ficha.medicacion||'—')+'</div>'
-          +'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Patología cardiovascular:</span> '+(ficha.patologia_cardio||'—')+'</div>'
-          +(ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'
-            ?'<div style="grid-column:1/-1;background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+ficha.lesiones+'</div>'
-            :'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones:</span> '+(ficha.lesiones||'—')+'</div>')
-          +(ficha.lesiones_previas&&ficha.lesiones_previas!=='Sin antecedentes'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Lesiones previas:</span> '+ficha.lesiones_previas+'</div>':'')
-          +(ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Dolor frecuente:</span> '+ficha.dolor_zonas+'</div>':'')
-          +(ficha.actividad_actual&&ficha.actividad_actual!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Actividad actual:</span> '+ficha.actividad_actual+'</div>':'')
-          +(ficha.extra&&ficha.extra!=='—'?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas extra:</span> '+ficha.extra+'</div>':'')
-          +'<div style="grid-column:1/-1;font-size:10px;color:var(--th);margin-top:2px;">Completada el '+(ficha.fecha||'—')+'</div>'
-          +'</div></div>'
-        :'<div style="border-top:1px solid var(--b);margin-top:.75rem;padding-top:.5rem;font-size:11px;color:var(--th);">Sin ficha de salud · <a href="/ficha/'+a.slug+'" target="_blank" style="color:var(--v);">Enviar formulario →</a></div>')
+      +(()=>{
+        if(!ficha) return '<div style="border-top:1px solid var(--b);margin-top:.75rem;padding-top:.5rem;font-size:11px;color:var(--th);">Sin ficha de salud · <a href="/ficha/'+a.slug+'" target="_blank" style="color:var(--v);">Enviar formulario →</a></div>';
+        const em=S['ficha_edit_'+a.id];
+        const esc=s=>s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';
+        const inp=(id,val)=>'<input id="'+id+'" value="'+esc(val)+'" style="width:100%;padding:5px 8px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-size:12px;font-family:\'DM Sans\',sans-serif;box-sizing:border-box;">';
+        const ta=(id,val)=>'<textarea id="'+id+'" style="width:100%;padding:5px 8px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-size:12px;font-family:\'DM Sans\',sans-serif;resize:vertical;height:52px;box-sizing:border-box;">'+esc(val)+'</textarea>';
+        const lbl=t=>'<div style="font-size:10px;color:var(--tm);margin-bottom:2px;">'+t+'</div>';
+        const row=(t,id,val)=>'<div>'+lbl(t)+inp(id,val)+'</div>';
+        const aId=a.id,rId=ficha.id;
+        return '<div style="border-top:1px solid var(--b);margin-top:.75rem;padding-top:.75rem;">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">'
+            +'<div style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Ficha de salud</div>'
+            +(em
+              ?'<div style="display:flex;gap:4px;"><button class="btn btn-p btn-s" style="font-size:10px;padding:2px 8px;" onclick="saveFichaEdit('+aId+','+rId+')">Guardar</button><button class="btn btn-s" style="font-size:10px;padding:2px 8px;" onclick="S[\'ficha_edit_'+aId+'\']=false;render()">Cancelar</button></div>'
+              :'<button class="btn btn-s" style="font-size:10px;padding:2px 8px;" onclick="S[\'ficha_edit_'+aId+'\']=true;render()">✏️ Editar</button>')
+          +'</div>'
+          +(em
+            ?'<div style="display:grid;gap:8px;">'
+              +'<div>'+lbl('Último control médico')
+                +'<select id="fe-control-'+aId+'" style="width:100%;padding:5px 8px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-size:12px;font-family:\'DM Sans\',sans-serif;">'
+                +['Hace menos de 6 meses','Hace 6-12 meses','Hace más de 1 año','No recuerdo'].map(o=>'<option'+(ficha.control_medico===o?' selected':'')+'>'+o+'</option>').join('')
+                +'</select></div>'
+              +row('Enfermedades','fe-enfermedad-'+aId,ficha.enfermedad||'')
+              +row('Medicación','fe-medicacion-'+aId,ficha.medicacion||'')
+              +row('Patología cardiovascular','fe-cardio-'+aId,ficha.patologia_cardio||'')
+              +'<div>'+lbl('Lesiones activas')+ta('fe-lesiones-'+aId,ficha.lesiones&&ficha.lesiones!=='Sin lesiones'?ficha.lesiones:'')+'</div>'
+              +row('Lesiones previas','fe-lesprev-'+aId,ficha.lesiones_previas&&ficha.lesiones_previas!=='Sin antecedentes'?ficha.lesiones_previas:'')
+              +row('Dolor frecuente','fe-dolor-'+aId,ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?ficha.dolor_zonas:'')
+              +row('Actividad actual','fe-actividad-'+aId,ficha.actividad_actual&&ficha.actividad_actual!=='—'?ficha.actividad_actual:'')
+              +'<div>'+lbl('Observaciones extra')+ta('fe-extra-'+aId,ficha.extra&&ficha.extra!=='—'?ficha.extra:'')+'</div>'
+              +'</div>'
+            :'<div style="display:grid;gap:6px;font-size:12px;">'
+              +'<div><span style="color:var(--tm);">Último control médico:</span> '+(ficha.control_medico||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Enfermedades:</span> '+(ficha.enfermedad||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Medicación:</span> '+(ficha.medicacion||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Patología cardiovascular:</span> '+(ficha.patologia_cardio||'—')+'</div>'
+              +(ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'
+                ?'<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+ficha.lesiones+'</div>'
+                :'<div><span style="color:var(--tm);">Lesiones:</span> '+(ficha.lesiones||'—')+'</div>')
+              +(ficha.lesiones_previas&&ficha.lesiones_previas!=='Sin antecedentes'?'<div><span style="color:var(--tm);">Lesiones previas:</span> '+ficha.lesiones_previas+'</div>':'')
+              +(ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?'<div><span style="color:var(--tm);">Dolor frecuente:</span> '+ficha.dolor_zonas+'</div>':'')
+              +(ficha.actividad_actual&&ficha.actividad_actual!=='—'?'<div><span style="color:var(--tm);">Actividad actual:</span> '+ficha.actividad_actual+'</div>':'')
+              +(ficha.extra&&ficha.extra!=='—'?'<div><span style="color:var(--tm);">Observaciones extra:</span> '+ficha.extra+'</div>':'')
+              +'<div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el '+(ficha.fecha||'—')+'</div>'
+              +'</div>')
+          +'</div>';
+      })()
       +'</div>';
   }
 
@@ -4641,6 +4670,33 @@ async function cambiarEstado(aId, estado){
 }
 
 // ── Notas de sesión ───────────────────────────────────────────
+async function saveFichaEdit(aId,regId){
+  const g=id=>(document.getElementById(id)||{}).value??null;
+  const lesiones=g('fe-lesiones-'+aId)||'Sin lesiones';
+  const updates={
+    control_medico:g('fe-control-'+aId),
+    enfermedad:g('fe-enfermedad-'+aId)||'Ninguna',
+    medicacion:g('fe-medicacion-'+aId)||'No',
+    patologia_cardio:g('fe-cardio-'+aId)||'No',
+    lesiones,
+    lesiones_previas:g('fe-lesprev-'+aId)||'Sin antecedentes',
+    dolor_zonas:g('fe-dolor-'+aId)||'—',
+    actividad_actual:g('fe-actividad-'+aId)||'—',
+    extra:g('fe-extra-'+aId)||'—',
+  };
+  try{
+    await sbPatch('registros',`id=eq.${regId}`,updates);
+    const reg=DB.registros.find(r=>r.id===regId);if(reg)Object.assign(reg,updates);
+    // Keep alumna's active lesion banner in sync
+    const lesAlerta=lesiones!=='Sin lesiones'&&lesiones?lesiones:null;
+    await sbPatch('alumnas',`id=eq.${aId}`,{lesiones:lesAlerta}).catch(()=>{});
+    const al=getA(aId);if(al)al.lesiones=lesAlerta;
+    S['ficha_edit_'+aId]=false;
+    S.msg='✅ Ficha actualizada';render();
+    setTimeout(()=>{S.msg='';render();},2000);
+  }catch(e){S.err='Error al guardar ficha: '+e.message;render();}
+}
+
 async function guardarNota(aId){
   const txt=document.getElementById('nota-txt-'+aId)?.value?.trim();
   if(!txt)return;
