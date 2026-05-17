@@ -4252,14 +4252,19 @@ function rAnalisis(){
     const rows=DB.pageViews;
     if(!rows.length)return`<div class="card" style="margin-bottom:1rem;"><div class="ctitle">🌐 Visitas al sitio</div><div style="font-size:12px;color:var(--th);">Sin datos aún — ejecutá la migración SQL o esperá que entre alguien al sitio.</div></div>`;
     const cnt={};rows.forEach(r=>{cnt[r.page]=(cnt[r.page]||0)+1;});
-    const total=rows.length;
     const ago7=Date.now()-7*86400000;
-    const last7=rows.filter(r=>new Date(r.created_at).getTime()>ago7).length;
-    const bioTotal=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')).reduce((a,[,n])=>a+n,0);
-    const bioDetail=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!='/bio/view').map(([p,n])=>`${p.replace('/bio/','')}: ${n}`).join(' · ');
+    // Solo visitas reales al sitio (excluye eventos de bio)
+    const siteRows=rows.filter(r=>!r.page.startsWith('/bio/'));
+    const siteTotal=siteRows.length;
+    const last7=siteRows.filter(r=>new Date(r.created_at).getTime()>ago7).length;
+    // Bio: separar vistas de página vs clics en botones
+    const bioViews=cnt['/bio/view']||0;
+    const bioClicks=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').reduce((a,[,n])=>a+n,0);
+    const bioDetail=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>`${p.replace('/bio/','')}: ${n}`).join(' · ');
+    // Barras solo de páginas del sitio (sin doble conteo de llegadas desde bio)
     const pages=[['/', '🌐 Inicio'],['/registro','📝 Registro'],['/ficha','📋 Ficha']];
-    const bars=pages.map(([p,label])=>{const n=cnt[p]||0;const pct=total>0?Math.round(n/total*100):0;return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.45rem;"><div style="flex:1;font-size:13px;">${label}</div><div style="font-size:13px;font-weight:500;min-width:28px;text-align:right;">${n}</div><div style="width:70px;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--v);border-radius:3px;"></div></div></div>`;}).join('');
-    return`<div class="card" style="margin-bottom:1rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio (últimos 30 días)</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;"><div class="metric"><div class="mlabel">Últimos 7d</div><div class="mval g">${last7}</div></div><div class="metric"><div class="mlabel">Últimos 30d</div><div class="mval">${total}</div></div><div class="metric"><div class="mlabel">Clics bio IG</div><div class="mval">${bioTotal}</div></div></div>${bars}${bioDetail?`<div style="font-size:11px;color:var(--tm);margin-top:.5rem;">Bio: ${bioDetail}</div>`:''}</div>`;
+    const bars=pages.map(([p,label])=>{const n=cnt[p]||0;const pct=siteTotal>0?Math.round(n/siteTotal*100):0;return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.45rem;"><div style="flex:1;font-size:13px;">${label}</div><div style="font-size:13px;font-weight:500;min-width:28px;text-align:right;">${n}</div><div style="width:70px;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--v);border-radius:3px;"></div></div></div>`;}).join('');
+    return`<div class="card" style="margin-bottom:1rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio (últimos 30 días)</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;"><div class="metric"><div class="mlabel">Visitas 7d</div><div class="mval g">${last7}</div></div><div class="metric"><div class="mlabel">Visitas 30d</div><div class="mval">${siteTotal}</div></div><div class="metric"><div class="mlabel">Clics en bio</div><div class="mval">${bioClicks}</div></div></div>${bars}<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--b);display:flex;gap:1.5rem;font-size:11px;color:var(--tm);"><span>📲 Bio abierta: <strong>${bioViews}</strong></span><span>👆 Clics: <strong>${bioClicks}</strong>${bioDetail?` (${bioDetail})`:''}</span></div></div>`;
   })();
 
   return`<div class="ptitle">Análisis</div>
