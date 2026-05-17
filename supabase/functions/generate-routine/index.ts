@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones,posicion_ejercicio,bilateral,impacto&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
-      dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,descripcion,created_at&order=created_at.desc&limit=20`),
+      dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,nota,created_at&order=created_at.desc&limit=20`),
     ]) as [unknown[], unknown[], unknown[], unknown[], unknown[]];
 
     if (!alumnas.length) return Response.json({ error: "Alumna no encontrada" }, { status: 404, headers: CORS });
@@ -79,11 +79,11 @@ Deno.serve(async (req) => {
     }
 
     // ── 4. Feedbacks recientes relevantes ────────────────────────
-    type Feedback = { tipo: string; descripcion?: string; created_at: string };
+    type Feedback = { tipo: string; nota?: string; created_at: string };
     const fbResumen = (feedbacks as Feedback[])
       .filter(f => ["dolor_preocupante", "dolor_articular", "muy_cansada", "rpe"].includes(f.tipo))
       .slice(0, 8)
-      .map(f => `- ${f.tipo}${f.descripcion ? ": " + f.descripcion : ""} (${f.created_at.slice(0, 10)})`)
+      .map(f => `- ${f.tipo}${f.nota ? ": " + f.nota : ""} (${f.created_at.slice(0, 10)})`)
       .join("\n");
 
     // ── 5. Biblioteca con patrón y nivel ─────────────────────────
