@@ -358,6 +358,7 @@
           <option value="inclinada">Inclinada</option>
           <option value="en_cuadrupedia">En cuadrupedia</option>
           <option value="arrodillada">Arrodillada</option>
+          <option value="de_lateral">De lateral</option>
         </select></div>
       <div><label>Bilateral</label><select id="m-bilateral" style="margin-bottom:0;">
           <option value="true">Bilateral</option>
@@ -1526,7 +1527,7 @@ function renderBib(){
   const list=document.getElementById('bib-list');
   if(!list)return;
   const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
-  const POS_LABEL={de_pie:'🧍 De pie',sentada:'🪑 Sentada',acostada_boca_arriba:'⬆️ B. arriba',acostada_boca_abajo:'⬇️ B. abajo',inclinada:'📐 Inclinada',en_cuadrupedia:'🐾 Cuadrup.',arrodillada:'🙏 Arrodillada'};
+  const POS_LABEL={de_pie:'🧍 De pie',sentada:'🪑 Sentada',acostada_boca_arriba:'⬆️ B. arriba',acostada_boca_abajo:'⬇️ B. abajo',inclinada:'📐 Inclinada',en_cuadrupedia:'🐾 Cuadrup.',arrodillada:'🙏 Arrodillada',de_lateral:'↔️ De lateral'};
   const IMP_LABEL={bajo:'🟢 Bajo',medio:'🟡 Medio',alto:'🔴 Alto'};
   list.innerHTML=filtered.map(e=>`
     <div class="bib-card${bibSelEx?.id===e.id?' selected':''}" onclick="selectBibEx(${e.id})">
@@ -5098,6 +5099,7 @@ initAuth();
           <option value="inclinada">Inclinada</option>
           <option value="en_cuadrupedia">En cuadrupedia</option>
           <option value="arrodillada">Arrodillada</option>
+          <option value="de_lateral">De lateral</option>
         </select></div>
       <div><label>Bilateral</label><select id="eb-bilateral" style="margin-bottom:0;">
           <option value="true">Bilateral</option>
