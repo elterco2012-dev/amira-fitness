@@ -647,6 +647,8 @@
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="trx"> TRX</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="fitball"> Esfera</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="step"> Step / cajón</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="tobillera"> Tobillera</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="ruedita"> Ruedita abdominal</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="barra"> Barra</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="polea"> Polea / cables</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="maquina"> Máquinas de gym</label>
@@ -1523,7 +1525,7 @@ function renderBib(){
   });
   const list=document.getElementById('bib-list');
   if(!list)return;
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
   const POS_LABEL={de_pie:'🧍 De pie',sentada:'🪑 Sentada',acostada_boca_arriba:'⬆️ B. arriba',acostada_boca_abajo:'⬇️ B. abajo',inclinada:'📐 Inclinada',en_cuadrupedia:'🐾 Cuadrup.',arrodillada:'🙏 Arrodillada'};
   const IMP_LABEL={bajo:'🟢 Bajo',medio:'🟡 Medio',alto:'🔴 Alto'};
   list.innerHTML=filtered.map(e=>`
@@ -3166,6 +3168,8 @@ function rAlumnas(){
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="trx"> TRX</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="fitball"> Esfera</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="step"> Step / cajón</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="tobillera"> Tobillera</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="ruedita"> Ruedita abdominal</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="barra"> Barra</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="polea"> Polea / cables</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="maquina"> Máquinas de gym</label>
@@ -3808,7 +3812,7 @@ function rBiblioteca(){
 
   // ── Stats de cobertura ──
   const GYM=['maquina','barra','polea'];
-  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step'];
+  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step','tobillera','ruedita'];
   const total=DB.biblioteca.length;
   const cSinEquip=DB.biblioteca.filter(e=>!e.equipamiento_requerido||e.equipamiento_requerido==='sin_equipamiento').length;
   const cPortable=DB.biblioteca.filter(e=>PORTABLE.includes(e.equipamiento_requerido)).length;
@@ -3821,7 +3825,7 @@ function rBiblioteca(){
     return{gr,total:exs.length,casa:casaCount};
   });
 
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
 
   const statsHtml=`<div class="card" style="margin-bottom:1rem;padding:.85rem 1rem;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
