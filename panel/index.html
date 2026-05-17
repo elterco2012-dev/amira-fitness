@@ -833,14 +833,15 @@ async function loadAll(){
       sbGet('plantillas','order=created_at.asc')
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
-    const [_fb,_ps,_pg,_av,_pa,_ns,_prg]=await Promise.allSettled([
+    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv]=await Promise.allSettled([
       sbGet('feedbacks','order=created_at.desc&limit=50'),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
       sbGet('avisos','order=created_at.desc&limit=5000'),
       sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200'),
-      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=5000')
+      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=5000'),
+      sbGet('page_views',`select=page,created_at&created_at=gte.${encodeURIComponent(new Date(Date.now()-30*86400000).toISOString())}&order=created_at.desc&limit=5000`)
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -849,6 +850,7 @@ async function loadAll(){
     DB.pesoAlumna     = _pa.status==='fulfilled'?_pa.value:[];
     DB.notasSesion    = _ns.status==='fulfilled'?_ns.value:[];
     DB.progresoHechos = _prg.status==='fulfilled'?_prg.value:[];
+    DB.pageViews      = _pv.status==='fulfilled'&&Array.isArray(_pv.value)?_pv.value:[];
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
