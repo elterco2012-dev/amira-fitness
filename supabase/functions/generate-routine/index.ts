@@ -126,7 +126,7 @@ REGLAS GENERALES:
 - Para ciclos de 4 semanas: aplicá periodización lineal: semana 1 base (volumen moderado, intensidad media), semana 2 progresión (+reps o +series), semana 3 pico (máxima intensidad, menor volumen), semana 4 descarga (−30% volumen para recuperación).
 - Para ciclos de 1 semana: generá UNA semana óptima y autosuficiente. NO es la semana 1 de un ciclo progresivo; es la mejor semana posible teniendo en cuenta el objetivo, el nivel y el historial. Usá series y reps que representen un estímulo efectivo y manejable.
 - Si hay lesiones activas, evitá CUALQUIER ejercicio que comprometa esa zona.
-- Ajustá el número de ejercicios por sesión al tiempo disponible: 30min→4-5 ejercicios, 45min→5-6, 60min→6-8, 75min→8-9, 90min→9-10.
+- El objetivo es planificar entre 10 y 12 ejercicios por sesión. Ajustá dentro de ese rango según el tiempo disponible: 30min→8-9 ejercicios, 45min→9-10, 60min→10-11, 75min→11-12, 90min→12. Sin tiempo especificado → 10-11 por defecto.
 - En el historial de pesos: ↑ significa que el peso aumentó (está progresando bien), = significa estancamiento (considerar cambio de estímulo), ↓ significa regresión (revisar el motivo).
 - Para cada ejercicio incluí: nombre (exacto de biblioteca), series (solo número, ej: "3"), reps (ej: "10-12"), tip (consejo técnico breve y concreto, máx 80 caracteres), grupo muscular.
 - Variá los ejercicios entre semanas cuando tenga sentido (mismos grupos, distinto estímulo).
