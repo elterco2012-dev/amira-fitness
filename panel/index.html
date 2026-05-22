@@ -1082,7 +1082,7 @@ async function confirmarNuevoCiclo(){
     S.msg=`${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} creado. Los checks se resetearán automáticamente.`;
     render();setTimeout(()=>{S.msg='';render();},3000);
     const _pTitle=`🚀 ¡${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} lista!`;
-    fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:_pTitle,body:'Tu nueva rutina ya está cargada. ¡A entrenar! 💪'})}).catch(()=>{});
+    fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:_pTitle,body:'Tu nueva rutina ya está cargada. ¡A entrenar! 💪'})}).catch(()=>{});
   }catch(e){document.getElementById('ciclo-msg').textContent='Error al crear el ciclo: '+e.message;}
 }
 
@@ -2308,7 +2308,7 @@ async function enviarPush(aId){
       headers:{
         'Content-Type':'application/json',
         'apikey':SB_KEY,
-        'Authorization':`Bearer ${SB_KEY}`
+        'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`
       },
       body:pushBody
     });
@@ -4732,7 +4732,7 @@ async function envResPush(aId){
   S.msg='Enviando push...';render();
   try{
     const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
-      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},
       body:JSON.stringify({alumna_id:aId,title,body})
     });
     const d=await r.json().catch(()=>({}));
@@ -4752,7 +4752,7 @@ async function envResPushTodas(){
     const {title,body}=_buildResumenPush(a);
     try{
       const r=await fetch(`${SB_URL}/functions/v1/send-push`,{
-        method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},
+        method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},
         body:JSON.stringify({alumna_id:a.id,title,body})
       });
       const d=await r.json().catch(()=>({}));
@@ -4767,7 +4767,7 @@ async function envCheckIn(aId){
   const nombre=a.nombre.split(' ')[0];
   S.msg='Enviando...';render();
   try{
-    const r=await fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`👋 ¡${nombre}, te extrañamos!`,body:'Hace unos días que no te vemos entrenar. ¿Todo bien? Tu rutina te espera 💪'})});
+    const r=await fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`👋 ¡${nombre}, te extrañamos!`,body:'Hace unos días que no te vemos entrenar. ¿Todo bien? Tu rutina te espera 💪'})});
     const d=await r.json().catch(()=>({}));
     S.msg=d.sent>0?`✓ Check-in enviado a ${nombre}`:`Sin push activo (${d.reason||'error'})`;
     render();setTimeout(()=>{S.msg='';render();},3000);
@@ -4788,7 +4788,7 @@ async function envCheckInInactivas(){
   for(const a of inactivas){
     const nombre=a.nombre.split(' ')[0];
     try{
-      const r=await fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:`👋 ¡${nombre}, te extrañamos!`,body:'Hace unos días que no te vemos entrenar. ¿Todo bien? Tu rutina te espera 💪'})});
+      const r=await fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:`👋 ¡${nombre}, te extrañamos!`,body:'Hace unos días que no te vemos entrenar. ¿Todo bien? Tu rutina te espera 💪'})});
       const d=await r.json().catch(()=>({}));
       if(d.sent>0)ok++;
     }catch{}
