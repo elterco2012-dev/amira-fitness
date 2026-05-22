@@ -244,6 +244,7 @@
 
     <div class="sb-bot">
       <div class="sb-conn"><div class="dot" id="sbd"></div><span id="sbl">Conectando...</span></div>
+      <!-- versión solo visible en config -->
       <button class="nav" onclick="toggleDark()"><span class="ni" id="tic">🌙</span>Modo oscuro</button>
       <button class="nav" onclick="doLogout()"><span class="ni">🚪</span>Salir</button>
     </div>
@@ -676,7 +677,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[],pageViews:null};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_bulkWA:false};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_alumnaQ:'',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_bulkWA:false};
 let dark=localStorage.getItem('af-dark')==='1';
 let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
 let bibSelEx=null;
@@ -903,7 +904,7 @@ async function loadAll(){
     }catch(e){}
     if(!S.selA&&DB.alumnas.length>0){S.selA=DB.alumnas[0].id;S.selCiclo=DB.alumnas[0].ciclo_actual||1;}
     if(S.view==='historial'&&S.selA&&!DB.progreso?.[S.selA])loadHistorial(S.selA);
-    sbSt(true,'Conectado ✓');
+    sbSt(true,'Sincronizado');
     render();startPoll();
     if(prevReg>0){const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=prevReg;}}
   }catch(e){sbSt(false,'Sin conexión');console.error(e);render();}
@@ -3058,20 +3059,37 @@ function rInicio(){
   ${S.msg?`<div class="sm">${S.msg}</div>`:''}`;
 }
 
+function ultimaActividad(alumnaId){
+  const rows=(DB.progresoHechos||[]).filter(p=>p.alumna_id===alumnaId&&p.fecha_registro);
+  if(!rows.length)return{label:'Sin registros',dias:-1};
+  const ultima=rows.reduce((max,p)=>p.fecha_registro>max?p.fecha_registro:max,rows[0].fecha_registro);
+  const dias=Math.floor((Date.now()-new Date(ultima).getTime())/(86400000));
+  if(dias===0)return{label:'Hoy',dias:0};
+  if(dias===1)return{label:'Ayer',dias:1};
+  return{label:`hace ${dias} días`,dias};
+}
+
 function rAlumnas(){
+  const q=(S._alumnaQ||'').toLowerCase().trim();
   const filtradas=DB.alumnas.filter(a=>{
     const est=a.estado||'activa';
-    if(S.filtroEstado==='todas')return true;
-    if(S.filtroEstado==='activa+pausada')return est==='activa'||est==='pausada';
-    return est===S.filtroEstado;
+    const passEstado=S.filtroEstado==='todas'?true:S.filtroEstado==='activa+pausada'?(est==='activa'||est==='pausada'):est===S.filtroEstado;
+    const passQ=!q||a.nombre.toLowerCase().includes(q);
+    return passEstado&&passQ;
   });
   const ftabs=[['activa+pausada','Activas + Pausadas'],['activa','Activas'],['pausada','Pausadas'],['baja','Bajas'],['todas','Todas']];
   return`<div class="ptitle">Alumnas <span style="font-size:14px;font-weight:400;color:var(--tm);">(${filtradas.length})</span></div>
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-    <div style="display:flex;gap:4px;flex-wrap:wrap;flex:1;">
-      ${ftabs.map(([k,l])=>`<button class="btn btn-s${S.filtroEstado===k?' btn-p':''}" onclick="S.filtroEstado='${k}';render()">${l}</button>`).join('')}
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
+    <div style="position:relative;flex:1;min-width:180px;">
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--th);font-size:14px;pointer-events:none;">🔍</span>
+      <input type="text" placeholder="Buscar alumna..." value="${S._alumnaQ||''}"
+        oninput="S._alumnaQ=this.value;render()"
+        style="padding-left:32px;margin:0;width:100%;">
     </div>
     <button class="btn btn-p btn-s" onclick="S.addA=!S.addA;render()">+ Nueva</button>
+  </div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem;">
+    ${ftabs.map(([k,l])=>`<button class="btn btn-s${S.filtroEstado===k?' btn-p':''}" onclick="S.filtroEstado='${k}';render()">${l}</button>`).join('')}
   </div>
   ${S.addA?`<div class="card" style="margin-bottom:1rem;">
     <div class="ctitle">Nueva alumna</div>
@@ -3247,6 +3265,9 @@ function alumnaCardHTML(a){
   const estBadge=est!=='activa'
     ?'<span style="background:'+(est==='pausada'?'var(--a)':'var(--rl)')+';color:'+(est==='pausada'?'var(--ad)':'var(--rd)')+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;">'+(est==='pausada'?'⏸ Pausada':'✕ Baja')+'</span>'
     :'';
+  const ua=ultimaActividad(a.id);
+  const uaColor=ua.dias<0?['#f1f5f9','#64748b']:ua.dias<=3?['#dcfce7','#15803d']:ua.dias<=7?['#fef9c3','#a16207']:ua.dias<=14?['#ffedd5','#c2410c']:['#fee2e2','#dc2626'];
+  const uaBadge='<span style="background:'+uaColor[0]+';color:'+uaColor[1]+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;" title="Última actividad registrada">'+ua.label+'</span>';
 
   const menuHTML=menuOpen
     ?'<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:30;min-width:185px;box-shadow:0 4px 20px rgba(0,0,0,.15);">'
@@ -3382,7 +3403,7 @@ function alumnaCardHTML(a){
       </div>
       <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span class="aname">${a.nombre}</span>${estBadge}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span class="aname">${a.nombre}</span>${estBadge}${uaBadge}</div>
         <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel?`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel}</a>`:'<span style="color:var(--rd)">Sin WA</span>'} · <strong style="color:var(--pd)">${cicNom}</strong></div>
       </div>
       <div style="position:relative;flex-shrink:0;">
