@@ -762,7 +762,13 @@ function startTokenRefresh(){
     const expires=parseInt(localStorage.getItem('af-token-expires')||'0');
     if(Date.now()>expires-10*60*1000){
       const ok=await _refreshSession();
-      if(!ok)doLogout();
+      if(!ok){
+        // Solo limpiar sesión local — NO llamar /auth/v1/logout para no
+        // invalidar otras sesiones de Supabase (ej: app de alumna)
+        _clearSession();
+        document.getElementById('PS').style.display='none';
+        document.getElementById('LS').style.display='flex';
+      }
     }
   },5*60*1000);
 }
