@@ -4,7 +4,7 @@
   "short_name": "Amira Fitness",
   "description": "Tu entrenamiento personalizado. Seguí tu rutina, cargá pesos y recibí recordatorios de Amira.",
   "start_url": "/alumna/",
-  "scope": "/",
+  "scope": "/alumna/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#1D9E75",
