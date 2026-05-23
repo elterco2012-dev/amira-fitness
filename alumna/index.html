@@ -524,7 +524,7 @@
         <div style="font-size:14px;font-weight:500;">💪 Dolor muscular normal</div>
         <div style="font-size:11px;color:var(--tm);margin-top:2px;">Ardor o agujetas — es parte del proceso</div>
       </button>
-      <button onclick="enviarReporte('dolor_articular')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f59e0b44;background:#fef3c7;cursor:pointer;font-family:'DM Sans',sans-serif;color:#92400e;">
+      <button onclick="enviarReporte('dolor_articular')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--ad);background:var(--a);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--ad);">
         <div style="font-size:14px;font-weight:500;">⚠️ Molestia articular</div>
         <div style="font-size:11px;margin-top:2px;opacity:.8;">Rodilla, hombro, codo — Amira va a revisarlo</div>
       </button>
@@ -809,7 +809,8 @@ document.addEventListener('click', (e)=>{
     }
   }
 });
-let dark = localStorage.getItem('af-dark')==='1';
+const _sd = localStorage.getItem('af-dark');
+let dark = _sd !== null ? _sd === '1' : window.matchMedia('(prefers-color-scheme: dark)').matches;
 let curTab = 'r';
 let charts = {};
 let selHistEx = null;
@@ -994,15 +995,15 @@ function pushNudgeHTML(alumnaId){
     if(Date.now() - snoozedAt < 7*24*60*60*1000) return ''; // still snoozed
   }
   if(!('PushManager' in window)) return ''; // browser doesn't support push
-  return `<div id="push-nudge" style="margin:0 0 12px;background:#fefce8;border:1.5px solid #fde047;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+  return `<div id="push-nudge" style="margin:0 0 12px;background:var(--a);border:1.5px solid var(--ad);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
     <span style="font-size:20px;flex-shrink:0;">🔔</span>
     <div style="flex:1;min-width:0;">
-      <div style="font-size:12px;font-weight:600;color:#713f12;margin-bottom:1px;">Activá los recordatorios</div>
-      <div style="font-size:11px;color:#92400e;line-height:1.4;">Te avisamos a las 9AM cuando tenés entrenamiento</div>
+      <div style="font-size:12px;font-weight:600;color:var(--ad);margin-bottom:1px;">Activá los recordatorios</div>
+      <div style="font-size:11px;color:var(--ad);opacity:.8;line-height:1.4;">Te avisamos a las 9AM cuando tenés entrenamiento</div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0;">
-      <button onclick="activarPushManual(${alumnaId})" style="background:#ca8a04;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar</button>
-      <button onclick="rechazarPush()" style="background:none;border:none;color:#92400e;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>
+      <button onclick="activarPushManual(${alumnaId})" style="background:var(--ad);color:var(--s);border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar</button>
+      <button onclick="rechazarPush()" style="background:none;border:none;color:var(--ad);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>
     </div>
   </div>`;
 }
