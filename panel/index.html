@@ -2176,7 +2176,7 @@ async function resetearProgreso(id){
 // ── Utilidades ────────────────────────────────────────────────
 function esc(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fn(nombre){return(nombre||'').split(' ')[0];}
-function alumnaActiva(a){return alumnaActiva(a);}
+function alumnaActiva(a){return !a.estado||a.estado==='activa';}
 function alumnaNoEsBaja(a){return a.estado!=='baja';}
 
 // ── Pagos ─────────────────────────────────────────────────────
