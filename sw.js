@@ -1,4 +1,4 @@
-const CACHE = 'amira-v13';
+const CACHE = 'amira-v14';
 const STATIC = [
   '/',
   '/alumna/',
@@ -8,8 +8,7 @@ const STATIC = [
   '/api/icon-512.svg',
   '/api/icon-maskable.svg',
   '/api/offline.html',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js'
+  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap'
 ];
 
 // Instalar: cachear shell de la app
