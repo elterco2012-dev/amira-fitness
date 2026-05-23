@@ -677,9 +677,9 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[],pageViews:null};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_alumnaQ:'',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_bulkWA:false};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_alumnaQ:'',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1};
 let dark=localStorage.getItem('af-dark')==='1';
-let charts={},pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
+let pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
 let bibSelEx=null;
 let _panelSW=null;
 if('serviceWorker' in navigator){
@@ -931,7 +931,7 @@ function startPoll(){
         const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}
         const newCom=coms[0];
         prevCom=+newCom.id;
-        const aName=(DB.alumnas.find(a=>a.id===newCom.alumna_id)?.nombre||'alumna').split(' ')[0];
+        const aName=fn(getA(newCom.alumna_id)?.nombre||'alumna');
         _panelNotif(`💬 Nota — ${aName}`,newCom.texto||'Nueva nota desde la app','panel-comentario');
       }
       if(regs.length>prevReg){
@@ -942,7 +942,7 @@ function startPoll(){
       if(fbs.length&&+fbs[0].id>prevFb){
         prevFb=+fbs[0].id;localStorage.setItem('af-prevFb',String(prevFb));
         const fb=fbs[0];
-        const aName=(DB.alumnas.find(a=>a.id===fb.alumna_id)?.nombre||'alumna').split(' ')[0];
+        const aName=fn(getA(fb.alumna_id)?.nombre||'alumna');
         const emojiMap={dolor_preocupante:'🚨',bajo_rendimiento:'⚠️',bueno:'😊',excelente:'🔥'};
         const emoji=emojiMap[fb.tipo]||'💬';
         _panelNotif(`${emoji} Feedback — ${aName}`,fb.nota||`Tipo: ${fb.tipo}`,'panel-feedback');
@@ -1521,7 +1521,7 @@ async function aplicarPlantillaA(plantId, aId){
 async function aplicarPlantilla(plantId){
   const a=getA(S.selA);if(!a)return;
   const plant=DB.plantillas.find(p=>p.id===plantId);if(!plant)return;
-  if(!confirm(`¿Aplicar la plantilla "${plant.nombre}" a ${a.nombre.split(' ')[0]}? Esto reemplaza el día/semana actual.`))return;
+  if(!confirm(`¿Aplicar la plantilla "${plant.nombre}" a ${fn(a.nombre)}? Esto reemplaza el día/semana actual.`))return;
   const estructura=plant.estructura;
   S.msg='Aplicando plantilla...';S.err='';render();
   try{
@@ -1902,7 +1902,7 @@ async function crearAccesoAlumna(aId){
   if(!a.email){alert('Esta alumna no tiene email. Editá su perfil primero.');return;}
   const pin=pinDesdeNacimiento(a.nacimiento);
   if(!pin){alert('Esta alumna no tiene fecha de nacimiento. Editá su perfil primero.');return;}
-  const nombre=a.nombre.split(' ')[0];
+  const nombre=fn(a.nombre);
   const r=await fetch(`${SB_URL}/auth/v1/signup`,{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':SB_KEY},
@@ -2173,6 +2173,12 @@ async function resetearProgreso(id){
   }catch(e){alert('Error: '+e.message);}
 }
 
+// ── Utilidades ────────────────────────────────────────────────
+function esc(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fn(nombre){return(nombre||'').split(' ')[0];}
+function alumnaActiva(a){return alumnaActiva(a);}
+function alumnaNoEsBaja(a){return a.estado!=='baja';}
+
 // ── Pagos ─────────────────────────────────────────────────────
 function mesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function mesCobro(alumna){
@@ -2189,9 +2195,9 @@ function pagosDe(aId){return DB.pagos.filter(p=>p.alumna_id===aId).sort((a,b)=>b
 async function marcarPago(aId){
   const a=getA(aId);if(!a)return;
   const mes=mesCobro(a);
-  if(hasPagado(aId)){if(!confirm(`${a.nombre.split(' ')[0]} ya tiene pago registrado para el período ${mes}. ¿Registrar igualmente?`))return;}
+  if(hasPagado(aId)){if(!confirm(`${fn(a.nombre)} ya tiene pago registrado para el período ${mes}. ¿Registrar igualmente?`))return;}
   const montoDefault=a.precio?String(a.precio):'';
-  const montoStr=prompt(`¿Cuánto pagó ${a.nombre.split(' ')[0]}? (dejá vacío si no querés registrar monto)`,montoDefault);
+  const montoStr=prompt(`¿Cuánto pagó ${fn(a.nombre)}? (dejá vacío si no querés registrar monto)`,montoDefault);
   if(montoStr===null)return;
   const monto=montoStr.trim()?parseFloat(montoStr):null;
   try{
@@ -2290,12 +2296,12 @@ async function resetWarmup(){
 }
 
 // ── Recordatorios ─────────────────────────────────────────────
-function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=`Hola ${a.nombre.split(' ')[0]}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`;waOpen(ph,msg);}
+function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=`Hola ${fn(a.nombre)}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`;waOpen(ph,msg);}
 async function envTplAlu(aId, key){
   const a=getA(aId); if(!a||!a.tel) return;
   const tpl=getAlumnaTpls().find(t=>t.key===key); if(!tpl) return;
   const ph=a.tel.replace(/\D/g,'');
-  const nom=a.nombre.split(' ')[0];
+  const nom=fn(a.nombre);
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
   const link=BASE+'/alumna/'+a.slug;
   waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom}));
@@ -2500,11 +2506,11 @@ function drawerResumen(a){
   if(alertas.length){
     html+=`<div style="background:var(--rl);border:1px solid #f59595;border-radius:var(--rs);padding:.75rem;margin-bottom:1rem;">
       <div style="font-size:11px;font-weight:600;color:var(--rd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">⚠️ Alertas activas</div>
-      ${alertas.map(f=>`<div style="font-size:12px;color:var(--rd);padding:2px 0;">🚨 ${f.ejercicio_nombre||'Ejercicio'}${f.nota?' — '+f.nota:''}</div>`).join('')}
+      ${alertas.map(f=>`<div style="font-size:12px;color:var(--rd);padding:2px 0;">🚨 ${esc(f.ejercicio_nombre||'Ejercicio')}${f.nota?' — '+esc(f.nota):''}</div>`).join('')}
     </div>`;
   }
   if(esLesionReal(a.lesiones)){
-    html+=`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .75rem;font-size:12px;color:var(--rd);margin-bottom:.75rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`;
+    html+=`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .75rem;font-size:12px;color:var(--rd);margin-bottom:.75rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${esc(a.lesiones)}</div>`;
   }
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
     <div style="background:var(--s2);border-radius:var(--rs);padding:.7rem;text-align:center;">
@@ -2541,7 +2547,7 @@ function drawerResumen(a){
             <span style="font-size:10px;color:var(--tm);">${cNom}·S${f.semana}·D${f.dia}</span>
             <span style="font-size:10px;color:var(--th);margin-left:auto;">${fmtWhen(f.created_at||f.fecha)}</span>
           </div>
-          ${f.nota?`<div style="font-size:11px;color:var(--tm);margin-top:2px;padding-left:18px;">"${f.nota}"</div>`:''}
+          ${f.nota?`<div style="font-size:11px;color:var(--tm);margin-top:2px;padding-left:18px;">"${esc(f.nota)}"</div>`:''}
         </div>`;
       }).join('')}
     </div>`;
@@ -2553,15 +2559,15 @@ function drawerResumen(a){
       <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Notas privadas</div>
       ${notas.slice(0,3).map(n=>`<div style="padding:.35rem 0;border-bottom:1px solid var(--b);">
         <div style="font-size:10px;color:var(--th);">${new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})} · C${n.ciclo} S${n.semana}</div>
-        <div style="font-size:12px;color:var(--t);margin-top:1px;">${n.nota}</div>
+        <div style="font-size:12px;color:var(--t);margin-top:1px;">${esc(n.nota)}</div>
       </div>`).join('')}
       ${notas.length>3?`<button onclick="S._drawerTab='notas';render()" style="background:none;border:none;color:var(--v);cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif;margin-top:4px;">Ver todas (${notas.length}) →</button>`:''}
     </div>`;
   }
   if(a.notas||a.notas_privadas){
     html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.75rem;font-size:12px;">
-      ${a.notas_privadas?`<div style="color:var(--pd);margin-bottom:4px;">🔒 ${a.notas_privadas}</div>`:''}
-      ${a.notas?`<div style="color:var(--tm);">${a.notas}</div>`:''}
+      ${a.notas_privadas?`<div style="color:var(--pd);margin-bottom:4px;">🔒 ${esc(a.notas_privadas)}</div>`:''}
+      ${a.notas?`<div style="color:var(--tm);">${esc(a.notas)}</div>`:''}
     </div>`;
   }
   return html;
@@ -2697,7 +2703,7 @@ function drawerNotas(a){
   const notas=(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id);
   return`<div style="margin-bottom:1.25rem;">
     <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Nueva nota privada</div>
-    <textarea id="drawer-nota-${a.id}" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:70px;" placeholder="Nota sobre ${a.nombre.split(' ')[0]}... (solo visible en el panel)"></textarea>
+    <textarea id="drawer-nota-${a.id}" style="width:100%;padding:8px;font-size:13px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:70px;" placeholder="Nota sobre ${fn(a.nombre)}... (solo visible en el panel)"></textarea>
     <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
       <button class="btn btn-p btn-s" onclick="saveDrawerNota(${a.id})">Guardar nota</button>
       ${S['_dnSaved_'+a.id]?'<span style="font-size:11px;color:var(--vd);">✓ Guardado</span>':''}
@@ -2707,7 +2713,7 @@ function drawerNotas(a){
     <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Historial (${notas.length})</div>
     ${notas.length?notas.map(n=>`<div style="padding:.5rem 0;border-bottom:1px solid var(--b);">
       <div style="font-size:10px;color:var(--th);margin-bottom:2px;">${new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})} · C${n.ciclo} S${n.semana}</div>
-      <div style="font-size:13px;color:var(--t);">${n.nota}</div>
+      <div style="font-size:13px;color:var(--t);">${esc(n.nota)}</div>
     </div>`).join(''):'<div style="font-size:12px;color:var(--th);">Sin notas todavía.</div>'}
   </div>`;
 }
@@ -2790,14 +2796,14 @@ function drawerFicha(a){
     html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.85rem;border:1px solid var(--b);">
       <div style="font-size:10px;color:var(--tm);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">Ficha médica</div>
       <div style="display:grid;gap:6px;font-size:12px;">
-        ${regData.lesiones&&regData.lesiones!=='Sin lesiones'&&regData.lesiones!=='—'?`<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);">⚠️ <strong>Lesiones:</strong> ${regData.lesiones}</div>`:`<div><span style="color:var(--tm);">Lesiones:</span> ${regData.lesiones||'—'}</div>`}
-        ${regData.lesiones_previas?`<div><span style="color:var(--tm);">Lesiones previas:</span> ${regData.lesiones_previas}</div>`:''}
-        ${regData.dolor_zonas?`<div><span style="color:var(--tm);">Dolor frecuente:</span> ${regData.dolor_zonas}</div>`:''}
-        ${regData.control_medico?`<div><span style="color:var(--tm);">Último control médico:</span> ${regData.control_medico}</div>`:''}
-        ${regData.enfermedad?`<div><span style="color:var(--tm);">Enfermedades:</span> ${regData.enfermedad}</div>`:''}
-        ${regData.medicacion?`<div><span style="color:var(--tm);">Medicación:</span> ${regData.medicacion}</div>`:''}
-        ${regData.patologia_cardio?`<div><span style="color:var(--tm);">Patología cardiovascular:</span> ${regData.patologia_cardio}</div>`:''}
-        ${regData.extra&&regData.extra!=='—'?`<div><span style="color:var(--tm);">Notas extra:</span> ${regData.extra}</div>`:''}
+        ${regData.lesiones&&regData.lesiones!=='Sin lesiones'&&regData.lesiones!=='—'?`<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);">⚠️ <strong>Lesiones:</strong> ${esc(regData.lesiones)}</div>`:`<div><span style="color:var(--tm);">Lesiones:</span> ${esc(regData.lesiones||'—')}</div>`}
+        ${regData.lesiones_previas?`<div><span style="color:var(--tm);">Lesiones previas:</span> ${esc(regData.lesiones_previas)}</div>`:''}
+        ${regData.dolor_zonas?`<div><span style="color:var(--tm);">Dolor frecuente:</span> ${esc(regData.dolor_zonas)}</div>`:''}
+        ${regData.control_medico?`<div><span style="color:var(--tm);">Último control médico:</span> ${esc(regData.control_medico)}</div>`:''}
+        ${regData.enfermedad?`<div><span style="color:var(--tm);">Enfermedades:</span> ${esc(regData.enfermedad)}</div>`:''}
+        ${regData.medicacion?`<div><span style="color:var(--tm);">Medicación:</span> ${esc(regData.medicacion)}</div>`:''}
+        ${regData.patologia_cardio?`<div><span style="color:var(--tm);">Patología cardiovascular:</span> ${esc(regData.patologia_cardio)}</div>`:''}
+        ${regData.extra&&regData.extra!=='—'?`<div><span style="color:var(--tm);">Notas extra:</span> ${esc(regData.extra)}</div>`:''}
         <div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el ${regData.fecha||'—'}</div>
       </div>
     </div>`;
@@ -2848,7 +2854,7 @@ function rInicio(){
   // Semáforo: solo alumnas activas
   const _tplDolor=getAlumnaTpls().find(t=>t.key==='u_dolor')||{msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'};
   const _tplInact=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
-  const alumnaActivas=DB.alumnas.filter(a=>!a.estado||a.estado==='activa');
+  const alumnaActivas=DB.alumnas.filter(a=>alumnaActiva(a));
   const alWithDays=alumnaActivas.map(a=>{
     const d=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):null;
     return {...a,_days:d};
@@ -2904,7 +2910,7 @@ function rInicio(){
       const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
       const _isUrg=a._days===null||a._days>=7;
       const _ph=(a.tel||'').replace(/\D/g,'');
-      const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:a.nombre.split(' ')[0]}));
+      const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:fn(a.nombre)}));
       const _actionBtn=_isUrg&&_ph
         ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'))">💬 WA</button>`
         :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
@@ -2919,7 +2925,7 @@ function rInicio(){
         ${_actionBtn}
         <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
         ${_noteOpen?`<div style="width:100%;padding:.4rem 0 .25rem;" onclick="event.stopPropagation()">
-          <textarea id="qn-${a.id}" placeholder="Nota sobre ${a.nombre.split(' ')[0]}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
+          <textarea id="qn-${a.id}" placeholder="Nota sobre ${fn(a.nombre)}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
           <div style="display:flex;gap:6px;margin-top:4px;">
             <button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveQuickNote(${a.id})">Guardar nota</button>
             <button class="btn btn-s" style="font-size:11px;" onclick="S._quickNoteA=null;render()">Cancelar</button>
@@ -2939,7 +2945,7 @@ function rInicio(){
       const cicloNombre=al&&al.ciclos_nombres&&al.ciclos_nombres[f.ciclo]?al.ciclos_nombres[f.ciclo]:'C'+f.ciclo;
       const diaStr=f.ciclo?cicloNombre+'·S'+f.semana+'·D'+f.dia:'';
       const exNom=f.ejercicio_nombre?' · '+f.ejercicio_nombre:'';
-      const nota=f.nota?'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+f.nota+'"</div>':'';
+      const nota=f.nota?'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+esc(f.nota)+'"</div>':'';
       const cuando=f.created_at?fmtWhen(f.created_at):'';
       return'<div style="display:flex;gap:8px;align-items:start;padding:.5rem 0;border-bottom:1px solid var(--b);font-size:12px;">'
         +'<span style="flex-shrink:0;">'+fbLabels[f.tipo]+'</span>'
@@ -2966,11 +2972,11 @@ function rInicio(){
       </div>
       ${list.map(({a,tag,sub,msg})=>{
         const ph=(a.tel||'').replace(/\D/g,'');
-        const mn=encodeURIComponent(interpTpl(msg,{nombre:a.nombre.split(' ')[0]}));
+        const mn=encodeURIComponent(interpTpl(msg,{nombre:fn(a.nombre)}));
         return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
           <div class="av av-${a.color}" style="width:30px;height:30px;font-size:12px;flex-shrink:0;">${avH(a)}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;color:var(--t);">${a.nombre.split(' ')[0]} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
+            <div style="font-size:13px;font-weight:500;color:var(--t);">${fn(a.nombre)} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
             <div style="font-size:10px;color:var(--th);">${sub}</div>
           </div>
           ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
@@ -2995,7 +3001,7 @@ function rInicio(){
     <div>${cumples7.map(a=>{
       const d=a._diasCumple;
       const cuando=d===0?'¡hoy!':d===1?'mañana':'en '+d+' días';
-      return`<div style="font-size:13px;font-weight:500;color:#92400e;">Cumple <strong>${a.nombre.split(' ')[0]}</strong> ${cuando}</div>`;
+      return`<div style="font-size:13px;font-weight:500;color:#92400e;">Cumple <strong>${fn(a.nombre)}</strong> ${cuando}</div>`;
     }).join('')}</div>
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
@@ -3006,11 +3012,11 @@ function rInicio(){
   </div>`:''}
   ${fbSec}
   ${(()=>{
-    const deben=DB.alumnas.filter(a=>(!a.estado||a.estado==='activa')&&!hasPagado(a.id));
+    const deben=DB.alumnas.filter(a=>(alumnaActiva(a))&&!hasPagado(a.id));
     if(!deben.length)return'';
     const rows=deben.map(a=>`<div class="arow">
       <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${a.nombre.split(' ')[0]}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${fn(a.nombre)}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
       <button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>
     </div>`).join('');
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid #dc2626;">
@@ -3059,7 +3065,7 @@ function rInicio(){
       <div class="ctitle" style="margin-bottom:.5rem;color:var(--vd);">🎉 Completaron el ciclo</div>
       ${completaron.map(a=>`<div class="arow" style="cursor:pointer;" onclick="S.selA=${a.id};go('rutinas')">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;font-size:13px;font-weight:500;color:var(--vd);">${a.nombre.split(' ')[0]}</div>
+        <div style="flex:1;font-size:13px;font-weight:500;color:var(--vd);">${fn(a.nombre)}</div>
         <span style="font-size:11px;color:var(--vd);">Crear nuevo ciclo →</span>
       </div>`).join('')}
     </div>`;
@@ -3361,12 +3367,12 @@ function alumnaCardHTML(a){
               +'<div><span style="color:var(--tm);">Medicación:</span> '+(ficha.medicacion||'—')+'</div>'
               +'<div><span style="color:var(--tm);">Patología cardiovascular:</span> '+(ficha.patologia_cardio||'—')+'</div>'
               +(ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'
-                ?'<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+ficha.lesiones+'</div>'
-                :'<div><span style="color:var(--tm);">Lesiones:</span> '+(ficha.lesiones||'—')+'</div>')
-              +(ficha.lesiones_previas&&ficha.lesiones_previas!=='Sin antecedentes'?'<div><span style="color:var(--tm);">Lesiones previas:</span> '+ficha.lesiones_previas+'</div>':'')
-              +(ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?'<div><span style="color:var(--tm);">Dolor frecuente:</span> '+ficha.dolor_zonas+'</div>':'')
-              +(ficha.actividad_actual&&ficha.actividad_actual!=='—'?'<div><span style="color:var(--tm);">Actividad actual:</span> '+ficha.actividad_actual+'</div>':'')
-              +(ficha.extra&&ficha.extra!=='—'?'<div><span style="color:var(--tm);">Observaciones extra:</span> '+ficha.extra+'</div>':'')
+                ?'<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+esc(ficha.lesiones)+'</div>'
+                :'<div><span style="color:var(--tm);">Lesiones:</span> '+esc(ficha.lesiones||'—')+'</div>')
+              +(ficha.lesiones_previas&&ficha.lesiones_previas!=='Sin antecedentes'?'<div><span style="color:var(--tm);">Lesiones previas:</span> '+esc(ficha.lesiones_previas)+'</div>':'')
+              +(ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?'<div><span style="color:var(--tm);">Dolor frecuente:</span> '+esc(ficha.dolor_zonas)+'</div>':'')
+              +(ficha.actividad_actual&&ficha.actividad_actual!=='—'?'<div><span style="color:var(--tm);">Actividad actual:</span> '+esc(ficha.actividad_actual)+'</div>':'')
+              +(ficha.extra&&ficha.extra!=='—'?'<div><span style="color:var(--tm);">Observaciones extra:</span> '+esc(ficha.extra)+'</div>':'')
               +'<div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el '+(ficha.fecha||'—')+'</div>'
               +'</div>')
           +'</div>';
@@ -3376,7 +3382,7 @@ function alumnaCardHTML(a){
 
   let notasHTML='';
   if(nsOpen){
-    const notasRows=notas.slice(0,8).map(n=>'<div style="padding:.4rem 0;border-bottom:1px solid var(--b);"><div style="font-size:10px;color:var(--th);margin-bottom:2px;">'+new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+' · C'+n.ciclo+' S'+n.semana+'</div><div style="font-size:12px;color:var(--t);">'+n.nota+'</div></div>').join('');
+    const notasRows=notas.slice(0,8).map(n=>'<div style="padding:.4rem 0;border-bottom:1px solid var(--b);"><div style="font-size:10px;color:var(--th);margin-bottom:2px;">'+new Date(n.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+' · C'+n.ciclo+' S'+n.semana+'</div><div style="font-size:12px;color:var(--t);">'+esc(n.nota)+'</div></div>').join('');
     notasHTML='<div style="background:var(--s2);border-radius:var(--rs);padding:.85rem;border:1px solid var(--b);margin-bottom:8px;">'
       +'<textarea id="nota-txt-'+a.id+'" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s);color:var(--t);font-family:\'DM Sans\',sans-serif;resize:vertical;height:60px;" placeholder="Nota privada de esta semana... (solo visible en el panel)"></textarea>'
       +'<div style="display:flex;gap:6px;align-items:center;margin-top:6px;">'
@@ -3419,9 +3425,9 @@ function alumnaCardHTML(a){
         ${menuHTML}
       </div>
     </div>
-    ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--rd);margin-bottom:6px;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${a.lesiones}</div>`:''}
-    ${a.notas_privadas?`<div style="background:var(--p);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--pd);margin-bottom:6px;">🔒 ${a.notas_privadas}</div>`:''}
-    ${a.notas?`<div class="nota" style="margin-bottom:6px;">${a.notas}</div>`:''}
+    ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--rd);margin-bottom:6px;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${esc(a.lesiones)}</div>`:''}
+    ${a.notas_privadas?`<div style="background:var(--p);border-radius:var(--rs);padding:.35rem .75rem;font-size:12px;color:var(--pd);margin-bottom:6px;">🔒 ${esc(a.notas_privadas)}</div>`:''}
+    ${a.notas?`<div class="nota" style="margin-bottom:6px;">${esc(a.notas)}</div>`:''}
     <div style="display:flex;align-items:center;gap:8px;padding:.45rem 0;border-top:1px solid var(--b);border-bottom:1px solid var(--b);margin-bottom:8px;flex-wrap:wrap;">
       <div style="flex:1;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;">
         ${a.precio?`<span style="font-size:14px;font-weight:700;">$${a.precio}</span><span style="font-size:11px;color:var(--tm);">/mes</span>`:'<span style="font-size:11px;color:var(--th);">Sin precio</span>'}
@@ -3445,7 +3451,7 @@ function alumnaCardHTML(a){
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar</button>
       <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select onchange="cambiarEstado(${a.id},this.value)" title="Estado de la alumna" style="font-size:11px;padding:3px 7px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;cursor:pointer;">
-          <option value="activa"${(!a.estado||a.estado==='activa')?' selected':''}>● Activa</option>
+          <option value="activa"${(alumnaActiva(a))?' selected':''}>● Activa</option>
           <option value="pausada"${a.estado==='pausada'?' selected':''}>⏸ Pausada</option>
           <option value="baja"${a.estado==='baja'?' selected':''}>✕ Baja</option>
         </select>
@@ -3505,7 +3511,7 @@ async function delDia(){
   const cNom=a.ciclos_nombres?.[S.selCiclo]||('Ciclo '+S.selCiclo);
   const esDiaMax=S.selDia===parseInt(a.dias);
   const msg=esDiaMax
-    ?`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nEsto también reducirá los días/semana de ${a.nombre.split(' ')[0]} de ${a.dias} a ${a.dias-1}.`
+    ?`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nEsto también reducirá los días/semana de ${fn(a.nombre)} de ${a.dias} a ${a.dias-1}.`
     :`¿Eliminar Día ${S.selDia} de Sem ${S.selSem} (${cNom})?\n\nSolo se borran los ejercicios de este día en este ciclo.`;
   if(!confirm(msg))return;
   try{
@@ -3565,7 +3571,7 @@ async function copiarDiaRapido(dstDia){
 }
 
 function rRutinas(){
-  const activas=DB.alumnas.filter(al=>al.estado!=='baja');
+  const activas=DB.alumnas.filter(al=>alumnaNoEsBaja(al));
   if(S.selA&&getA(S.selA)?.estado==='baja'){S.selA=activas[0]?.id||null;}
   const a=getA(S.selA);
   if(!a)return`<div class="ptitle">Rutinas</div><div class="empty">Seleccioná una alumna primero.</div>`;
@@ -3576,9 +3582,9 @@ function rRutinas(){
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.filter(al=>al.estado!=='baja').map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${al.nombre.split(' ')[0]}</button>`).join('')}
+    ${DB.alumnas.filter(al=>alumnaNoEsBaja(al)).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${fn(al.nombre)}</button>`).join('')}
   </div>
-  ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${a.lesiones}</div>`:''}
+  ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${esc(a.lesiones)}</div>`:''}
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -3664,7 +3670,7 @@ function rRutinas(){
           +' <strong style="color:var(--pd);">→</strong>'
           +' <span style="font-weight:600;color:var(--t);">'+dstA.nombre+'</span>'
           +' <span style="color:var(--tm);">· Sem '+S._copSemDstSem+' ('+dstCicloNom+')</span>'
-          +'<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ Reemplaza los ejercicios de Sem '+S._copSemDstSem+' de '+dstA.nombre.split(' ')[0]+'</div>'
+          +'<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ Reemplaza los ejercicios de Sem '+S._copSemDstSem+' de '+fn(dstA.nombre)+'</div>'
           +'</div>'
         :'';
       return'<div style="background:var(--p);border-radius:var(--rs);padding:.75rem;margin-bottom:.75rem;border:1px solid rgba(60,52,137,.15);">'
@@ -4013,7 +4019,7 @@ function rPlantillas(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         <select onchange="if(this.value)aplicarPlantillaA(${p.id},parseInt(this.value))" style="font-size:11px;padding:5px 8px;border-radius:20px;border:1px solid var(--bm);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;margin-bottom:0;">
           <option value="">Aplicar a alumna...</option>
-          ${DB.alumnas.map(al=>`<option value="${al.id}">${al.nombre.split(' ')[0]}</option>`).join('')}
+          ${DB.alumnas.map(al=>`<option value="${al.id}">${fn(al.nombre)}</option>`).join('')}
         </select>
         <button class="btn btn-s btn-p" onclick="verPlantilla(${p.id})">Editar</button>
         <button class="btn btn-s btn-warn" onclick="editarNombrePlantilla(${p.id})">Renombrar</button>
@@ -4036,7 +4042,7 @@ async function nuevaPlantilla(){
 async function crearPlantillaDesdeRutina(){
   const a=getA(S.selA);
   if(!a){alert('Primero seleccioná una alumna en Rutinas.');return;}
-  const nombre=prompt('Nombre para esta plantilla:',`Rutina de ${a.nombre.split(' ')[0]} — Copia`);
+  const nombre=prompt('Nombre para esta plantilla:',`Rutina de ${fn(a.nombre)} — Copia`);
   if(!nombre)return;
   const descripcion=prompt('Descripción breve (opcional):','');
   // Armar la estructura desde la rutina actual del ciclo seleccionado
@@ -4197,7 +4203,7 @@ function rHistorial(){
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
     <div style="display:flex;gap:7px;flex-wrap:wrap;">
-      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${al.nombre.split(' ')[0]}</button>`).join('')}
+      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${fn(al.nombre)}</button>`).join('')}
     </div>
     ${a&&rows.length>0?`<button class="btn btn-s" onclick="exportarCSV(${a.id})" title="Descargar historial en Excel">⬇ CSV</button>`:''}
   </div>
@@ -4377,7 +4383,7 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
       ${topRep.map(([nom,v],idx)=>{
         const open=S['rep_open_'+idx];
         const details=(DB.feedbacks||[]).filter(f=>f.ejercicio_nombre===nom&&['ejercicio_problema','dolor_articular','dolor_preocupante'].includes(f.tipo));
-        const detailHtml=details.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);flex-wrap:wrap;"><span style="font-weight:500;color:var(--t);min-width:70px;">'+(al?al.nombre.split(' ')[0]:'?')+'</span><span style="color:var(--tm);">'+(FB_LABELS[f.tipo]||f.tipo)+'</span><span style="color:var(--th);margin-left:auto;">'+fmtWhen(f.created_at)+'</span>'+(f.nota?'<span style="width:100%;color:var(--tm);padding-left:78px;">"+'+f.nota+'"</span>':'')+'</div>';}).join('');
+        const detailHtml=details.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);flex-wrap:wrap;"><span style="font-weight:500;color:var(--t);min-width:70px;">'+(al?fn(al.nombre):'?')+'</span><span style="color:var(--tm);">'+(FB_LABELS[f.tipo]||f.tipo)+'</span><span style="color:var(--th);margin-left:auto;">'+fmtWhen(f.created_at)+'</span>'+(f.nota?'<span style="width:100%;color:var(--tm);padding-left:78px;">"'+esc(f.nota)+'"</span>':'')+'</div>';}).join('');
         return'<div style="border-bottom:1px solid var(--b);">'
           +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'rep_open_'+idx+'\']=!S[\'rep_open_'+idx+'\'];render()">'
           +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
@@ -4404,7 +4410,7 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
     ${topEst.length===0?`<div class="empty" style="font-size:12px;">Sin datos suficientes todavía</div>`:''}
     ${topEst.map(([nom,v],idx)=>{
       const open=S['est_open_'+idx];
-      const detailHtml=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+al.nombre.split(' ')[0]+'</span><span style="color:var(--tm);">'+al.kg+' kg</span><span style="color:var(--th);margin-left:auto;">'+al.streak+' sem iguales</span></div>').join('');
+      const detailHtml=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+fn(al.nombre)+'</span><span style="color:var(--tm);">'+al.kg+' kg</span><span style="color:var(--th);margin-left:auto;">'+al.streak+' sem iguales</span></div>').join('');
       return'<div style="border-bottom:1px solid var(--b);">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'est_open_'+idx+'\']=!S[\'est_open_'+idx+'\'];render()">'
         +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
@@ -4419,7 +4425,7 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
     <div class="ctitle" style="margin-bottom:.75rem;">📈 Listas para subir peso (RPE 😌 en ≥2 sesiones)</div>
     ${topProgr.map(([nom,v],idx)=>{
       const open2=S['prog_open_'+idx];
-      const dh=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+al.nombre.split(' ')[0]+'</span><span style="color:var(--tm);">actualmente '+al.kg+' kg</span><span style="color:var(--vd);margin-left:auto;">→ subir peso</span></div>').join('');
+      const dh=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+fn(al.nombre)+'</span><span style="color:var(--tm);">actualmente '+al.kg+' kg</span><span style="color:var(--vd);margin-left:auto;">→ subir peso</span></div>').join('');
       return'<div style="border-bottom:1px solid var(--b);">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'prog_open_'+idx+'\']=!S[\'prog_open_'+idx+'\'];render()">'
         +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
@@ -4517,7 +4523,7 @@ function rRecordatorios(){
   }).join('');
 
   return`<div class="ptitle">Recordatorios</div>
-  ${sinWA.length>0?`<div class="card" style="background:var(--rl);border-color:var(--rd);margin-bottom:1rem;"><div style="font-size:13px;color:var(--rd);font-weight:500;">⚠️ ${sinWA.map(a=>a.nombre.split(' ')[0]).join(', ')} — sin WhatsApp. Editá su perfil.</div></div>`:''}
+  ${sinWA.length>0?`<div class="card" style="background:var(--rl);border-color:var(--rd);margin-bottom:1rem;"><div style="font-size:13px;color:var(--rd);font-weight:500;">⚠️ ${sinWA.map(a=>fn(a.nombre)).join(', ')} — sin WhatsApp. Editá su perfil.</div></div>`:''}
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
       <div class="ctitle" style="margin:0;">Alumnas</div>
@@ -4560,8 +4566,8 @@ function rRecordatorios(){
       const conWA=DB.alumnas.filter(a=>a.tel);
       const sinWA2=DB.alumnas.filter(a=>!a.tel);
       return`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;font-size:12px;color:var(--tm);margin-bottom:.75rem;line-height:1.6;font-style:italic;">"${tpl.msg}"</div>
-      ${conWA.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${a.nombre.split(' ')[0]}</div><button class="btn btn-s" onclick="envTemplate(${a.id},'${S._tplSel}')">💬 Enviar</button></div>`).join('')}
-      ${sinWA2.length?`<div style="font-size:11px;color:var(--th);margin-top:.5rem;">Sin WhatsApp: ${sinWA2.map(a=>a.nombre.split(' ')[0]).join(', ')}</div>`:''}`;
+      ${conWA.map(a=>`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;font-size:13px;font-weight:500;">${fn(a.nombre)}</div><button class="btn btn-s" onclick="envTemplate(${a.id},'${S._tplSel}')">💬 Enviar</button></div>`).join('')}
+      ${sinWA2.length?`<div style="font-size:11px;color:var(--th);margin-top:.5rem;">Sin WhatsApp: ${sinWA2.map(a=>fn(a.nombre)).join(', ')}</div>`:''}`;
     })():`<div style="font-size:12px;color:var(--th);">Seleccioná un template para ver la vista previa.</div>`}
   </div>
   <div class="card">
@@ -4610,7 +4616,7 @@ function envResumenGeneral(){
     const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
     const totalSems=4; const hechas=semanasHechas.size;
     const icon=hechas>=totalSems?'✅':hechas>0?'⚠️':'❌';
-    return`${a.nombre.split(' ')[0]}: ${hechas}/${totalSems} sem ${icon}`;
+    return`${fn(a.nombre)}: ${hechas}/${totalSems} sem ${icon}`;
   });
   const msg=`Resumen semanal — ${new Date().toLocaleDateString('es-AR')}\n${lineas.join(' | ')}`;
   waOpen(ph, msg);
@@ -4696,7 +4702,7 @@ function deleteTpl(key){
 function envTemplate(aId, key){
   const a=getA(aId); if(!a||!a.tel){S.msg='Esta alumna no tiene WhatsApp.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
   const tpl=getTpls().find(t=>t.key===key); if(!tpl)return;
-  const msg=tpl.msg.replace('[nombre]',a.nombre.split(' ')[0]);
+  const msg=tpl.msg.replace('[nombre]',fn(a.nombre));
   waOpen(a.tel.replace(/\D/g,''), msg);
 }
 
@@ -4707,7 +4713,7 @@ async function envRes(aId){
   const ciclo=parseInt(a.ciclo_actual)||1;
   const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
   const diasHechos=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>`${r.semana}-${r.dia}`)).size;
-  const nombre=a.nombre.split(' ')[0];
+  const nombre=fn(a.nombre);
   const cicloNom=a.ciclos_nombres?.[ciclo]||('Ciclo '+ciclo);
   const icon=semanasHechas.size>=4?'🏆':semanasHechas.size>=2?'💪':'💡';
   const msg=`${icon} Resumen de ${nombre} — ${cicloNom}\n`
@@ -4724,7 +4730,7 @@ function _buildResumenPush(a){
   const ciclo=parseInt(a.ciclo_actual)||1;
   const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
   const diasHechos=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>`${r.semana}-${r.dia}`)).size;
-  const nombre=a.nombre.split(' ')[0];
+  const nombre=fn(a.nombre);
   const cicloNom=a.ciclos_nombres?.[ciclo]||('Ciclo '+ciclo);
   const icon=semanasHechas.size>=4?'🏆':semanasHechas.size>=2?'💪':'💡';
   return{
@@ -4744,7 +4750,7 @@ async function envResPush(aId){
       body:JSON.stringify({alumna_id:aId,title,body})
     });
     const d=await r.json().catch(()=>({}));
-    S.msg=d.sent>0?`✓ Push enviada a ${a.nombre.split(' ')[0]}`:`Sin push activo (${d.reason||'error'})`;
+    S.msg=d.sent>0?`✓ Push enviada a ${fn(a.nombre)}`:`Sin push activo (${d.reason||'error'})`;
     render();setTimeout(()=>{S.msg='';render();},4000);
   }catch(e){S.msg='Error: '+e.message;render();}
 }
@@ -4772,7 +4778,7 @@ async function envResPushTodas(){
 
 async function envCheckIn(aId){
   const a=getA(aId);if(!a)return;
-  const nombre=a.nombre.split(' ')[0];
+  const nombre=fn(a.nombre);
   S.msg='Enviando...';render();
   try{
     const r=await fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`👋 ¡${nombre}, te extrañamos!`,body:'Hace unos días que no te vemos entrenar. ¿Todo bien? Tu rutina te espera 💪'})});
@@ -4794,7 +4800,7 @@ async function envCheckInInactivas(){
   S.msg=`Enviando a ${inactivas.length} inactivas...`;render();
   let ok=0;
   for(const a of inactivas){
-    const nombre=a.nombre.split(' ')[0];
+    const nombre=fn(a.nombre);
     try{
       const r=await fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:`👋 ¡${nombre}, te extrañamos!`,body:'Hace unos días que no te vemos entrenar. ¿Todo bien? Tu rutina te espera 💪'})});
       const d=await r.json().catch(()=>({}));
@@ -4815,7 +4821,7 @@ function rAvisos(){
     <div style="display:flex;gap:8px;align-items:center;margin-top:.65rem;">
       <select id="av-para" style="flex:1;border:1px solid var(--bm);border-radius:var(--rs);padding:.55rem .9rem;font-size:12px;background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;">
         <option value="todas">Para todas las alumnas</option>
-        ${DB.alumnas.map(a=>`<option value="${a.slug}">${a.nombre.split(' ')[0]} (solo ella)</option>`).join('')}
+        ${DB.alumnas.map(a=>`<option value="${a.slug}">${fn(a.nombre)} (solo ella)</option>`).join('')}
       </select>
       <button class="btn btn-p" onclick="addAviso()">Publicar</button>
     </div>
@@ -4958,7 +4964,7 @@ async function informeMensual(aId){
   const rows=DB.progreso?.[aId]||[];
   const ciclo=parseInt(a.ciclo_actual)||1;
   const cicloNom=a.ciclos_nombres?.[ciclo]||('Ciclo '+ciclo);
-  const nombre=a.nombre.split(' ')[0];
+  const nombre=fn(a.nombre);
   const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana)).size;
   const diasHechos=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana+'-'+r.dia)).size;
   const ejercHechos=rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).length;
@@ -4992,7 +4998,7 @@ function onboardingWA(regId){
   const reg=DB.registros.find(r=>r.id===regId);if(!reg)return;
   const tel=reg.tel?reg.tel.replace(/\D/g,''):'';
   if(!tel){alert('Este registro no tiene número de WhatsApp.');return;}
-  const nombre=reg.nombre.split(' ')[0];
+  const nombre=fn(reg.nombre);
   const lug=(()=>{const l=String(reg.lugar_entrenamiento||'').toLowerCase();if(l.startsWith('gimnasio'))return'el gimnasio';if(l.includes('casa'))return'casa';return'tu espacio';})();
   const dias=reg.dias&&reg.dias!=='—'?reg.dias:'varios';
   const obj=reg.objetivos&&reg.objetivos!=='—'?reg.objetivos:null;
