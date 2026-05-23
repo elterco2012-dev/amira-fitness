@@ -34,7 +34,7 @@
     .lb p{font-size:13px;color:var(--tm);margin-bottom:1.5rem;}
     .li{width:100%;padding:10px 14px;border:1px solid var(--bm);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);margin-bottom:10px;text-align:center;}
     .li:focus{outline:none;border-color:var(--v);}
-    .lbtn{width:100%;padding:10px;background:var(--v);color:white;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+    .lbtn{width:100%;padding:10px;background:var(--vd);color:white;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
     .lerr{font-size:12px;color:var(--rd);margin-top:8px;display:none;}
 
     /* Layout */
@@ -209,15 +209,15 @@
 <body>
 
 <div id="LS" class="ls" style="display:none;">
-  <div class="lb">
-    <div class="ll">A</div>
+  <main class="lb">
+    <div class="ll" aria-hidden="true">A</div>
     <h2>Panel privado</h2>
     <p>Ingresá tus datos</p>
     <input class="li" type="email" id="email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')login()">
     <input class="li" type="password" id="pwd" placeholder="Contraseña" onkeydown="if(event.key==='Enter')login()" style="margin-top:8px;">
     <button class="lbtn" onclick="login()">Entrar</button>
     <div class="lerr" id="lerr" style="display:none;">Email o contraseña incorrectos</div>
-  </div>
+  </main>
 </div>
 
 <div id="PS" style="display:none;">
