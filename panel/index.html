@@ -2175,13 +2175,21 @@ async function resetearProgreso(id){
 
 // ── Pagos ─────────────────────────────────────────────────────
 function mesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
-function hasPagado(aId){const mes=mesActual();return DB.pagos.some(p=>p.alumna_id===aId&&p.mes===mes);}
+function mesCobro(alumna){
+  const dia=alumna?.dia_cobro;
+  if(!dia)return mesActual();
+  const hoy=new Date();
+  if(hoy.getDate()>=dia)return hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+  const prev=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);
+  return prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
+}
+function hasPagado(aId){const a=getA(aId);return DB.pagos.some(p=>p.alumna_id===aId&&p.mes===mesCobro(a));}
 function pagosDe(aId){return DB.pagos.filter(p=>p.alumna_id===aId).sort((a,b)=>b.mes.localeCompare(a.mes));}
 
 async function marcarPago(aId){
   const a=getA(aId);if(!a)return;
-  const mes=mesActual();
-  if(hasPagado(aId)){if(!confirm(`${a.nombre.split(' ')[0]} ya tiene pago registrado este mes (${mes}). ¿Registrar igualmente?`))return;}
+  const mes=mesCobro(a);
+  if(hasPagado(aId)){if(!confirm(`${a.nombre.split(' ')[0]} ya tiene pago registrado para el período ${mes}. ¿Registrar igualmente?`))return;}
   const montoDefault=a.precio?String(a.precio):'';
   const montoStr=prompt(`¿Cuánto pagó ${a.nombre.split(' ')[0]}? (dejá vacío si no querés registrar monto)`,montoDefault);
   if(montoStr===null)return;
@@ -2194,8 +2202,8 @@ async function marcarPago(aId){
 }
 
 async function deshacerPago(aId){
-  const mes=mesActual();
-  if(!confirm('¿Deshacer el pago de este mes?'))return;
+  const mes=mesCobro(getA(aId));
+  if(!confirm(`¿Deshacer el pago del período ${mes}?`))return;
   try{
     await sbDelete('pagos',`alumna_id=eq.${aId}&mes=eq.${mes}`);
     DB.pagos=DB.pagos.filter(p=>!(p.alumna_id===aId&&p.mes===mes));
@@ -3006,7 +3014,7 @@ function rInicio(){
       <button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>
     </div>`).join('');
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid #dc2626;">
-      <div class="ctitle" style="margin-bottom:.6rem;">💰 Cobros pendientes — ${mesActual()}</div>
+      <div class="ctitle" style="margin-bottom:.6rem;">💰 Cobros pendientes — ${(()=>{const ref=DB.alumnas.find(a=>a.dia_cobro);return mesCobro(ref);})()}</div>
       ${rows}
     </div>`;
   })()}
