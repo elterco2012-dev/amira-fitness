@@ -183,7 +183,18 @@
     .hist-info{flex:1;font-size:12px;color:var(--tm);}
     .hist-check{font-size:11px;color:var(--vd);font-weight:500;}
 
-    @media(max-width:700px){.sidebar{display:none;}.main{padding:1rem;}.metrics{grid-template-columns:1fr 1fr;}.plant-grid{grid-template-columns:1fr 1fr;}.bib-grid{grid-template-columns:1fr;}}
+    @media(max-width:700px){
+      .sidebar{display:none;}
+      .sidebar.mob-open{display:flex;position:fixed;top:0;left:0;width:260px;height:100vh;z-index:200;box-shadow:4px 0 24px rgba(0,0,0,.25);overflow-y:auto;}
+      .mob-nav-btn{display:flex;align-items:center;justify-content:center;position:fixed;top:10px;left:10px;z-index:150;width:38px;height:38px;border-radius:10px;background:var(--s);border:1px solid var(--b);cursor:pointer;font-size:18px;box-shadow:0 1px 6px rgba(0,0,0,.1);}
+      .mob-nav-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199;}
+      .mob-nav-overlay.show{display:block;}
+      .main{padding:1rem;padding-top:3.5rem;}
+      .metrics{grid-template-columns:1fr 1fr;}
+      .plant-grid{grid-template-columns:1fr 1fr;}
+      .bib-grid{grid-template-columns:1fr;}
+    }
+    @media(min-width:701px){.mob-nav-btn,.mob-nav-overlay{display:none;}}
     .drawer{position:fixed;top:0;right:0;width:min(620px,100vw);height:100vh;background:var(--s);z-index:101;overflow-y:auto;box-shadow:-4px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;animation:slideIn .2s ease;}
     @keyframes slideIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
     @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
@@ -224,6 +235,8 @@
 
 <div id="PS" style="display:none;">
 <div class="layout">
+  <button class="mob-nav-btn" onclick="toggleMobileNav()" aria-label="Menú">☰</button>
+  <div class="mob-nav-overlay" id="mob-overlay" onclick="toggleMobileNav()"></div>
   <aside class="sidebar">
     <div class="brand"><div class="logo">A</div><div><strong>Amira Fitness</strong><span>Panel v2</span></div></div>
 
@@ -2404,7 +2417,20 @@ async function rechazar(id){
 }
 
 // ── View ──────────────────────────────────────────────────────
+function toggleMobileNav(){
+  const sb=document.querySelector('.sidebar');
+  const ov=document.getElementById('mob-overlay');
+  if(!sb||!ov)return;
+  const open=sb.classList.toggle('mob-open');
+  ov.classList.toggle('show',open);
+}
+function closeMobileNav(){
+  document.querySelector('.sidebar')?.classList.remove('mob-open');
+  document.getElementById('mob-overlay')?.classList.remove('show');
+}
+
 function go(v){
+  closeMobileNav();
   S.view=v;
   if(v==='comentarios'){const b=document.getElementById('nb-com');if(b)b.style.display='none';localStorage.setItem('af-prevCom',String(prevCom));}
   if(v==='registros'){const b=document.getElementById('nb-reg');if(b)b.style.display='none';}
