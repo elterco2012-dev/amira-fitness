@@ -4251,7 +4251,7 @@ function rHistorial(){
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
     <div style="display:flex;gap:7px;flex-wrap:wrap;">
-      ${DB.alumnas.map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${fn(al.nombre)}</button>`).join('')}
+      ${DB.alumnas.filter(alumnaNoEsBaja).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${fn(al.nombre)}</button>`).join('')}
     </div>
     ${a&&rows.length>0?`<button class="btn btn-s" onclick="exportarCSV(${a.id})" title="Descargar historial en Excel">⬇ CSV</button>`:''}
   </div>
