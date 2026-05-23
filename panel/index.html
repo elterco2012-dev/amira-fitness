@@ -18,6 +18,10 @@
       --t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
       --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.13);
       --r:14px;--rs:9px;--rp:30px;
+      --vi:#7c3aed;--vil:#ede9fe;--vi2:#4f46e5;
+      --lnk:#185FA5;
+      --warn:#d97706;
+      --coral-bg:#FAECE7;--coral-t:#712B13;
     }
     [data-theme=dark]{
       --bg:#111110;--s:#1c1c1a;--s2:#242422;--bg2:#2e2e2b;
@@ -25,6 +29,10 @@
       --b:rgba(255,255,255,0.07);--bm:rgba(255,255,255,0.12);
       --vl:#0a2e20;--vm:#1a6b50;--p:#1e1c3a;--pd:#a5a0e8;
       --a:#2a200a;--ad:#d4a854;--rl:#2a1010;--rd:#f09595;
+      --vi:#a78bfa;--vil:#2e1065;--vi2:#818cf8;
+      --lnk:#60a5fa;
+      --warn:#fbbf24;
+      --coral-bg:#2d1710;--coral-t:#f4a87c;
     }
     body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);transition:background .3s;}
 
@@ -80,7 +88,7 @@
     .av-teal{background:var(--vl);color:var(--vd);}
     .av-purple{background:var(--p);color:var(--pd);}
     .av-amber{background:var(--a);color:var(--ad);}
-    .av-coral{background:#FAECE7;color:#712B13;}
+    .av-coral{background:var(--coral-bg);color:var(--coral-t);}
     .aname{font-size:14px;font-weight:500;color:var(--t);}
     .asub{font-size:11px;color:var(--tm);margin-top:2px;}
     .badge{font-size:10px;padding:2px 9px;border-radius:var(--rp);font-weight:500;}
@@ -115,7 +123,7 @@
     .ex-name{font-size:13px;font-weight:500;color:var(--t);}
     .ex-det{font-size:11px;color:var(--tm);margin-top:2px;}
     .ex-tip{font-size:11px;color:var(--vd);margin-top:3px;}
-    .ex-vid{font-size:11px;color:#185FA5;margin-top:2px;}
+    .ex-vid{font-size:11px;color:var(--lnk);margin-top:2px;}
     .ex-grupo{display:inline-block;font-size:9px;background:var(--vl);color:var(--vd);border-radius:var(--rp);padding:1px 7px;margin-top:3px;}
 
     /* Biblioteca */
@@ -212,11 +220,11 @@
     .dfield{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;margin-bottom:1rem;}
     .dfield-item span:first-child{font-size:10px;color:var(--tm);display:block;margin-bottom:1px;}
     .equip-chip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:1.5px solid var(--b);border-radius:20px;padding:4px 11px;font-size:12px;white-space:nowrap;background:var(--s);color:var(--t);transition:border-color .12s,background .12s,color .12s;user-select:none;}
-    .equip-chip:has(input:checked){background:var(--p);border-color:#7c3aed;color:var(--pd);font-weight:500;}
-    .equip-chip input[type=checkbox]{accent-color:#7c3aed;width:13px;height:13px;cursor:pointer;}
+    .equip-chip:has(input:checked){background:var(--p);border-color:var(--vi);color:var(--pd);font-weight:500;}
+    .equip-chip input[type=checkbox]{accent-color:var(--vi);width:13px;height:13px;cursor:pointer;}
     .ia-chip{border:1.5px solid var(--b);border-radius:20px;padding:3px 10px;font-size:11px;background:var(--s);color:var(--tm);cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s,color .12s;white-space:nowrap;}
-    .ia-chip:hover{border-color:#7c3aed;color:var(--pd);}
-    .ia-chip.active{background:var(--p);border-color:#7c3aed;color:var(--pd);font-weight:500;}
+    .ia-chip:hover{border-color:var(--vi);color:var(--pd);}
+    .ia-chip.active{background:var(--p);border-color:var(--vi);color:var(--pd);font-weight:500;}
   </style>
 </head>
 <body>
@@ -467,11 +475,11 @@
         <div style="font-size:12px;font-weight:500;color:var(--t);margin-bottom:.4rem;">¿Qué querés generar?</div>
         <div style="display:flex;gap:8px;">
           <label style="flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid var(--b);border-radius:var(--rs);padding:.6rem .75rem;cursor:pointer;font-size:12px;transition:border-color .15s;" id="ia-sem-lbl-1">
-            <input type="radio" name="ia-semanas" value="1" onchange="iaSemanasChange()" style="accent-color:#7c3aed;">
+            <input type="radio" name="ia-semanas" value="1" onchange="iaSemanasChange()" style="accent-color:var(--vi);">
             <div><div style="font-weight:500;">📅 1 semana</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">Una semana lista para usar ahora</div></div>
           </label>
-          <label style="flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid #7c3aed;border-radius:var(--rs);padding:.6rem .75rem;cursor:pointer;font-size:12px;background:var(--p);transition:border-color .15s;" id="ia-sem-lbl-4">
-            <input type="radio" name="ia-semanas" value="4" checked onchange="iaSemanasChange()" style="accent-color:#7c3aed;">
+          <label style="flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid var(--vi);border-radius:var(--rs);padding:.6rem .75rem;cursor:pointer;font-size:12px;background:var(--p);transition:border-color .15s;" id="ia-sem-lbl-4">
+            <input type="radio" name="ia-semanas" value="4" checked onchange="iaSemanasChange()" style="accent-color:var(--vi);">
             <div><div style="font-weight:500;">🗓 Ciclo completo — 4 semanas</div><div style="font-size:10px;color:var(--tm);margin-top:1px;">Base → Progresión → Pico → Descarga</div></div>
           </label>
         </div>
@@ -493,7 +501,7 @@
         style="width:100%;border:1px solid var(--bm);border-radius:var(--rs);padding:.6rem .75rem;font-size:13px;background:var(--s);color:var(--t);resize:vertical;box-sizing:border-box;"></textarea>
       <div style="font-size:11px;color:var(--th);margin:.4rem 0 1rem;">Si no escribís nada, Claude usa el perfil de la alumna para decidir. Los chips de arriba agregan instrucciones al texto automáticamente.</div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-p" onclick="confirmarGenerarIA()" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:#7c3aed;">✨ Generar rutina</button>
+        <button class="btn btn-p" onclick="confirmarGenerarIA()" style="background:linear-gradient(135deg,var(--vi),var(--vi2));border-color:var(--vi);">✨ Generar rutina</button>
         <button class="btn" onclick="closeIAModal()">Cancelar</button>
       </div>
     </div>
@@ -693,7 +701,8 @@ if(!localStorage.getItem('af-amira-ph')){
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[],pageViews:null};
 let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_alumnaQ:'',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1};
-let dark=localStorage.getItem('af-dark')==='1';
+const _sd=localStorage.getItem('af-dark');
+let dark=_sd!==null?_sd==='1':window.matchMedia('(prefers-color-scheme:dark)').matches;
 let pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
 let bibSelEx=null;
 let _panelSW=null;
@@ -842,7 +851,12 @@ function getEx(aId,ciclo,sem,dia){
 }
 function copyL(slug){navigator.clipboard.writeText(`${BASE}/alumna/${slug}`).then(()=>{S.msg='Copiado ✓';render();setTimeout(()=>{S.msg='';render();},1200);});}
 function sbSt(ok,msg){S.sbOk=ok;const d=document.getElementById('sbd'),l=document.getElementById('sbl');if(d)d.className='dot '+(ok?'ok':'err');if(l)l.textContent=msg;}
-function grupoColor(g){const m={Aductores:'#7C5CBF',Core:'#1D9E75',Glúteos:'#993556',Espalda:'#185FA5',Pecho:'#A32D2D',Hombros:'#633806',Calentamiento:'#0891b2',Estiramiento:'#6d28d9'};return m[g]||'#6b7280';}
+function grupoColor(g){
+  const dk=document.documentElement.getAttribute('data-theme')==='dark';
+  const lm={Aductores:'#7C5CBF',Core:'#1D9E75',Glúteos:'#993556',Espalda:'var(--lnk)',Pecho:'#A32D2D',Hombros:'#633806',Calentamiento:'#0891b2',Estiramiento:'#6d28d9'};
+  const dm={Aductores:'#c084fc',Core:'#4ade80',Glúteos:'#f472b6',Espalda:'#60a5fa',Pecho:'#f87171',Hombros:'#fbbf24',Calentamiento:'#22d3ee',Estiramiento:'#a78bfa'};
+  return(dk?dm:lm)[g]||(dk?'#9ca3af':'#6b7280');
+}
 
 // ── Load ──────────────────────────────────────────────────────
 async function loadAll(){
@@ -1157,7 +1171,7 @@ function iaProfileSummaryHTML(a) {
     <div style="display:flex;flex-wrap:wrap;gap:4px;">
       ${chips.map(c=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;background:${c.ok?'var(--s)':'var(--a)'};border:1px solid ${c.ok?'var(--b)':'var(--bm)'};color:${c.ok?'var(--t)':'var(--ad)'};">${c.t}</span>`).join('')}
     </div>
-    ${esLesionReal(a.lesiones)?`<div style="font-size:11px;color:#d97706;margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
+    ${esLesionReal(a.lesiones)?`<div style="font-size:11px;color:var(--warn);margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
     ${faltantes.length?`<div style="font-size:10px;color:var(--th);margin-top:5px;">Perfil incompleto — falta: ${faltantes.join(', ')}. Sin estos datos Claude generará una rutina genérica.</div>`:''}
   </div>`;
 }
@@ -1241,8 +1255,8 @@ function iaSemanasChange(){
   const v=document.querySelector('input[name="ia-semanas"]:checked')?.value||'4';
   const lbl1=document.getElementById('ia-sem-lbl-1');
   const lbl4=document.getElementById('ia-sem-lbl-4');
-  if(lbl1){lbl1.style.borderColor=v==='1'?'#7c3aed':'var(--b)';lbl1.style.background=v==='1'?'var(--p)':'transparent';}
-  if(lbl4){lbl4.style.borderColor=v==='4'?'#7c3aed':'var(--b)';lbl4.style.background=v==='4'?'var(--p)':'transparent';}
+  if(lbl1){lbl1.style.borderColor=v==='1'?'var(--vi)':'var(--b)';lbl1.style.background=v==='1'?'var(--p)':'transparent';}
+  if(lbl4){lbl4.style.borderColor=v==='4'?'var(--vi)':'var(--b)';lbl4.style.background=v==='4'?'var(--p)':'transparent';}
   const instrLabel=document.getElementById('ia-instr-label');
   if(instrLabel)instrLabel.textContent=v==='1'?'Instrucciones para esta semana (opcional)':'Instrucciones para este ciclo (opcional)';
 }
@@ -1363,7 +1377,7 @@ function renderIAPreview(routine,a){
   let html='';
   if(routine.razonamiento){
     html+=`<div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;">
-      <div style="font-size:10px;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">💡 Por qué generé esta rutina</div>
+      <div style="font-size:10px;font-weight:600;color:var(--vi);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">💡 Por qué generé esta rutina</div>
       <div style="font-size:12px;color:var(--t);line-height:1.55;">${routine.razonamiento}</div>
     </div>`;
   }
@@ -2082,7 +2096,7 @@ function renderModalPlantilla(){
           <input type="text" value="${ex.reps||'10'}" style="width:80px;font-size:11px;margin-bottom:0;" placeholder="Reps" onchange="updatePlantEx(${i},'reps',this.value)">
         </div>
         <input type="text" value="${ex.tip||''}" style="font-size:11px;margin-top:4px;margin-bottom:0;" placeholder="Técnica (opcional)" onchange="updatePlantEx(${i},'tip',this.value)">
-        <input type="text" value="${ex.video||''}" style="font-size:10px;color:#185FA5;margin-top:3px;margin-bottom:0;" placeholder="Video URL" onchange="updatePlantEx(${i},'video',this.value)">
+        <input type="text" value="${ex.video||''}" style="font-size:10px;color:var(--lnk);margin-top:3px;margin-bottom:0;" placeholder="Video URL" onchange="updatePlantEx(${i},'video',this.value)">
       </div>
       <button class="btn btn-s btn-d" onclick="deletePlantEx(${i})" style="flex-shrink:0;">×</button>
     </div>`).join('');
@@ -3026,7 +3040,7 @@ function rInicio(){
     return`<div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;">
       <div class="metric"><div class="mlabel">Activas</div><div class="mval g">${alumnaActivas.length}</div></div>
       <div class="metric" style="${prioritarias.length>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Atender hoy</div><div class="mval" style="color:${prioritarias.length>0?'var(--rd)':'var(--tm)'};">${prioritarias.length}</div></div>
-      <div class="metric" style="${_aten>0?'border-bottom:2px solid #d97706;':''}"><div class="mlabel">A observar</div><div class="mval" style="color:${_aten>0?'#d97706':'var(--tm)'};">${_aten}</div></div>
+      <div class="metric" style="${_aten>0?'border-bottom:2px solid var(--warn);':''}"><div class="mlabel">A observar</div><div class="mval" style="color:${_aten>0?'var(--warn)':'var(--tm)'};">${_aten}</div></div>
       <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
     </div>`;
   })()}
@@ -3053,7 +3067,7 @@ function rInicio(){
       <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${fn(a.nombre)}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
       <button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>
     </div>`).join('');
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid #dc2626;">
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
       <div class="ctitle" style="margin-bottom:.6rem;">💰 Cobros pendientes — ${(()=>{const ref=DB.alumnas.find(a=>a.dia_cobro);return mesCobro(ref);})()}</div>
       ${rows}
     </div>`;
@@ -3314,7 +3328,7 @@ function alumnaCardHTML(a){
     ?'<span style="background:'+(est==='pausada'?'var(--a)':'var(--rl)')+';color:'+(est==='pausada'?'var(--ad)':'var(--rd)')+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;">'+(est==='pausada'?'⏸ Pausada':'✕ Baja')+'</span>'
     :'';
   const ua=ultimaActividad(a.id);
-  const uaColor=ua.dias<0?['#f1f5f9','#64748b']:ua.dias<=3?['#dcfce7','#15803d']:ua.dias<=7?['#fef9c3','#a16207']:ua.dias<=14?['#ffedd5','#c2410c']:['#fee2e2','#dc2626'];
+  const uaColor=ua.dias<0?['#f1f5f9','#64748b']:ua.dias<=3?['#dcfce7','#15803d']:ua.dias<=7?['#fef9c3','#a16207']:ua.dias<=14?['#ffedd5','#c2410c']:['#fee2e2','var(--rd)'];
   const uaBadge='<span style="background:'+uaColor[0]+';color:'+uaColor[1]+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;" title="Última actividad registrada">'+ua.label+'</span>';
 
   const menuHTML=menuOpen
@@ -3467,7 +3481,7 @@ function alumnaCardHTML(a){
         ${a.precio?`<span style="font-size:14px;font-weight:700;">$${a.precio}</span><span style="font-size:11px;color:var(--tm);">/mes</span>`:'<span style="font-size:11px;color:var(--th);">Sin precio</span>'}
         ${desde?`<span style="font-size:11px;color:var(--th);">· desde ${desde}</span>`:''}
       </div>
-      <span style="background:${pagado?'#dcfce7':'#fee2e2'};color:${pagado?'#15803d':'#dc2626'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;">${pagado?'✓ Pagó':'Debe'}</span>
+      <span style="background:${pagado?'#dcfce7':'#fee2e2'};color:${pagado?'#15803d':'var(--rd)'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;">${pagado?'✓ Pagó':'Debe'}</span>
       ${pagado?`<button class="btn btn-s" style="font-size:10px;color:var(--tm);" onclick="deshacerPago(${a.id})">Deshacer</button>`:`<button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Pagó</button>`}
       ${hist.length>0?`<button class="btn btn-s" style="font-size:11px;padding:3px 8px;" onclick="S['hist_pago_${a.id}']=!S['hist_pago_${a.id}'];render()">📋</button>`:''}
     </div>
@@ -3653,7 +3667,7 @@ function rRutinas(){
           </span>`;
         }).join('');
       })()}
-      <button class="btn btn-s" style="margin-left:auto;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border-color:#7c3aed;" onclick="generarRutinaIA()" title="Generar rutina con IA">✨ IA</button>
+      <button class="btn btn-s" style="margin-left:auto;background:linear-gradient(135deg,var(--vi),var(--vi2));color:#fff;border-color:var(--vi);" onclick="generarRutinaIA()" title="Generar rutina con IA">✨ IA</button>
       <button class="btn btn-s" onclick="abrirNuevoCiclo()">+ Nuevo ciclo</button>
       <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S._copSemMode=false;S.msg='';render()" title="Copiar rutina de otra alumna" style="padding:5px 8px;">📋</button>
       <button class="btn btn-s" onclick="S._copSemMode=!S._copSemMode;S._dupMode=false;S._copSemDstA=null;S._copSemDstCiclo=1;S._copSemDstSem=1;S.msg='';render()" title="Copiar semana entre alumnas" style="padding:5px 8px;">✂️</button>
@@ -3831,14 +3845,14 @@ function rRutinas(){
             const lbl=FB_LABELS[fb.tipo]||fb.tipo;
             const nota=fb.nota?` — "${fb.nota}"` :'';
             const isUrg=fb.tipo==='dolor_preocupante';
-            r+=`<div style="font-size:11px;color:${isUrg?'#dc2626':'#d97706'};margin-top:2px;">${lbl}${nota}</div>`;
+            r+=`<div style="font-size:11px;color:${isUrg?'var(--rd)':'var(--warn)'};margin-top:2px;">${lbl}${nota}</div>`;
           }
           return r;
         })();
         const ssId=ex.superset_id??null;
         const isCircuito=ssId==='C';
-        const ssTag=ssId?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:4px;background:${isCircuito?'#dbeafe':'#ede9fe'};color:${isCircuito?'#1d4ed8':'#7c3aed'};">${isCircuito?'CIRCUITO':'SS '+ssId}</span>`:'';
-        const ssLeft=ssId?`border-left:3px solid ${isCircuito?'#3b82f6':'#7c3aed'};`:'';
+        const ssTag=ssId?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:4px;background:${isCircuito?'var(--vl)':'var(--vil)'};color:${isCircuito?'var(--vd)':'var(--vi)'};">${isCircuito?'CIRCUITO':'SS '+ssId}</span>`:'';
+        const ssLeft=ssId?`border-left:3px solid ${isCircuito?'#3b82f6':'var(--vi)'};`:'';
         return`<div class="ex-item" style="${borderL||ssLeft}">
           <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;margin-top:0;">
             <button class="btn btn-s" onclick="moveEx(${i},-1)" ${i===0?'disabled':''} style="padding:2px 7px;font-size:11px;line-height:1;border-radius:var(--rs);${i===0?'opacity:.25;cursor:default;':''}">↑</button>
@@ -3991,7 +4005,7 @@ function rBiblioteca(){
       ${grupos.map(gr=>`<option value="${gr}">${gr}</option>`).join('')}
     </select>
     <button class="btn btn-p btn-s" onclick="openManualBib()">+ Agregar a biblioteca</button>
-    <button class="btn btn-s" id="bib-clasificar-btn" onclick="clasificarConIA()" style="border-color:#7c3aed;color:#7c3aed;">✨ Completar con IA</button>
+    <button class="btn btn-s" id="bib-clasificar-btn" onclick="clasificarConIA()" style="border-color:var(--vi);color:var(--vi);">✨ Completar con IA</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
     ${filtered.map(e=>{
@@ -4007,7 +4021,7 @@ function rBiblioteca(){
           ${e.nivel_dificultad?`<span style="font-size:9px;background:${e.nivel_dificultad===1?'var(--vl)':e.nivel_dificultad===2?'var(--a)':'var(--rl)'};color:${e.nivel_dificultad===1?'var(--vm)':e.nivel_dificultad===2?'var(--ad)':'var(--rd)'};border-radius:10px;padding:1px 6px;">N${e.nivel_dificultad}</span>`:''}
         </div>
         ${e.descripcion?`<div style="font-size:11px;color:var(--vd);margin-bottom:5px;line-height:1.4;">${e.descripcion}</div>`:''}
-        ${e.video?`<div style="font-size:10px;color:#185FA5;margin-bottom:6px;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);margin-bottom:6px;">Sin video</div>'}
+        ${e.video?`<div style="font-size:10px;color:var(--lnk);margin-bottom:6px;">✓ Video vinculado</div>`:'<div style="font-size:10px;color:var(--th);margin-bottom:6px;">Sin video</div>'}
         <div style="display:flex;gap:6px;">
           <button class="btn btn-s btn-warn" onclick="openEditBib(${e.id})">Editar</button>
           <button class="btn btn-s btn-d" onclick="deleteBib(${e.id})">Eliminar</button>
