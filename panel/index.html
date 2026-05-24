@@ -48,8 +48,8 @@
     .lerr{font-size:12px;color:var(--rd);margin-top:8px;display:none;}
 
     /* Layout */
-    .layout{display:flex;min-height:100vh;}
-    .sidebar{width:230px;flex-shrink:0;background:var(--s);border-right:1px solid var(--b);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:2px;}
+    .layout{display:flex;height:100vh;overflow:hidden;}
+    .sidebar{width:230px;flex-shrink:0;background:var(--s);border-right:1px solid var(--b);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
     .brand{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;padding:0 .5rem;}
     .logo{width:34px;height:34px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--vd);}
     .brand strong{font-size:14px;font-weight:500;display:block;color:var(--t);}
@@ -66,7 +66,7 @@
     .dot.err{background:var(--rd);}
     .nbadge{background:var(--rd);color:white;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:4px;display:none;}
 
-    .main{flex:1;padding:2rem;overflow-y:auto;}
+    .main{flex:1;padding:2rem;overflow-y:auto;height:100vh;}
     .ptitle{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:1.5rem;color:var(--t);}
 
     /* Cards */
