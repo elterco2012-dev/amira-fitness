@@ -3144,7 +3144,7 @@ function rAlumnas(){
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
     <div style="position:relative;flex:1;min-width:180px;">
       <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--th);font-size:14px;pointer-events:none;">🔍</span>
-      <input type="text" placeholder="Buscar alumna..." value="${S._alumnaQ||''}"
+      <input id="alumna-q" type="text" placeholder="Buscar alumna..." value="${S._alumnaQ||''}"
         oninput="S._alumnaQ=this.value;render()"
         style="padding-left:32px;margin:0;width:100%;">
     </div>
