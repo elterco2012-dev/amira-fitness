@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instalá la app · Amira Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --v:#1D9E75; --vd:#15694e; --vl:#e8f7f2; --vl2:#d1f0e6;
+      --t:#111827; --tm:#6b7280; --th:#9ca3af;
+      --s:#ffffff; --s2:#f9fafb; --b:#e5e7eb;
+      --warn-bg:#fffbeb; --warn-b:#fde68a; --warn-t:#92400e;
+      --r:16px; --rs:10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);min-height:100vh;}
+
+    /* Header */
+    .header{background:var(--v);color:white;text-align:center;padding:2.25rem 1.5rem 2rem;}
+    .header-logo{font-size:3rem;margin-bottom:.5rem;line-height:1;}
+    .header h1{font-size:1.5rem;font-weight:700;margin-bottom:.4rem;}
+    .header p{font-size:14px;opacity:.9;line-height:1.5;max-width:340px;margin:0 auto;}
+
+    /* Tabs */
+    .tabs{display:flex;background:var(--s);border-bottom:2px solid var(--b);position:sticky;top:0;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+    .tab{flex:1;padding:.9rem .5rem;text-align:center;font-size:14px;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;color:var(--tm);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .tab.active{color:var(--v);border-bottom-color:var(--v);font-weight:700;}
+
+    /* Content */
+    .content{max-width:480px;margin:0 auto;padding:1.75rem 1rem 4rem;}
+    .section{display:none;}
+    .section.active{display:block;}
+
+    /* Step */
+    .step{display:flex;gap:1rem;margin-bottom:1.5rem;}
+    .step-num{width:34px;height:34px;border-radius:50%;background:var(--v);color:white;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+    .step-body{flex:1;}
+    .step-title{font-size:15px;font-weight:600;margin-bottom:4px;line-height:1.3;}
+    .step-desc{font-size:13px;color:var(--tm);line-height:1.55;}
+    .step-desc strong{color:var(--t);}
+
+    /* Phone mockup */
+    .mock{background:var(--s);border:1.5px solid var(--b);border-radius:12px;padding:.75rem;margin-top:.75rem;overflow:hidden;}
+    .mock-bar{display:flex;align-items:center;background:#f3f4f6;border-radius:8px;padding:5px 10px;margin-bottom:8px;gap:6px;}
+    .mock-bar .url{flex:1;font-size:11px;color:var(--tm);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+    .mock-bar .dots{font-size:18px;font-weight:900;color:#374151;letter-spacing:-2px;line-height:1;}
+    .mock-row{padding:8px 10px;font-size:12.5px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;color:var(--t);}
+    .mock-row:last-child{border-bottom:none;}
+    .mock-row.hl{background:var(--vl);color:var(--vd);font-weight:600;border-radius:8px;border-bottom:none;border:1.5px solid var(--vl2);}
+    .mock-row .ri{font-size:15px;width:20px;text-align:center;}
+
+    /* Safari mockup */
+    .safari-url{background:#f3f4f6;border-radius:8px;padding:6px 10px;text-align:center;font-size:11px;color:var(--tm);margin-bottom:8px;}
+    .safari-bottom{display:flex;justify-content:space-around;background:#f9fafb;border-top:1px solid var(--b);padding:8px 0;margin-top:8px;}
+    .safari-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--tm);padding:2px 8px;}
+    .safari-btn.hl{background:var(--vl);border-radius:8px;color:var(--vd);font-weight:600;}
+    .safari-btn .icon{font-size:18px;}
+
+    /* Share sheet */
+    .sheet{background:var(--s);border-radius:12px;padding:.5rem 0;margin-top:8px;border:1.5px solid var(--b);}
+    .sheet-row{padding:9px 14px;font-size:12.5px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f3f4f6;color:var(--t);}
+    .sheet-row:last-child{border-bottom:none;}
+    .sheet-row.hl{background:var(--vl);color:var(--vd);font-weight:600;}
+    .sheet-row .ri{font-size:16px;width:22px;text-align:center;}
+
+    /* System dialog */
+    .sys-dlg{background:#1c1c1eee;border-radius:14px;padding:1rem;margin-top:.75rem;color:white;}
+    .sys-dlg-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+    .sys-dlg-msg{font-size:11px;opacity:.75;margin-bottom:.75rem;line-height:1.45;}
+    .sys-btns{display:flex;gap:6px;}
+    .sys-btn{flex:1;padding:7px;border-radius:8px;font-size:12px;text-align:center;font-weight:600;}
+    .sys-btn.allow{background:#0a84ff;color:white;}
+    .sys-btn.deny{background:#3a3a3c;color:rgba(255,255,255,.65);}
+
+    /* Days picker preview */
+    .days-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+    .day{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid;}
+    .day.on{background:var(--vl);color:var(--vd);border-color:var(--v);}
+    .day.off{background:var(--s2);color:var(--tm);border-color:var(--b);}
+
+    /* Tip / info box */
+    .tip{background:var(--warn-bg);border:1px solid var(--warn-b);border-radius:var(--rs);padding:.75rem 1rem;font-size:12px;color:var(--warn-t);line-height:1.55;margin-top:.75rem;}
+    .info{background:var(--vl);border:1px solid var(--vl2);border-radius:var(--rs);padding:.75rem 1rem;font-size:12px;color:var(--vd);line-height:1.55;margin-top:.75rem;}
+
+    hr{border:none;border-top:1px solid var(--b);margin:1.5rem 0;}
+
+    /* Final success card */
+    .done-card{background:var(--v);border-radius:var(--r);padding:1.5rem 1.25rem;color:white;text-align:center;margin-top:1.5rem;}
+    .done-card .icon{font-size:2.75rem;margin-bottom:.5rem;line-height:1;}
+    .done-card h3{font-size:17px;font-weight:700;margin-bottom:.5rem;}
+    .done-card p{font-size:13px;opacity:.9;line-height:1.55;}
+
+    /* Section title */
+    .sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--th);margin-bottom:1rem;}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🏋️‍♀️</div>
+  <h1>Instalá la app</h1>
+  <p>Tres pasos simples para tener tu entrenamiento siempre a mano y recibir tus recordatorios.</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-android" onclick="setTab('android')">
+    🤖 Android
+  </div>
+  <div class="tab" id="tab-ios" onclick="setTab('ios')">
+    🍎 iPhone
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ═══════════════════════════════ ANDROID ═══════════════════════════════ -->
+  <div class="section active" id="sec-android">
+
+    <p class="sec-title">Instalación en Android · Chrome</p>
+
+    <!-- Paso 1 -->
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Abrí Chrome y entrá a la app</div>
+        <div class="step-desc">En el navegador Chrome escribí <strong>amira-fitness.vercel.app/alumna</strong> o tocá el link que te mandó Amira.</div>
+        <div class="mock">
+          <div class="mock-bar">
+            <span style="font-size:14px;">🌐</span>
+            <span class="url">amira-fitness.vercel.app/alumna</span>
+            <span class="dots">⋮</span>
+          </div>
+          <div style="background:var(--vl);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--vd);font-weight:500;text-align:center;">
+            🏋️‍♀️ Amira Fitness — abierto en Chrome
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 2 -->
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Tocá los tres puntitos (⋮) arriba a la derecha</div>
+        <div class="step-desc">Se abre un menú. Buscá la opción <strong>"Instalar app"</strong> o <strong>"Agregar a pantalla de inicio"</strong>.</div>
+        <div class="mock">
+          <div class="mock-bar">
+            <span style="font-size:14px;">🌐</span>
+            <span class="url">amira-fitness.vercel.app/alumna</span>
+            <span class="dots" style="color:var(--v);">⋮</span>
+          </div>
+          <div class="mock-row"><span class="ri">🔖</span> Nueva pestaña</div>
+          <div class="mock-row"><span class="ri">⭐</span> Agregar a favoritos</div>
+          <div class="mock-row hl"><span class="ri">📲</span> Instalar app</div>
+          <div class="mock-row"><span class="ri">🔄</span> Actualizar página</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 3 -->
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Tocá "Instalar" en el cartel que aparece</div>
+        <div class="step-desc">Chrome muestra una ventana de confirmación. Tocá <strong>Instalar</strong> y listo — el ícono aparece en tu pantalla de inicio.</div>
+        <div class="mock" style="text-align:center;padding:1rem;">
+          <div style="font-size:2rem;margin-bottom:.4rem;">🏋️‍♀️</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px;">Amira Fitness</div>
+          <div style="font-size:11px;color:var(--tm);margin-bottom:.75rem;">amira-fitness.vercel.app</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <div style="flex:1;max-width:120px;padding:8px;border-radius:8px;background:var(--v);color:white;font-size:12px;font-weight:600;text-align:center;">Instalar</div>
+            <div style="flex:1;max-width:120px;padding:8px;border-radius:8px;background:var(--s2);color:var(--tm);font-size:12px;text-align:center;border:1px solid var(--b);">Cancelar</div>
+          </div>
+        </div>
+        <div class="info">✅ ¡Listo! Ya tenés el ícono de Amira Fitness en tu pantalla de inicio, como cualquier app.</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Paso 4 notificaciones -->
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Activá las notificaciones</div>
+        <div class="step-desc">Abrí la app desde el ícono nuevo. Dentro de la app va a aparecer un cartel amarillo. Tocá <strong>"Activar"</strong>. Después el celular te pregunta si permitís las notificaciones — tocá <strong>"Permitir"</strong>.</div>
+        <div class="sys-dlg">
+          <div class="sys-dlg-title">¿Permitir que Amira Fitness envíe notificaciones?</div>
+          <div class="sys-dlg-msg">Te vamos a avisar cuándo es tu día de entrenamiento y cuando Amira te deja un comentario.</div>
+          <div class="sys-btns">
+            <div class="sys-btn allow">Permitir</div>
+            <div class="sys-btn deny">No permitir</div>
+          </div>
+        </div>
+        <div class="tip">⚠️ Si tocás "No permitir" por error, podés habilitarlas desde <strong>Configuración del celular → Apps → Chrome → Notificaciones → Activar</strong>.</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Paso 5 días -->
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Elegí tus días de entrenamiento</div>
+        <div class="step-desc">Dentro de la app, scrolleá hasta la sección <strong>"🔔 Mis días de entrenamiento"</strong>. Tocá los días de la semana en que entrenás — se ponen verdes. Así el recordatorio llega exactamente cuando corresponde.</div>
+        <div class="mock">
+          <div style="font-size:12px;font-weight:600;color:var(--t);margin-bottom:6px;padding:0 2px;">🔔 Mis días de entrenamiento</div>
+          <div style="font-size:11px;color:var(--tm);margin-bottom:8px;padding:0 2px;line-height:1.4;">Tocá los días para que el recordatorio llegue solo cuando corresponde.</div>
+          <div class="days-row">
+            <div class="day off">Dom</div>
+            <div class="day on">Lun</div>
+            <div class="day off">Mar</div>
+            <div class="day on">Mié</div>
+            <div class="day off">Jue</div>
+            <div class="day on">Vie</div>
+            <div class="day off">Sáb</div>
+          </div>
+          <div style="font-size:11px;color:var(--vd);margin-top:8px;padding:0 2px;">✓ Días activos: Lun, Mié, Vie</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="done-card">
+      <div class="icon">🎉</div>
+      <h3>¡Todo listo!</h3>
+      <p>Ya vas a recibir un recordatorio cada mañana de los días que entrenás, y una notificación cuando Amira te deje un mensaje o comentario.</p>
+    </div>
+
+  </div>
+  <!-- fin android -->
+
+
+  <!-- ═══════════════════════════════ iOS ═══════════════════════════════ -->
+  <div class="section" id="sec-ios">
+
+    <p class="sec-title">Instalación en iPhone · Safari</p>
+
+    <div class="tip" style="margin-bottom:1.25rem;">⚠️ <strong>Importante:</strong> en iPhone la instalación solo funciona desde <strong>Safari</strong>. Si abrís el link desde Chrome o desde WhatsApp directamente, no va a aparecer la opción de instalar. Copiá el link y pegalo en Safari.</div>
+
+    <!-- Paso 1 -->
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Abrí Safari y entrá a la app</div>
+        <div class="step-desc">En Safari escribí <strong>amira-fitness.vercel.app/alumna</strong> o pegá el link que te mandó Amira.</div>
+        <div class="mock">
+          <div class="safari-url">🔒 amira-fitness.vercel.app/alumna</div>
+          <div style="background:var(--vl);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--vd);font-weight:500;text-align:center;">
+            🏋️‍♀️ Amira Fitness — abierto en Safari
+          </div>
+          <div class="safari-bottom">
+            <div class="safari-btn"><span class="icon">←</span></div>
+            <div class="safari-btn"><span class="icon">→</span></div>
+            <div class="safari-btn hl"><span class="icon">⎙</span>Compartir</div>
+            <div class="safari-btn"><span class="icon">📚</span></div>
+            <div class="safari-btn"><span class="icon">⬜</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 2 -->
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Tocá el botón Compartir (⎙) abajo al centro</div>
+        <div class="step-desc">Es el ícono de una cajita con una flecha hacia arriba, en la barra inferior del Safari. Se abre una pantalla con opciones.</div>
+      </div>
+    </div>
+
+    <!-- Paso 3 -->
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Tocá "Agregar a pantalla de inicio"</div>
+        <div class="step-desc">En la lista que aparece deslizá hacia arriba y buscá <strong>"Agregar a pantalla de inicio"</strong>. Puede que tengas que scrollear un poco.</div>
+        <div class="mock">
+          <div class="sheet">
+            <div class="sheet-row"><span class="ri">📋</span> Copiar link</div>
+            <div class="sheet-row"><span class="ri">📤</span> Compartir por WhatsApp</div>
+            <div class="sheet-row hl"><span class="ri">📲</span> Agregar a pantalla de inicio</div>
+            <div class="sheet-row"><span class="ri">🔖</span> Agregar a favoritos</div>
+            <div class="sheet-row"><span class="ri">🖨️</span> Imprimir</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 4 -->
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Tocá "Agregar" arriba a la derecha</div>
+        <div class="step-desc">Safari te muestra el nombre de la app. Tocá <strong>"Agregar"</strong> en la esquina superior derecha para confirmar.</div>
+        <div class="mock" style="text-align:center;padding:.75rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+            <span style="font-size:12px;color:#007aff;">Cancelar</span>
+            <span style="font-size:13px;font-weight:600;">Agregar a inicio</span>
+            <span style="font-size:12px;color:#007aff;font-weight:600;">Agregar</span>
+          </div>
+          <div style="font-size:2rem;margin-bottom:.4rem;">🏋️‍♀️</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px;">Amira Fitness</div>
+          <div style="font-size:11px;color:var(--tm);">amira-fitness.vercel.app</div>
+        </div>
+        <div class="info">✅ ¡Listo! El ícono aparece en tu pantalla de inicio, como cualquier app.</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Paso 5 notificaciones -->
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Activá las notificaciones</div>
+        <div class="step-desc">Abrí la app desde el ícono nuevo. Dentro de la app va a aparecer un cartel amarillo. Tocá <strong>"Activar"</strong>. Después el iPhone te pregunta si permitís las notificaciones — tocá <strong>"Permitir"</strong>.</div>
+        <div class="sys-dlg">
+          <div class="sys-dlg-title">"Amira Fitness" quiere enviarte notificaciones</div>
+          <div class="sys-dlg-msg">Las notificaciones pueden incluir avisos, sonidos y marcas de ícono.</div>
+          <div class="sys-btns">
+            <div class="sys-btn deny">No permitir</div>
+            <div class="sys-btn allow">Permitir</div>
+          </div>
+        </div>
+        <div class="tip">⚠️ Si tocás "No permitir" por error, podés habilitarlas desde <strong>Configuración del iPhone → Amira Fitness → Notificaciones → Activar</strong>.</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Paso 6 días -->
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Elegí tus días de entrenamiento</div>
+        <div class="step-desc">Dentro de la app, scrolleá hasta la sección <strong>"🔔 Mis días de entrenamiento"</strong>. Tocá los días de la semana en que entrenás — se ponen verdes. Así el recordatorio llega exactamente cuando corresponde.</div>
+        <div class="mock">
+          <div style="font-size:12px;font-weight:600;color:var(--t);margin-bottom:6px;padding:0 2px;">🔔 Mis días de entrenamiento</div>
+          <div style="font-size:11px;color:var(--tm);margin-bottom:8px;padding:0 2px;line-height:1.4;">Tocá los días para que el recordatorio llegue solo cuando corresponde.</div>
+          <div class="days-row">
+            <div class="day off">Dom</div>
+            <div class="day on">Lun</div>
+            <div class="day off">Mar</div>
+            <div class="day on">Mié</div>
+            <div class="day off">Jue</div>
+            <div class="day on">Vie</div>
+            <div class="day off">Sáb</div>
+          </div>
+          <div style="font-size:11px;color:var(--vd);margin-top:8px;padding:0 2px;">✓ Días activos: Lun, Mié, Vie</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="done-card">
+      <div class="icon">🎉</div>
+      <h3>¡Todo listo!</h3>
+      <p>Ya vas a recibir un recordatorio cada mañana de los días que entrenás, y una notificación cuando Amira te deje un mensaje o comentario.</p>
+    </div>
+
+  </div>
+  <!-- fin ios -->
+
+</div><!-- /content -->
+
+<script>
+  function setTab(t){
+    document.getElementById('tab-android').classList.toggle('active', t==='android');
+    document.getElementById('tab-ios').classList.toggle('active', t==='ios');
+    document.getElementById('sec-android').classList.toggle('active', t==='android');
+    document.getElementById('sec-ios').classList.toggle('active', t==='ios');
+  }
+  // Auto-detect device
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(ios) setTab('ios');
+</script>
+</body>
+</html>
