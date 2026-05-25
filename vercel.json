@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/panel", "destination": "/panel/index.html" },
+    { "source": "/instalar", "destination": "/instalar/index.html" },
     { "source": "/alumna/:slug", "destination": "/alumna/index.html" },
     { "source": "/alumna", "destination": "/alumna/index.html" },
     { "source": "/registro", "destination": "/registro/index.html" },
