@@ -3044,13 +3044,23 @@ function rInicio(){
       <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
     </div>`;
   })()}
-  ${cumples7.length>0?`<div style="background:var(--a);border:1px solid var(--bm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;display:flex;gap:10px;align-items:flex-start;">
-    <span style="font-size:1.4rem;flex-shrink:0;">🎂</span>
-    <div>${cumples7.map(a=>{
+  ${cumples7.length>0?`<div style="background:var(--a);border:1.5px solid var(--bm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ad);margin-bottom:.65rem;">🎂 Próximos cumpleaños</div>
+    ${cumples7.map(a=>{
       const d=a._diasCumple;
       const cuando=d===0?'¡hoy!':d===1?'mañana':'en '+d+' días';
-      return`<div style="font-size:13px;font-weight:500;color:#92400e;">Cumple <strong>${fn(a.nombre)}</strong> ${cuando}</div>`;
-    }).join('')}</div>
+      const cuandoColor=d===0?'var(--rd)':d===1?'var(--ad)':'var(--tm)';
+      const waMsg=encodeURIComponent('¡Feliz cumpleaños '+fn(a.nombre)+'! 🎂🎉 Te mando un abrazo enorme — Amira');
+      const waLink=a.tel?`https://wa.me/${a.tel.replace(/\D/g,'')}?text=${waMsg}`:'';
+      return`<div style="display:flex;align-items:center;gap:10px;padding:.45rem 0;border-bottom:1px solid var(--bm);">
+        <div class="av av-${a.color}" style="width:34px;height:34px;font-size:13px;flex-shrink:0;">${avH(a)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--t);">${esc(a.nombre)}</div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:${cuandoColor};white-space:nowrap;">${cuando}</span>
+        ${waLink?`<a href="${waLink}" target="_blank" style="text-decoration:none;"><button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;">🎉 Saludar</button></a>`:''}
+      </div>`;
+    }).join('')}
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
   ${alWithDays.filter(a=>!prioIds.has(a.id)).length>0?`<div class="card" style="margin-bottom:1rem;">
