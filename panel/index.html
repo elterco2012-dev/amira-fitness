@@ -3318,6 +3318,14 @@ function alumnaCardHTML(a){
   const logOpen=S['log_'+a.id];
   const notas=(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id);
   const pagado=hasPagado(a.id);
+  const hasPush=DB.pushSubs.some(s=>s.alumna_id===a.id);
+  const hasDias=Array.isArray(a.dias_disponibles)&&a.dias_disponibles.length>0;
+  const pushBadge=hasPush
+    ?`<span style="background:#dcfce7;color:#15803d;border-radius:var(--rp);padding:1px 7px;font-size:10px;font-weight:500;" title="App instalada · Notificaciones activas">🔔 App</span>`
+    :`<span style="background:var(--s2);color:var(--th);border-radius:var(--rp);padding:1px 7px;font-size:10px;font-weight:500;border:1px solid var(--b);" title="Sin notificaciones — no instaló la app">🔕</span>`;
+  const diasBadge=hasPush&&!hasDias
+    ?`<span style="background:#fef9c3;color:#a16207;border-radius:var(--rp);padding:1px 7px;font-size:10px;font-weight:500;" title="Instaló la app pero no eligió sus días de entrenamiento">⚠️ Sin días</span>`
+    :'';
   const desde=a.fecha_inicio?new Date(a.fecha_inicio).toLocaleDateString('es-AR',{month:'short',year:'numeric'}):'';
   const hist=pagosDe(a.id);
   const histOpen=S['hist_pago_'+a.id];
@@ -3465,7 +3473,7 @@ function alumnaCardHTML(a){
       </div>
       <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span class="aname">${a.nombre}</span>${estBadge}${uaBadge}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span class="aname">${a.nombre}</span>${estBadge}${uaBadge}${pushBadge}${diasBadge}</div>
         <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel?`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel}</a>`:'<span style="color:var(--rd)">Sin WA</span>'} · <strong style="color:var(--pd)">${cicNom}</strong></div>
       </div>
       <div style="position:relative;flex-shrink:0;">
