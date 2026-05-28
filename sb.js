@@ -90,7 +90,7 @@ function sbNotifyAmira(table, record) {
   if (!record) return;
   fetch(`${SB_URL}/functions/v1/notify-amira`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+    headers: getSBH(),
     body: JSON.stringify({ type: 'INSERT', table, record })
   }).catch(() => {});
 }
