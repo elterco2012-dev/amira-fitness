@@ -88,9 +88,15 @@ async function sbDelete(table, filter) {
 // Más confiable que los Supabase Webhooks (que requieren configuración manual y pueden fallar silenciosamente).
 function sbNotifyAmira(table, record) {
   if (!record) return;
+  const stored = localStorage.getItem('af-alumna-token') || localStorage.getItem('af-access-token');
+  const tok = stored || SB_KEY;
   fetch(`${SB_URL}/functions/v1/notify-amira`, {
     method: 'POST',
-    headers: getSBH(),
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${tok}`
+    },
     body: JSON.stringify({ type: 'INSERT', table, record })
   }).catch(() => {});
 }
