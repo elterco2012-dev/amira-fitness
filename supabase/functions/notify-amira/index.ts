@@ -212,26 +212,27 @@ Deno.serve(async (req) => {
     if (!subs.length) return Response.json({ sent: 0, reason: "no_subscriptions" }, { headers: CORS });
 
     const notifPayload = JSON.stringify({ type: "amira-alert", title, body, url: "/panel/" });
+    console.log(`[notify-amira] Sending to ${subs.length} subscriptions. title="${title}"`);
     const results = await Promise.all(
       subs.map(async (s, i) => {
         try {
           const r = await sendPush(s.endpoint, s.p256dh, s.auth, notifPayload);
+          console.log(`[notify-amira] device=${i} status=${r.status} ok=${r.ok} body=${r.body.slice(0,80)}`);
           // Auto-cleanup: endpoint expirado o inválido — borrar para que se re-registre solo
           if (r.status === 410 || r.status === 404) {
             await dbDelete(`amira_push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`).catch(() => {});
           }
           return { device: i, ...r };
         } catch (e) {
+          console.log(`[notify-amira] device=${i} error=${String(e)}`);
           return { device: i, ok: false, status: 0, body: String(e) };
         }
       })
     );
 
-    return Response.json({
-      sent: results.filter(r => r.ok).length,
-      total: subs.length,
-      results
-    }, { headers: CORS });
+    const summary = { sent: results.filter(r => r.ok).length, total: subs.length, results };
+    console.log(`[notify-amira] Done: sent=${summary.sent}/${summary.total}`);
+    return Response.json(summary, { headers: CORS });
 
   } catch (e) {
     return Response.json({ fatal: String(e), stack: e instanceof Error ? e.stack : undefined }, { headers: CORS });
