@@ -968,6 +968,7 @@ function startPoll(){
         prevCom=+newCom.id;
         const aName=fn(getA(newCom.alumna_id)?.nombre||'alumna');
         _panelNotif(`💬 Nota — ${aName}`,newCom.texto||'Nueva nota desde la app','panel-comentario');
+        sbGet('comentarios','order=created_at.desc&limit=5000').then(rows=>{DB.comentarios=rows;if(['inicio','comentarios'].includes(S.view))render();}).catch(()=>{});
       }
       if(regs.length>prevReg){
         const b=document.getElementById('nb-reg');if(b){b.style.display='inline';b.textContent=regs.length;}
@@ -981,6 +982,7 @@ function startPoll(){
         const emojiMap={dolor_preocupante:'🚨',bajo_rendimiento:'⚠️',bueno:'😊',excelente:'🔥'};
         const emoji=emojiMap[fb.tipo]||'💬';
         _panelNotif(`${emoji} Feedback — ${aName}`,fb.nota||`Tipo: ${fb.tipo}`,'panel-feedback');
+        sbGet('feedbacks','order=created_at.desc&limit=50').then(rows=>{DB.feedbacks=rows;if(['inicio','comentarios','analisis'].includes(S.view))render();}).catch(()=>{});
       }
     }catch(e){}
   },8000);
