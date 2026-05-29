@@ -5088,12 +5088,16 @@ async function checkAmiraPushValid(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
   try{
     const sw=_panelSW||await navigator.serviceWorker.ready;
-    const sub=await sw.pushManager.getSubscription();
+    let sub=await sw.pushManager.getSubscription();
     if(!sub){localStorage.removeItem('af-notif-panel');_mostrarBannerPushAmira();return;}
-    const rows=await sbGet('amira_push_subscriptions',`endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=endpoint&limit=1`);
-    if(!rows.length){
-      // No está en la BD (ej: TRUNCATE) → re-registrar silenciosamente con el endpoint existente
+    const rows=await sbGet('amira_push_subscriptions',`endpoint=eq.${encodeURIComponent(sub.endpoint)}&select=endpoint,created_at&limit=1`);
+    const STALE_MS=30*24*3600*1000;
+    const stale=!rows.length||(rows[0].created_at&&Date.now()-new Date(rows[0].created_at).getTime()>STALE_MS);
+    if(stale){
+      // Token no está en BD o tiene +30 días → forzar re-suscripción fresca
       try{
+        await sub.unsubscribe();
+        sub=await sw.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToUint8(VAPID_PUB)});
         const subJson=sub.toJSON();
         await sbUpsert('amira_push_subscriptions',{endpoint:sub.endpoint,p256dh:subJson.keys.p256dh,auth:subJson.keys.auth});
         localStorage.setItem('af-notif-panel','1');
