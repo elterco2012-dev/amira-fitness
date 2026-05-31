@@ -1477,9 +1477,10 @@ async function saveGeneratedRoutine(){
   msgEl.textContent='Guardando...';
   try{
     const cicloActual=a.ciclo_actual||1;
-    // Si el ciclo actual no tiene ejercicios (alumna nueva), guardar en él.
-    // Si ya tiene ejercicios, crear el siguiente ciclo para no pisar el historial.
-    const cicloActualTieneData=Object.values(DB.rutinas[a.id]?.[cicloActual]||{}).some(sem=>sem.length>0);
+    // Si el ciclo actual no tiene ejercicios reales (alumna nueva), guardar en él.
+    // Si ya tiene ejercicios, crear el siguiente para no pisar el historial.
+    const _sems=DB.rutinas[a.id]?.[cicloActual];
+    const cicloActualTieneData=_sems&&Object.values(_sems).some(dias=>Array.isArray(dias)&&dias.some(d=>d.ejercicios?.length>0));
     const nuevoCiclo=cicloActualTieneData?cicloActual+1:cicloActual;
     const ops=[];
     for(const sem of(routine.semanas||[])){
@@ -3706,12 +3707,17 @@ function rRutinas(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
       <div style="font-size:11px;color:var(--tm);">Ver ciclo:</div>
       ${(() => {
-        // Solo mostrar ciclos que tienen rutinas cargadas + el ciclo activo
+        // Solo mostrar ciclos que tienen al menos un ejercicio real + el ciclo activo
+        const tieneEjercicios = (cicloKey) => {
+          const sems = DB.rutinas[a.id]?.[cicloKey];
+          return sems && Object.values(sems).some(dias =>
+            Array.isArray(dias) && dias.some(d => d.ejercicios?.length > 0)
+          );
+        };
         const ciclosEnDB = Object.keys(DB.rutinas[a.id]||{})
-          .map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0);
+          .map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0&&tieneEjercicios(k));
         const cicloActualNum = parseInt(a.ciclo_actual)||1;
         const ciclosToShow = [...new Set([...ciclosEnDB, cicloActualNum])].sort((x,y)=>x-y);
-        // Si el ciclo seleccionado no está en la lista, corregirlo
         if(!ciclosToShow.includes(parseInt(S.selCiclo))){S.selCiclo=cicloActualNum;}
         return ciclosToShow.map(c=>{
           const activo = parseInt(S.selCiclo)===c;
