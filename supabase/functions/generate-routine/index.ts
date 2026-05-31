@@ -152,6 +152,13 @@ REGLA DE PATRONES DE MOVIMIENTO:
 - En sesiones de cuerpo completo: respetá ambas reglas anteriores.
 - Los ejercicios de [aislamiento] son complementarios; no deben ser el único trabajo de un grupo muscular en la sesión.
 
+REGLA DE BALANCE EN SESIONES DE CUERPO COMPLETO (full_body y full_body_ab):
+- Tren inferior (piernas, glúteos, isquiotibiales, cuádriceps, gemelos): MÁXIMO 5 ejercicios por sesión, aunque haya foco en glúteos. El foco muscular se expresa dentro de ese límite eligiendo los mejores ejercicios del grupo, no acumulando más.
+- Tren superior (pecho, espalda, hombros, bíceps, tríceps): MÍNIMO 3 ejercicios por sesión. Es innegociable aunque el foco sea tren inferior.
+- Core (abdomen, zona lumbar, estabilizadores): MÍNIMO 1 ejercicio directo por sesión, idealmente 2.
+- Esta regla NO aplica a días dedicados de tren inferior (días Lower en upper/lower, día de piernas en push/pull/legs). Esos días pueden tener 6-8 ejercicios de tren inferior porque esa es su función.
+- Ejemplo válido de distribución en full_body con foco glúteos (10 ejercicios): 5 tren inferior + 4 tren superior + 1 core.
+
 REGLA DE ORDEN DENTRO DE CADA SESIÓN:
 - Siempre ordená los ejercicios de mayor a menor complejidad e impacto neurológico:
   1. Primero: multiarticulares pesados (sentadilla, peso muerto, press con barra, remo con barra, dominada)
