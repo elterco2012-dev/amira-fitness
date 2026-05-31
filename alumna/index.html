@@ -1284,6 +1284,31 @@ function norm(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
 
+async function buscarAlumnaPorNombre(){
+  const input=document.getElementById('buscar-nombre-input');
+  const msg=document.getElementById('buscar-nombre-msg');
+  const q=(input?.value||'').trim();
+  if(!q){if(msg)msg.textContent='Escribí tu nombre primero.';return;}
+  if(msg)msg.textContent='Buscando...';
+  try{
+    const rows=await sbGet('alumnas',`nombre=ilike.*${encodeURIComponent(q)}*&select=nombre,slug,estado&limit=5`);
+    const activas=rows.filter(r=>r.estado!=='baja');
+    if(!activas.length){
+      if(msg)msg.textContent='No encontramos ninguna alumna con ese nombre. Probá con tu apellido o escribile a Amira.';
+      return;
+    }
+    const match=activas.find(r=>norm(r.nombre.split(' ')[0])===norm(q))||activas[0];
+    if(match.slug){
+      localStorage.setItem('af-last-slug',match.slug);
+      location.replace('/alumna/'+match.slug);
+    } else {
+      if(msg)msg.textContent='Alumna encontrada pero sin link configurado. Escribile a Amira.';
+    }
+  }catch(e){
+    if(msg)msg.textContent='Error al buscar. Verificá tu conexión y reintentá.';
+  }
+}
+
 function getAlumna(){
   const found=DB.alumnas.find(a=>
     norm(a.slug)===norm(slug) ||
@@ -2103,27 +2128,26 @@ function renderRutina(){
     const waMsg=encodeURIComponent('Hola Amira! Entré a mi link de rutina pero dice que no existe. ¿Podés enviarme el link correcto?');
     scr.innerHTML=`<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center;">
       <div style="width:72px;height:72px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:28px;color:var(--vd);margin-bottom:1.5rem;">A</div>
-      <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);margin-bottom:.6rem;line-height:1.25;">Link no encontrado</div>
-      <div style="font-size:13px;color:var(--tm);line-height:1.75;max-width:280px;margin-bottom:2rem;">
-        Este link no corresponde a ninguna alumna activa.<br>Puede que haya cambiado o que tengas uno desactualizado.
+      <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);margin-bottom:.6rem;line-height:1.25;">¿Cuál es tu nombre?</div>
+      <div style="font-size:13px;color:var(--tm);line-height:1.75;max-width:280px;margin-bottom:1.5rem;">
+        No pudimos encontrar tu rutina automáticamente.<br>Escribí tu nombre para buscarla.
       </div>
+      <div style="width:100%;max-width:280px;margin-bottom:.75rem;">
+        <input id="buscar-nombre-input" type="text" placeholder="Tu nombre (ej: Daiana)" autocomplete="off" autocorrect="off"
+          style="width:100%;padding:12px;border:1.5px solid var(--b);border-radius:var(--rs);font-size:15px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);box-sizing:border-box;"
+          onkeydown="if(event.key==='Enter')buscarAlumnaPorNombre()"
+        >
+      </div>
+      <button onclick="buscarAlumnaPorNombre()" style="
+        width:100%;max-width:280px;background:var(--v);color:white;border:none;border-radius:var(--rp);
+        padding:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:1rem;
+      ">Buscar mi rutina</button>
+      <div id="buscar-nombre-msg" style="font-size:12px;color:var(--rd);min-height:16px;margin-bottom:1rem;"></div>
       <a href="https://wa.me/${amiraWA}?text=${waMsg}" target="_blank" style="
-        display:inline-flex;align-items:center;gap:10px;
-        background:#25D366;color:white;text-decoration:none;
-        padding:12px 24px;border-radius:var(--rp);
-        font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;
-        margin-bottom:1rem;
-      ">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
-        Escribirle a Amira
-      </a>
-      <button onclick="localStorage.removeItem('af-last-slug');location.reload();" style="
-        background:none;border:1px solid var(--b);border-radius:var(--rp);
-        padding:10px 20px;font-size:12px;color:var(--tm);cursor:pointer;
-        font-family:'DM Sans',sans-serif;margin-bottom:.75rem;
-      ">🔄 Reintentar</button>
-      <div style="font-size:11px;color:var(--th);">Ella te envía el link correcto en minutos.</div>
+        font-size:12px;color:var(--tm);text-decoration:none;
+      ">¿Necesitás ayuda? Escribile a Amira →</a>
     </div>`;
+    setTimeout(()=>document.getElementById('buscar-nombre-input')?.focus(),100);
     return;
   }
   document.title=`${a.nombre.split(' ')[0]} — Amira Fitness`;
