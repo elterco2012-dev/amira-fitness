@@ -542,7 +542,9 @@
 <script>
 // ── Config ────────────────────────────────────────────────────
 const AMIRA_WA = '5492226500790';
-const slug = location.pathname.split('/').filter(Boolean).pop()||'';
+// Extraer slug: la parte DESPUÉS de /alumna/ (no la palabra 'alumna' en sí)
+// Para /alumna/ → '', para /alumna/daiana → 'daiana'
+const slug = location.pathname.replace(/^\/alumna\/?/,'').split('/').filter(Boolean)[0]||'';
 
 // Si la PWA abre desde start_url /alumna/ sin slug, redirigir al último slug visitado
 if (location.pathname === '/alumna/' || location.pathname === '/alumna') {
@@ -1289,7 +1291,11 @@ function getAlumna(){
   );
   if(found){localStorage.setItem('af-last-slug',found.slug);return found;}
   // Only fall back to the single alumna when there's no slug in the URL
-  if(!slug && DB.alumnas.length===1) return DB.alumnas[0];
+  if(!slug && DB.alumnas.length===1) {
+    const a=DB.alumnas[0];
+    if(a.slug) localStorage.setItem('af-last-slug',a.slug);
+    return a;
+  }
   return null;
 }
 
