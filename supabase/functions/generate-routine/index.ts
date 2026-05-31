@@ -356,9 +356,9 @@ IMPORTANTE: los nombres de ejercicios deben coincidir EXACTAMENTE con los de la 
 Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin texto antes ni después.`;
 
     // ── 8. Llamada a Claude API con prompt caching ───────────────
-    // max_tokens dinámico: ~800 tokens por sesión para evitar truncamiento
+    // ~1800 tokens por sesión: 10-12 ejercicios × ~130 tokens + metadata
     const numSesiones = (alumna.dias ?? 3) * semanas;
-    const maxTokens = Math.min(32768, Math.max(8192, numSesiones * 800));
+    const maxTokens = Math.min(32768, Math.max(8192, numSesiones * 1800));
 
     const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -435,6 +435,29 @@ Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin text
           hint: `El modelo generó ${usage?.output_tokens ?? '?'} tokens (límite: ${maxTokens}). Si el error persiste, intentá con menos semanas.`
         }, { status: 502, headers: CORS });
       }
+    }
+
+    // ── 9. Validar que la rutina tenga todas las semanas y días ──
+    const routineObj = routine as {
+      semanas?: Array<{ semana: number; dias?: Array<{ dia: number; ejercicios?: unknown[] }> }>;
+    };
+    const diasEsperados = alumna.dias ?? 3;
+    const faltantes: string[] = [];
+    for (let s = 1; s <= semanas; s++) {
+      const semRow = routineObj.semanas?.find(w => w.semana === s);
+      if (!semRow) { faltantes.push(`Semana ${s} completa`); continue; }
+      for (let d = 1; d <= diasEsperados; d++) {
+        const dayRow = semRow.dias?.find(day => day.dia === d);
+        if (!dayRow || !dayRow.ejercicios?.length) faltantes.push(`Sem${s}/Día${d}`);
+      }
+    }
+    if (faltantes.length > 0) {
+      console.log(`[generate-routine] Rutina incompleta. Faltantes: ${faltantes.join(', ')}. output_tokens=${usage?.output_tokens}/${maxTokens}`);
+      return Response.json({
+        error: `Rutina incompleta — faltan: ${faltantes.join(', ')}. Intentá generar semana por semana (1 semana a la vez) para reducir el tamaño de la respuesta.`,
+        faltantes,
+        usage,
+      }, { status: 502, headers: CORS });
     }
 
     return Response.json({
