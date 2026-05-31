@@ -279,7 +279,7 @@
 <!-- Modal agregar ejercicio desde biblioteca -->
 <div class="modal-bg" id="modal-bib" style="display:none;" onclick="if(event.target===this)closeBib()">
   <div class="modal">
-    <h3>Agregar desde biblioteca</h3>
+    <h3 id="bib-modal-title">Agregar desde biblioteca</h3>
     <div class="bib-search">
       <input type="text" id="bib-q" placeholder="Buscar ejercicio..." oninput="renderBib()" style="margin-bottom:0;">
       <select id="bib-grupo" onchange="renderBib()" style="margin-bottom:0;width:140px;">
@@ -700,7 +700,7 @@ if(!localStorage.getItem('af-amira-ph')){
 }
 const COLORS=['teal','purple','amber','coral'];
 let DB={alumnas:[],rutinas:{},comentarios:[],registros:[],biblioteca:[],plantillas:[],variantes:[],feedbacks:[],pushSubs:[],pagos:[],avisos:[],pesoAlumna:[],notasSesion:[],pageViews:null};
-let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_alumnaQ:'',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1};
+let S={view:'inicio',selA:null,selSem:1,selDia:1,selCiclo:1,addA:false,selHistEx:null,editExIdx:null,editAId:null,_editPlantId:null,_editPlantDia:1,_editPlantBackup:null,_maxCiclo:1,_plantBibMode:false,msg:'',err:'',sbOk:false,_tplSel:null,_tplEdit:null,selHistCiclo:null,filtroEstado:'activa+pausada',_alumnaQ:'',_atplSel:null,_atplEdit:null,_histQ:'',_confirmDeleteId:null,_dupMode:false,_dupSrcA:null,_copSemMode:false,_copSemDstA:null,_copSemDstCiclo:1,_copSemDstSem:1,_wuEditIdx:null,_quickNoteA:null,_drawerA:null,_drawerTab:'resumen',_drawerCiclo:1,_drawerSem:1,_drawerDia:1,_replaceExIdx:null};
 const _sd=localStorage.getItem('af-dark');
 let dark=_sd!==null?_sd==='1':window.matchMedia('(prefers-color-scheme:dark)').matches;
 let pollT=null,prevCom=parseInt(localStorage.getItem('af-prevCom')||'0'),prevReg=0,prevFb=parseInt(localStorage.getItem('af-prevFb')||'0');
@@ -1593,7 +1593,32 @@ function openBib(){
   document.getElementById('bib-selected-wrap').style.display='none';
   document.getElementById('bib-add-btn').style.display='none';
 }
-function closeBib(){document.getElementById('modal-bib').style.display='none';bibSelEx=null;}
+function openBibSwap(idx){
+  S._replaceExIdx=idx;
+  const a=getA(S.selA);if(!a)return;
+  const day=getOrCreateDay(a.id,S.selCiclo,S.selSem,S.selDia);
+  const ex=day?.ejercicios?.[idx];
+  bibSelEx=null;
+  const qEl=document.getElementById('bib-q');if(qEl)qEl.value='';
+  const gEl=document.getElementById('bib-grupo');if(gEl)gEl.value='';
+  const msgEl=document.getElementById('bib-msg');if(msgEl)msgEl.textContent='';
+  const titleEl=document.getElementById('bib-modal-title');if(titleEl)titleEl.textContent='Reemplazar ejercicio';
+  const addBtn=document.getElementById('bib-add-btn');if(addBtn)addBtn.textContent='Reemplazar';
+  const bibSer=document.getElementById('bib-series');if(bibSer)bibSer.value=ex?.series||'3';
+  const bibRep=document.getElementById('bib-reps');if(bibRep)bibRep.value=ex?.reps||'10';
+  const bibNot=document.getElementById('bib-nota');if(bibNot)bibNot.value='';
+  renderBib();
+  document.getElementById('modal-bib').style.display='flex';
+  document.getElementById('bib-selected-wrap').style.display='none';
+  document.getElementById('bib-add-btn').style.display='none';
+}
+function closeBib(){
+  document.getElementById('modal-bib').style.display='none';
+  bibSelEx=null;
+  S._replaceExIdx=null;
+  const titleEl=document.getElementById('bib-modal-title');if(titleEl)titleEl.textContent='Agregar desde biblioteca';
+  const addBtn=document.getElementById('bib-add-btn');if(addBtn)addBtn.textContent='Agregar a la rutina';
+}
 
 function renderBib(){
   const q=(document.getElementById('bib-q')?.value||'');
@@ -1650,13 +1675,25 @@ async function addFromBib(){
     video:bibSelEx.video||'',
     grupo:bibSelEx.grupo_muscular||''
   };
-  day.ejercicios.push(newEx);
-  try{
-    await saveDay();
-    closeBib();           // solo cerramos si guardó bien
-  }catch(e){
-    day.ejercicios.pop(); // rollback: sacar el ejercicio que no se guardó
-    if(msgEl)msgEl.textContent='Error al guardar — intentá de nuevo';
+  if(S._replaceExIdx!==null&&S._replaceExIdx>=0&&S._replaceExIdx<day.ejercicios.length){
+    const old=day.ejercicios[S._replaceExIdx];
+    day.ejercicios[S._replaceExIdx]=newEx;
+    try{
+      await saveDay();
+      closeBib();
+    }catch(e){
+      day.ejercicios[S._replaceExIdx]=old; // rollback
+      if(msgEl)msgEl.textContent='Error al guardar — intentá de nuevo';
+    }
+  }else{
+    day.ejercicios.push(newEx);
+    try{
+      await saveDay();
+      closeBib();           // solo cerramos si guardó bien
+    }catch(e){
+      day.ejercicios.pop(); // rollback: sacar el ejercicio que no se guardó
+      if(msgEl)msgEl.textContent='Error al guardar — intentá de nuevo';
+    }
   }
 }
 
@@ -3889,6 +3926,7 @@ function rRutinas(){
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
             <button class="btn btn-s btn-warn" onclick="openEditEx(${i})">Editar</button>
+            <button class="btn btn-s" onclick="openBibSwap(${i})" title="Reemplazar ejercicio">↔</button>
             <button class="btn btn-s btn-d" onclick="delEx(${i})">×</button>
           </div>
         </div>`;
