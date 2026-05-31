@@ -356,6 +356,10 @@ IMPORTANTE: los nombres de ejercicios deben coincidir EXACTAMENTE con los de la 
 Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin texto antes ni después.`;
 
     // ── 8. Llamada a Claude API con prompt caching ───────────────
+    // max_tokens dinámico: ~800 tokens por sesión para evitar truncamiento
+    const numSesiones = (alumna.dias ?? 3) * semanas;
+    const maxTokens = Math.min(32768, Math.max(8192, numSesiones * 800));
+
     const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -366,7 +370,7 @@ Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin text
       },
       body: JSON.stringify({
         model: "claude-opus-4-7",
-        max_tokens: 8192,
+        max_tokens: maxTokens,
         system: [
           {
             type: "text",
@@ -389,23 +393,53 @@ Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin text
     };
 
     const rawText = claudeData.content?.find(b => b.type === "text")?.text ?? "";
+    const usage = claudeData.usage;
+    console.log(`[generate-routine] tokens: in=${usage?.input_tokens} out=${usage?.output_tokens} cache_read=${usage?.cache_read_input_tokens} max_tokens=${maxTokens}`);
 
     // Extraer JSON (Claude a veces añade markdown ```json ... ```)
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.log(`[generate-routine] Sin JSON en respuesta. raw=${rawText.slice(0, 300)}`);
       return Response.json({ error: "Claude no devolvió JSON válido", raw: rawText.slice(0, 500) }, { status: 502, headers: CORS });
     }
 
     let routine: unknown;
     try {
       routine = JSON.parse(jsonMatch[0]);
-    } catch (e) {
-      return Response.json({ error: "JSON de Claude no parseable", raw: rawText.slice(0, 500), parseError: String(e) }, { status: 502, headers: CORS });
+    } catch (parseErr) {
+      // Si el JSON está truncado (output cortado por max_tokens), intentar repararlo
+      // buscando el último bloque de semana completo
+      console.log(`[generate-routine] JSON parse falló (output_tokens=${usage?.output_tokens}/${maxTokens}). Intentando reparar...`);
+      let repaired: unknown | null = null;
+      try {
+        let s = jsonMatch[0];
+        // Cerrar arrays y objetos abiertos desde el final
+        const opens = ['{', '['];
+        const closes: string[] = [];
+        for (const ch of s) { if (ch === '{') closes.push('}'); else if (ch === '[') closes.push(']'); else if (ch === '}' || ch === ']') closes.pop(); }
+        // Quitar coma trailing antes de cerrar
+        s = s.replace(/,\s*$/, '');
+        s += closes.reverse().join('');
+        repaired = JSON.parse(s);
+      } catch { /* no se pudo reparar */ }
+
+      if (repaired) {
+        console.log(`[generate-routine] JSON reparado exitosamente.`);
+        routine = repaired;
+      } else {
+        console.log(`[generate-routine] No se pudo reparar. raw=${rawText.slice(0, 300)}`);
+        return Response.json({
+          error: "JSON de Claude no parseable",
+          raw: rawText.slice(0, 500),
+          parseError: String(parseErr),
+          hint: `El modelo generó ${usage?.output_tokens ?? '?'} tokens (límite: ${maxTokens}). Si el error persiste, intentá con menos semanas.`
+        }, { status: 502, headers: CORS });
+      }
     }
 
     return Response.json({
       routine,
-      usage: claudeData.usage,
+      usage,
       alumna: alumna.nombre,
     }, { headers: CORS });
 
