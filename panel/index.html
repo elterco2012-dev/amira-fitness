@@ -1477,7 +1477,10 @@ async function saveGeneratedRoutine(){
   msgEl.textContent='Guardando...';
   try{
     const cicloActual=a.ciclo_actual||1;
-    const nuevoCiclo=cicloActual+1;
+    // Si el ciclo actual no tiene ejercicios (alumna nueva), guardar en él.
+    // Si ya tiene ejercicios, crear el siguiente ciclo para no pisar el historial.
+    const cicloActualTieneData=Object.values(DB.rutinas[a.id]?.[cicloActual]||{}).some(sem=>sem.length>0);
+    const nuevoCiclo=cicloActualTieneData?cicloActual+1:cicloActual;
     const ops=[];
     for(const sem of(routine.semanas||[])){
       for(const dia of(sem.dias||[])){
@@ -3703,24 +3706,20 @@ function rRutinas(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
       <div style="font-size:11px;color:var(--tm);">Ver ciclo:</div>
       ${(() => {
-        // Calcular el máximo ciclo real mirando TODAS las fuentes
+        // Solo mostrar ciclos que tienen rutinas cargadas + el ciclo activo
         const ciclosEnDB = Object.keys(DB.rutinas[a.id]||{})
           .map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0);
-        const maxCiclo = Math.max(
-          parseInt(a.ciclo_actual)||1,
-          parseInt(S.selCiclo)||1,
-          ciclosEnDB.length>0 ? Math.max(...ciclosEnDB) : 1
-        );
-        // Guardar en S para que no se pierda al re-render
-        if(maxCiclo > (S._maxCiclo||1)) S._maxCiclo = maxCiclo;
-        const total = Math.max(maxCiclo, S._maxCiclo||1);
-        return Array.from({length:total},(_,i)=>i+1).map(c=>{
+        const cicloActualNum = parseInt(a.ciclo_actual)||1;
+        const ciclosToShow = [...new Set([...ciclosEnDB, cicloActualNum])].sort((x,y)=>x-y);
+        // Si el ciclo seleccionado no está en la lista, corregirlo
+        if(!ciclosToShow.includes(parseInt(S.selCiclo))){S.selCiclo=cicloActualNum;}
+        return ciclosToShow.map(c=>{
           const activo = parseInt(S.selCiclo)===c;
           const nombre=a.ciclos_nombres?.[c]||`Ciclo ${c}`;
           return `<span style="display:inline-flex;align-items:center;gap:1px;">
             <button class="btn btn-s${activo?' btn-purple':''}" onclick="S.selCiclo=${c};S.selSem=1;S.selDia=1;render()">${nombre}</button>
-            <button onclick="renombrarCiclo(${c})" title="Renombrar" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 3px;font-size:12px;line-height:1;" title="Renombrar">✎</button>
-            ${total>1?`<button onclick="eliminarCiclo(${c})" title="Eliminar ciclo" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 2px;font-size:13px;line-height:1;">×</button>`:''}
+            <button onclick="renombrarCiclo(${c})" title="Renombrar" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 3px;font-size:12px;line-height:1;">✎</button>
+            ${ciclosToShow.length>1?`<button onclick="eliminarCiclo(${c})" title="Eliminar ciclo" style="background:none;border:none;color:var(--tm);cursor:pointer;padding:0 2px;font-size:13px;line-height:1;">×</button>`:''}
           </span>`;
         }).join('');
       })()}
