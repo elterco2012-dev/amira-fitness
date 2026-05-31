@@ -831,6 +831,15 @@ let charts = {};
 let selHistEx = null;
 let selProgCiclo = null; // ciclo seleccionado en la tab de progreso
 let maxPesos = {};
+let kmActividades = {}; // kKey(aId,c,s,d) → {tipo, km, ts}
+const KM_TIPOS = [
+  {short:'caminar',emoji:'🚶',label:'Caminar',idx:-1,km:false},
+  {short:'correr', emoji:'🏃',label:'Correr', idx:-2,km:true},
+  {short:'bici',   emoji:'🚴',label:'Bici',   idx:-3,km:true},
+  {short:'roller', emoji:'🛼',label:'Roller', idx:-4,km:true},
+  {short:'nadar',  emoji:'🏊',label:'Nadar',  idx:-5,km:true},
+  {short:'mtb',    emoji:'🚵',label:'MTB',    idx:-6,km:true},
+];
 
 // ── PWA + Push ────────────────────────────────────────────────
 const VAPID_PUB_KEY = 'BIGAfUKXOWHBDEULTLi4zp-E3L5fQ8AlF4qxybdKZXtYbA-3NHR0DF7stGRHyGeeXJz2euHAs4oHpYC52wp7DnQ';
@@ -1358,6 +1367,19 @@ function getCiclos(aId){
 function dKey(aId,s,d,i){ return `${aId}-c${selCiclo}-${s}-${d}-${i}`; }
 function eKey(aId,s,d,i){ return `exp-${aId}-c${selCiclo}-${s}-${d}-${i}`; }
 function pKey(aId,s,d,i){ return `p-${aId}-c${selCiclo}-${s}-${d}-${i}`; }
+function kKey(aId,c,s,d){ return `af-km-${aId}-c${c}-${s}-${d}`; }
+function saveKmStorage(){ try{localStorage.setItem('af-km',JSON.stringify(kmActividades));}catch(e){} }
+function loadKmFromStorage(){ try{const v=localStorage.getItem('af-km');if(v)kmActividades=JSON.parse(v);}catch(e){} }
+function loadKmFromDB(aId,rows){
+  (rows||[]).forEach(r=>{
+    if(r.alumna_id!==aId||r.ejercicio_idx>=0||!r.peso_kg) return;
+    const def=KM_TIPOS.find(t=>t.idx===r.ejercicio_idx);
+    if(!def) return;
+    const k=kKey(aId,r.ciclo,r.semana,r.dia);
+    kmActividades[k]={tipo:def.short,km:r.peso_kg};
+  });
+  saveKmStorage();
+}
 
 function saveDone(){try{localStorage.setItem('af-done',JSON.stringify(done));}catch(e){}}
 function loadLocal(){
@@ -1365,6 +1387,7 @@ function loadLocal(){
     const d=localStorage.getItem('af-done');   if(d) done=JSON.parse(d);
     const p=localStorage.getItem('af-pesos');  if(p) pesos=JSON.parse(p);
     const r=localStorage.getItem('af-rpe');    if(r) rpe=JSON.parse(r);
+    loadKmFromStorage();
     // Restaurar selCiclo/selSem/selDia desde cache para que el primer render sea correcto
     const sc=localStorage.getItem('af-selCiclo'); if(sc) selCiclo=parseInt(sc)||1;
     const ss=localStorage.getItem('af-selSem');   if(ss) selSem=parseInt(ss)||1;
@@ -1858,11 +1881,56 @@ async function marcarNoPude(aId){
   try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'no_pude',ciclo:selCiclo,semana:selSem,dia:selDia});}
   catch(e){console.warn('feedback no_pude:',e);}
 }
-async function marcarDescansoActivo(aId){
+async function marcarDescansoActivo(aId){ abrirModalPausa(aId); }
+
+let _pausaAId=null, _pausaTipoSel=null;
+function abrirModalPausa(aId){
+  _pausaAId=aId; _pausaTipoSel=null;
+  const grid=document.getElementById('pausa-tipos-grid');
+  if(!grid) return;
+  grid.innerHTML=KM_TIPOS.map((t,i)=>`<button id="pt-btn-${i}" onclick="selPausaTipo(${i})" style="padding:10px 6px;border-radius:var(--rs);border:1.5px solid var(--bm);background:var(--s2);font-size:13px;color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s;"><span style="font-size:22px;">${t.emoji}</span><span style="font-size:11px;font-weight:500;">${t.label}</span></button>`).join('');
+  document.getElementById('pausa-km-row').style.display='none';
+  document.getElementById('pausa-km-input').value='';
+  const btn=document.getElementById('pausa-confirm-btn');
+  btn.style.opacity='.5'; btn.style.pointerEvents='none';
+  document.getElementById('modal-pausa').style.display='flex';
+}
+function selPausaTipo(idx){
+  _pausaTipoSel=idx;
+  KM_TIPOS.forEach((_,i)=>{
+    const b=document.getElementById(`pt-btn-${i}`);if(!b)return;
+    if(i===idx){b.style.background='var(--vl)';b.style.borderColor='var(--v)';b.style.color='var(--vd)';}
+    else{b.style.background='var(--s2)';b.style.borderColor='var(--bm)';b.style.color='var(--t)';}
+  });
+  document.getElementById('pausa-km-row').style.display=KM_TIPOS[idx].km?'block':'none';
+  const btn=document.getElementById('pausa-confirm-btn');
+  btn.style.opacity='1'; btn.style.pointerEvents='auto';
+}
+function cerrarModalPausa(){
+  document.getElementById('modal-pausa').style.display='none';
+  _pausaAId=null; _pausaTipoSel=null;
+}
+async function confirmarPausa(){
+  if(_pausaTipoSel===null||!_pausaAId) return;
+  const tipo=KM_TIPOS[_pausaTipoSel];
+  const kmVal=parseFloat(document.getElementById('pausa-km-input').value)||null;
+  const aId=_pausaAId;
+  cerrarModalPausa();
+  const k=kKey(aId,selCiclo,selSem,selDia);
+  kmActividades[k]={tipo:tipo.short,km:kmVal,ts:new Date().toISOString()};
+  saveKmStorage();
   localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'activo|'+new Date().toISOString());
   renderRutina();
-  try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'descanso_activo',ciclo:selCiclo,semana:selSem,dia:selDia});}
-  catch(e){console.warn('feedback descanso_activo:',e);}
+  if(curTab==='p') renderProgreso();
+  try{
+    if(kmVal){
+      await sbUpsert('progreso',{alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
+        ejercicio_idx:tipo.idx,ejercicio_nombre:'km:'+tipo.short,
+        peso_kg:kmVal,fecha_registro:new Date().toISOString()});
+    }
+    await sbInsert('feedbacks',{alumna_id:aId,tipo:'pausa_activa',ciclo:selCiclo,semana:selSem,dia:selDia,
+      nota:tipo.short+(kmVal?' '+kmVal+'km':'')});
+  }catch(e){console.warn('pausa_activa:',e);}
 }
 
 async function guardarFeedbackDia(aId,tipo){
@@ -2303,10 +2371,10 @@ function renderRutina(){
   if(exs.length>0&&!justDone&&!_noPude){
     html+=`<div style="margin-bottom:.5rem;">
       <div style="display:flex;gap:8px;margin-bottom:4px;">
-        <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
+        <button class="np-btn" style="flex:1;" onclick="abrirModalPausa(${a.id})">🚶 Pausa activa</button>
         <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
       </div>
-      <div style="font-size:11px;color:var(--tm);text-align:center;line-height:1.4;">🚴 ¿Saliste a correr, andar en bici u otra actividad? Marcá <em>descanso activo</em>.</div>
+      <div style="font-size:11px;color:var(--tm);text-align:center;line-height:1.4;">🚴 ¿Saliste a caminar, correr, bici u otra actividad? Marcá <em>pausa activa</em>.</div>
     </div>`;
   } else if(_noPude&&!justDone){
     const _npParts=_noPude.split('|');
@@ -2320,18 +2388,26 @@ function renderRutina(){
       _npSub=' · '+(_diffD===0?'hoy':'ayer')+' a las '+_hh+':'+_mm;
     }
     if(_npTipo==='activo'){
-      html+=`<div class="np-done" style="background:var(--vl);color:var(--vd);border-color:var(--vm);">🚶 Hiciste descanso activo${_npSub} — ¡eso cuenta!</div>`;
+      const _kmD=kmActividades[kKey(a.id,selCiclo,selSem,selDia)];
+      const _tipoD=KM_TIPOS.find(t=>t.short===(_kmD?.tipo||''));
+      const _kEmoji=_tipoD?.emoji||'🚶';
+      const _kLabel=_tipoD?` · ${_tipoD.label}`:'';
+      const _kKm=_kmD?.km?` · ${_kmD.km} km`:'';
+      html+=`<div class="np-done" style="background:var(--vl);color:var(--vd);border-color:var(--vm);">${_kEmoji} Pausa activa${_kLabel}${_kKm}${_npSub} — ¡eso cuenta!</div>`;
     }else{
       html+=`<div class="np-done">😔 No pudiste entrenar${_npSub} — mañana es un nuevo día 💪</div>`;
     }
   }
 
   if(exs.length===0){
-    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.75rem 1.25rem;text-align:center;margin-top:.25rem;">
-      <div style="font-size:1.75rem;margin-bottom:.5rem;">📋</div>
-      <div style="font-size:14px;font-weight:500;color:var(--t);margin-bottom:.35rem;">Este día todavía no tiene ejercicios</div>
-      <div style="font-size:12px;color:var(--tm);line-height:1.6;">Amira está preparando tu entrenamiento.<br>¡Ya llega, seguí entrenando!</div>
-    </div>`;
+    if(!_noPude){
+      html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.75rem 1.25rem;text-align:center;margin-top:.25rem;">
+        <div style="font-size:1.75rem;margin-bottom:.5rem;">📋</div>
+        <div style="font-size:14px;font-weight:500;color:var(--t);margin-bottom:.35rem;">Este día todavía no tiene ejercicios</div>
+        <div style="font-size:12px;color:var(--tm);line-height:1.6;margin-bottom:.85rem;">Amira está preparando tu entrenamiento.<br>¡Ya llega, seguí entrenando!</div>
+        <button class="np-btn" onclick="abrirModalPausa(${a.id})" style="margin:0 auto;">🚶 Marcar pausa activa</button>
+      </div>`;
+    }
   }
 
   exs.forEach((ex,i)=>{
@@ -2573,14 +2649,30 @@ function renderProgreso(){
     ${_pc.filter(p=>p.fecha!==_pcHoy).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
     ${_pc.filter(p=>p.fecha!==_pcHoy).length>5?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y más registros</div>`:''}
   </div>`;
+  // ── Historial de km (pausa activa) ──────────────────────────
+  const kmHist={};
+  const _kmCicPfx=`af-km-${a.id}-c${cic}-`;
+  Object.entries(kmActividades).forEach(([k,v])=>{
+    if(!k.startsWith(_kmCicPfx)||!v.km) return;
+    const rest=k.slice(_kmCicPfx.length);
+    const pts=rest.split('-');
+    const sem=parseInt(pts[0]),dia=parseInt(pts[1]);
+    if(isNaN(sem)||isNaN(dia)) return;
+    if(!kmHist[v.tipo]) kmHist[v.tipo]=[];
+    kmHist[v.tipo].push({sem,dia,km:v.km,label:`S${sem}D${dia}`});
+  });
+  const kmTypes=Object.keys(kmHist).sort();
+
   const _hasPcChart=_pc.length>=1;
-  if(exns.length>0||_hasPcChart){
-    const _allOpts=[...(_hasPcChart?['__peso_corp__']:[]),...exns];
-    if(!selHistEx||(!_allOpts.includes(selHistEx))) selHistEx=_allOpts[0];
-    html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos</div>
+  const _hasKm=kmTypes.length>0;
+  if(exns.length>0||_hasPcChart||_hasKm){
+    const _allOpts=[...(_hasPcChart?['__peso_corp__']:[]),...exns,...kmTypes.map(t=>'km:'+t)];
+    if(!selHistEx||!_allOpts.includes(selHistEx)) selHistEx=_allOpts[0];
+    html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos y km</div>
     <select class="ex-sel" onchange="selHistEx=this.value;renderProgreso()">
       ${_hasPcChart?`<option value="__peso_corp__" ${selHistEx==='__peso_corp__'?'selected':''}>⚖ Mi peso corporal</option>`:''}
       ${exns.map(n=>`<option value="${n}" ${n===selHistEx?'selected':''}>${n}</option>`).join('')}
+      ${kmTypes.map(t=>{const def=KM_TIPOS.find(d=>d.short===t);return`<option value="km:${t}" ${selHistEx==='km:'+t?'selected':''}>${def?.emoji||'🏃'} ${def?.label||t} (km)</option>`;}).join('')}
     </select>
     <div class="chart-wrap"><canvas id="pchart"></canvas></div>`;
   }else{
@@ -2589,25 +2681,32 @@ function renderProgreso(){
     </div>`;
   }
   scr.innerHTML=html;
-  if(exns.length>0||_hasPcChart) setTimeout(()=>{
+  if(exns.length>0||_hasPcChart||_hasKm) setTimeout(()=>{
     const c=document.getElementById('pchart'); if(!c) return;
     if(charts.p) charts.p.destroy();
     const dk=document.documentElement.getAttribute('data-theme')==='dark';
     const gc=dk?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
     const tc=dk?'#9ca3af':'#6b7280';
-    let labels,values,labelStr;
+    let labels,values,labelStr,unit;
     if(selHistEx==='__peso_corp__'){
-      const sorted=[..._pc].reverse(); // ascendente para el gráfico
+      const sorted=[..._pc].reverse();
       labels=sorted.map(p=>new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'}));
       values=sorted.map(p=>parseFloat(p.peso));
-      labelStr='Peso corporal';
+      labelStr='Peso corporal'; unit='kg';
+    }else if(selHistEx&&selHistEx.startsWith('km:')){
+      const tipo=selHistEx.slice(3);
+      const data=(kmHist[tipo]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+      labels=data.map(d=>d.label);
+      values=data.map(d=>d.km);
+      const def=KM_TIPOS.find(d=>d.short===tipo);
+      labelStr=(def?.label||tipo)+' (km)'; unit='km';
     }else{
       const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
       labels=data.map(d=>d.label);
       values=data.map(d=>d.kg);
-      labelStr=selHistEx;
+      labelStr=selHistEx; unit='kg';
     }
-    charts.p=new Chart(c,{type:'line',data:{labels,datasets:[{label:labelStr,data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' kg'}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+' kg'},beginAtZero:false}}}});
+    charts.p=new Chart(c,{type:'line',data:{labels,datasets:[{label:labelStr,data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' '+unit}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+' '+unit},beginAtZero:false}}}});
   },50);
 }
 
@@ -2813,11 +2912,12 @@ async function init(){
       // Si el panel reseteó el progreso, limpiar caché local antes de cargar
       const lastReset=localStorage.getItem('af-last-reset');
       if(a.progreso_reset_at && (!lastReset || new Date(a.progreso_reset_at)>new Date(lastReset))){
-        done={}; pesos={};
+        done={}; pesos={}; kmActividades={}; saveKmStorage();
         localStorage.setItem('af-last-reset', a.progreso_reset_at);
       }
       DB.progresoRaw = prog;
       prog.forEach(p=>{
+        if(p.ejercicio_idx<0) return; // km activities handled by loadKmFromDB
         if(p.hecho){
           const k=`${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
           done[k]=true;
@@ -2827,6 +2927,7 @@ async function init(){
           pesos[k]=String(p.peso_kg);
         }
       });
+      loadKmFromDB(a.id, prog);
       saveDone();
       localStorage.setItem('af-pesos',JSON.stringify(pesos));
       initMaxPesos(a.id);
@@ -2874,5 +2975,22 @@ async function init(){
 // Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
 init();
 </script>
+
+<!-- Modal pausa activa -->
+<div id="modal-pausa" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center;" onclick="if(event.target.id==='modal-pausa')cerrarModalPausa()">
+  <div style="background:var(--s);width:100%;max-width:430px;border-radius:20px 20px 0 0;padding:1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom,0px));">
+    <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--t);margin-bottom:1rem;">¿Qué tipo de pausa activa hiciste?</div>
+    <div id="pausa-tipos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;"></div>
+    <div id="pausa-km-row" style="display:none;margin-bottom:1rem;">
+      <div style="font-size:11px;color:var(--tm);margin-bottom:6px;">Distancia recorrida (opcional)</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="pausa-km-input" type="number" inputmode="decimal" step="0.1" min="0" max="200" placeholder="0.0" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'">
+        <span style="font-size:13px;color:var(--tm);font-weight:500;min-width:24px;">km</span>
+      </div>
+    </div>
+    <button id="pausa-confirm-btn" onclick="confirmarPausa()" style="width:100%;padding:12px;border-radius:var(--rp);border:none;background:var(--v);color:white;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;">Confirmar</button>
+    <button onclick="cerrarModalPausa()" style="width:100%;padding:10px;border-radius:var(--rp);border:1px solid var(--bm);background:none;color:var(--tm);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
+  </div>
+</div>
 </body>
 </html>
