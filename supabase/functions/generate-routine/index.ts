@@ -136,7 +136,8 @@ REGLA DE EQUIPAMIENTO (CRÍTICO):
 - Cada ejercicio tiene su equipamiento entre corchetes [ej: mancuernas].
 - Usá ÚNICAMENTE ejercicios cuyo equipamiento esté disponible para la alumna.
 - Ejercicios [sin equipamiento] siempre están permitidos.
-- Si la alumna no tiene acceso a gimnasio, NUNCA uses ejercicios [máquina], [barra] o [polea/cables].
+- Si la alumna entrena en casa pero tiene "barra" en su equipamiento → podés usar ejercicios [barra]. Si tiene "polea/cables" → podés usar ejercicios [polea/cables]. Si tiene "máquina" → podés usar ejercicios [máquina]. El equipamiento listado siempre tiene prioridad sobre la modalidad.
+- Si la alumna entrena en casa y NO tiene ninguno de esos tres → NUNCA uses ejercicios [máquina], [barra] ni [polea/cables].
 
 REGLA DE NIVEL (CRÍTICO):
 - Cada ejercicio tiene su dificultad marcada como [N1] (básico), [N2] (intermedio) o [N3] (avanzado). Sin marca = sin clasificar, podés usarlos libremente.
