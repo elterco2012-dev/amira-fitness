@@ -132,12 +132,12 @@ REGLAS GENERALES:
 - Variá los ejercicios entre semanas cuando tenga sentido (mismos grupos, distinto estímulo).
 - Para peso_sugerido: si el ejercicio aparece en el historial de pesos, calculá el peso de inicio recomendado para la semana 1 del nuevo ciclo. Lógica: RPE ≤7 o tendencia ↑ → último peso + pequeño incremento (0.5kg si <10kg, 1kg si 10-20kg, 2.5kg si >20kg). RPE 8-9 → mismo peso. RPE 10 o tendencia ↓ → mismo peso o −5%. Sin historial → null. Usá siempre el mismo peso_sugerido en las 4 semanas para el mismo ejercicio (la periodización va en series/reps, no en peso).
 
-REGLA DE EQUIPAMIENTO (CRÍTICO):
-- Cada ejercicio tiene su equipamiento entre corchetes [ej: mancuernas].
-- Usá ÚNICAMENTE ejercicios cuyo equipamiento esté disponible para la alumna.
-- Ejercicios [sin equipamiento] siempre están permitidos.
-- Si la alumna entrena en casa pero tiene "barra" en su equipamiento → podés usar ejercicios [barra]. Si tiene "polea/cables" → podés usar ejercicios [polea/cables]. Si tiene "máquina" → podés usar ejercicios [máquina]. El equipamiento listado siempre tiene prioridad sobre la modalidad.
-- Si la alumna entrena en casa y NO tiene ninguno de esos tres → NUNCA uses ejercicios [máquina], [barra] ni [polea/cables].
+REGLA DE EQUIPAMIENTO (CRÍTICO — MÁXIMA PRIORIDAD):
+- Cada ejercicio en la biblioteca tiene su equipamiento entre corchetes, ej: [mancuernas], [banda elástica], [barra], [polea/cables], [sin equipamiento].
+- El perfil de la alumna lista explícitamente las etiquetas PERMITIDAS y las etiquetas PROHIBIDAS.
+- [sin equipamiento] siempre está permitido.
+- NUNCA uses un ejercicio cuya etiqueta figure en las PROHIBIDAS, sin excepciones. Esta regla tiene prioridad absoluta sobre el objetivo, el split, el foco muscular y cualquier otra regla.
+- Si una sesión queda con pocas opciones por las restricciones de equipamiento, usá más variantes [sin equipamiento] o ajustá el volumen, pero NUNCA violes esta regla.
 
 REGLA DE NIVEL (CRÍTICO):
 - Cada ejercicio tiene su dificultad marcada como [N1] (básico), [N2] (intermedio) o [N3] (avanzado). Sin marca = sin clasificar, podés usarlos libremente.
@@ -267,9 +267,27 @@ FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
 NOTA sobre superset_id: solo incluí este campo cuando el estilo_sesion sea "superseries" o "circuito". Para series rectas, omití el campo completamente (no lo pongas como null ni como ""). Dos ejercicios con el mismo superset_id se hacen back-to-back sin descanso entre ellos.`;
 
     // ── 7. User prompt (contexto variable) ───────────────────────
-    const equipStr = alumna.equipamiento?.length
-      ? alumna.equipamiento.join(", ")
-      : "sin equipamiento especificado";
+    // Build explicit permitted/prohibited equipment tag lists for the prompt.
+    // This avoids the AI assuming mancuernas/banda are "generally available".
+    const ALL_EQUIP_KEYS = ['mancuernas','banda_elastica','kettlebell','trx','fitball','step','tobillera','ruedita','barra','polea','maquina'];
+    const EQUIP_TO_TAG: Record<string, string> = {
+      mancuernas: 'mancuernas', banda_elastica: 'banda elástica', kettlebell: 'pesa rusa',
+      trx: 'TRX', fitball: 'esfera', step: 'step/cajón', tobillera: 'tobillera',
+      ruedita: 'ruedita abdominal', barra: 'barra', polea: 'polea/cables', maquina: 'máquina'
+    };
+    const tipoStr = (alumna.tipo ?? '').toLowerCase();
+    const isGym = ['gym','gimnasio','musculacion','musculación'].includes(tipoStr);
+    const availableSet = new Set(alumna.equipamiento ?? []);
+    const tagsPermitidos = ['[sin equipamiento]',
+      ...ALL_EQUIP_KEYS.filter(k => isGym || availableSet.has(k)).map(k => `[${EQUIP_TO_TAG[k]}]`)
+    ];
+    const tagsProhibidos = isGym
+      ? []
+      : ALL_EQUIP_KEYS.filter(k => !availableSet.has(k)).map(k => `[${EQUIP_TO_TAG[k]}]`);
+    const equipPermitStr = `Etiquetas PERMITIDAS: ${tagsPermitidos.join(', ')}`;
+    const equipProhibStr = tagsProhibidos.length
+      ? `Etiquetas PROHIBIDAS (alumna NO las tiene, NUNCA uses ejercicios con estas etiquetas): ${tagsProhibidos.join(', ')}`
+      : 'Etiquetas PROHIBIDAS: ninguna (entrenamiento en gimnasio — todo disponible)';
 
     const objetivoLabels: Record<string, string> = {
       tonificar: "Tonificación muscular",
@@ -340,7 +358,8 @@ PERFIL:
 - Nivel de experiencia: ${nivelLabels[alumna.nivel ?? ""] ?? alumna.nivel ?? "no especificado — usá criterio moderado"}
 - División de sesiones: ${splitLabels[alumna.split ?? ""] ?? "no especificado — elegí según días y nivel"}
 - Tiempo por sesión: ${alumna.tiempo_sesion ? alumna.tiempo_sesion + " minutos" : "no especificado"}
-- Equipamiento disponible: ${equipStr}
+- ${equipPermitStr}
+- ${equipProhibStr}
 - Días específicos: ${alumna.dias_disponibles?.length ? alumna.dias_disponibles.join(", ") : "no especificado"}
 - Foco muscular prioritario: ${alumna.foco_muscular ?? "sin foco especial"}
 - Estilo de sesión: ${alumna.estilo_sesion === "superseries" ? "Superseries — pares de ejercicios antagonistas sin descanso entre ellos" : alumna.estilo_sesion === "circuito" ? "Circuito — todos los ejercicios seguidos con mínimo descanso" : "Series rectas — método clásico"}
