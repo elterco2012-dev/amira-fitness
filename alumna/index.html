@@ -2649,17 +2649,23 @@ function renderProgreso(){
     ${_pc.filter(p=>p.fecha!==_pcHoy).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
     ${_pc.filter(p=>p.fecha!==_pcHoy).length>5?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y más registros</div>`:''}
   </div>`;
-  // ── Historial de km (pausa activa) ──────────────────────────
+  // ── Historial de km (pausa activa) — todos los ciclos ──────
   const kmHist={};
-  const _kmCicPfx=`af-km-${a.id}-c${cic}-`;
+  const _kmAIdPfx=`af-km-${a.id}-`;
   Object.entries(kmActividades).forEach(([k,v])=>{
-    if(!k.startsWith(_kmCicPfx)||!v.km) return;
-    const rest=k.slice(_kmCicPfx.length);
-    const pts=rest.split('-');
-    const sem=parseInt(pts[0]),dia=parseInt(pts[1]);
-    if(isNaN(sem)||isNaN(dia)) return;
+    if(!k.startsWith(_kmAIdPfx)||!v.km) return;
+    // key: af-km-{aId}-c{ciclo}-{sem}-{dia}
+    const rest=k.slice(_kmAIdPfx.length);
+    const m=rest.match(/^c(\d+)-(\d+)-(\d+)$/);
+    if(!m) return;
+    const cicloN=parseInt(m[1]),sem=parseInt(m[2]),dia=parseInt(m[3]);
     if(!kmHist[v.tipo]) kmHist[v.tipo]=[];
-    kmHist[v.tipo].push({sem,dia,km:v.km,label:`S${sem}D${dia}`});
+    kmHist[v.tipo].push({cicloN,sem,dia,km:v.km,ts:v.ts||null});
+  });
+  // Sort each activity by ciclo→sem→dia and build chart labels
+  Object.keys(kmHist).forEach(t=>{
+    kmHist[t].sort((a,b)=>a.cicloN-b.cicloN||a.sem-b.sem||a.dia-b.dia);
+    kmHist[t]=kmHist[t].map(e=>({...e,label:`C${e.cicloN}S${e.sem}D${e.dia}`}));
   });
   const kmTypes=Object.keys(kmHist).sort();
 
@@ -2695,8 +2701,12 @@ function renderProgreso(){
       labelStr='Peso corporal'; unit='kg';
     }else if(selHistEx&&selHistEx.startsWith('km:')){
       const tipo=selHistEx.slice(3);
-      const data=(kmHist[tipo]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
-      labels=data.map(d=>d.label);
+      const data=kmHist[tipo]||[]; // already sorted ciclo→sem→dia
+      labels=data.map(d=>{
+        if(d.ts){return new Date(d.ts).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});}
+        const cn=(a.ciclos_nombres||{})[d.cicloN]||(a.ciclos_nombres||{})[String(d.cicloN)]||`C${d.cicloN}`;
+        return`${cn} S${d.sem}D${d.dia}`;
+      });
       values=data.map(d=>d.km);
       const def=KM_TIPOS.find(d=>d.short===tipo);
       labelStr=(def?.label||tipo)+' (km)'; unit='km';
