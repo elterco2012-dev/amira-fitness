@@ -2413,8 +2413,11 @@ function renderRutina(){
   exs.forEach((ex,i)=>{
     const isDone=!!done[dKey(a.id,selSem,selDia,i)];
     const isExp=!!expanded[eKey(a.id,selSem,selDia,i)];
-    let pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
-    if(!pv&&ex.peso_base){pv=String(ex.peso_base);pesos[pKey(a.id,selSem,selDia,i)]=pv;}
+    const pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
+    // Use peso_base as display-only hint; never write it to pesos dict to avoid
+    // polluting localStorage with AI suggestions that look like real records.
+    const pvDisplay=pv||(ex.peso_base?String(ex.peso_base):'');
+    const isSuggested=!pv&&!!ex.peso_base;
     const nextEx=exs[i+1];
     const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
     html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
@@ -2432,10 +2435,11 @@ function renderRutina(){
       </div>
       <div class="peso-row">
         <span class="peso-lbl">Peso:</span>
-        <input class="peso-in" type="text" inputmode="decimal" placeholder="0" value="${pv}"
-          oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()">
+        <input class="peso-in" type="text" inputmode="decimal" placeholder="0" value="${pvDisplay}"
+          oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()"
+          style="${isSuggested?'color:var(--th);':''}">
         <span style="font-size:11px;color:var(--tm);">kg</span>
-        ${(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
+        ${isSuggested?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">sugerido</span>`:(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
       </div>
       <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       ${isDone?(()=>{
