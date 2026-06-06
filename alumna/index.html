@@ -2228,7 +2228,17 @@ function renderRutina(){
   // Use the highest of: ciclo_actual from DB, highest cycle with rutinas, highest key in ciclos_nombres.
   // This prevents the app from being stuck on an old cycle when ciclo_actual wasn't updated properly.
   const _maxCicloNombres = Object.keys(a.ciclos_nombres||{}).map(Number).filter(n=>n>0).reduce((m,n)=>Math.max(m,n),0);
-  const cicloActual = Math.max(parseInt(a.ciclo_actual)||1, ciclos[ciclos.length-1]||1, _maxCicloNombres||1);
+  let _cicloTope = Math.max(parseInt(a.ciclo_actual)||1, ciclos[ciclos.length-1]||1, _maxCicloNombres||1);
+  // Date gating: a cycle with a future start date (ciclos_inicio) is not active yet → fall back to the
+  // previous one until that date arrives. Cycles without a start date activate immediately (backward compat).
+  const _ciclosInicio = a.ciclos_inicio || {};
+  const _hoyStr = (()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
+  while(_cicloTope > 1){
+    const _ini = _ciclosInicio[_cicloTope] || _ciclosInicio[String(_cicloTope)];
+    if(_ini && _ini > _hoyStr){ _cicloTope--; continue; } // start date in the future → not active yet
+    break;
+  }
+  const cicloActual = _cicloTope;
   // Determine if the new cycle has been started (any exercise marked done)
   const _newCycleStarted = Object.keys(done).some(k=>k.startsWith(`${a.id}-c${cicloActual}-`)&&done[k]);
   const _cicloAnterior = cicloActual > 1 ? cicloActual - 1 : null;
