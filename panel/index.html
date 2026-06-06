@@ -469,7 +469,7 @@
     <div><label>Fecha de inicio</label><input type="date" id="fecha-ciclo-input"></div>
     <div style="display:flex;gap:8px;margin-top:.5rem;">
       <button class="btn btn-p" onclick="guardarFechaCiclo()">Aceptar</button>
-      <button class="btn" onclick="document.getElementById('fecha-ciclo-input').value='';" title="Activar de inmediato">Activar ya</button>
+      <button class="btn" onclick="document.getElementById('fecha-ciclo-input').value='';guardarFechaCiclo();" title="Activar de inmediato">Activar ya</button>
       <button class="btn" onclick="closeFechaCicloModal()">Cancelar</button>
     </div>
     <div id="fecha-ciclo-msg" style="font-size:12px;margin-top:8px;"></div>
