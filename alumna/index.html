@@ -2225,7 +2225,10 @@ function renderRutina(){
 
   // Obtener datos
   const ciclos = getCiclos(a.id);
-  const cicloActual = parseInt(a.ciclo_actual)||ciclos[ciclos.length-1]||1;
+  // Use the highest of: ciclo_actual from DB, highest cycle with rutinas, highest key in ciclos_nombres.
+  // This prevents the app from being stuck on an old cycle when ciclo_actual wasn't updated properly.
+  const _maxCicloNombres = Object.keys(a.ciclos_nombres||{}).map(Number).filter(n=>n>0).reduce((m,n)=>Math.max(m,n),0);
+  const cicloActual = Math.max(parseInt(a.ciclo_actual)||1, ciclos[ciclos.length-1]||1, _maxCicloNombres||1);
   // Determine if the new cycle has been started (any exercise marked done)
   const _newCycleStarted = Object.keys(done).some(k=>k.startsWith(`${a.id}-c${cicloActual}-`)&&done[k]);
   const _cicloAnterior = cicloActual > 1 ? cicloActual - 1 : null;
