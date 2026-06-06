@@ -2235,8 +2235,13 @@ function renderRutina(){
   const _ciclosVisibles = _showCicloTabs ? [_cicloAnterior, cicloActual] : [cicloActual];
   // Only reset selCiclo if it's outside the visible set
   if(!_ciclosVisibles.includes(selCiclo)){
-    selCiclo = _showCicloTabs ? _cicloAnterior : cicloActual;
-    localStorage.setItem('af-selCiclo', selCiclo);
+    selCiclo = cicloActual; // Always default to current cycle
+    localStorage.setItem('af-selCiclo', String(selCiclo));
+  } else if(_showCicloTabs && selCiclo === _cicloAnterior){
+    // New cycle exists but alumna is still on old one from cache → auto-advance to new cycle.
+    // She can tap the old cycle tab manually if she needs to review it.
+    selCiclo = cicloActual;
+    localStorage.setItem('af-selCiclo', String(selCiclo));
   }
   // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
   if(selSem < 1 || selSem > 4) selSem = 1;
