@@ -459,6 +459,23 @@
   </div>
 </div>
 
+<!-- Modal editar fecha de inicio de un ciclo existente -->
+<div class="modal-bg" id="modal-fecha-ciclo" style="display:none;" onclick="if(event.target===this)closeFechaCicloModal()">
+  <div class="modal">
+    <h3 id="fecha-ciclo-titulo">Fecha de inicio</h3>
+    <div class="nota" style="margin-bottom:1rem;">
+      Elegí desde qué día la alumna verá este ciclo. Dejala en blanco para que se active de inmediato.
+    </div>
+    <div><label>Fecha de inicio</label><input type="date" id="fecha-ciclo-input"></div>
+    <div style="display:flex;gap:8px;margin-top:.5rem;">
+      <button class="btn btn-p" onclick="guardarFechaCiclo()">Aceptar</button>
+      <button class="btn" onclick="document.getElementById('fecha-ciclo-input').value='';" title="Activar de inmediato">Activar ya</button>
+      <button class="btn" onclick="closeFechaCicloModal()">Cancelar</button>
+    </div>
+    <div id="fecha-ciclo-msg" style="font-size:12px;margin-top:8px;"></div>
+  </div>
+</div>
+
 <!-- Modal IA: generación de rutina con IA -->
 <div class="modal-bg" id="modal-ia" style="display:none;" onclick="if(event.target===this)closeIAModal()">
   <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto;">
@@ -1047,21 +1064,32 @@ async function renombrarCiclo(c){
   render();
 }
 
-async function editarFechaCiclo(c){
+let _fechaCicloSel=null;
+function editarFechaCiclo(c){
   const a=getA(S.selA); if(!a) return;
+  _fechaCicloSel=c;
   const nombre=a.ciclos_nombres?.[c]||`Ciclo ${c}`;
-  const actual=a.ciclos_inicio?.[c]||'';
-  const nueva=prompt(`Fecha de inicio de "${nombre}" (formato AAAA-MM-DD).\nDejá vacío para que se active de inmediato:`, actual);
-  if(nueva===null) return; // canceló
-  const val=nueva.trim();
-  if(val && !/^\d{4}-\d{2}-\d{2}$/.test(val)){ alert('Formato inválido. Usá AAAA-MM-DD, ej: 2026-07-01'); return; }
+  document.getElementById('fecha-ciclo-titulo').textContent=`Fecha de inicio · ${nombre}`;
+  // Mostrar la fecha guardada; si no hay, sugerir hoy
+  const hoy=new Date();
+  const hoyStr=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+  document.getElementById('fecha-ciclo-input').value=a.ciclos_inicio?.[c]||hoyStr;
+  document.getElementById('fecha-ciclo-msg').textContent='';
+  document.getElementById('modal-fecha-ciclo').style.display='flex';
+}
+function closeFechaCicloModal(){document.getElementById('modal-fecha-ciclo').style.display='none';_fechaCicloSel=null;}
+async function guardarFechaCiclo(){
+  const a=getA(S.selA); if(!a||_fechaCicloSel===null) return;
+  const c=_fechaCicloSel;
+  const val=(document.getElementById('fecha-ciclo-input').value||'').trim();
   const ciclosInicio={...(a.ciclos_inicio||{})};
   if(val) ciclosInicio[c]=val; else delete ciclosInicio[c];
   try{
     await sbPatch('alumnas',`id=eq.${a.id}`,{ciclos_inicio:ciclosInicio});
     a.ciclos_inicio=ciclosInicio;
+    closeFechaCicloModal();
     render();
-  }catch(e){ alert('Error al guardar la fecha. ¿Existe la columna ciclos_inicio en la tabla alumnas?'); }
+  }catch(e){ document.getElementById('fecha-ciclo-msg').textContent='Error al guardar. ¿Existe la columna ciclos_inicio en la tabla alumnas?'; document.getElementById('fecha-ciclo-msg').style.color='var(--d,#e55)'; }
 }
 
 async function eliminarCiclo(c){
