@@ -2238,11 +2238,11 @@ function renderRutina(){
   const _ciclosVisibles = _showCicloTabs ? [_cicloAnterior, cicloActual] : [cicloActual];
   // Only reset selCiclo if it's outside the visible set
   if(!_ciclosVisibles.includes(selCiclo)){
-    selCiclo = cicloActual; // Always default to current cycle
+    selCiclo = cicloActual;
     localStorage.setItem('af-selCiclo', String(selCiclo));
-  } else if(_showCicloTabs && selCiclo === _cicloAnterior){
-    // New cycle exists but alumna is still on old one from cache → auto-advance to new cycle.
-    // She can tap the old cycle tab manually if she needs to review it.
+  } else if(_showCicloTabs && selCiclo === _cicloAnterior && !localStorage.getItem('af-selCiclo')){
+    // Cold start (no stored preference) → default to new cycle. If user has a stored value they
+    // chose it deliberately, so don't override — the tab is visible and they can switch manually.
     selCiclo = cicloActual;
     localStorage.setItem('af-selCiclo', String(selCiclo));
   }
