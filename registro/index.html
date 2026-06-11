@@ -94,6 +94,12 @@
 </div>
 
 <div class="wizard" id="wizard">
+  <!-- Honeypot: campo trampa invisible para humanos, los bots lo llenan -->
+  <div style="position:absolute;left:-9999px;height:0;overflow:hidden;opacity:0;" aria-hidden="true">
+    <label for="hp-web">No completar</label>
+    <input type="text" id="hp-web" name="website" tabindex="-1" autocomplete="off">
+  </div>
+
   <!-- Progress -->
   <div class="steps" id="steps-bar">
     <div class="step-dot active" id="dot-1">1</div>
@@ -263,6 +269,20 @@ function validate(step){
     const mail=document.getElementById('f-mail').value.trim();
     const ub=document.getElementById('f-ubicacion').value;
     if(!nombre||!tel||!mail||!ub){alert('Por favor completá todos los campos antes de continuar.');return false;}
+    // Validar longitud del teléfono (mín 10 dígitos después de normalizar)
+    const telNorm=normalizarTel(tel);
+    const soloDigitos=telNorm.replace(/\D/g,'');
+    if(soloDigitos.length<12){alert('El número de WhatsApp parece incompleto. Revisá que tenga el código de área.\n\nEjemplo: 1123456789 (sin el 0 ni el 15)');return false;}
+    // Validar fecha de nacimiento: no puede ser futura ni menor de 12 años
+    const nacStr=document.getElementById('f-nacimiento').value;
+    if(nacStr){
+      const nac=new Date(nacStr);
+      const hoy=new Date();
+      if(nac>hoy){alert('La fecha de nacimiento no puede ser en el futuro.');return false;}
+      const edadMs=hoy-nac;
+      const edadAnios=edadMs/(1000*60*60*24*365.25);
+      if(edadAnios<12){alert('Debés tener al menos 12 años para registrarte.');return false;}
+    }
   }
   return true;
 }
@@ -335,6 +355,12 @@ function normalizarTel(raw){
 }
 
 async function enviarRegistro(){
+  // Honeypot: si el campo oculto tiene contenido es un bot — simular éxito sin guardar nada
+  if((document.getElementById('hp-web').value||'').trim()){
+    document.getElementById('wizard').style.display='none';
+    document.getElementById('success').style.display='block';
+    return;
+  }
   const nombre=document.getElementById('f-nombre').value.trim();
   const apellido=document.getElementById('f-apellido').value.trim();
   const tel=normalizarTel(document.getElementById('f-tel').value.trim());
