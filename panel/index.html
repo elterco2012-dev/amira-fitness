@@ -1550,6 +1550,12 @@ async function saveGeneratedRoutine(){
     const _sems=DB.rutinas[a.id]?.[cicloActual];
     const cicloActualTieneData=_sems&&Object.values(_sems).some(dias=>Array.isArray(dias)&&dias.some(d=>d.ejercicios?.length>0));
     const nuevoCiclo=cicloActualTieneData?cicloActual+1:cicloActual;
+    const nomActual=a.ciclos_nombres?.[cicloActual]||`Ciclo ${cicloActual}`;
+    const nomNuevo=routine.ciclo_nombre||`Ciclo ${nuevoCiclo}`;
+    const confirmMsg=cicloActualTieneData
+      ?`Se va a crear un ciclo nuevo ("${nomNuevo}") y se va a activar como ciclo actual de ${a.nombre.split(' ')[0]}.\n\nEl ciclo actual (${nomActual}) queda guardado en el historial.\n\n¿Continuar?`
+      :`Se van a guardar los ejercicios generados en el ciclo actual (${nomActual}) de ${a.nombre.split(' ')[0]}.\n\n¿Continuar?`;
+    if(!confirm(confirmMsg)){msgEl.textContent='';return;}
     const ops=[];
     for(const sem of(routine.semanas||[])){
       for(const dia of(sem.dias||[])){
@@ -1591,6 +1597,14 @@ async function saveGeneratedRoutineEnSemana(){
   const a=getA(S.selA);if(!a||!_iaRoutineData)return;
   const routine=_iaRoutineData;
   const msgEl=document.getElementById('ia-save-msg');
+  // Verificar si la semana actual ya tiene ejercicios para avisar antes de pisar
+  const _diasActuales=DB.rutinas[a.id]?.[S.selCiclo]?.[S.selSem]||[];
+  const _semTieneData=_diasActuales.some(d=>d.ejercicios?.length>0);
+  const _nomCiclo=a.ciclos_nombres?.[S.selCiclo]||`Ciclo ${S.selCiclo}`;
+  const _confirmMsg=_semTieneData
+    ?`⚠️ La Semana ${S.selSem} de ${_nomCiclo} ya tiene ejercicios cargados.\n\nEsto los va a reemplazar completamente con los ejercicios generados por la IA.\n\nLos ejercicios actuales de esa semana se perderán. ¿Continuar?`
+    :`Se van a guardar los ejercicios generados en ${_nomCiclo} · Semana ${S.selSem} de ${a.nombre.split(' ')[0]}. ¿Continuar?`;
+  if(!confirm(_confirmMsg)){msgEl.textContent='';return;}
   msgEl.textContent='Guardando en semana '+S.selSem+'...';
   try{
     const ciclo=S.selCiclo;
