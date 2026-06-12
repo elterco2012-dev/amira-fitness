@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Exercise card" subtitle="Default + done state — the alumna app's hero pattern" viewport="700x340" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#f8f8f6;padding:28px 32px;color:#1a1a1a;}
+  .wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:640px;}
+  .ex-card{background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:16px;padding:.85rem 1rem;transition:all .25s;}
+  .ex-card.done{background:#E1F5EE;border-color:#5DCAA5;}
+  .ex-top{display:flex;align-items:center;gap:10px;cursor:pointer;}
+  .ex-num{width:28px;height:28px;border-radius:50%;background:#f3f4f2;border:1px solid rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#6b7280;flex-shrink:0;}
+  .ex-card.done .ex-num{background:#1D9E75;color:white;border-color:#1D9E75;}
+  .ex-name{font-size:13px;font-weight:500;flex:1;color:#1a1a1a;}
+  .ex-det{font-size:11px;color:#6b7280;margin-top:3px;}
+  .ex-btns{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.07);flex-wrap:wrap;}
+  .btip{background:#EEEDFE;border:none;border-radius:10px;padding:5px 11px;font-size:11px;color:#3C3289;font-weight:500;}
+  .bvid{background:#FCEBEB;border:none;border-radius:10px;padding:5px 11px;font-size:11px;color:#A32D2D;font-weight:500;display:inline-flex;align-items:center;gap:3px;}
+  .bchk{width:100%;margin-top:8px;background:#f3f4f2;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:9px 11px;font-size:12px;color:#6b7280;font-weight:500;text-align:center;}
+  .ex-card.done .bchk{background:#E1F5EE;color:#0F6E56;border-color:#5DCAA5;}
+  .tip-txt{font-size:12px;color:#0F6E56;background:#E1F5EE;border-radius:10px;padding:8px 10px;margin-top:8px;line-height:1.55;}
+</style></head>
+<body>
+  <div class="wrap">
+    <div class="ex-card">
+      <div class="ex-top">
+        <div class="ex-num">1</div>
+        <div style="flex:1;">
+          <div class="ex-name">Hollow Hold</div>
+          <div class="ex-det">3 series · 20-30"</div>
+        </div>
+      </div>
+      <div class="ex-btns">
+        <button class="btip">💡 Tip</button>
+        <a class="bvid">▶ Video</a>
+      </div>
+      <div class="tip-txt">Espalda baja siempre apoyada. Si se despega, flexioná rodillas.</div>
+      <button class="bchk">Marcar como hecho</button>
+    </div>
+    <div class="ex-card done">
+      <div class="ex-top">
+        <div class="ex-num">✓</div>
+        <div style="flex:1;">
+          <div class="ex-name">Sentadilla al cajón</div>
+          <div class="ex-det">3 series · 10</div>
+        </div>
+      </div>
+      <button class="bchk">✓ Hecho</button>
+    </div>
+  </div>
+</body></html>

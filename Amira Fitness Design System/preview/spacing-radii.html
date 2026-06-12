@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Spacing" name="Spacing — Radii" subtitle="10 / 16 / 30 / circle — strict 4-step system" viewport="700x240" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:32px;align-items:flex-end;}
+  .item{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .box{background:#E1F5EE;border:1px solid #5DCAA5;width:120px;height:80px;}
+  .lbl{font-size:12px;font-weight:500;}
+  .val{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9ca3af;}
+  .role{font-size:11px;color:#6b7280;text-align:center;max-width:140px;line-height:1.4;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item">
+      <div class="box" style="border-radius:0;"></div>
+      <div class="lbl">none</div><div class="val">0</div><div class="role">Never used in source</div>
+    </div>
+    <div class="item">
+      <div class="box" style="border-radius:10px;"></div>
+      <div class="lbl">small · rs</div><div class="val">10px</div><div class="role">Inputs, chips, ex-card, secondary buttons</div>
+    </div>
+    <div class="item">
+      <div class="box" style="border-radius:16px;"></div>
+      <div class="lbl">card · r</div><div class="val">16px</div><div class="role">Cards, hero, drawer body, photos</div>
+    </div>
+    <div class="item">
+      <div class="box" style="border-radius:30px;width:160px;"></div>
+      <div class="lbl">pill · rp</div><div class="val">30px</div><div class="role">CTAs, badges, segmented tabs</div>
+    </div>
+    <div class="item">
+      <div class="box" style="border-radius:50%;width:80px;"></div>
+      <div class="lbl">circle</div><div class="val">50%</div><div class="role">Avatars, step dots, timer</div>
+    </div>
+  </div>
+</body></html>

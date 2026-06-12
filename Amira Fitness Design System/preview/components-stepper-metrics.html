@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Stepper & metrics" subtitle="Wizard dots, big step nums, metric cards" viewport="700x380" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:10px;font-weight:500;}
+  .group{margin-bottom:22px;}
+
+  .steps{display:flex;align-items:center;max-width:480px;}
+  .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+  .step-dot.done{background:#1D9E75;color:white;}
+  .step-dot.active{background:#1D9E75;color:white;box-shadow:0 0 0 4px rgba(29,158,117,0.15);}
+  .step-dot.pending{background:#fff;border:1px solid rgba(0,0,0,0.12);color:#6b7280;}
+  .step-line{flex:1;height:2px;background:rgba(0,0,0,0.07);margin:0 6px;}
+  .step-line.done{background:#1D9E75;}
+
+  .step-num-card{width:44px;height:44px;border-radius:50%;background:#1D9E75;color:white;font-family:'DM Serif Display',serif;font-size:20px;display:flex;align-items:center;justify-content:center;}
+
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .metric{background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:1rem 1.25rem;}
+  .mlabel{font-size:11px;color:#6b7280;margin-bottom:4px;}
+  .mval{font-family:'DM Serif Display',serif;font-size:2rem;color:#1a1a1a;line-height:1;}
+  .mval.g{color:#0F6E56;}
+</style></head>
+<body>
+  <div class="group">
+    <div class="lbl">Wizard stepper · registro</div>
+    <div class="steps">
+      <div class="step-dot done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step-dot done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step-dot active">3</div>
+      <div class="step-line"></div>
+      <div class="step-dot pending">4</div>
+      <div class="step-line"></div>
+      <div class="step-dot pending">5</div>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Step number · cómo funciona</div>
+    <div style="display:flex;gap:14px;">
+      <div class="step-num-card">1</div>
+      <div class="step-num-card">2</div>
+      <div class="step-num-card">3</div>
+      <div class="step-num-card">4</div>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Metric cards · panel dashboard</div>
+    <div class="metrics">
+      <div class="metric"><div class="mlabel">Alumnas activas</div><div class="mval g">12</div></div>
+      <div class="metric"><div class="mlabel">Pendientes</div><div class="mval">3</div></div>
+      <div class="metric"><div class="mlabel">Semana actual</div><div class="mval">38</div></div>
+      <div class="metric"><div class="mlabel">Esta semana</div><div class="mval g">84%</div></div>
+    </div>
+  </div>
+</body></html>

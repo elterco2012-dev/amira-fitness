@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Colors" name="Colors — Neutrals (light)" subtitle="Cream bg + surfaces + text hierarchy" viewport="700x320" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .sw{display:flex;flex-direction:column;gap:7px;}
+  .chip{aspect-ratio:1.8/1;border-radius:12px;border:1px solid rgba(0,0,0,0.07);}
+  .lbl{font-size:12px;font-weight:500;}
+  .hex{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9ca3af;}
+  .role{font-size:10px;color:#6b7280;line-height:1.4;}
+</style></head>
+<body>
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:#f8f8f6;"></div><div class="lbl">Bg · cream</div><div class="hex">#f8f8f6</div><div class="role">Page background — never pure white</div></div>
+    <div class="sw"><div class="chip" style="background:#ffffff;"></div><div class="lbl">Surface</div><div class="hex">#ffffff</div><div class="role">Cards, sheets, nav</div></div>
+    <div class="sw"><div class="chip" style="background:#f3f4f2;"></div><div class="lbl">Surface 2</div><div class="hex">#f3f4f2</div><div class="role">Sunken / muted inputs</div></div>
+    <div class="sw"><div class="chip" style="background:#ebebea;"></div><div class="lbl">Surface 3</div><div class="hex">#ebebea</div><div class="role">Panel deeper-muted sections</div></div>
+
+    <div class="sw"><div class="chip" style="background:#1a1a1a;"></div><div class="lbl">Foreground</div><div class="hex">#1a1a1a</div><div class="role">Primary text</div></div>
+    <div class="sw"><div class="chip" style="background:#6b7280;"></div><div class="lbl">FG muted</div><div class="hex">#6b7280</div><div class="role">Secondary text, meta</div></div>
+    <div class="sw"><div class="chip" style="background:#9ca3af;"></div><div class="lbl">FG hint</div><div class="hex">#9ca3af</div><div class="role">Placeholder, tertiary</div></div>
+    <div class="sw"><div class="chip" style="background:#fff;border:1px solid rgba(0,0,0,0.07);"></div><div class="lbl">Border</div><div class="hex">rgba(0,0,0,.07)</div><div class="role">Card hairline default</div></div>
+  </div>
+</body></html>

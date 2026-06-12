@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#e9e9e6;padding:40px;}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;max-width:1100px;margin:0 auto;}
+  .opt{display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .sq{width:280px;height:280px;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,.10);}
+  .cap{font-size:13px;color:#444;font-weight:500;text-align:center;}
+  .capn{font-size:11px;color:#999;}
+
+  /* 1 — Solid green circle, white A (matches PWA icon) */
+  .o1{background:#1D9E75;}
+  .o1 .circ{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;}
+  .o1 .ring{position:absolute;width:62%;height:62%;border-radius:50%;background:rgba(225,245,238,.16);}
+  .o1 .a{font-family:'DM Serif Display',serif;font-size:170px;color:#fff;position:relative;line-height:1;}
+
+  /* 2 — Cream bg, green circle, white A */
+  .o2{background:#f8f8f6;}
+  .o2 .circ{width:62%;height:62%;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;}
+  .o2 .a{font-family:'DM Serif Display',serif;font-size:110px;color:#fff;line-height:1;}
+
+  /* 3 — Green bg, white A + wordmark stacked */
+  .o3{background:#1D9E75;flex-direction:column;gap:14px;}
+  .o3 .a{font-family:'DM Serif Display',serif;font-size:120px;color:#fff;line-height:.9;}
+  .o3 .wm{font-family:'DM Sans',sans-serif;font-size:24px;color:#fff;font-weight:500;letter-spacing:.5px;}
+
+  /* 4 — Cream bg, green A + wordmark */
+  .o4{background:#f8f8f6;flex-direction:column;gap:10px;}
+  .o4 .a{font-family:'DM Serif Display',serif;font-size:120px;color:#0F6E56;line-height:.9;}
+  .o4 .wm{font-family:'DM Sans',sans-serif;font-size:23px;color:#1a1a1a;font-weight:500;}
+  .o4 .wm b{color:#1D9E75;font-weight:600;}
+
+  /* 5 — Green rounded square, white A (PWA icon-192 exact style) */
+  .o5{background:#f8f8f6;}
+  .o5 .rr{width:78%;height:78%;border-radius:22%;background:#1D9E75;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+  .o5 .ring{position:absolute;width:58%;height:58%;border-radius:50%;background:rgba(225,245,238,.18);}
+  .o5 .a{font-family:'DM Serif Display',serif;font-size:130px;color:#fff;position:relative;line-height:1;}
+
+  /* 6 — Dark bg, verde A + wordmark (for dark placements) */
+  .o6{background:#111110;flex-direction:column;gap:10px;}
+  .o6 .a{font-family:'DM Serif Display',serif;font-size:120px;color:#5DCAA5;line-height:.9;}
+  .o6 .wm{font-family:'DM Sans',sans-serif;font-size:23px;color:#f0ede8;font-weight:500;}
+
+  h1{font-family:'DM Serif Display',serif;font-size:28px;color:#1a1a1a;text-align:center;margin-bottom:6px;}
+  .sub{text-align:center;color:#666;font-size:13px;margin-bottom:32px;}
+</style>
+</head>
+<body>
+  <h1>Amira Fitness — Opciones de logo</h1>
+  <div class="sub">Todas cuadradas (1:1), listas para Google Ads. Decime el número que querés y te lo exporto en PNG 1200×1200.</div>
+  <div class="grid">
+    <div class="opt">
+      <div class="sq o1"><div class="circ"><div class="ring"></div><span class="a">A</span></div></div>
+      <div class="cap">1 · Círculo verde sólido</div>
+      <div class="capn">El más fiel al PWA icon · ideal para favicon/perfil</div>
+    </div>
+    <div class="opt">
+      <div class="sq o5"><div class="rr"><div class="ring"></div><span class="a">A</span></div></div>
+      <div class="cap">2 · App icon (cuadrado redondeado)</div>
+      <div class="capn">Réplica exacta del ícono de la app</div>
+    </div>
+    <div class="opt">
+      <div class="sq o2"><div class="circ"><span class="a">A</span></div></div>
+      <div class="cap">3 · Círculo sobre crema</div>
+      <div class="capn">Más aireado · fondo claro de marca</div>
+    </div>
+    <div class="opt">
+      <div class="sq o3"><span class="a">A</span><span class="wm">Amira Fitness</span></div>
+      <div class="cap">4 · Monograma + nombre (verde)</div>
+      <div class="capn">Incluye el nombre · más reconocible en ads</div>
+    </div>
+    <div class="opt">
+      <div class="sq o4"><span class="a">A</span><span class="wm">Amira&nbsp;<b>Fitness</b></span></div>
+      <div class="cap">5 · Monograma + nombre (crema)</div>
+      <div class="capn">Versión clara con wordmark</div>
+    </div>
+    <div class="opt">
+      <div class="sq o6"><span class="a">A</span><span class="wm">Amira Fitness</span></div>
+      <div class="cap">6 · Versión oscura</div>
+      <div class="capn">Para fondos oscuros</div>
+    </div>
+  </div>
+</body>
+</html>

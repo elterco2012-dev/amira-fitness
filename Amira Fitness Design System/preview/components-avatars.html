@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Avatars" subtitle="4-color rotating palette + photo + size scale" viewport="700x260" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+  .av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:19px;flex-shrink:0;}
+  .av-teal{background:#E1F5EE;color:#0F6E56;}
+  .av-purple{background:#EEEDFE;color:#3C3289;}
+  .av-amber{background:#FAEEDA;color:#633806;}
+  .av-coral{background:#FAECE7;color:#712B13;}
+  .av-photo img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .av.sm{width:34px;height:34px;font-size:14px;}
+  .av.lg{width:64px;height:64px;font-size:24px;}
+  .item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .nm{font-size:11px;color:#9ca3af;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item"><div class="av av-teal">A</div><div class="nm">Verde</div></div>
+    <div class="item"><div class="av av-purple">M</div><div class="nm">Purple</div></div>
+    <div class="item"><div class="av av-amber">L</div><div class="nm">Amber</div></div>
+    <div class="item"><div class="av av-coral">S</div><div class="nm">Coral</div></div>
+    <div class="item"><div class="av av-teal av-photo"><img src="../assets/foto-amira.jpg" alt=""></div><div class="nm">Photo</div></div>
+  </div>
+  <div class="row" style="margin-top:24px;">
+    <div class="item"><div class="av sm av-teal">A</div><div class="nm">SM · 34px (nav)</div></div>
+    <div class="item"><div class="av av-teal">A</div><div class="nm">MD · 48px (hero)</div></div>
+    <div class="item"><div class="av lg av-teal">A</div><div class="nm">LG · 64px (profile)</div></div>
+  </div>
+  <div style="margin-top:24px;font-size:11px;color:#6b7280;line-height:1.6;max-width:600px;">
+    Avatar letter is always <strong>DM Serif Display regular</strong>. Background tints come from the 4-color avatar palette in the source — assigned per-alumna and stable across sessions.
+  </div>
+</body></html>

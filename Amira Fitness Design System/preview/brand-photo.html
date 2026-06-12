@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Brand" name="Brand — Photography" subtitle="Single human image — Amira's portrait" viewport="700x320" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:28px;align-items:center;flex-wrap:wrap;}
+  .photo{border-radius:18px;overflow:hidden;background:#f8f8f6;border:1px solid rgba(0,0,0,0.07);}
+  .photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 70%;}
+  .a45{aspect-ratio:4/5;width:160px;}
+  .sq{aspect-ratio:1/1;width:120px;}
+  .pill{aspect-ratio:3/2;width:240px;}
+  .nm{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-top:6px;}
+  .item{display:flex;flex-direction:column;align-items:flex-start;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item">
+      <div class="photo a45"><img src="../assets/foto-amira.jpg" alt="Amira"></div>
+      <div class="nm">Hero · 4:5</div>
+    </div>
+    <div class="item">
+      <div class="photo sq"><img src="../assets/foto-amira.jpg" alt="Amira"></div>
+      <div class="nm">Avatar · 1:1</div>
+    </div>
+    <div class="item">
+      <div class="photo pill"><img src="../assets/foto-amira.jpg" alt="Amira"></div>
+      <div class="nm">Wide · 3:2 (OG image)</div>
+    </div>
+  </div>
+  <div style="margin-top:20px;font-size:11px;color:#6b7280;line-height:1.6;max-width:600px;">
+    The brand has one human image — Amira's portrait — used as hero, avatar, and OG share image. Object-position <code style="background:#f3f4f2;padding:1px 5px;border-radius:4px;">center 70%</code> face-weights it upward in tall crops. No filters, grain, or overlays. <strong>Don't add stock photography.</strong>
+  </div>
+</body></html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Buttons" subtitle="Primary, secondary, WhatsApp, on-dark" viewport="700x360" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;width:120px;font-weight:500;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:30px;font-size:13px;font-weight:500;border:1px solid rgba(0,0,0,0.12);background:#fff;color:#1a1a1a;cursor:pointer;font-family:inherit;}
+  .btn-p{background:#1D9E75;color:white;border-color:#1D9E75;}
+  .btn-wa{background:#25D366;color:white;border-color:#25D366;padding:13px 26px;}
+  .btn-d{color:#A32D2D;border-color:#F09595;}
+  .btn-warn{background:#FAEEDA;color:#633806;border-color:transparent;}
+  .btn-purple{background:#EEEDFE;color:#3C3289;border-color:transparent;}
+  .btn-outline-v{background:transparent;color:#1D9E75;border:1.5px solid #1D9E75;}
+  .btn-s{padding:5px 12px;font-size:11px;}
+  .btn-white{background:white;color:#0F6E56;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="lbl">Primary</div>
+    <button class="btn btn-p">Quiero empezar</button>
+    <button class="btn btn-p btn-s">Guardar</button>
+    <button class="btn btn-outline-v">Ver rutina</button>
+  </div>
+  <div class="row">
+    <div class="lbl">Secondary</div>
+    <button class="btn">Cancelar</button>
+    <button class="btn btn-s">Editar</button>
+  </div>
+  <div class="row">
+    <div class="lbl">WhatsApp</div>
+    <button class="btn btn-wa">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+      Escribime y charlamos
+    </button>
+  </div>
+  <div class="row">
+    <div class="lbl">Variants</div>
+    <button class="btn btn-warn btn-s">Pausar</button>
+    <button class="btn btn-purple btn-s">Variantes</button>
+    <button class="btn btn-d btn-s">Eliminar</button>
+  </div>
+  <div class="row" style="background:#0F6E56;padding:14px;border-radius:14px;">
+    <div class="lbl" style="color:rgba(255,255,255,.6);">On dark</div>
+    <button class="btn btn-white">Empezar ahora</button>
+    <button class="btn" style="background:transparent;color:white;border:1.5px solid rgba(255,255,255,.5);">Conocé más</button>
+  </div>
+</body></html>

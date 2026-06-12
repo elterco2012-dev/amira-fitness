@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Brand" name="Brand — Iconography" subtitle="Emoji-first, unicode, WhatsApp SVG · no icon font" viewport="700x480" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .group{margin-bottom:18px;}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:10px;font-weight:500;}
+  .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+  .ic{font-size:24px;line-height:1;}
+  .chip{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .chip-lbl{font-size:10px;color:#6b7280;}
+  .square{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .sq-green{background:#E1F5EE;}
+  .sq-amber{background:#FAEEDA;}
+  .sq-purple{background:#EEEDFE;}
+  .uni{font-family:'DM Sans',sans-serif;font-size:18px;color:#1a1a1a;}
+  .wa svg{display:block;}
+</style></head>
+<body>
+  <div class="group">
+    <div class="lbl">Emoji · service icons (in tinted chips)</div>
+    <div class="row">
+      <div class="chip"><div class="square sq-green"><span class="ic">📋</span></div><div class="chip-lbl">Rutina</div></div>
+      <div class="chip"><div class="square sq-amber"><span class="ic">📊</span></div><div class="chip-lbl">Tracking</div></div>
+      <div class="chip"><div class="square sq-purple"><span class="ic">💬</span></div><div class="chip-lbl">Contacto</div></div>
+      <div class="chip"><div class="square sq-green"><span class="ic">🎯</span></div><div class="chip-lbl">Objetivos</div></div>
+      <div class="chip"><div class="square sq-amber"><span class="ic">🔄</span></div><div class="chip-lbl">Iteración</div></div>
+      <div class="chip"><div class="square sq-purple"><span class="ic">📱</span></div><div class="chip-lbl">App</div></div>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Emoji · WhatsApp messages + celebrations</div>
+    <div class="row">
+      <span class="ic">💪</span><span class="ic">🌟</span><span class="ic">💚</span><span class="ic">🎉</span><span class="ic">🏋️‍♀️</span>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Unicode chars · arrows, checks, dots</div>
+    <div class="row">
+      <span class="uni">→</span><span class="uni">✓</span><span class="uni">·</span><span class="uni">▶</span><span class="uni">"</span>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Hand-rolled SVG · WhatsApp glyph (the only literal logo)</div>
+    <div class="row">
+      <div class="wa">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+      </div>
+      <div style="font-size:11px;color:#6b7280;max-width:380px;line-height:1.6;">No icon font. Lucide / Heroicons / FontAwesome are <strong>not</strong> imported. Reach for emoji first, text labels second; only hand-roll SVG when no other option exists (the WhatsApp brand glyph is the canonical example).</div>
+    </div>
+  </div>
+</body></html>
