@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Tabs & progress" subtitle="Soft-pill, day-tabs, underline, progress bar" viewport="700x400" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:8px;font-weight:500;}
+  .group{margin-bottom:20px;}
+
+  /* Soft pill (semana / ciclo) */
+  .stabs{display:flex;gap:5px;flex-wrap:wrap;}
+  .stab{padding:5px 13px;border-radius:30px;font-size:11px;border:1px solid rgba(0,0,0,0.12);background:#fff;color:#6b7280;cursor:pointer;}
+  .stab.active{background:#EEEDFE;color:#3C3289;border-color:transparent;font-weight:500;}
+
+  /* Day tabs (verde fill) */
+  .dtabs{display:flex;gap:6px;}
+  .dtab{flex:1;padding:9px 4px;border-radius:30px;font-size:12px;font-weight:500;border:1px solid rgba(0,0,0,0.12);background:#fff;color:#6b7280;text-align:center;}
+  .dtab.active{background:#1D9E75;color:white;border-color:#1D9E75;}
+
+  /* Drawer tab (underline) */
+  .drawer-tabs{display:flex;border-bottom:1px solid rgba(0,0,0,0.07);}
+  .dwtab{padding:8px 14px;font-size:12px;color:#6b7280;background:none;border:none;border-bottom:2px solid transparent;}
+  .dwtab.active{font-weight:600;color:#1D9E75;border-bottom-color:#1D9E75;}
+
+  /* Progress bar */
+  .prog-wrap{max-width:360px;}
+  .prog-top{display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-bottom:5px;}
+  .prog-bar{height:6px;background:rgba(0,0,0,0.07);border-radius:99px;overflow:hidden;}
+  .prog-fill{height:100%;background:#1D9E75;width:62%;}
+</style></head>
+<body>
+  <div class="group">
+    <div class="lbl">Soft pill tabs · semana / ciclo</div>
+    <div class="stabs">
+      <button class="stab">Semana 1</button>
+      <button class="stab active">Semana 2</button>
+      <button class="stab">Semana 3</button>
+      <button class="stab">Semana 4</button>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Day tabs · verde fill</div>
+    <div class="dtabs">
+      <button class="dtab">Día 1</button>
+      <button class="dtab active">Día 2</button>
+      <button class="dtab">Día 3</button>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Drawer underline tabs</div>
+    <div class="drawer-tabs">
+      <button class="dwtab active">Rutina</button>
+      <button class="dwtab">Datos</button>
+      <button class="dwtab">Historial</button>
+      <button class="dwtab">Notas</button>
+    </div>
+  </div>
+  <div class="group">
+    <div class="lbl">Progress bar</div>
+    <div class="prog-wrap">
+      <div class="prog-top"><span>5 de 8 ejercicios</span><span style="color:#0F6E56;font-weight:500;">62%</span></div>
+      <div class="prog-bar"><div class="prog-fill"></div></div>
+    </div>
+  </div>
+</body></html>

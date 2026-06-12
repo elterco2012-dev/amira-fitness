@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Notes & callouts" subtitle="Tip, warn, info, danger + filosofía callout" viewport="700x440" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display:ital&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .note{border-radius:10px;padding:.7rem 1rem;font-size:12px;line-height:1.55;}
+  .nota-tip{background:#E1F5EE;color:#0F6E56;}
+  .nota-warn{background:#FAEEDA;color:#633806;}
+  .nota-info{background:#EEEDFE;color:#3C3289;}
+  .nota-danger{background:#FCEBEB;color:#A32D2D;}
+  .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px;font-weight:500;}
+
+  .filosofia{background:#0F6E56;color:white;border-radius:16px;padding:22px;margin-top:18px;}
+  .filosofia .stag{font-size:11px;font-weight:500;color:#5DCAA5;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
+  .callout{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:1.2rem;color:white;max-width:280px;}
+  .callout .big{font-family:'DM Serif Display',serif;font-style:italic;font-size:2.4rem;line-height:1;margin-bottom:.4rem;}
+  .callout p{font-size:12px;line-height:1.6;color:rgba(255,255,255,.78);}
+</style></head>
+<body>
+  <div class="grid">
+    <div>
+      <div class="lbl">Tip — verde</div>
+      <div class="note nota-tip">Espalda baja siempre apoyada. Si se despega, flexioná rodillas.</div>
+    </div>
+    <div>
+      <div class="lbl">Warn / nota de amira — amber</div>
+      <div class="note nota-warn">Cualquier molestia, avisame enseguida 💪</div>
+    </div>
+    <div>
+      <div class="lbl">Info — purple</div>
+      <div class="note nota-info">Esta semana es de descarga. Bajá un poco la intensidad.</div>
+    </div>
+    <div>
+      <div class="lbl">Danger — rojo</div>
+      <div class="note nota-danger">El número de teléfono que ingresaste no es válido.</div>
+    </div>
+  </div>
+  <div class="filosofia">
+    <div class="stag">Sobre Amira</div>
+    <div class="callout">
+      <div class="big">"</div>
+      <p>No soy un bot, no soy un PDF y no soy un gimnasio. Soy una persona que va a conocer tu caso.</p>
+    </div>
+  </div>
+</body></html>

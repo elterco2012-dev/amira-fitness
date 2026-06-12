@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Spacing" name="Spacing — Shadows" subtitle="Sparse — 5 named shadows, used contextually" viewport="700x260" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#f8f8f6;padding:36px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
+  .item{display:flex;flex-direction:column;gap:10px;align-items:center;}
+  .box{width:120px;height:80px;background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.07);}
+  .lbl{font-size:11px;font-weight:500;text-align:center;}
+  .val{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#9ca3af;text-align:center;max-width:140px;line-height:1.5;}
+  .role{font-size:10px;color:#6b7280;text-align:center;max-width:140px;line-height:1.4;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item">
+      <div class="box"></div>
+      <div class="lbl">No shadow (default)</div>
+      <div class="role">Cards sit on cream bg with only a hairline border. Default state.</div>
+    </div>
+    <div class="item">
+      <div class="box" style="box-shadow:0 4px 20px rgba(0,0,0,0.06);"></div>
+      <div class="lbl">Hover lift</div>
+      <div class="val">0 4 20 / rgba 6%</div>
+      <div class="role">Service cards on hover, drawer entry</div>
+    </div>
+    <div class="item">
+      <div class="box" style="box-shadow:0 -4px 20px rgba(0,0,0,0.08);"></div>
+      <div class="lbl">Timer (top)</div>
+      <div class="val">0 -4 20 / rgba 8%</div>
+      <div class="role">Bottom-fixed timer bar in alumna app</div>
+    </div>
+    <div class="item">
+      <div class="box" style="box-shadow:-4px 0 40px rgba(0,0,0,0.2);"></div>
+      <div class="lbl">Drawer</div>
+      <div class="val">-4 0 40 / rgba 20%</div>
+      <div class="role">Right-side panel slide-in</div>
+    </div>
+    <div class="item">
+      <div class="box" style="box-shadow:0 0 0 4px rgba(29,158,117,0.15);"></div>
+      <div class="lbl">Focus ring</div>
+      <div class="val">0 0 0 4 / verde 15%</div>
+      <div class="role">Wizard step-dot active, input focus accents</div>
+    </div>
+  </div>
+</body></html>

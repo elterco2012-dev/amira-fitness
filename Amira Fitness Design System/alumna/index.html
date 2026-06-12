@@ -1,0 +1,2830 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1D9E75" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Amira Fitness">
+  <link rel="manifest" href="/api/manifest.json">
+  <link rel="apple-touch-icon" href="/api/icon-192.svg">
+  <title>Mi rutina — Amira Fitness</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="/sb.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html{overscroll-behavior:none;}
+    :root{
+      --v:#1D9E75;--vl:#E1F5EE;--vm:#5DCAA5;--vd:#0F6E56;
+      --p:#EEEDFE;--pd:#3C3289;--a:#FAEEDA;--ad:#633806;
+      --rl:#FCEBEB;--rd:#A32D2D;
+      --bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;
+      --t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
+      --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);
+      --r:16px;--rs:10px;--rp:30px;
+    }
+    [data-theme=dark]{
+      --bg:#111110;--s:#1c1c1a;--s2:#242422;
+      --t:#f0ede8;--tm:#9ca3af;--th:#6b7280;
+      --b:rgba(255,255,255,0.07);--bm:rgba(255,255,255,0.12);
+      --vl:#0a2e20;--vm:#1a6b50;--p:#1e1c3a;--pd:#a5a0e8;
+      --a:#2a200a;--ad:#d4a854;--rl:#2a1010;--rd:#f09595;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;overscroll-behavior:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;-webkit-user-select:none;user-select:none;}
+    input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text;}
+    .app{max-width:430px;margin:0 auto;padding-bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);}
+
+    .header{background:var(--s);border-bottom:1px solid var(--b);padding:.9rem 1.25rem;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;}
+    .hlogo{width:34px;height:34px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--vd);flex-shrink:0;}
+    .htxt{flex:1;}
+    .htxt h1{font-size:14px;font-weight:500;color:var(--t);}
+    .htxt p{font-size:11px;color:var(--tm);}
+    .hbtn{background:none;border:1px solid var(--bm);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+    .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);display:flex;z-index:25;max-width:430px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom,0px);}
+    .bitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;border:none;background:none;font-family:'DM Sans',sans-serif;}
+    .bitem span:first-child{font-size:18px;}
+    .bitem span:last-child{font-size:10px;color:var(--tm);}
+    .bitem.active span:last-child{color:var(--v);font-weight:500;}
+
+    .screen{padding:1rem 1.25rem;transition:opacity .15s ease;}
+
+    .hero{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;display:flex;align-items:center;gap:12px;margin-bottom:.85rem;}
+    .av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:19px;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative;}
+    .av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+    .av-teal{background:var(--vl);color:var(--vd);}
+    .av-purple{background:var(--p);color:var(--pd);}
+    .av-amber{background:var(--a);color:var(--ad);}
+    .av-coral{background:#FAECE7;color:#712B13;}
+    .av-edit{position:absolute;bottom:-1px;right:-1px;background:var(--v);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:7px;color:white;border:2px solid var(--bg);}
+    .hero h2{font-size:15px;font-weight:500;margin-bottom:2px;color:var(--t);}
+    .hero p{font-size:11px;color:var(--tm);}
+
+    .warmup{background:var(--a);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;}
+    .wt{font-size:10px;font-weight:500;color:var(--ad);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+    .warmup a{font-size:12px;color:var(--ad);display:flex;align-items:center;gap:6px;text-decoration:none;margin-top:4px;font-weight:500;}
+    .play{width:18px;height:18px;border-radius:50%;background:var(--ad);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .play::after{content:'';border-left:5px solid var(--a);border-top:3px solid transparent;border-bottom:3px solid transparent;margin-left:2px;}
+
+    /* Selector ciclos y semanas */
+    .sel-row{margin-bottom:.65rem;}
+    .sel-label{font-size:10px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+    .tabs-row{display:flex;gap:5px;flex-wrap:wrap;}
+    .stab{padding:5px 13px;border-radius:var(--rp);font-size:11px;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .stab.active{background:var(--p);color:var(--pd);border-color:transparent;font-weight:500;}
+    .dtabs{display:flex;gap:0;margin-bottom:.85rem;border-bottom:1px solid var(--b);}
+    .dtab{flex:1;padding:9px 4px 11px;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;border:none;background:transparent;color:var(--tm);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;transition:all .2s;border-bottom:2px solid transparent;margin-bottom:-1px;}
+    .dtab.active{background:var(--vl);color:var(--vd);font-weight:600;border-bottom-color:var(--v);}
+
+    .prog-wrap{margin-bottom:1rem;}
+    .prog-bar{height:26px;background:var(--s2);border-radius:99px;overflow:hidden;position:relative;}
+    .prog-fill{height:100%;background:var(--v);border-radius:99px;transition:width .4s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:10px;min-width:42px;}
+    .prog-num{font-size:11px;font-weight:600;color:white;letter-spacing:.02em;}
+    .prog-pct{position:absolute;top:50%;right:12px;transform:translateY(-50%);font-size:11px;color:var(--tm);font-weight:500;}
+    .dlbl{font-size:10px;font-weight:500;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem;}
+
+    .ex-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem;transition:all .25s;}
+    .ex-card.done{background:var(--vl);border-color:var(--vm);}
+    .ex-top{display:flex;align-items:center;gap:10px;cursor:pointer;}
+    .ex-num{width:28px;height:28px;border-radius:50%;background:var(--s2);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--tm);flex-shrink:0;transition:background .2s,border-color .2s,color .2s,transform .2s;}
+    .ex-card.done .ex-num{background:var(--v);color:white;border-color:var(--v);}
+    /* Animación del check al marcar hecho */
+    @keyframes popCheck{
+      0%  {transform:scale(1);}
+      40% {transform:scale(1.45);}
+      65% {transform:scale(.88);}
+      85% {transform:scale(1.12);}
+      100%{transform:scale(1);}
+    }
+    @keyframes popUncheck{
+      0%  {transform:scale(1);}
+      35% {transform:scale(.78);}
+      70% {transform:scale(1.08);}
+      100%{transform:scale(1);}
+    }
+    @keyframes slideInCard{
+      from{opacity:.6;transform:translateY(-4px);}
+      to  {opacity:1; transform:translateY(0);}
+    }
+    @keyframes ripple{
+      0%  {box-shadow:0 0 0 0 rgba(29,158,117,.45);}
+      70% {box-shadow:0 0 0 12px rgba(29,158,117,0);}
+      100%{box-shadow:0 0 0 0 rgba(29,158,117,0);}
+    }
+    .ex-num.anim-check  {animation:popCheck  .42s cubic-bezier(.4,0,.2,1) forwards;}
+    .ex-num.anim-uncheck{animation:popUncheck .35s cubic-bezier(.4,0,.2,1) forwards;}
+    .ex-num.anim-ripple {animation:ripple .5s ease-out;}
+    .ex-card.anim-done  {animation:slideInCard .22s ease forwards;}
+    /* Botón hecho — micro-bounce */
+    @keyframes bchkBounce{
+      0%  {transform:scale(1);}
+      50% {transform:scale(.92);}
+      100%{transform:scale(1);}
+    }
+    .bchk.anim-tap{animation:bchkBounce .18s ease;}
+    .ex-name{font-size:13px;font-weight:500;flex:1;color:var(--t);}
+    .ex-det{font-size:11px;color:var(--tm);margin-top:3px;}
+    .ex-btns{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--b);flex-wrap:wrap;}
+    .btip{background:var(--p);border:none;border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--pd);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
+    .bvid{background:var(--rl);border:none;border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--rd);font-family:'DM Sans',sans-serif;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:3px;}
+    .bchk{width:100%;margin-top:8px;background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .2s;text-align:center;}
+    .ex-card.done .bchk{background:var(--vl);color:var(--vd);border-color:var(--vm);}
+    .nota-ej{font-size:12px;color:var(--ad);background:var(--a);border-radius:var(--rs);padding:8px 10px;margin-top:8px;line-height:1.55;}
+    .tip-txt{font-size:12px;color:var(--vd);background:var(--vl);border-radius:var(--rs);padding:8px 10px;margin-top:8px;line-height:1.55;display:none;}
+    .tip-txt.show{display:block;}
+    .peso-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+    .peso-lbl{font-size:11px;color:var(--tm);white-space:nowrap;}
+    .peso-in{flex:1;padding:6px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);max-width:90px;text-align:center;}
+    .peso-in:focus{outline:none;border-color:var(--v);}
+
+    .timer{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom,0px));right:16px;left:auto;max-width:none;width:72px;height:72px;margin:0;background:var(--v);border-top:none;border:none;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;gap:0;z-index:30;box-shadow:0 8px 24px rgba(29,158,117,.30),0 2px 8px rgba(0,0,0,.12);transform:translateY(120px) scale(.5);transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;visibility:hidden;pointer-events:none;}
+    .timer.show{transform:translateY(0) scale(1);visibility:visible;pointer-events:auto;}
+    .timer:active{box-shadow:0 4px 12px rgba(29,158,117,.45),0 1px 4px rgba(0,0,0,.15);}
+    .tcircle{width:100%;height:100%;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+    .tnum{font-family:'DM Serif Display',serif;font-size:26px;color:white;position:relative;z-index:1;line-height:1;}
+    .tring{position:absolute;inset:0;border-radius:50%;}
+    .tinfo{display:none;}
+    .tskip{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:var(--s);border:1px solid var(--bm);padding:0;font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.10);z-index:2;line-height:1;}
+    .tskip::before{content:'✕';font-size:12px;}
+    .tskip span,.tskip{text-indent:0;}
+    /* Círculo del timer tappeable */
+    .tcircle{cursor:pointer;transition:transform .15s;}
+    .tcircle:active{transform:scale(.93);}
+    /* Selector de tiempo */
+    .timer-picker{
+      position:absolute;bottom:calc(100% + 12px);right:0;left:auto;transform:none;
+      background:var(--s);border:1px solid var(--bm);border-radius:14px;
+      padding:10px 6px;display:flex;gap:6px;align-items:center;
+      box-shadow:0 4px 20px rgba(0,0,0,.15);
+      animation:fadeIn .18s ease;
+      white-space:nowrap;z-index:10;
+    }
+    .timer-picker::after{
+      content:'';position:absolute;top:100%;right:24px;left:auto;transform:none;
+      border:6px solid transparent;border-top-color:var(--bm);
+    }
+    .tpick-opt{
+      padding:7px 13px;border-radius:10px;font-size:13px;font-weight:500;
+      border:none;background:var(--s2);color:var(--tm);cursor:pointer;
+      font-family:'DM Sans',sans-serif;transition:all .15s;
+    }
+    .tpick-opt.active{background:var(--v);color:white;}
+    .tpick-opt:hover:not(.active){background:var(--vl);color:var(--vd);}
+    .tpick-lbl{font-size:10px;color:var(--th);padding:0 4px;font-family:'DM Sans',sans-serif;}
+
+    #cc{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none;}
+    .done-banner{text-align:center;padding:1.5rem 0 .5rem;font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--vd);}
+    .np-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:.6rem 1rem;background:var(--s);border:1px dashed #e5a37e;border-radius:var(--rs);font-size:12px;color:#c06030;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:.5rem;width:100%;transition:background .15s;}
+    .np-btn:active{background:#fdf0e8;}
+    [data-theme=dark] .np-btn{background:var(--s2);border-color:#7a4020;color:#e09060;}
+    .np-done{background:#fdf0e8;border:1px solid #e5a37e;border-radius:var(--rs);padding:.5rem .85rem;font-size:12px;color:#c06030;text-align:center;margin-bottom:.5rem;}
+    [data-theme=dark] .np-done{background:#2a1a08;border-color:#7a4020;color:#e09060;}
+    .fb-picker{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-top:.5rem;text-align:center;}
+    .fb-title{font-size:13px;font-weight:500;color:var(--t);margin-bottom:.75rem;}
+    .fb-opts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+    .fb-opt{padding:8px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s2);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .fb-opt:active{transform:scale(.95);}
+    .fb-given{font-size:12px;color:var(--tm);padding:.5rem 0;text-align:center;}
+    .brep{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;padding:5px 9px;line-height:1;transition:all .15s;}
+    .brep:hover{color:var(--rd);border-color:var(--rd);background:var(--rl);}
+
+    /* Celebración */
+    .cel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1.5rem;animation:fadeIn .25s ease;}
+    .cel-card{background:var(--s);border-radius:24px;padding:2.25rem 1.75rem 1.75rem;text-align:center;max-width:320px;width:100%;animation:celPop .45s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes celPop{from{transform:scale(.65);opacity:0;}to{transform:scale(1);opacity:1;}}
+    .cel-emoji{font-size:3.5rem;display:block;margin-bottom:.6rem;}
+    .cel-title{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);margin-bottom:.5rem;}
+    .cel-msg{font-size:13px;color:var(--tm);margin-bottom:1.25rem;line-height:1.6;}
+    .cel-badge{display:inline-block;background:var(--vl);color:var(--vd);font-size:12px;font-weight:500;border-radius:var(--rp);padding:5px 14px;margin-bottom:1.25rem;}
+    .cel-btn{width:100%;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;}
+    .cel-btn-sec{width:100%;background:transparent;color:var(--tm);border:1.5px solid var(--b);border-radius:var(--rp);padding:11px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;}
+
+    /* Progreso */
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
+    .stat-card{background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.85rem 1rem;}
+    .stat-num{font-family:'DM Serif Display',serif;font-size:1.75rem;color:var(--v);display:block;}
+    .stat-lbl{font-size:11px;color:var(--tm);margin-top:2px;}
+    .chart-wrap{position:relative;height:200px;margin:1rem 0;}
+    .ex-sel{width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);margin-bottom:1rem;}
+    .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
+    .badge-item{display:flex;align-items:center;gap:5px;background:var(--s2);border-radius:var(--rs);padding:5px 9px;font-size:11px;color:var(--tm);}
+    .badge-item.earned{background:var(--vl);color:var(--vd);}
+
+    /* Notas */
+    .csec{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-bottom:1rem;}
+    .ctit{font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px;}
+    .chint{font-size:11px;color:var(--tm);margin-bottom:10px;line-height:1.5;}
+    .citem{background:var(--s2);border-radius:var(--rs);padding:8px 10px;margin-bottom:6px;font-size:12px;color:var(--t);}
+    .cmeta{font-size:10px;color:var(--th);margin-bottom:3px;}
+    .cinput{flex:1;padding:8px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--t);background:var(--s2);resize:none;}
+    .cinput:focus{outline:none;border-color:var(--v);}
+    .csend{background:var(--v);color:white;border:none;border-radius:var(--rs);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+    .nota{background:var(--a);border-radius:var(--rs);padding:.7rem 1rem;font-size:12px;color:var(--ad);line-height:1.55;margin-top:1rem;}
+    .loading{text-align:center;padding:3rem 1rem;color:var(--tm);font-size:13px;}
+    .nf{text-align:center;padding:3rem 1rem;}
+    .nf h2{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.5rem;}
+    .nf p{font-size:13px;color:var(--tm);}
+    @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+    #push-banner *{box-sizing:border-box;}
+
+    /* ── Onboarding ── */
+    #onboarding{
+      position:fixed;inset:0;z-index:200;
+      background:var(--bg);
+      display:flex;flex-direction:column;
+      max-width:430px;margin:0 auto;
+      animation:fadeIn .3s ease;
+    }
+    .ob-slides{flex:1;overflow:hidden;position:relative;}
+    .ob-slide{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:2.5rem 2rem;text-align:center;
+      opacity:0;transform:translateX(40px);
+      transition:opacity .35s ease,transform .35s ease;
+      pointer-events:none;
+    }
+    .ob-slide.active{
+      opacity:1;transform:translateX(0);pointer-events:auto;
+    }
+    .ob-slide.exit{
+      opacity:0;transform:translateX(-40px);
+    }
+    .ob-icon{font-size:4.5rem;margin-bottom:1.5rem;line-height:1;}
+    .ob-title{
+      font-family:'DM Serif Display',serif;font-size:1.65rem;
+      color:var(--t);margin-bottom:.85rem;line-height:1.25;
+    }
+    .ob-body{
+      font-size:14px;color:var(--tm);line-height:1.75;
+      max-width:320px;margin:0 auto;
+    }
+    .ob-body strong{color:var(--t);}
+    .ob-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      background:var(--vl);color:var(--vd);
+      border-radius:var(--rp);padding:5px 14px;
+      font-size:12px;font-weight:500;margin-top:12px;
+    }
+    .ob-footer{
+      padding:1.5rem 2rem 2.5rem;
+      display:flex;flex-direction:column;align-items:center;gap:16px;
+    }
+    .ob-dots{display:flex;gap:7px;}
+    .ob-dot{
+      width:7px;height:7px;border-radius:50%;
+      background:var(--bm);transition:all .3s;
+    }
+    .ob-dot.active{background:var(--v);width:20px;border-radius:99px;}
+    .ob-btn{
+      width:100%;max-width:320px;
+      padding:13px;border-radius:var(--rp);
+      background:var(--v);color:white;border:none;
+      font-size:14px;font-weight:500;cursor:pointer;
+      font-family:'DM Sans',sans-serif;
+      transition:background .15s;
+    }
+    .ob-btn:hover{background:var(--vd);}
+    .ob-skip{
+      font-size:12px;color:var(--th);
+      background:none;border:none;cursor:pointer;
+      font-family:'DM Sans',sans-serif;padding:4px;
+    }
+    @keyframes obIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Skeleton screens */
+    @keyframes skelShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .skel{background:linear-gradient(90deg,var(--s2) 25%,var(--b) 50%,var(--s2) 75%);background-size:200% 100%;animation:skelShimmer 1.4s infinite;}
+    .skel-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1rem;margin-bottom:.5rem;}
+    .skel-line{height:14px;border-radius:99px;}
+
+    /* Pull-to-refresh */
+    .ptr-ind{position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-100%);background:var(--v);color:white;font-size:11px;font-weight:500;padding:6px 18px 8px;border-radius:0 0 14px 14px;z-index:50;transition:transform .25s ease;pointer-events:none;white-space:nowrap;}
+    .ptr-ind.show{transform:translateX(-50%) translateY(0);}
+
+    /* Undo toast */
+    .undo-toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#1a1a1a;color:#f0f0f0;font-size:12px;padding:9px 14px 9px 16px;border-radius:99px;z-index:65;display:flex;align-items:center;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,.35);animation:toastIn .2s ease;}
+    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .undo-btn{background:var(--v);color:white;border:none;border-radius:99px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+    /* Cierre de ciclo */
+    .ciclo-fin-ov{position:fixed;inset:0;background:linear-gradient(150deg,#0f2027 0%,#203a43 50%,#2c5364 100%);z-index:105;display:flex;align-items:center;justify-content:center;padding:1.5rem;animation:cfFade .5s ease;}
+    @keyframes cfFade{from{opacity:0}to{opacity:1}}
+    .ciclo-fin-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:2rem 1.5rem;text-align:center;max-width:320px;width:100%;}
+    .ciclo-fin-trophy{font-size:3rem;margin-bottom:.75rem;display:block;animation:trophyPop .7s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes trophyPop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+    .ciclo-fin-h{font-family:'DM Serif Display',serif;font-size:1.45rem;color:white;margin-bottom:.4rem;line-height:1.25;}
+    .ciclo-fin-p{font-size:12px;color:rgba(255,255,255,.65);line-height:1.7;margin-bottom:1.25rem;}
+    .ciclo-fin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;}
+    .ciclo-fin-stat{background:rgba(255,255,255,.08);border-radius:12px;padding:.7rem .5rem;}
+    .ciclo-fin-stat b{display:block;font-family:'DM Serif Display',serif;font-size:1.75rem;color:#5DCAA5;line-height:1.1;}
+    .ciclo-fin-stat span{display:block;font-size:9px;color:rgba(255,255,255,.55);margin-top:3px;line-height:1.3;}
+    .ciclo-fin-btn{background:var(--v);color:white;border:none;border-radius:99px;padding:12px 28px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;}
+
+    /* Easter egg racha larga */
+    .egg-ov{position:fixed;inset:0;background:linear-gradient(135deg,#b8860b,#ff8c00,#ffd700);z-index:115;display:flex;align-items:center;justify-content:center;animation:cfFade .5s ease;}
+    .egg-card{text-align:center;padding:2rem 1.5rem;max-width:300px;}
+    .egg-num{font-family:'DM Serif Display',serif;font-size:4.5rem;color:white;line-height:1;text-shadow:0 4px 20px rgba(0,0,0,.25);}
+    .egg-title{font-size:1.2rem;font-weight:500;color:white;margin:.5rem 0 .6rem;}
+    .egg-msg{font-size:12px;color:rgba(255,255,255,.85);line-height:1.7;margin-bottom:1.5rem;}
+    .egg-btn{background:white;color:#633806;border:none;border-radius:99px;padding:12px 28px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+    /* Check-in semanal */
+    .ci-card{background:var(--p);border:1px solid rgba(60,52,137,.15);border-radius:var(--r);padding:1rem;margin-bottom:.85rem;}
+    .ci-title{font-size:13px;font-weight:500;color:var(--pd);margin-bottom:.2rem;}
+    .ci-sub{font-size:11px;color:var(--pd);opacity:.7;margin-bottom:.75rem;}
+    .ci-opts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;}
+    .ci-opt{background:var(--s);border:1px solid var(--bm);border-radius:var(--rp);padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+    .ci-opt.sel{background:var(--pd);color:white;border-color:var(--pd);}
+  </style>
+</head>
+<body>
+<canvas id="cc"></canvas>
+<div id="ptr-ind" class="ptr-ind">↑ Soltá para actualizar</div>
+
+<!-- ── Auth screen ── -->
+<div id="auth-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:200;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="width:100%;max-width:380px;">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="width:56px;height:56px;background:var(--v);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.5rem;color:white;margin-bottom:1rem;">A</div>
+      <h1 style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);">Amira Fitness</h1>
+      <p style="font-size:13px;color:var(--tm);margin-top:4px;">Tu entrenamiento personalizado</p>
+    </div>
+    <!-- Tab: Ingresar -->
+    <div id="auth-login">
+      <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:1rem;">Ingresá a tu rutina</p>
+      <input type="email" id="auth-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-pin" placeholder="Tu PIN (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="current-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <button onclick="doAlumnaLogin()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Ingresar</button>
+      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Primera vez? <span onclick="showAuthTab('signup')" style="color:var(--v);cursor:pointer;font-weight:500;">Creá tu PIN</span></p>
+      <div id="auth-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
+    </div>
+    <!-- Tab: Crear PIN -->
+    <div id="auth-signup" style="display:none;">
+      <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:4px;">Creá tu PIN de acceso</p>
+      <p style="font-size:12px;color:var(--tm);margin-bottom:1rem;">Tu entrenadora ya te registró. Ingresá tu email y elegí un PIN de 6 dígitos.</p>
+      <input type="email" id="auth-signup-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-signup-pin" placeholder="PIN nuevo (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-signup-pin2" placeholder="Repetí tu PIN" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <button onclick="doAlumnaSignup()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Crear acceso</button>
+      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Ya tenés PIN? <span onclick="showAuthTab('login')" style="color:var(--v);cursor:pointer;font-weight:500;">Ingresá</span></p>
+      <div id="auth-signup-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── App wrapper (visible tras auth) ── -->
+<div id="app-wrapper" style="display:none">
+
+<!-- ── Onboarding (solo primera vez) ── -->
+<div id="onboarding" style="display:none;">
+  <div class="ob-slides">
+
+    <!-- Slide 1: Bienvenida emocional -->
+    <div class="ob-slide active" id="ob-s1">
+      <div class="ob-icon">✨</div>
+      <div class="ob-title" id="ob-nombre-titulo">Bienvenida a<br>tu rutina</div>
+      <div class="ob-body">
+        Amira diseñó este programa <strong>específicamente para vos</strong> — tu nivel, tus tiempos, tu cuerpo.<br><br>
+        No es una rutina genérica. Es la tuya.
+      </div>
+      <div class="ob-pill">✦ Tu entrenamiento personalizado</div>
+    </div>
+
+    <!-- Slide 2: Cómo usar -->
+    <div class="ob-slide" id="ob-s2">
+      <div class="ob-icon">✅</div>
+      <div class="ob-title">Así funciona<br>cada ejercicio</div>
+      <div class="ob-body">
+        Tocá <strong>Ver técnica</strong> para leer el consejo de Amira.<br><br>
+        Tocá <strong>▶ Video</strong> para ver el movimiento.<br><br>
+        Cuando terminés las series, tocá <strong>Marcar hecho</strong> — arranca el descanso automáticamente.
+      </div>
+    </div>
+
+    <!-- Slide 3: Peso y progreso -->
+    <div class="ob-slide" id="ob-s3">
+      <div class="ob-icon">📈</div>
+      <div class="ob-title">Registrá<br>tus pesos</div>
+      <div class="ob-body">
+        Cargá el peso que usás en cada ejercicio.<br><br>
+        En la pestaña <strong>Progreso</strong> vas a ver cómo mejorás semana a semana.<br><br>
+        Amira también puede verlo desde su panel.
+      </div>
+    </div>
+
+    <!-- Slide 4: Notas -->
+    <div class="ob-slide" id="ob-s4">
+      <div class="ob-icon">💬</div>
+      <div class="ob-title">Mandále notas<br>a Amira</div>
+      <div class="ob-body">
+        En la pestaña <strong>Notas</strong> podés escribirle cómo te fue, cómo te sentiste o cualquier duda.<br><br>
+        Ella las ve en su panel y te responde por WhatsApp.
+      </div>
+    </div>
+
+    <!-- Slide 5: Extras -->
+    <div class="ob-slide" id="ob-s5">
+      <div class="ob-icon">⚑</div>
+      <div class="ob-title">Reportá, compartí<br>y check-in</div>
+      <div class="ob-body">
+        Si encontrás un error en un ejercicio, tocá <strong>⚑ Reportar</strong> para avisarle a Amira directamente.<br><br>
+        Cada semana aparece una tarjeta para <strong>contarle cómo te sentiste</strong>.<br><br>
+        Al terminar el día podés <strong>compartir tu progreso por WhatsApp</strong> con un toque.
+      </div>
+    </div>
+
+    <!-- Slide 6: Descanso activo -->
+    <div class="ob-slide" id="ob-s6">
+      <div class="ob-icon">🚴</div>
+      <div class="ob-title">¿Saliste a correr<br>o andar en bici?</div>
+      <div class="ob-body">
+        Los días que hacés actividad física fuera del gym — caminar, correr, andar en bici, nadar, roller — marcalos como <strong>🚶 Descanso activo</strong>.<br><br>
+        Lo vas a ver debajo de cada día. Amira lo registra y cuenta en tu historial.<br><br>
+        Si no pudiste hacer nada, usá <strong>😔 No pude nada hoy</strong> para avisarle.
+      </div>
+    </div>
+
+    <!-- Slide 7: Expectativa primeras semanas (retención) -->
+    <div class="ob-slide" id="ob-s7">
+      <div class="ob-icon">🌱</div>
+      <div class="ob-title">Una cosa antes<br>de arrancar</div>
+      <div class="ob-body">
+        Las primeras dos semanas son las más difíciles. No porque el entrenamiento sea imposible — sino porque el hábito todavía no existe. <strong>Es normal que cueste.</strong><br><br>
+        Si un día no podés, no lo saltes en silencio. Avisale a Amira por acá o por WhatsApp. Acá no se abandona sola.
+      </div>
+      <div class="ob-pill">🚀 ¡Arrancamos!</div>
+    </div>
+
+  </div>
+
+  <div class="ob-footer">
+    <div class="ob-dots">
+      <div class="ob-dot active" id="od1"></div>
+      <div class="ob-dot" id="od2"></div>
+      <div class="ob-dot" id="od3"></div>
+      <div class="ob-dot" id="od4"></div>
+      <div class="ob-dot" id="od5"></div>
+      <div class="ob-dot" id="od6"></div>
+      <div class="ob-dot" id="od7"></div>
+    </div>
+    <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
+    <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="hlogo">A</div>
+    <div class="htxt"><h1>Amira Fitness</h1><p id="hsubtitle">Tu entrenamiento</p></div>
+    <button class="hbtn" id="tdbtn" onclick="toggleDark()">🌙</button>
+    <button class="hbtn" onclick="doAlumnaLogout()" title="Salir" style="font-size:11px;opacity:.7;">Salir</button>
+  </div>
+  <div id="screen-rutina" class="screen"></div>
+  <div id="screen-progreso" class="screen" style="display:none;"></div>
+  <div id="screen-notas" class="screen" style="display:none;"></div>
+</div>
+<div class="timer" id="timer">
+  <div class="tcircle" onclick="toggleTimerPicker()" title="Tocá para cambiar el tiempo">
+    <svg class="tring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="3"/><circle id="tarc" cx="27" cy="27" r="24" fill="none" stroke="white" stroke-width="3" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 27 27)"/></svg>
+    <span class="tnum" id="tnum">45</span>
+    <!-- Picker de tiempo (se muestra al tocar el círculo) -->
+    <div class="timer-picker" id="timer-picker" style="display:none;" onclick="event.stopPropagation()">
+      <span class="tpick-lbl">Descanso</span>
+      <button class="tpick-opt" id="tpick-30" onclick="setTimerDuration(30)">30s</button>
+      <button class="tpick-opt" id="tpick-45" onclick="setTimerDuration(45)">45s</button>
+      <button class="tpick-opt" id="tpick-60" onclick="setTimerDuration(60)">60s</button>
+    </div>
+  </div>
+  <button class="tskip" onclick="event.stopPropagation();skipTimer()" title="Saltar descanso" aria-label="Saltar descanso"></button>
+</div>
+<!-- /timer -->
+<div class="bnav" id="bnav">
+  <button class="bitem active" id="bn-r" onclick="switchTab('r')"><span>💪</span><span>Rutina</span></button>
+  <button class="bitem" id="bn-p" onclick="switchTab('p')"><span>📈</span><span>Progreso</span></button>
+  <button class="bitem" id="bn-n" onclick="switchTab('n')"><span>💬</span><span>Notas</span></button>
+</div>
+
+<!-- Modal de reporte de molestia -->
+<div id="modal-reporte" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)cerrarReporte()">
+  <div style="background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;">
+    <div style="font-size:16px;font-weight:600;color:var(--t);margin-bottom:1rem;" id="rep-titulo">¿Qué pasó?</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
+      <button onclick="enviarReporte('ejercicio_problema')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
+        <div style="font-size:14px;font-weight:500;">🔧 Problema con el ejercicio</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px;">Sin equipo, no entiendo el movimiento, otro motivo</div>
+      </button>
+      <button onclick="enviarReporte('dolor_normal')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
+        <div style="font-size:14px;font-weight:500;">💪 Dolor muscular normal</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px;">Ardor o agujetas — es parte del proceso</div>
+      </button>
+      <button onclick="enviarReporte('dolor_articular')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f59e0b44;background:#fef3c7;cursor:pointer;font-family:'DM Sans',sans-serif;color:#92400e;">
+        <div style="font-size:14px;font-weight:500;">⚠️ Molestia articular</div>
+        <div style="font-size:11px;margin-top:2px;opacity:.8;">Rodilla, hombro, codo — Amira va a revisarlo</div>
+      </button>
+      <button onclick="enviarReporte('dolor_preocupante')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f0959544;background:var(--rl);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--rd);">
+        <div style="font-size:14px;font-weight:500;">🚨 Algo me preocupa</div>
+        <div style="font-size:11px;margin-top:2px;opacity:.8;">Dolor intenso, agudo o raro — Amira recibe alerta inmediata</div>
+      </button>
+    </div>
+    <textarea id="rep-nota" rows="2" placeholder="Contale a Amira qué pasó (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);resize:none;margin-bottom:.75rem;"></textarea>
+    <button onclick="cerrarReporte()" style="width:100%;padding:10px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--tm);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
+  </div>
+</div>
+
+</div><!-- /app-wrapper -->
+<script>
+// ── Config ────────────────────────────────────────────────────
+const AMIRA_WA = '5492226500790';
+const slug = location.pathname.split('/').filter(Boolean).pop()||'';
+
+// Si la PWA abre desde start_url /alumna/ sin slug, redirigir al último slug visitado
+if (location.pathname === '/alumna/' || location.pathname === '/alumna') {
+  const saved = localStorage.getItem('af-last-slug');
+  if (saved) { location.replace('/alumna/' + saved); }
+}
+
+// WhatsApp de Amira siempre actualizado
+localStorage.setItem('af-amira-ph', AMIRA_WA);
+
+// ── Auth (alumna) ─────────────────────────────────────────────
+const AT_KEY='af-alumna-token', AR_KEY='af-alumna-refresh', AE_KEY='af-alumna-expires';
+
+// Override getSBH from sb.js to use alumna token
+function getSBH(extra){
+  const token=localStorage.getItem(AT_KEY)||SB_KEY;
+  return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${token}`,'Prefer':'return=representation',...extra};
+}
+
+function _getAlumnaEmail(){
+  const t=localStorage.getItem(AT_KEY); if(!t)return null;
+  try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))?.email||null;}
+  catch(e){return null;}
+}
+function _saveAlumnaSess(d){localStorage.setItem(AT_KEY,d.access_token);localStorage.setItem(AR_KEY,d.refresh_token);localStorage.setItem(AE_KEY,Date.now()+(d.expires_in||3600)*1000);}
+function _clearAlumnaSess(){[AT_KEY,AR_KEY,AE_KEY].forEach(k=>localStorage.removeItem(k));}
+
+async function _refreshAlumnaSess(){
+  const rt=localStorage.getItem(AR_KEY); if(!rt)throw new Error('no rt');
+  const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({refresh_token:rt})});
+  if(!r.ok)throw new Error('refresh fail');
+  const d=await r.json(); _saveAlumnaSess(d); return d;
+}
+
+function showAuthTab(tab){
+  document.getElementById('auth-login').style.display=tab==='login'?'block':'none';
+  document.getElementById('auth-signup').style.display=tab==='signup'?'block':'none';
+  document.getElementById('auth-msg').textContent='';
+  document.getElementById('auth-signup-msg').textContent='';
+}
+function showAuthScreen(){document.getElementById('auth-screen').style.display='flex';document.getElementById('app-wrapper').style.display='none';}
+function showApp(){document.getElementById('auth-screen').style.display='none';document.getElementById('app-wrapper').style.display='';}
+
+async function doAlumnaLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pin=document.getElementById('auth-pin').value.trim();
+  const msg=document.getElementById('auth-msg');
+  if(!email||!pin){msg.textContent='Completá los dos campos.';return;}
+  msg.textContent='Ingresando...';
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({email,password:pin})});
+    if(!r.ok){
+      const rb=await r.json().catch(()=>({}));
+      const em=(rb.error_description||rb.msg||rb.message||'').toLowerCase();
+      if(em.includes('confirm')){msg.textContent='Tu cuenta necesita confirmación. Usá "Creá tu PIN" para establecer tu acceso.';}
+      else if(em.includes('not found')||em.includes('no user')){msg.textContent='No encontramos una cuenta con ese email.';}
+      else{msg.textContent='Email o PIN incorrecto. Tu PIN es tu fecha de nacimiento en formato DDMMAA (ej: 190488).';}
+      return;
+    }
+    _saveAlumnaSess(await r.json());
+    await init();
+  }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
+}
+
+async function doAlumnaSignup(){
+  const email=document.getElementById('auth-signup-email').value.trim();
+  const pin=document.getElementById('auth-signup-pin').value.trim();
+  const pin2=document.getElementById('auth-signup-pin2').value.trim();
+  const msg=document.getElementById('auth-signup-msg');
+  if(!email||!pin){msg.textContent='Completá todos los campos.';return;}
+  if(pin!==pin2){msg.textContent='Los PINs no coinciden.';return;}
+  if(pin.length!==6||!/^\d{6}$/.test(pin)){msg.textContent='El PIN debe ser exactamente 6 dígitos.';return;}
+  msg.textContent='Verificando...';
+  try{
+    const rows=await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}&select=id`);
+    if(!rows.length){msg.textContent='Email no registrado. Consultá a Amira.';return;}
+  }catch(e){msg.textContent='Error al verificar. Revisá tu conexión.';return;}
+  try{
+    msg.textContent='Creando acceso...';
+    const r=await fetch(`${SB_URL}/auth/v1/signup`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({email,password:pin})});
+    const d=await r.json();
+    if(!r.ok||!d.access_token){msg.textContent=d.error_description||d.msg||'Error. ¿Ya tenés PIN? Intentá con "Ingresá".';return;}
+    _saveAlumnaSess(d);
+    await init();
+  }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
+}
+
+async function doAlumnaLogout(){
+  const t=localStorage.getItem(AT_KEY);
+  try{if(t)await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${t}`}});}catch(e){}
+  _clearAlumnaSess();
+  showAuthScreen();
+}
+
+async function checkAlumnaAuth(){
+  const t=localStorage.getItem(AT_KEY);
+  if(!t){showAuthScreen();return false;}
+  const exp=parseInt(localStorage.getItem(AE_KEY))||0;
+  if(Date.now()>exp-5*60*1000){
+    try{await _refreshAlumnaSess();}
+    catch(e){_clearAlumnaSess();showAuthScreen();return false;}
+  }
+  return true;
+}
+
+// ── Onboarding ────────────────────────────────────────────────
+let obStep = 1;
+const OB_TOTAL = 7;
+
+function obMostrar(nombre){
+  // Solo la primera vez
+  if(localStorage.getItem('af-onboarding-done') === '1') return;
+  // Personalizar el título del primer slide con el nombre
+  const tit = document.getElementById('ob-nombre-titulo');
+  if(tit && nombre){tit.textContent='';const span=document.createElement('span');span.textContent=`¡Hola, ${nombre}!`;tit.appendChild(span);tit.appendChild(document.createElement('br'));const span2=document.createElement('span');span2.textContent='Bienvenida a tu rutina';tit.appendChild(span2);}
+  obStep = 1;
+  obRender();
+  document.getElementById('onboarding').style.display = 'flex';
+  // Bloquear scroll del body mientras está abierto
+  document.body.style.overflow = 'hidden';
+}
+
+function obRender(){
+  // Actualizar slides
+  for(let i=1; i<=OB_TOTAL; i++){
+    const sl = document.getElementById(`ob-s${i}`);
+    if(!sl) continue;
+    if(i === obStep){
+      sl.classList.remove('exit');
+      sl.classList.add('active');
+    } else {
+      sl.classList.remove('active');
+    }
+  }
+  // Actualizar dots
+  for(let i=1; i<=OB_TOTAL; i++){
+    const d = document.getElementById(`od${i}`);
+    if(d) d.classList.toggle('active', i === obStep);
+  }
+  // Actualizar botón
+  const btn = document.getElementById('ob-btn-next');
+  const skip = document.getElementById('ob-btn-skip');
+  if(btn){
+    if(obStep === OB_TOTAL){
+      btn.textContent = '¡Empezar a entrenar! 💪';
+      btn.style.background = 'var(--v)';
+    } else {
+      btn.textContent = 'Siguiente →';
+    }
+  }
+  // Ocultar skip en el último slide
+  if(skip) skip.style.display = obStep === OB_TOTAL ? 'none' : 'block';
+}
+
+function obNext(){
+  if(obStep < OB_TOTAL){
+    // Animar salida del slide actual
+    const current = document.getElementById(`ob-s${obStep}`);
+    if(current){
+      current.classList.add('exit');
+      setTimeout(()=>{ current.classList.remove('active','exit'); }, 350);
+    }
+    obStep++;
+    // Preparar nuevo slide desde la derecha
+    const next = document.getElementById(`ob-s${obStep}`);
+    if(next){
+      next.style.transform = 'translateX(40px)';
+      next.style.opacity = '0';
+      next.classList.add('active');
+      requestAnimationFrame(()=>{
+        next.style.transform = '';
+        next.style.opacity = '';
+      });
+    }
+    obRender();
+  } else {
+    obCerrar();
+  }
+}
+
+function obCerrar(){
+  const ob = document.getElementById('onboarding');
+  if(ob){
+    ob.style.opacity = '0';
+    ob.style.transition = 'opacity .25s ease';
+    setTimeout(()=>{
+      ob.style.display = 'none';
+      ob.style.opacity = '';
+      ob.style.transition = '';
+    }, 250);
+  }
+  document.body.style.overflow = '';
+  localStorage.setItem('af-onboarding-done', '1');
+}
+
+let DB = {alumnas:[], rutinas:{}, comentarios:[], avisos:[]};
+let selSem = 1, selDia = 1, selCiclo = 1;
+let done = {}, expanded = {}, pesos = {}, rpe = {};
+// Duración preferida por la alumna (persistida en localStorage)
+let timerDuracion = parseInt(localStorage.getItem('af-timer-dur') || '45');
+let timerInt = null, timerTotal = timerDuracion, timerRem = 0, timerRunning = false;
+let pickerVisible = false;
+
+// Inicializar botones del picker con el estado guardado
+function initTimerPicker(){
+  [30,45,60].forEach(s=>{
+    const btn = document.getElementById(`tpick-${s}`);
+    if(btn) btn.classList.toggle('active', s === timerDuracion);
+  });
+  const lbl = document.getElementById('timer-dur-lbl');
+  if(lbl) lbl.textContent = timerDuracion === 45 ? '' : `· ${timerDuracion}s`;
+}
+
+function toggleTimerPicker(){
+  const picker = document.getElementById('timer-picker');
+  if(!picker) return;
+  pickerVisible = !pickerVisible;
+  picker.style.display = pickerVisible ? 'flex' : 'none';
+  if(pickerVisible){
+    // Pausar el countdown mientras elige
+    if(timerRunning && timerInt){
+      clearInterval(timerInt);
+      timerInt = null;
+    }
+  }
+}
+
+function setTimerDuration(secs){
+  timerDuracion = secs;
+  localStorage.setItem('af-timer-dur', String(secs));
+  // Actualizar visual del picker
+  [30,45,60].forEach(s=>{
+    const btn = document.getElementById(`tpick-${s}`);
+    if(btn) btn.classList.toggle('active', s === secs);
+  });
+  // Actualizar label de duración en el header del timer
+  const lbl = document.getElementById('timer-dur-lbl');
+  if(lbl) lbl.textContent = secs === 45 ? '' : `· ${secs}s`;
+  // Cerrar picker y reiniciar con la nueva duración
+  pickerVisible = false;
+  document.getElementById('timer-picker').style.display = 'none';
+  // Reiniciar el timer con la nueva duración
+  timerTotal = secs;
+  timerRem   = secs;
+  const numEl = document.getElementById('tnum');
+  const arcEl = document.getElementById('tarc');
+  if(numEl) numEl.textContent = secs;
+  if(arcEl) arcEl.style.strokeDashoffset = '0';
+  // Reanudar countdown con nueva duración
+  if(timerRunning){
+    timerInt = setInterval(tickTimer, 1000);
+  }
+}
+
+// Cerrar picker si toca fuera del timer
+document.addEventListener('click', (e)=>{
+  if(pickerVisible && !e.target.closest('#timer')){
+    pickerVisible = false;
+    const picker = document.getElementById('timer-picker');
+    if(picker) picker.style.display = 'none';
+    // Reanudar si estaba corriendo
+    if(timerRunning && !timerInt){
+      timerInt = setInterval(tickTimer, 1000);
+    }
+  }
+});
+let dark = localStorage.getItem('af-dark')==='1';
+let curTab = 'r';
+let charts = {};
+let selHistEx = null;
+let selProgCiclo = null; // ciclo seleccionado en la tab de progreso
+let maxPesos = {};
+
+// ── PWA + Push ────────────────────────────────────────────────
+const VAPID_PUB_KEY = 'BIGAfUKXOWHBDEULTLi4zp-E3L5fQ8AlF4qxybdKZXtYbA-3NHR0DF7stGRHyGeeXJz2euHAs4oHpYC52wp7DnQ';
+let swReg = null;
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', async ()=>{
+    try{
+      swReg = await navigator.serviceWorker.register('/sw.js');
+      console.log('SW registrado ✓');
+      // Escuchar mensajes del SW (ej: SYNC_NOW desde background sync)
+      navigator.serviceWorker.addEventListener('message', e => {
+        if(e.data?.type === 'SYNC_NOW') flushSyncQueue();
+        if(e.data?.type === 'SW_UPDATED') location.reload();
+      });
+    }catch(e){ console.warn('SW error:', e); }
+  });
+}
+
+// ── Convertir VAPID public key a Uint8Array ───────────────────
+function urlB64ToUint8(b64){
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob(b64.replace(/-/g,'+').replace(/_/g,'/') + pad);
+  return Uint8Array.from(raw, c=>c.charCodeAt(0));
+}
+
+// ── Pedir permiso y suscribir al push ────────────────────────
+async function setupPush(alumnaId){
+  if(!swReg || !('PushManager' in window)) return;
+  const prev = localStorage.getItem('af-push-asked');
+  // 'denied' can mean: (a) browser actually blocked, or (b) user clicked "Ahora no" in the old code.
+  // If the browser permission is still 'default', it was case (b) — clear it so the banner shows.
+  if(prev === 'denied'){
+    if(typeof Notification !== 'undefined' && Notification.permission === 'default'){
+      localStorage.removeItem('af-push-asked'); // old user-dismiss, not a real browser block
+    } else {
+      return; // truly blocked by browser — can't show the prompt
+    }
+  }
+  if(prev && prev.startsWith('snoozed:')) {
+    const snoozedAt = parseInt(prev.split(':')[1]);
+    if(Date.now() - snoozedAt < 7 * 24 * 60 * 60 * 1000) return; // still snoozed
+    localStorage.removeItem('af-push-asked'); // snooze expired → show banner again
+  }
+
+  await swReg.ready;
+  const existing = await swReg.pushManager.getSubscription();
+
+  if(prev === 'granted'){
+    if(!existing){
+      // Suscripción del browser perdida (ej: se limpió el browser) → mostrar banner
+      localStorage.removeItem('af-push-asked');
+      mostrarBannerPush(alumnaId);
+      return;
+    }
+    try{
+      const rows = await sbGet('push_subscriptions', `endpoint=eq.${encodeURIComponent(existing.endpoint)}&select=endpoint&limit=1`);
+      if(rows.length){ await guardarSuscripcion(alumnaId, existing); return; }
+      // No está en la BD (ej: fue reseteado con TRUNCATE) → re-registrar silenciosamente
+      // El usuario ya otorgó permiso antes, no hace falta volver a pedírselo
+      await guardarSuscripcion(alumnaId, existing);
+      localStorage.setItem('af-push-asked','granted');
+      return;
+    }catch{ await guardarSuscripcion(alumnaId, existing); return; }
+    mostrarBannerPush(alumnaId);
+    return;
+  }
+
+  // Sin estado previo: si el browser ya tiene suscripción, re-registrar silenciosamente
+  if(existing){
+    localStorage.setItem('af-push-asked','granted');
+    await guardarSuscripcion(alumnaId, existing);
+    return;
+  }
+  mostrarBannerPush(alumnaId);
+}
+
+// ── Banner de permiso ─────────────────────────────────────────
+function mostrarBannerPush(alumnaId){
+  if(document.getElementById('push-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'push-banner';
+  banner.style.cssText = `
+    position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;
+    background:var(--s);border-top:2px solid var(--v);border-radius:var(--r) var(--r) 0 0;
+    padding:1rem 1.25rem;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,.12);
+    animation:slideUp .35s cubic-bezier(.4,0,.2,1);
+  `;
+  banner.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <div style="font-size:28px;line-height:1;">💪</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:3px;">¿Recibir recordatorios de entrenamiento?</div>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:10px;line-height:1.5;">
+          Te avisamos a las 9AM los días que te toca entrenar. Sin spam.
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="activarPush(${alumnaId})" style="
+            flex:1;background:var(--v);color:white;border:none;border-radius:var(--rp);
+            padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;
+          ">Sí, activar</button>
+          <button onclick="rechazarPush()" style="
+            background:none;border:1px solid var(--bm);border-radius:var(--rp);
+            padding:8px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;
+          ">Ahora no</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+}
+
+function cerrarModalDias() {
+  const m = document.getElementById('modal-dias');
+  if(m) m.remove();
+  renderNotas();
+}
+
+function _renderModalDiasBtns(alumnaId) {
+  const c = document.getElementById('modal-dias-btns');
+  if(!c) return;
+  const a = getAlumna();
+  const curr = Array.isArray(a?.dias_disponibles) ? a.dias_disponibles : [];
+  const nom = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  c.innerHTML = nom.map((n,d) => {
+    const sel = curr.includes(_DIA_NAMES[d]);
+    return `<button onclick="toggleDiaModal(${alumnaId},${d})" style="padding:9px 16px;border-radius:20px;font-size:13px;font-weight:${sel?'600':'400'};border:2px solid ${sel?'var(--v)':'var(--bm)'};background:${sel?'var(--vl)':'var(--s)'};color:${sel?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;">${n}</button>`;
+  }).join('');
+  const ok = document.getElementById('modal-dias-ok');
+  if(ok) ok.textContent = curr.length ? `Listo — ${curr.length} día${curr.length>1?'s':''} ✓` : 'Listo ✓';
+}
+
+async function toggleDiaModal(alumnaId, dia) {
+  await toggleDiaHorario(alumnaId, dia);
+  _renderModalDiasBtns(alumnaId);
+}
+
+function mostrarModalDias(alumnaId) {
+  if(document.getElementById('modal-dias')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-dias';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s;';
+  overlay.innerHTML = `<div style="background:var(--bg,#fff);border-radius:20px 20px 0 0;padding:1.75rem 1.5rem 1.5rem;width:100%;max-width:430px;box-sizing:border-box;animation:slideUp .3s;">
+    <div style="text-align:center;margin-bottom:1.25rem;">
+      <div style="font-size:2.2rem;margin-bottom:8px;">📅</div>
+      <div style="font-size:17px;font-weight:600;color:var(--t);margin-bottom:6px;">¿Cuándo entrenás?</div>
+      <div style="font-size:12px;color:var(--tm);line-height:1.6;">Elegí los días y te avisamos a las 9AM solo esos días.<br>Podés cambiarlo cuando quieras.</div>
+    </div>
+    <div id="modal-dias-btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:1.5rem;"></div>
+    <button id="modal-dias-ok" onclick="cerrarModalDias()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp,12px);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:4px;">Listo ✓</button>
+    <button onclick="cerrarModalDias()" style="width:100%;padding:8px;background:none;border:none;color:var(--tm);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Seleccionar después</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  _renderModalDiasBtns(alumnaId);
+}
+
+
+function rechazarPush(){
+  // Snooze 7 days — not permanent, so the banner shows again later
+  localStorage.setItem('af-push-asked','snoozed:' + Date.now());
+  const b = document.getElementById('push-banner');
+  if(b) b.remove();
+  const n = document.getElementById('push-nudge');
+  if(n) n.remove();
+}
+
+function pushNudgeHTML(alumnaId){
+  const prev = localStorage.getItem('af-push-asked');
+  if(prev === 'granted') return '';
+  // Only hide nudge if browser truly blocked — old code stored 'denied' for user dismissals too
+  if(prev === 'denied'){
+    if(typeof Notification === 'undefined' || Notification.permission === 'denied') return '';
+    // else: it was a soft dismiss, fall through and show the nudge
+  }
+  if(prev && prev.startsWith('snoozed:')){
+    const snoozedAt = parseInt(prev.split(':')[1]);
+    if(Date.now() - snoozedAt < 7*24*60*60*1000) return ''; // still snoozed
+  }
+  if(!('PushManager' in window)) return ''; // browser doesn't support push
+  return `<div id="push-nudge" style="margin:0 0 12px;background:#fefce8;border:1.5px solid #fde047;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:20px;flex-shrink:0;">🔔</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:600;color:#713f12;margin-bottom:1px;">Activá los recordatorios</div>
+      <div style="font-size:11px;color:#92400e;line-height:1.4;">Te avisamos a las 9AM cuando tenés entrenamiento</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button onclick="activarPushManual(${alumnaId})" style="background:#ca8a04;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar</button>
+      <button onclick="rechazarPush()" style="background:none;border:none;color:#92400e;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>
+    </div>
+  </div>`;
+}
+
+async function activarPush(alumnaId){
+  const b = document.getElementById('push-banner');
+  if(b) b.remove();
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      localStorage.setItem('af-push-asked','denied');
+      return;
+    }
+    await swReg.ready;
+    const sub = await swReg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8(VAPID_PUB_KEY)
+    });
+    localStorage.setItem('af-push-asked','granted');
+    await guardarSuscripcion(alumnaId, sub);
+    mostrarModalDias(alumnaId);
+  }catch(e){
+    console.warn('Push subscription error:', e);
+    localStorage.setItem('af-push-asked','denied');
+  }
+}
+
+async function guardarSuscripcion(alumnaId, sub){
+  const j = sub.toJSON();
+  try{
+    await sbUpsert('push_subscriptions', {
+      alumna_id: alumnaId,
+      endpoint:  j.endpoint,
+      p256dh:    j.keys.p256dh,
+      auth:      j.keys.auth,
+    });
+    console.log('Suscripción guardada ✓');
+  }catch(e){ console.warn('Error guardando suscripción:', e); }
+}
+
+async function activarPushManual(alumnaId){
+  if(!swReg || !('PushManager' in window)){
+    mostrarToast('Instalá la app en tu pantalla de inicio para activar notificaciones');
+    return;
+  }
+  localStorage.removeItem('af-push-asked');
+  try{
+    await swReg.ready;
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      localStorage.setItem('af-push-asked','denied');
+      mostrarToast('No se pudieron activar las notificaciones');
+      renderNotas(); return;
+    }
+    let sub = await swReg.pushManager.getSubscription();
+    if(!sub) sub = await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUB_KEY)});
+    localStorage.setItem('af-push-asked','granted');
+    await guardarSuscripcion(alumnaId, sub);
+    mostrarModalDias(alumnaId);
+    return;
+  }catch(e){
+    console.warn('Push error:', e);
+    localStorage.setItem('af-push-asked','denied');
+    mostrarToast('No se pudieron activar las notificaciones');
+  }
+  renderNotas();
+}
+
+async function desactivarPush(alumnaId){
+  try{
+    if(swReg){
+      const sub=await swReg.pushManager.getSubscription();
+      if(sub){
+        const ep=sub.endpoint;
+        await sub.unsubscribe();
+        await sbDelete('push_subscriptions',`endpoint=eq.${encodeURIComponent(ep)}`);
+      }
+    }
+  }catch(e){ console.warn('Unsubscribe error:', e); }
+  localStorage.setItem('af-push-asked','denied');
+  mostrarToast('Notificaciones desactivadas');
+  renderNotas();
+}
+
+// ── Avisos de Amira ───────────────────────────────────────────
+function mostrarAvisos(a){
+  // Remover banners anteriores
+  document.querySelectorAll('.aviso-banner').forEach(el=>el.remove());
+  const slug_=a?.slug||slug;
+  const relevantes=(DB.avisos||[]).filter(av=>av.activo&&(av.para==='todas'||av.para===slug_));
+  if(!relevantes.length) return;
+  const dismissed=JSON.parse(localStorage.getItem('af-avisos-dismissed')||'[]');
+  const nuevos=relevantes.filter(av=>!dismissed.includes(av.id));
+  if(!nuevos.length) return;
+  const av=nuevos[0]; // Mostrar el más reciente
+  const banner=document.createElement('div');
+  banner.className='aviso-banner';
+  banner.style.cssText=`
+    position:fixed;top:70px;left:0;right:0;max-width:430px;margin:0 auto;
+    background:var(--a);border-bottom:2px solid var(--ad);
+    padding:.75rem 1.25rem;z-index:30;display:flex;gap:10px;align-items:flex-start;
+  `;
+  banner.innerHTML=`
+    <div style="font-size:18px;flex-shrink:0;">📢</div>
+    <div style="flex:1;font-size:12px;color:var(--ad);line-height:1.5;">${av.texto}</div>
+    <button onclick="cerrarAviso(${av.id})" style="
+      background:none;border:none;font-size:16px;color:var(--ad);cursor:pointer;
+      padding:0 0 0 4px;line-height:1;flex-shrink:0;font-family:'DM Sans',sans-serif;
+    ">✕</button>
+  `;
+  document.body.insertBefore(banner, document.body.firstChild);
+}
+
+function cerrarAviso(id){
+  const dismissed=JSON.parse(localStorage.getItem('af-avisos-dismissed')||'[]');
+  if(!dismissed.includes(id)){dismissed.push(id);localStorage.setItem('af-avisos-dismissed',JSON.stringify(dismissed));}
+  document.querySelectorAll('.aviso-banner').forEach(el=>el.remove());
+}
+
+// ── Racha semanal ─────────────────────────────────────────────
+function calcRacha(alumnaId, ciclo){
+  // Semanas con al menos un ejercicio hecho en el ciclo actual
+  const hechas=new Set();
+  for(const k of Object.keys(done)){
+    // formato: ${alumnaId}-c${ciclo}-${semana}-${dia}-${exIdx}
+    const m=k.match(new RegExp(`^${alumnaId}-c(\\d+)-(\\d+)-\\d+-\\d+$`));
+    if(m&&parseInt(m[1])===ciclo) hechas.add(parseInt(m[2]));
+  }
+  // Contar consecutivas desde semana 1
+  let racha=0;
+  for(let s=1;s<=4;s++){
+    if(hechas.has(s)) racha=s;
+    else break;
+  }
+  return racha;
+}
+
+function calcStats(aId){
+  const al=DB.alumnas.find(x=>x.id===aId);
+  const ciclo=al?(al.ciclo_actual||1):1;
+
+  function dayCompletado(c,s,d){
+    const exs=getExs(aId,c,s,d);
+    if(!exs.length)return false;
+    const hechos=exs.filter((_,i)=>done[`${aId}-c${c}-${s}-${d}-${i}`]).length;
+    return hechos/exs.length>=0.8;
+  }
+
+  // Cycle progress for current ciclo
+  let cicloDone=0,cicloTotal=0;
+  for(const s of getSemanas(aId,ciclo)){
+    for(const dObj of getDias(aId,ciclo,s)){
+      if(dObj.ejercicios&&dObj.ejercicios.length>0){
+        cicloTotal++;
+        if(dayCompletado(ciclo,s,dObj.dia))cicloDone++;
+      }
+    }
+  }
+
+  // Streak from raw progreso rows (with updated_at)
+  let racha=0,lastTrainingDate=null,totalCompletedEver=0;
+  const raw=DB.progresoRaw||[];
+  if(raw.length>0){
+    const groups={};
+    for(const p of raw){
+      const gk=`c${p.ciclo}-${p.semana}-${p.dia}`;
+      if(!groups[gk])groups[gk]={ciclo:p.ciclo,semana:p.semana,dia:p.dia,rows:[]};
+      groups[gk].rows.push(p);
+    }
+    const completedDates=[];
+    for(const g of Object.values(groups)){
+      if(dayCompletado(g.ciclo,g.semana,g.dia)){
+        const ts=g.rows.map(r=>r.updated_at).filter(Boolean);
+        if(ts.length>0){
+          completedDates.push(new Date(ts.reduce((a,b)=>a>b?a:b)));
+          totalCompletedEver++;
+        }
+      }
+    }
+    completedDates.sort((a,b)=>b-a);
+    if(completedDates.length>0){
+      lastTrainingDate=completedDates[0];
+      racha=1;
+      for(let i=1;i<completedDates.length;i++){
+        if((completedDates[i-1]-completedDates[i])/(864e5)<=7)racha++;
+        else break;
+      }
+    }
+  } else {
+    // Offline fallback: count completed days without dates
+    const seen=new Set();
+    for(const c of Object.keys(DB.rutinas[aId]||{}).map(Number)){
+      for(const s of getSemanas(aId,c)){
+        for(const dObj of getDias(aId,c,s)){
+          const gk=`${c}-${s}-${dObj.dia}`;
+          if(!seen.has(gk)&&dayCompletado(c,s,dObj.dia)){seen.add(gk);totalCompletedEver++;}
+        }
+      }
+    }
+  }
+  return{racha,cicloDone,cicloTotal,lastTrainingDate,totalCompletedEver};
+}
+
+function getMensajeContextual(stats){
+  const{racha,totalCompletedEver,lastTrainingDate}=stats;
+  if(totalCompletedEver===0)
+    return'¡Bienvenida! Cuando completes tu primera sesión, empezamos a registrar tu progreso.';
+  const diasDesde=lastTrainingDate
+    ?Math.floor((new Date()-lastTrainingDate)/864e5):null;
+  if(diasDesde!==null&&diasDesde>=7)
+    return'Llevas un tiempo sin entrenar, ¿todo bien? Tu rutina te espera cuando estés lista — sin presión.';
+  if(diasDesde!==null&&diasDesde>=3)
+    return'Llevas unos días sin pasar por acá. Recorda que no hace falta que sea perfecto, con que empieces ya ganás.';
+  if(racha>=5)
+    return`¡Qué racha! ${racha} sesiones seguidas. Amira lo nota y se pone orgullosa de vos.`;
+  if(racha>=3)
+    return`Vas muy bien, ${racha} sesiones seguidas. La constancia es lo que hace la diferencia.`;
+  return'Cada sesión cuenta. Seguí sumando — tu cuerpo lo agradece.';
+}
+
+function toggleWarmup(){
+  const open=localStorage.getItem('af-warmup-open')==='1';
+  localStorage.setItem('af-warmup-open',open?'0':'1');
+  renderRutina();
+}
+
+function autoSelectFirstDay(aId,ciclo){
+  for(const s of getSemanas(aId,ciclo)){
+    for(const dObj of getDias(aId,ciclo,s)){
+      if(dObj.ejercicios&&dObj.ejercicios.length>0){
+        selSem=s; selDia=parseInt(dObj.dia); return;
+      }
+    }
+  }
+}
+
+// ── Toast de confirmación ─────────────────────────────────────
+function mostrarToast(msg){
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--v);color:white;padding:8px 18px;border-radius:var(--rp);
+    font-size:12px;font-weight:500;z-index:50;white-space:nowrap;
+    animation:fadeIn .25s ease;font-family:'DM Sans',sans-serif;
+  `;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2800);
+}
+
+// ── Theme ─────────────────────────────────────────────────────
+if(dark) document.documentElement.setAttribute('data-theme','dark');
+function toggleDark(){
+  dark=!dark;
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  localStorage.setItem('af-dark',dark?'1':'0');
+  document.getElementById('tdbtn').textContent=dark?'☀️':'🌙';
+}
+document.getElementById('tdbtn').textContent=dark?'☀️':'🌙';
+
+// ── Helpers ───────────────────────────────────────────────────
+function norm(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
+
+function getAlumna(){
+  const found=DB.alumnas.find(a=>
+    norm(a.slug)===norm(slug) ||
+    norm(a.nombre.split(' ')[0])===norm(slug)
+  );
+  if(found){localStorage.setItem('af-last-slug',found.slug);return found;}
+  // Only fall back to the single alumna when there's no slug in the URL
+  if(!slug && DB.alumnas.length===1) return DB.alumnas[0];
+  return null;
+}
+
+// Obtener ejercicios con manejo robusto de claves (number o string)
+function getRutinas(aId, ciclo){
+  const r = DB.rutinas[aId];
+  if(!r) return {};
+  // Buscar por ciclo exacto, luego como string, luego ciclo 1 como fallback
+  return r[ciclo] || r[String(ciclo)] || r[1] || r['1'] || {};
+}
+
+function getDias(aId, ciclo, sem){
+  const r = getRutinas(aId, ciclo);
+  return r[sem] || r[String(sem)] || [];
+}
+
+function getExs(aId, ciclo, sem, dia){
+  const dias = getDias(aId, ciclo, sem);
+  const d = dias.find(x=>parseInt(x.dia)===parseInt(dia));
+  return d?.ejercicios || [];
+}
+
+function getSemanas(aId, ciclo){
+  const r = getRutinas(aId, ciclo);
+  return Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort();
+}
+
+function getCiclos(aId){
+  const r = DB.rutinas[aId];
+  if(!r) return [1];
+  const ciclos = Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort();
+  return ciclos.length>0 ? ciclos : [1];
+}
+
+function dKey(aId,s,d,i){ return `${aId}-c${selCiclo}-${s}-${d}-${i}`; }
+function eKey(aId,s,d,i){ return `exp-${aId}-c${selCiclo}-${s}-${d}-${i}`; }
+function pKey(aId,s,d,i){ return `p-${aId}-c${selCiclo}-${s}-${d}-${i}`; }
+
+function saveDone(){try{localStorage.setItem('af-done',JSON.stringify(done));}catch(e){}}
+function loadLocal(){
+  try{
+    const d=localStorage.getItem('af-done');   if(d) done=JSON.parse(d);
+    const p=localStorage.getItem('af-pesos');  if(p) pesos=JSON.parse(p);
+    const r=localStorage.getItem('af-rpe');    if(r) rpe=JSON.parse(r);
+    // Restaurar selCiclo/selSem/selDia desde cache para que el primer render sea correcto
+    const sc=localStorage.getItem('af-selCiclo'); if(sc) selCiclo=parseInt(sc)||1;
+    const ss=localStorage.getItem('af-selSem');   if(ss) selSem=parseInt(ss)||1;
+    const sd=localStorage.getItem('af-selDia');   if(sd) selDia=parseInt(sd)||1;
+    // Recuperar datos de alumna y rutinas del cache local
+    const ca=localStorage.getItem('af-cache-alumnas');
+    const cr=localStorage.getItem('af-cache-rutinas');
+    if(ca) DB.alumnas=JSON.parse(ca);
+    if(cr) DB.rutinas=JSON.parse(cr);
+  }catch(e){}
+}
+
+// Guardar snapshot de los datos en localStorage para modo offline
+function saveCache(){
+  try{
+    // Guardar fotos por separado para no saturar el cache principal
+    const fotos={};
+    DB.alumnas.forEach(a=>{ if(a.foto) fotos[a.id]=a.foto; });
+    localStorage.setItem('af-cache-fotos',   JSON.stringify(fotos));
+    // Guardar alumnas sin fotos (ahorrar espacio)
+    const alumnasSinFoto = DB.alumnas.map(a=>({...a,foto:''}));
+    localStorage.setItem('af-cache-alumnas', JSON.stringify(alumnasSinFoto));
+    localStorage.setItem('af-cache-rutinas',  JSON.stringify(DB.rutinas));
+    localStorage.setItem('af-cache-ts', Date.now().toString());
+  }catch(e){ console.warn('Cache write error:', e); }
+}
+
+// Recuperar fotos del cache e inyectarlas en DB.alumnas
+function loadFotosCache(){
+  try{
+    const f=localStorage.getItem('af-cache-fotos');
+    if(!f) return;
+    const fotos=JSON.parse(f);
+    DB.alumnas.forEach(a=>{ if(fotos[a.id] && !a.foto) a.foto=fotos[a.id]; });
+  }catch(e){}
+}
+
+// ── Cola de sync offline ─────────────────────────────────────
+// Guarda operaciones que fallaron para reintentarlas cuando haya conexión
+let syncQueue = JSON.parse(localStorage.getItem('af-sync-queue')||'[]');
+
+function queueSync(op){
+  syncQueue.push({...op, ts: Date.now()});
+  if(syncQueue.length > 50) syncQueue = syncQueue.slice(-50);
+  localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
+  // Registrar background sync para reintento automático
+  if(swReg && 'sync' in swReg) swReg.sync.register('sync-progreso').catch(()=>{});
+}
+
+async function flushSyncQueue(){
+  if(!syncQueue.length) return;
+  const pendientes = [...syncQueue];
+  syncQueue = [];
+  localStorage.setItem('af-sync-queue', JSON.stringify([]));
+  let fallidos = [];
+  for(const op of pendientes){
+    try{
+      await sbUpsert('progreso', op.data);
+    }catch(e){
+      fallidos.push(op); // si falla de nuevo, vuelve a la cola
+    }
+  }
+  if(fallidos.length){
+    syncQueue = [...fallidos, ...syncQueue];
+    localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
+  } else if(pendientes.length){
+    mostrarToast('✓ Progreso sincronizado');
+  }
+  updateOfflineBanner();
+}
+
+// Escuchar cuando el dispositivo recupera la conexión
+window.addEventListener('online', ()=>{
+  updateOfflineBanner();
+  flushSyncQueue();
+  // Si abrió offline sin caché y no hay alumna cargada, recargar para obtener datos
+  if(!getAlumna()) location.reload();
+});
+window.addEventListener('offline', ()=>updateOfflineBanner());
+
+function updateOfflineBanner(){
+  let b=document.getElementById('offline-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='offline-banner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:200;text-align:center;font-size:12px;font-family:\'DM Sans\',sans-serif;padding:6px 12px;transition:transform .3s;max-width:430px;margin:0 auto;';
+    document.body.appendChild(b);
+  }
+  const offline=!navigator.onLine;
+  const pending=syncQueue.length;
+  if(offline){
+    b.style.background='#374151';b.style.color='white';b.style.transform='translateY(0)';
+    b.textContent=pending?`📵 Sin conexión · ${pending} cambio${pending>1?'s':''} guardado${pending>1?'s':''}`:' 📵 Sin conexión — los cambios se guardan localmente';
+  } else if(pending){
+    b.style.background='var(--vl,#E1F5EE)';b.style.color='var(--vd,#0F6E56)';b.style.transform='translateY(0)';
+    b.textContent=`🔄 Sincronizando ${pending} cambio${pending>1?'s':''}...`;
+  } else {
+    b.style.transform='translateY(-100%)';
+  }
+}
+
+// Si ya hay conexión al iniciar y quedan ops pendientes, sincronizar ahora
+if(navigator.onLine && syncQueue.length){
+  setTimeout(flushSyncQueue, 3000); // esperar que init() termine primero
+}
+updateOfflineBanner();
+
+// ── Tabs ──────────────────────────────────────────────────────
+function switchTab(t){
+  const screens={r:'rutina',p:'progreso',n:'notas'};
+  const prevEl=document.getElementById(`screen-${screens[curTab]}`);
+  if(prevEl&&curTab!==t){
+    prevEl.style.opacity='0';
+    setTimeout(()=>{prevEl.style.display='none';prevEl.style.opacity='';},150);
+  }
+  curTab=t;
+  ['r','p','n'].forEach(x=>document.getElementById(`bn-${x}`).classList.toggle('active',x===t));
+  const delay=prevEl&&curTab===t?0:160;
+  setTimeout(()=>{
+    const el=document.getElementById(`screen-${screens[t]}`);
+    if(el){el.style.display='block';el.style.opacity='0';setTimeout(()=>{el.style.opacity='1';},10);}
+    if(t==='p') renderProgreso();
+    if(t==='n') renderNotas();
+  },delay);
+}
+
+// ── Timer ─────────────────────────────────────────────────────
+// Tick del countdown — extraído para poder pausar/reanudar
+function tickTimer(){
+  timerRem--;
+  const n   = document.getElementById('tnum');
+  const arc = document.getElementById('tarc');
+  const t   = document.getElementById('timer');
+  if(n)   n.textContent = timerRem;
+  if(arc) arc.style.strokeDashoffset = 150.8 * (1 - timerRem / timerTotal);
+  if(timerRem <= 0){
+    clearInterval(timerInt); timerInt=null; timerRunning=false;
+    pickerVisible=false;
+    const picker=document.getElementById('timer-picker');
+    if(picker) picker.style.display='none';
+    if(t){ t.classList.remove('show'); }
+    if(navigator.vibrate) navigator.vibrate([200,100,200]);
+  }
+}
+
+function startTimer(nextName){
+  if(timerInt){ clearInterval(timerInt); timerInt=null; }
+  // Cerrar picker si estaba abierto
+  pickerVisible=false;
+  const picker=document.getElementById('timer-picker');
+  if(picker) picker.style.display='none';
+  timerRunning=true;
+  timerTotal=timerDuracion;
+  timerRem=timerDuracion;
+  const el    = document.getElementById('timer');
+  const numEl = document.getElementById('tnum');
+  const arcEl = document.getElementById('tarc');
+  const subEl = document.getElementById('tsub');
+  if(!el) return;
+  if(subEl) subEl.textContent = nextName ? `Próximo: ${nextName}` : '¡Último ejercicio!';
+  if(numEl) numEl.textContent = timerRem;
+  if(arcEl) arcEl.style.strokeDashoffset = '0';
+  el.classList.add('show');
+  // No forzar visibility inline — el CSS .show maneja todo
+  // Actualizar label de duración
+  const lbl = document.getElementById('timer-dur-lbl');
+  if(lbl) lbl.textContent = timerDuracion === 45 ? '' : `· ${timerDuracion}s`;
+  timerInt = setInterval(tickTimer, 1000);
+}
+
+function skipTimer(){
+  if(timerInt){ clearInterval(timerInt); timerInt=null; }
+  timerRunning=false; timerRem=0;
+  pickerVisible=false;
+  const picker=document.getElementById('timer-picker');
+  if(picker) picker.style.display='none';
+  const el=document.getElementById('timer');
+  if(el){ el.classList.remove('show'); }
+}
+
+// ── Confetti ──────────────────────────────────────────────────
+const CEL_EMOJIS = ['🎉','🏆','💪','⭐','🔥'];
+const CEL_MSGS = [
+  '¡Cada entrenamiento te acerca a tu mejor versión!',
+  '¡La constancia es tu superpoder!',
+  '¡Hoy diste lo mejor de vos!',
+  '¡Así se construye el cuerpo que querés!',
+  '¡Un día más, una versión mejor!',
+];
+
+function compartirDia(){
+  const a=getAlumna(); if(!a)return;
+  compartirLogro('¡Día '+selDia+' completado!',a.nombre.split(' ')[0]+' · Sem '+selSem,'💪');
+}
+function wrapTextCanvas(ctx,text,maxW){
+  const words=text.split(' ');const lines=[];let cur='';
+  words.forEach(w=>{const t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;});
+  if(cur)lines.push(cur);return lines;
+}
+async function generarTarjetaLogro(titulo,subtitulo,emoji){
+  const W=1080,H=1080;
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  const gr=ctx.createLinearGradient(0,0,W,H);
+  gr.addColorStop(0,'#0a2e20');gr.addColorStop(.5,'#0F6E56');gr.addColorStop(1,'#1D9E75');
+  ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.06)';
+  ctx.beginPath();ctx.arc(W*.82,H*.12,300,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(W*.08,H*.88,200,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.18)';
+  ctx.beginPath();ctx.arc(W/2,240,115,0,Math.PI*2);ctx.fill();
+  try{await document.fonts.load('italic 110px "DM Serif Display"');}catch(e){}
+  ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='italic 110px "DM Serif Display",serif';ctx.fillText('A',W/2,248);
+  ctx.font='500 46px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.88)';ctx.fillText('Amira Fitness',W/2,415);
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(W/2-140,456,280,2);
+  ctx.font='128px serif';ctx.textBaseline='alphabetic';ctx.fillText(emoji,W/2,618);
+  ctx.fillStyle='white';ctx.font='bold 72px "DM Sans",sans-serif';ctx.textBaseline='middle';
+  const tLines=wrapTextCanvas(ctx,titulo,W-140);
+  const tY=630+tLines.length*40;
+  tLines.forEach((l,idx)=>ctx.fillText(l,W/2,tY+idx*84));
+  ctx.font='400 50px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.78)';
+  ctx.fillText(subtitulo,W/2,tY+tLines.length*84+56);
+  ctx.font='400 36px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.45)';
+  const d=new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  ctx.fillText(d,W/2,H-72);
+  return new Promise(r=>cv.toBlob(r,'image/png'));
+}
+async function compartirLogro(titulo,subtitulo,emoji){
+  mostrarToast('Generando tarjeta...');
+  const blob=await generarTarjetaLogro(titulo,subtitulo,emoji).catch(()=>null);
+  if(!blob){mostrarToast('No se pudo generar');return;}
+  const file=new File([blob],'amira-fitness-logro.png',{type:'image/png'});
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],text:'Entrenando con Amira Fitness 💪'});return;}catch(e){}
+  }
+  const url=URL.createObjectURL(blob);
+  const txt=encodeURIComponent(titulo+' 💪 '+subtitulo+'\n#AmiraFitness');
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:1.25rem;';
+  ov.innerHTML=`<div style="background:var(--s);border-radius:16px;padding:1.25rem;max-width:340px;width:100%;text-align:center;">
+    <img src="${url}" style="width:100%;border-radius:10px;margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <a href="${url}" download="amira-fitness-logro.png" style="flex:1;padding:10px;background:var(--s2);border-radius:8px;font-size:13px;color:var(--t);text-decoration:none;">⬇ Guardar</a>
+      <a href="https://wa.me/?text=${txt}" target="_blank" style="flex:1;padding:10px;background:#25D366;border-radius:8px;font-size:13px;color:white;text-decoration:none;">📤 WhatsApp</a>
+    </div>
+    <button onclick="URL.revokeObjectURL('${url}');this.closest('[style*=fixed]').remove()" style="width:100%;padding:9px;background:none;border:1px solid var(--b);border-radius:8px;color:var(--tm);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cerrar</button>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+function mostrarCelebracion(aId, nombre, racha){
+  const celK=`af-cel-${aId}-c${selCiclo}-s${selSem}-d${selDia}`;
+  if(localStorage.getItem(celK)) return;
+  localStorage.setItem(celK,'1');
+  launchConfetti();
+  // Easter egg: racha 8+ semanas seguidas
+  if(racha>=8){
+    const ov=document.createElement('div');
+    ov.className='egg-ov';
+    ov.innerHTML=`<div class="egg-card">
+      <div class="egg-num">🔥${racha}</div>
+      <div class="egg-title">¡Sos imparable, ${nombre}!</div>
+      <div class="egg-msg">${racha} semanas seguidas. Amira está super orgullosa de tu dedicación. ¡Sos un ejemplo para todas!</div>
+      <button class="egg-btn" onclick="this.closest('.egg-ov').remove()">¡Seguir rompiendo récords!</button>
+    </div>`;
+    document.body.appendChild(ov);
+    return;
+  }
+  const emoji=CEL_EMOJIS[Math.floor(Math.random()*CEL_EMOJIS.length)];
+  const msg=CEL_MSGS[Math.floor(Math.random()*CEL_MSGS.length)];
+  const ov=document.createElement('div');
+  ov.className='cel-overlay';
+  ov.innerHTML=`<div class="cel-card">
+    <span class="cel-emoji">${emoji}</span>
+    <div class="cel-title">¡Lo lograste, ${nombre}!</div>
+    <div class="cel-msg">${msg}</div>
+    ${racha>=2?`<div class="cel-badge">🔥 ${racha} semanas seguidas</div><br>`:''}
+    <button class="cel-btn-sec" onclick="compartirDia()">📤 Compartir por WhatsApp</button>
+    <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Vamos! →</button>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+function mostrarCierreCiclo(aId, nombre, stats){
+  const k=`af-ciclo-fin-${aId}-c${selCiclo}`;
+  if(localStorage.getItem(k)) return;
+  localStorage.setItem(k,'1');
+  launchConfetti();
+  const ov=document.createElement('div');
+  ov.className='ciclo-fin-ov';
+  ov.innerHTML=`<div class="ciclo-fin-card">
+    <span class="ciclo-fin-trophy">🏆</span>
+    <div class="ciclo-fin-h">¡Ciclo completo, ${nombre}!</div>
+    <div class="ciclo-fin-p">Completaste las 4 semanas. ¡Eso es dedicación de verdad! Hablale a Amira para arrancar el próximo ciclo.</div>
+    <div class="ciclo-fin-stats">
+      <div class="ciclo-fin-stat"><b>${stats.dias}</b><span>Días entrenados</span></div>
+      <div class="ciclo-fin-stat"><b>${stats.exs}</b><span>Ejercicios hechos</span></div>
+      <div class="ciclo-fin-stat"><b>${stats.racha}</b><span>Sem. seguidas</span></div>
+    </div>
+    <button class="ciclo-fin-btn" onclick="this.closest('.ciclo-fin-ov').remove()">¡Seguir entrenando!</button>
+    <button onclick="compartirLogro('¡Ciclo completo!','${nombre} · ${stats.dias} días entrenados','🏆')" style="margin-top:8px;width:100%;padding:10px;background:rgba(255,255,255,0.15);border:none;border-radius:var(--rp);color:white;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">📤 Compartir logro</button>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+function mostrarUndoToast(onUndo){
+  document.getElementById('undo-toast-el')?.remove();
+  const t=document.createElement('div');
+  t.id='undo-toast-el';
+  t.className='undo-toast';
+  t.innerHTML=`<span>Ejercicio desmarcado</span><button class="undo-btn" id="undo-btn-el">Deshacer</button>`;
+  document.body.appendChild(t);
+  const tid=setTimeout(()=>t.remove(),3500);
+  document.getElementById('undo-btn-el').onclick=()=>{
+    clearTimeout(tid);t.remove();onUndo();
+  };
+}
+
+function launchConfetti(){
+  const c=document.getElementById('cc');
+  c.style.display='block';
+  const ctx=c.getContext('2d');
+  c.width=window.innerWidth;c.height=window.innerHeight;
+  const ps=Array.from({length:120},()=>({
+    x:Math.random()*c.width,y:Math.random()*c.height-c.height,
+    r:Math.random()*6+3,color:['#1D9E75','#5DCAA5','#CECBF6','#FAC775','#F0997B'][Math.floor(Math.random()*5)],
+    ta:0,ts:Math.random()*.1+.05,vy:Math.random()*3+2,tilt:0
+  }));
+  let fr=0;
+  (function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    ps.forEach(p=>{
+      ctx.beginPath();ctx.lineWidth=p.r;ctx.strokeStyle=p.color;
+      ctx.moveTo(p.x+p.tilt+p.r/4,p.y);ctx.lineTo(p.x+p.tilt,p.y+p.tilt+p.r/4);ctx.stroke();
+      p.y+=p.vy;p.ta+=p.ts;p.tilt=Math.sin(p.ta)*12;if(p.y>c.height)p.y=-20;
+    });
+    if(++fr<220) requestAnimationFrame(draw);
+    else{ctx.clearRect(0,0,c.width,c.height);c.style.display='none';}
+  })();
+  if(navigator.vibrate) navigator.vibrate([100,50,100,50,300]);
+}
+
+// ── Actions ───────────────────────────────────────────────────
+async function toggleDone(aId,i,nextName){
+  const k=dKey(aId,selSem,selDia,i);
+  const wasDone=!!done[k];
+
+  // Block unmarking if a later week already has done exercises
+  if(wasDone){
+    const laterDone=Object.keys(done).some(k2=>{
+      if(!done[k2])return false;
+      const p=k2.split('-');
+      return p.length>=5&&p[0]===String(aId)&&p[1]===`c${selCiclo}`&&parseInt(p[2])>selSem;
+    });
+    if(laterDone){
+      document.getElementById('undo-toast-el')?.remove();
+      const t=document.createElement('div');t.id='undo-toast-el';t.className='undo-toast';
+      t.innerHTML=`<span>Ya avanzaste de semana — no podés desmarcar esta</span>`;
+      document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+      return;
+    }
+  }
+
+  done[k]=!done[k];
+  saveDone();
+
+  // ── Micro-animación ANTES de re-renderizar ──────────────────
+  // Buscar por ID para targeting 100% seguro aunque haya expand/collapse
+  const card  = document.getElementById(`exc-${aId}-${i}`);
+  const numEl = document.getElementById(`exn-${aId}-${i}`);
+  const bchk  = card?.querySelector('.bchk');
+
+  if(numEl){
+    // Quitar clases anteriores para poder re-triggerear
+    numEl.classList.remove('anim-check','anim-uncheck','anim-ripple');
+    void numEl.offsetWidth; // reflow para re-trigger
+    if(done[k]){
+      // Marcar hecho: pop + ripple verde
+      numEl.textContent = '✓';
+      numEl.style.background = 'var(--v)';
+      numEl.style.color = 'white';
+      numEl.style.borderColor = 'var(--v)';
+      numEl.classList.add('anim-check','anim-ripple');
+    } else {
+      // Desmarcar: volver al número
+      numEl.textContent = String(i+1);
+      numEl.style.background = '';
+      numEl.style.color = '';
+      numEl.style.borderColor = '';
+      numEl.classList.add('anim-uncheck');
+    }
+  }
+  if(bchk){
+    bchk.classList.remove('anim-tap');
+    void bchk.offsetWidth;
+    bchk.classList.add('anim-tap');
+    bchk.textContent = done[k] ? '✓ Hecho' : 'Marcar hecho';
+  }
+  if(card && done[k]){
+    card.classList.add('done','anim-done');
+  } else if(card){
+    card.classList.remove('done');
+  }
+
+  // Esperar que la animación del check termine antes de re-renderizar
+  // (solo si hay animación — 420ms para check, 350ms para uncheck)
+  const delay = done[k] ? 400 : 320;
+  setTimeout(()=>{
+    skipTimer();
+    if(done[k] && !wasDone){
+      startTimer(nextName);
+      localStorage.setItem('af-did-train-'+aId+'-'+new Date().toISOString().split('T')[0],'1');
+    }
+    renderRutina();
+    // Undo toast cuando se desmarca
+    if(!done[k] && wasDone){
+      mostrarUndoToast(()=>{
+        done[k]=true; saveDone(); renderRutina();
+        sbUpsert('progreso',{alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
+          ejercicio_idx:i,ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
+          hecho:true,fecha_registro:new Date().toISOString()}).catch(()=>{});
+      });
+    }
+    // Celebración al completar el último ejercicio
+    if(done[k] && !wasDone){
+      const currExs=getExs(aId,selCiclo,selSem,selDia);
+      const allDone=currExs.length>0&&currExs.every((_,idx)=>done[dKey(aId,selSem,selDia,idx)]);
+      if(allDone){
+        const alm=getAlumna();
+        if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
+        // Detectar ciclo completo (las 4 semanas con al menos un día hecho)
+        if(alm){
+          const semsCompletas=[1,2,3,4].filter(s=>{
+            const dCount=parseInt(alm.dias)||3;
+            return[1,2,3,4,5].slice(0,dCount).some(d=>{
+              const exsD=getExs(aId,selCiclo,s,d);
+              return exsD.length>0&&exsD.every((_2,idx2)=>done[dKey(aId,s,d,idx2)]);
+            });
+          });
+          if(semsCompletas.length>=4){
+            const diasH=new Set(Object.keys(done).filter(k2=>k2.startsWith(`${aId}-c${selCiclo}-`)&&done[k2]).map(k2=>{const pp=k2.split('-');return pp.length>=5?`${pp[2]}-${pp[3]}`:null;}).filter(Boolean)).size;
+            const exsH=Object.keys(done).filter(k2=>k2.startsWith(`${aId}-c${selCiclo}-`)&&done[k2]).length;
+            const rachaC=calcRacha(aId,selCiclo);
+            setTimeout(()=>mostrarCierreCiclo(aId,alm.nombre.split(' ')[0],{dias:diasH,exs:exsH,racha:rachaC}),1500);
+          }
+          // Semana completa — enviar push si terminó todos los días de la semana
+          const dCount=parseInt(alm.dias)||3;
+          const semCompleta=[1,2,3,4,5].slice(0,dCount).every(d=>{
+            const exsD=getExs(aId,selCiclo,selSem,d);
+            return exsD.length>0&&exsD.every((_3,idx3)=>done[dKey(aId,selSem,d,idx3)]);
+          });
+          if(semCompleta){
+            const semPushKey=`af-sem-push-${aId}-c${selCiclo}-${selSem}`;
+            if(!localStorage.getItem(semPushKey)){
+              localStorage.setItem(semPushKey,'1');
+              fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`🏆 ¡Semana ${selSem} completa, ${alm.nombre.split(' ')[0]}!`,body:'Terminaste todos tus días de esta semana. ¡Sos increíble! 🔥'})}).catch(()=>{});
+            }
+          }
+        }
+      }
+    }
+  }, delay);
+  // Sync Supabase en background — si falla, encolar para reintento
+  const progresoData = {
+    alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
+    ejercicio_idx:i, ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
+    hecho:done[k], fecha_registro:new Date().toISOString()
+  };
+  try{
+    await sbUpsert('progreso', progresoData);
+    if(done[k]) sbPatch('alumnas',`id=eq.${aId}`,{last_active_at:new Date().toISOString()}).catch(()=>{});
+  }catch(e){
+    queueSync({data: progresoData});
+  }
+}
+
+function toggleExp(aId,i){
+  const k=eKey(aId,selSem,selDia,i);
+  expanded[k]=!expanded[k];
+  renderRutina();
+}
+
+function npKey(aId,c,s,d){return`af-np-${aId}-c${c}-${s}-${d}`;}
+function fbKey(aId,c,s,d){return`af-fb-${aId}-c${c}-${s}-${d}`;}
+
+async function marcarNoPude(aId){
+  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'nopude|'+new Date().toISOString());
+  renderRutina();
+  try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'no_pude',ciclo:selCiclo,semana:selSem,dia:selDia});}
+  catch(e){console.warn('feedback no_pude:',e);}
+}
+async function marcarDescansoActivo(aId){
+  localStorage.setItem(npKey(aId,selCiclo,selSem,selDia),'activo|'+new Date().toISOString());
+  renderRutina();
+  try{await sbInsert('feedbacks',{alumna_id:aId,tipo:'descanso_activo',ciclo:selCiclo,semana:selSem,dia:selDia});}
+  catch(e){console.warn('feedback descanso_activo:',e);}
+}
+
+async function guardarFeedbackDia(aId,tipo){
+  localStorage.setItem(fbKey(aId,selCiclo,selSem,selDia),tipo);
+  renderRutina();
+  try{
+    const row=await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});
+    sbNotifyAmira('feedbacks',row||{alumna_id:aId,tipo});
+  }catch(e){console.warn('feedback dia:',e);}
+}
+
+// ── Check-in semanal ──────────────────────────────────────────
+let _ciSel='';
+function selCheckin(btn,key){
+  document.querySelectorAll('.ci-opt').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  _ciSel=key;
+}
+async function enviarCheckin(aId){
+  if(!_ciSel){mostrarToast('Elegí cómo te fue primero');return;}
+  const nota=document.getElementById('ci-nota')?.value.trim()||'';
+  const tipo=_ciSel;
+  const ciK=`af-ci-${aId}-c${selCiclo}-s${selSem}`;
+  localStorage.setItem(ciK,tipo);
+  _ciSel='';
+  try{
+    const row=await sbInsert('feedbacks',{alumna_id:aId,tipo:'checkin_semanal',ciclo:selCiclo,semana:selSem,dia:0,nota:tipo+(nota?' — '+nota:'')});
+    sbNotifyAmira('feedbacks',row||{alumna_id:aId,tipo:'checkin_semanal'});
+  }catch(e){}
+  mostrarToast('✓ ¡Check-in enviado a Amira!');
+  renderNotas();
+}
+
+let _repCtx={aId:null,idx:null,nombre:''};
+function reportarProblema(aId,idx,nombre){
+  _repCtx={aId,idx,nombre};
+  document.getElementById('rep-titulo').textContent='¿Qué pasó con '+nombre+'?';
+  document.getElementById('rep-nota').value='';
+  document.getElementById('modal-reporte').style.display='flex';
+}
+function cerrarReporte(){document.getElementById('modal-reporte').style.display='none';}
+async function enviarReporte(tipo){
+  const nota=document.getElementById('rep-nota').value.trim();
+  cerrarReporte();
+  try{
+    const row=await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    sbNotifyAmira('feedbacks',row||{alumna_id:_repCtx.aId,tipo,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo vio y va a revisarlo.':'💪 ¡Gracias! Es parte del proceso.';
+    mostrarToast(msg);
+  }catch(e){mostrarToast('No se pudo enviar, gracias por avisar.');}
+}
+
+function initMaxPesos(aId){
+  const saved=localStorage.getItem('af-maxpesos');
+  if(saved){try{maxPesos=JSON.parse(saved);return;}catch(e){}}
+  // Build from existing pesos when first run
+  Object.entries(pesos).forEach(([k,v])=>{
+    if(!k.startsWith('p-'+aId+'-')) return;
+    const kg=parseFloat(v); if(!kg) return;
+    const parts=k.split('-');
+    if(parts.length<6) return;
+    const c=parseInt(parts[2].replace('c',''));
+    const sem=parseInt(parts[3]);
+    const dia=parseInt(parts[4]);
+    const idx=parseInt(parts[5]);
+    const ex=getExs(aId,c,sem,dia)[idx];
+    if(ex?.nombre){
+      const mKey=aId+'-'+ex.nombre;
+      if(!maxPesos[mKey]||kg>maxPesos[mKey]) maxPesos[mKey]=kg;
+    }
+  });
+  localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+}
+
+// ── Android install prompt ────────────────────────────────────
+let _androidPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _androidPrompt=e;
+  if(!localStorage.getItem('af-android-dismissed')&&
+     !window.matchMedia('(display-mode: standalone)').matches){
+    setTimeout(mostrarBannerAndroid,3000);
+  }
+});
+
+function mostrarBannerAndroid(){
+  if(!_androidPrompt||document.getElementById('android-banner')) return;
+  const b=document.createElement('div');
+  b.id='android-banner';
+  b.style.cssText='position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border:1px solid var(--bm);border-top:2px solid var(--v);border-radius:var(--r) var(--r) 0 0;padding:1rem 1.25rem;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,.15);font-family:\'DM Sans\',sans-serif;';
+  b.innerHTML='<div style="display:flex;align-items:start;gap:10px;">'
+    +'<div style="font-size:26px;line-height:1;">📲</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:4px;">Instalá la app en tu Android</div>'
+    +'<div style="font-size:12px;color:var(--tm);line-height:1.6;margin-bottom:10px;">Agregá Amira Fitness a tu pantalla de inicio para acceso rápido, sin browser.</div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button id="android-install-btn" style="flex:1;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Instalar</button>'
+    +'<button onclick="document.getElementById(\'android-banner\').remove();localStorage.setItem(\'af-android-dismissed\',\'1\')" style="background:none;border:1px solid var(--bm);border-radius:var(--rp);padding:8px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:\'DM Sans\',sans-serif;">Ahora no</button>'
+    +'</div></div></div>';
+  document.body.appendChild(b);
+  document.getElementById('android-install-btn').onclick=async()=>{
+    b.remove();
+    _androidPrompt.prompt();
+    const result=await _androidPrompt.userChoice;
+    localStorage.setItem('af-android-dismissed','1');
+    _androidPrompt=null;
+    if(result.outcome==='accepted') mostrarToast('✓ ¡App instalada!');
+  };
+}
+
+function mostrarBannerIOS(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari=/safari/i.test(navigator.userAgent)&&!/chrome|crios|fxios/i.test(navigator.userAgent);
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  if(!isIOS||!isSafari||isStandalone||localStorage.getItem('af-ios-dismissed')) return;
+  if(document.getElementById('ios-banner')) return;
+  const b=document.createElement('div');
+  b.id='ios-banner';
+  b.style.cssText='position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border:1px solid var(--bm);border-top:2px solid var(--v);border-radius:var(--r) var(--r) 0 0;padding:1rem 1.25rem;z-index:40;box-shadow:0 -4px 20px rgba(0,0,0,.15);font-family:\'DM Sans\',sans-serif;';
+  b.innerHTML='<div style="display:flex;align-items:start;gap:10px;">'
+    +'<div style="font-size:26px;line-height:1;">📲</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:4px;">Instalá la app en tu iPhone</div>'
+    +'<div style="font-size:12px;color:var(--tm);line-height:1.6;">Tocá <strong style="color:var(--t);">↑ Compartir</strong> en Safari y elegí <strong style="color:var(--t);">"Agregar a pantalla de inicio"</strong>.</div>'
+    +'</div>'
+    +'<button onclick="document.getElementById(\'ios-banner\').remove();localStorage.setItem(\'af-ios-dismissed\',\'1\')" style="background:none;border:none;font-size:20px;color:var(--th);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>'
+    +'</div>';
+  document.body.appendChild(b);
+}
+
+let _pt={};
+function savePeso(aId,i,val){
+  const k=pKey(aId,selSem,selDia,i);
+  pesos[k]=val;
+  localStorage.setItem('af-pesos',JSON.stringify(pesos));
+  const tk=`${aId}-c${selCiclo}-${selSem}-${selDia}-${i}`;
+  if(_pt[tk]) clearTimeout(_pt[tk]);
+  _pt[tk]=setTimeout(async()=>{
+    const kg=parseFloat(val)||null;
+    if(!kg) return;
+    const exNombre=getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'';
+    const pesoData = {
+      alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
+      ejercicio_idx:i, ejercicio_nombre:exNombre,
+      peso_kg:kg, fecha_registro:new Date().toISOString()
+    };
+    try{
+      await sbUpsert('progreso', pesoData);
+      if(exNombre){
+        const mKey=aId+'-'+exNombre;
+        if(mKey in maxPesos){
+          if(kg>maxPesos[mKey]){
+            maxPesos[mKey]=kg;
+            localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+            mostrarToast('🏆 ¡Nuevo récord en '+exNombre+'! '+kg+' kg');
+          }
+        }else{
+          maxPesos[mKey]=kg;
+          localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+        }
+      }
+    }catch(e){
+      queueSync({data: pesoData});
+    }
+  },1500);
+}
+
+async function saveRpe(aId,i,val){
+  const k=dKey(aId,selSem,selDia,i);
+  rpe[k]=val;
+  try{localStorage.setItem('af-rpe',JSON.stringify(rpe));}catch(_){}
+  const exNombre=getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'';
+  sbUpsert('progreso',{
+    alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
+    ejercicio_idx:i,ejercicio_nombre:exNombre,rpe:val,
+    fecha_registro:new Date().toISOString()
+  }).catch(()=>{});
+  renderRutina();
+}
+
+async function cambiarFotoAlumna(aId,input){
+  const file=input.files[0]; if(!file) return;
+  const canvas=document.createElement('canvas');
+  const img=new Image();
+  img.onload=async()=>{
+    const MAX=200;
+    const ratio=Math.min(MAX/img.width,MAX/img.height);
+    canvas.width=img.width*ratio;canvas.height=img.height*ratio;
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const foto=canvas.toDataURL('image/jpeg',0.8);
+    const a=DB.alumnas.find(x=>x.id===aId);
+    if(a) a.foto=foto;
+    // Guardar en cache local inmediatamente para evitar parpadeo
+    try{
+      const fotos=JSON.parse(localStorage.getItem('af-cache-fotos')||'{}');
+      fotos[aId]=foto;
+      localStorage.setItem('af-cache-fotos',JSON.stringify(fotos));
+    }catch(e){}
+    try{await sbPatch('alumnas',`id=eq.${aId}`,{foto});}catch(e){}
+    renderRutina();
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+// ── Comentarios ───────────────────────────────────────────────
+async function enviarCom(aId){
+  const inp=document.getElementById('cinp2'); if(!inp||!inp.value.trim()) return;
+  const texto=inp.value.trim();
+  const now=new Date();
+  const fecha=`${now.getDate()}/${now.getMonth()+1} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  try{
+    const row=await sbUpsert('comentarios',{alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,texto,fecha});
+    sbNotifyAmira('comentarios',row||{alumna_id:aId,texto});
+    DB.comentarios.push({alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,texto,fecha});
+    const amPh=localStorage.getItem('af-amira-ph')||AMIRA_WA;
+    const a=getAlumna();
+    const msg=encodeURIComponent(`💪 ${a?.nombre||slug} (C${selCiclo} S${selSem}D${selDia}):\n\n"${texto}"`);
+    window.open(`https://wa.me/${amPh}?text=${msg}`,'_blank');
+  }catch(e){
+    DB.comentarios.push({alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,texto,fecha});
+  }
+  renderNotas();
+}
+
+// ── Renders ───────────────────────────────────────────────────
+function renderRutina(){
+  const scr=document.getElementById('screen-rutina');
+  if(!scr) return; // Seguridad: si el elemento no existe, salir
+  // Detectar primera visita antes de persistir (se usa más abajo para auto-seleccionar)
+  const isFirstEver=!localStorage.getItem('af-selSem');
+  // Persistir selección de semana y día
+  localStorage.setItem('af-selSem', selSem);
+  localStorage.setItem('af-selDia', selDia);
+  const a=getAlumna();
+  if(a&&a.estado==='baja'){
+    const amPh=localStorage.getItem('af-amira-ph')||AMIRA_WA;
+    const waMsg=encodeURIComponent('Hola Amira! Quería consultar sobre retomar los entrenamientos 💪');
+    scr.innerHTML=`<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center;">
+      <div style="width:72px;height:72px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1.5rem;">⏸</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--t);margin-bottom:.75rem;">Membresía pausada</div>
+      <div style="font-size:13px;color:var(--tm);line-height:1.75;max-width:280px;margin-bottom:2rem;">
+        Tu acceso está desactivado por el momento.<br>Si querés retomar, escribile a Amira.
+      </div>
+      <a href="https://wa.me/${amPh}?text=${waMsg}" target="_blank" style="
+        display:inline-flex;align-items:center;gap:10px;
+        background:#25D366;color:white;text-decoration:none;
+        padding:12px 24px;border-radius:var(--rp);
+        font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+        Escribirle a Amira
+      </a>
+    </div>`;
+    return;
+  }
+  if(!a){
+    // Si todavía estamos cargando, mostrar spinner en vez de error
+    if(window._cargando){
+      scr.innerHTML=`<div style="text-align:center;padding:4rem 1rem;color:var(--tm);font-size:13px;">Cargando tu rutina...</div>`;
+      return;
+    }
+    const amiraWA=localStorage.getItem('af-amira-ph')||AMIRA_WA;
+    const waMsg=encodeURIComponent('Hola Amira! Entré a mi link de rutina pero dice que no existe. ¿Podés enviarme el link correcto?');
+    scr.innerHTML=`<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;text-align:center;">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:28px;color:var(--vd);margin-bottom:1.5rem;">A</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--t);margin-bottom:.6rem;line-height:1.25;">Link no encontrado</div>
+      <div style="font-size:13px;color:var(--tm);line-height:1.75;max-width:280px;margin-bottom:2rem;">
+        Este link no corresponde a ninguna alumna activa.<br>Puede que haya cambiado o que tengas uno desactualizado.
+      </div>
+      <a href="https://wa.me/${amiraWA}?text=${waMsg}" target="_blank" style="
+        display:inline-flex;align-items:center;gap:10px;
+        background:#25D366;color:white;text-decoration:none;
+        padding:12px 24px;border-radius:var(--rp);
+        font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;
+        margin-bottom:1rem;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+        Escribirle a Amira
+      </a>
+      <div style="font-size:11px;color:var(--th);">Ella te envía el link correcto en minutos.</div>
+    </div>`;
+    return;
+  }
+  document.title=`${a.nombre.split(' ')[0]} — Amira Fitness`;
+  document.getElementById('hsubtitle').textContent=`Hola, ${a.nombre.split(' ')[0]} 👋`;
+  // Mostrar onboarding solo la primera vez (después de que cargó la alumna)
+  obMostrar(a.nombre.split(' ')[0]);
+
+  // Obtener datos
+  const ciclos = getCiclos(a.id);
+  const cicloActual = parseInt(a.ciclo_actual)||ciclos[ciclos.length-1]||1;
+  // Determine if the new cycle has been started (any exercise marked done)
+  const _newCycleStarted = Object.keys(done).some(k=>k.startsWith(`${a.id}-c${cicloActual}-`)&&done[k]);
+  const _cicloAnterior = cicloActual > 1 ? cicloActual - 1 : null;
+  const _hasPrevCiclo = _cicloAnterior !== null && ciclos.includes(_cicloAnterior);
+  // Show both cycles when new one hasn't been started yet
+  const _showCicloTabs = _hasPrevCiclo && !_newCycleStarted;
+  const _ciclosVisibles = _showCicloTabs ? [_cicloAnterior, cicloActual] : [cicloActual];
+  // Only reset selCiclo if it's outside the visible set
+  if(!_ciclosVisibles.includes(selCiclo)){
+    selCiclo = _showCicloTabs ? _cicloAnterior : cicloActual;
+    localStorage.setItem('af-selCiclo', selCiclo);
+  }
+  // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
+  if(selSem < 1 || selSem > 4) selSem = 1;
+  // Primera visita: ir directo al primer día que tenga ejercicios
+  if(isFirstEver) autoSelectFirstDay(a.id, selCiclo);
+
+  const exs = getExs(a.id, selCiclo, selSem, selDia);
+  const comp = exs.filter((_,i)=>done[dKey(a.id,selSem,selDia,i)]).length;
+  const total = exs.length;
+  const pct = total>0 ? Math.round((comp/total)*100) : 0;
+  const justDone = total>0 && comp===total;
+  const avContent = a.foto ? `<img src="${a.foto}" alt="${a.nombre}">` : ini(a.nombre);
+  const stats = calcStats(a.id);
+  const pctCiclo = stats.cicloTotal>0 ? Math.round((stats.cicloDone/stats.cicloTotal)*100) : 0;
+
+  let html = pushNudgeHTML(a.id) + `
+    <div class="hero">
+      <div class="av av-${a.color||'teal'}" onclick="document.getElementById('fp-${a.id}').click()">
+        ${avContent}
+        <div class="av-edit">✎</div>
+      </div>
+      <input type="file" id="fp-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
+      <div style="flex:1;min-width:0;">
+        <h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2>
+        <p>${a.tipo==='gym'?'Gimnasio':a.tipo==='casa'?'Casa':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha}`:''}</p>
+        ${stats.cicloTotal>0?`<div style="margin-top:7px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span style="font-size:10px;color:var(--tm);">${stats.cicloDone}/${stats.cicloTotal} entrenamientos del ciclo</span>
+          </div>
+          <div style="height:4px;background:var(--b);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:${pctCiclo}%;background:var(--v);border-radius:2px;transition:width .4s;"></div>
+          </div>
+        </div>`:''}
+      </div>
+    </div>
+
+    ${(()=>{
+      const hor=a.horario_entreno||{};
+      const diasConf=hor.dias||[];
+      if(!diasConf.length)return'';
+      const dow=new Date().getDay();
+      if(!diasConf.includes(dow))return'';
+      const todayKey=new Date().toISOString().split('T')[0];
+      const trainedToday=localStorage.getItem('af-did-train-'+a.id+'-'+todayKey);
+      if(trainedToday)return'';
+      return`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.4rem;">💪</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--vd);">¡Hoy te toca entrenar!</div><div style="font-size:11px;color:var(--vd);opacity:.8;">Abriste la app — eso ya es el primer paso.</div></div>
+      </div>`;
+    })()}
+    ${(()=>{
+      const _diasDesde=stats.lastTrainingDate?Math.floor((new Date()-stats.lastTrainingDate)/864e5):null;
+      const _showNudge=stats.totalCompletedEver===0||(_diasDesde!==null&&_diasDesde>=3);
+      if(!_showNudge)return'';
+      return`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;">
+        <div style="font-size:12px;color:var(--tm);line-height:1.55;">${getMensajeContextual(stats)}</div>
+      </div>`;
+    })()}
+    ${(()=>{
+      const _wuCustom=getExs(a.id,selCiclo,0,1);
+      const _wuHashKey=`af-warmup-hash-${a.id}-c${selCiclo}`;
+      const _wuCurrentHash=_wuCustom.map(e=>e.nombre).join('|');
+      if(_wuCurrentHash!==( localStorage.getItem(_wuHashKey)||'')){
+        localStorage.setItem(_wuHashKey,_wuCurrentHash);
+        localStorage.setItem('af-warmup-open','1');
+      }
+      const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
+      const _wuLinks=_wuCustom.length>0
+        ?_wuCustom.map(e=>{
+            const hasV=!!(e.video);
+            const showSR=e.series&&e.series!=='1'&&e.reps&&e.reps!=='—';
+            const showTip=!!(e.tip);
+            return`<div style="margin-top:4px;"><a href="${e.video||'#'}" target="_blank"${!hasV?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>${showSR?`<div style="font-size:11px;color:var(--ad);padding-left:22px;margin-top:1px;">${e.series} series × ${e.reps}</div>`:''}${showTip?`<div style="font-size:11px;color:var(--ad);opacity:.8;padding-left:22px;margin-top:1px;font-style:italic;">${e.tip}</div>`:''}</div>`;
+          }).join('')
+        :`<a href="https://youtu.be/x4NkmMOVZkc" target="_blank"><span class="play"></span>Movimiento articular</a>
+        <a href="https://youtu.be/QjjuSQm61SA" target="_blank"><span class="play"></span>Entrada en calor sin impacto</a>`;
+      return`<button onclick="toggleWarmup()" style="width:100%;background:var(--a);border:none;border-radius:${_wuOpen?'var(--rs) var(--rs) 0 0':'var(--rs)'};padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:${_wuOpen?'0':'.85rem'};">
+        <span style="font-size:10px;font-weight:500;color:var(--ad);text-transform:uppercase;letter-spacing:.05em;">🔥 Entrada en calor</span>
+        <span style="font-size:10px;color:var(--ad);opacity:.7;">${_wuOpen?'▲ cerrar':'▼ ver'}</span>
+      </button>
+      ${_wuOpen?`<div class="warmup" style="border-radius:0 0 var(--rs) var(--rs);padding-top:.5rem;margin-bottom:.85rem;">${_wuLinks}</div>`:''}`;
+    })()}`;
+
+  // Selector de ciclos
+  if(_showCicloTabs){
+    // New cycle exists but hasn't been started: show both so alumna can review old + start new
+    html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
+      ${_ciclosVisibles.map(c=>{
+        const cn=(a.ciclos_nombres||{})[c]||(a.ciclos_nombres||{})[String(c)]||'Ciclo '+c;
+        const isActive=selCiclo===c;
+        return`<button class="stab${isActive?' active':''}" onclick="selCiclo=${c};localStorage.setItem('af-selCiclo','${c}');selSem=1;selDia=1;renderRutina()">${cn}</button>`;
+      }).join('')}
+    </div></div>`;
+  }else if(ciclos.length>1){
+    // Multiple cycles exist but new one is active — show current cycle name only (no switching)
+    const cicloNombre=(a.ciclos_nombres||{})[selCiclo]||(a.ciclos_nombres||{})[String(selCiclo)]||'Ciclo '+selCiclo;
+    html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
+      <button class="stab active">${cicloNombre}</button>
+    </div></div>`;
+  }
+  // Mensaje de Amira para este ciclo (se muestra una vez hasta que la alumna lo cierra)
+  const _msgCiclo=(a.ciclos_mensajes||{})[selCiclo];
+  const _msgSeenKey=`af-ciclo-msg-seen-${a.id}-c${selCiclo}`;
+  if(_msgCiclo&&!localStorage.getItem(_msgSeenKey)){
+    html+=`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:.75rem;position:relative;">
+      <div style="font-size:10px;font-weight:600;color:var(--vd);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">💬 Mensaje de Amira</div>
+      <div style="font-size:13px;color:var(--t);line-height:1.55;">${_msgCiclo}</div>
+      <button onclick="localStorage.setItem('${_msgSeenKey}','1');renderRutina()" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:16px;color:var(--vd);cursor:pointer;line-height:1;" title="Cerrar">×</button>
+    </div>`;
+  }
+
+  // Selector de semanas — siempre visible (1-4)
+  html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
+    ${[1,2,3,4].map(s=>{
+      const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
+      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
+    }).join('')}
+  </div></div>`;
+
+  // Selector de días
+  html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+
+  // Progreso del día
+  html+=`<div class="prog-wrap">
+    <div class="prog-bar">
+      <div class="prog-fill" style="width:${Math.max(pct,12)}%"><span class="prog-num">${comp}/${total}</span></div>
+      ${pct < 88 ? `<span class="prog-pct">${pct}%</span>` : ''}
+    </div>
+  </div>
+  <div class="dlbl">${(a.ciclos_nombres||{})[selCiclo]||'Ciclo '+selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
+
+  const _npK=npKey(a.id,selCiclo,selSem,selDia);
+  const _noPude=localStorage.getItem(_npK);
+  if(exs.length>0&&!justDone&&!_noPude){
+    html+=`<div style="margin-bottom:.5rem;">
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <button class="np-btn" style="flex:1;" onclick="marcarDescansoActivo(${a.id})">🚶 Hice descanso activo</button>
+        <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
+      </div>
+      <div style="font-size:11px;color:var(--tm);text-align:center;line-height:1.4;">🚴 ¿Saliste a correr, andar en bici u otra actividad? Marcá <em>descanso activo</em>.</div>
+    </div>`;
+  } else if(_noPude&&!justDone){
+    const _npParts=_noPude.split('|');
+    const _npTipo=_npParts[0];
+    const _npDt=new Date(_npParts[1]||_noPude);const _npOk=!isNaN(_npDt.getTime());
+    let _npSub='';
+    if(_npOk){
+      const _diffD=Math.floor((Date.now()-_npDt)/86400000);
+      const _hh=_npDt.getHours().toString().padStart(2,'0');
+      const _mm=_npDt.getMinutes().toString().padStart(2,'0');
+      _npSub=' · '+(_diffD===0?'hoy':'ayer')+' a las '+_hh+':'+_mm;
+    }
+    if(_npTipo==='activo'){
+      html+=`<div class="np-done" style="background:var(--vl);color:var(--vd);border-color:var(--vm);">🚶 Hiciste descanso activo${_npSub} — ¡eso cuenta!</div>`;
+    }else{
+      html+=`<div class="np-done">😔 No pudiste entrenar${_npSub} — mañana es un nuevo día 💪</div>`;
+    }
+  }
+
+  if(exs.length===0){
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.75rem 1.25rem;text-align:center;margin-top:.25rem;">
+      <div style="font-size:1.75rem;margin-bottom:.5rem;">📋</div>
+      <div style="font-size:14px;font-weight:500;color:var(--t);margin-bottom:.35rem;">Este día todavía no tiene ejercicios</div>
+      <div style="font-size:12px;color:var(--tm);line-height:1.6;">Amira está preparando tu entrenamiento.<br>¡Ya llega, seguí entrenando!</div>
+    </div>`;
+  }
+
+  exs.forEach((ex,i)=>{
+    const isDone=!!done[dKey(a.id,selSem,selDia,i)];
+    const isExp=!!expanded[eKey(a.id,selSem,selDia,i)];
+    let pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
+    if(!pv&&ex.peso_base){pv=String(ex.peso_base);pesos[pKey(a.id,selSem,selDia,i)]=pv;}
+    const nextEx=exs[i+1];
+    const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
+    html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
+      <div class="ex-top" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">
+        <div class="ex-num" id="exn-${a.id}-${i}">${isDone?'✓':i+1}</div>
+        <div style="flex:1">
+          <div class="ex-name">${ex.nombre}</div>
+          <div class="ex-det">${ex.series} series × ${ex.reps}</div>
+        </div>
+      </div>
+      <div class="ex-btns">
+        ${ex.tip?`<button class="btip" onclick="toggleExp(${a.id},${i})">${isExp?'Ocultar':'Ver técnica'}</button>`:''}
+        ${ex.video?`<a class="bvid" href="${ex.video}" target="_blank">▶ Video</a>`:''}
+        <button class="brep" onclick="event.stopPropagation();reportarProblema(${a.id},${i},decodeURIComponent('${encodeURIComponent(ex.nombre)}'))">⚑ Reportar</button>
+      </div>
+      <div class="peso-row">
+        <span class="peso-lbl">Peso:</span>
+        <input class="peso-in" type="text" inputmode="decimal" placeholder="0" value="${pv}"
+          oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()">
+        <span style="font-size:11px;color:var(--tm);">kg</span>
+        ${(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
+      </div>
+      <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
+      ${isDone?(()=>{
+        const rv=rpe[dKey(a.id,selSem,selDia,i)];
+        const opts=[{v:7,e:'😌',l:'Fácil'},{v:8,e:'💪',l:'Bien'},{v:9,e:'😤',l:'Duro'},{v:10,e:'🥵',l:'Límite'}];
+        return`<div style="margin-top:6px;padding:5px 8px 6px;background:var(--s2);border-radius:var(--rs);">
+          <span style="font-size:10px;color:var(--tm);display:block;margin-bottom:4px;">¿Cómo se sintió?</span>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
+          ${opts.map(o=>`<button onclick="event.stopPropagation();saveRpe(${a.id},${i},${o.v})" style="padding:4px 2px;border-radius:8px;border:1px solid ${rv===o.v?'var(--v)':'var(--bm)'};background:${rv===o.v?'var(--vl)':'var(--s)'};color:${rv===o.v?'var(--vd)':'var(--t)'};font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;"><span style="font-size:16px;">${o.e}</span><span style="font-size:9px;">${o.l}</span></button>`).join('')}
+          </div>
+        </div>`;
+      })():''}
+      ${ex.tip?`<div class="tip-txt${isExp?' show':''}">${ex.tip}</div>`:''}
+      ${ex.nota?`<div class="nota-ej">💬 ${ex.nota}</div>`:''}
+    </div>`;
+  });
+
+  if(justDone){
+    html+=`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉<br><span style="font-size:13px;opacity:.85;font-family:'DM Sans',sans-serif;font-weight:400;">Recordá estirar para no sentirte adolorida 🤸</span></div>`;
+    const _fbK=fbKey(a.id,selCiclo,selSem,selDia);
+    const _fbDado=localStorage.getItem(_fbK);
+    if(!_fbDado){
+      html+=`<div class="fb-picker">
+        <div class="fb-title">¿Cómo te fue hoy?</div>
+        <div class="fb-opts">
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_bien')">💪 Bien</button>
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_muy_facil')">🔥 Muy fácil</button>
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_muy_dificil')">😤 Muy difícil</button>
+          <button class="fb-opt" onclick="guardarFeedbackDia(${a.id},'dia_me_dolio')">🤕 Me dolió algo</button>
+        </div>
+      </div>`;
+    }else{
+      const _fbMap={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió'};
+      html+=`<div class="fb-given">Respondiste: ${_fbMap[_fbDado]||_fbDado} ✓</div>`;
+    }
+  }
+  if(DB.estiramiento&&DB.estiramiento.length>0){
+    html+=`<div class="warmup" style="margin-top:1.25rem;">
+      <div class="wt">Estiramiento — hacé esto al terminar 🤸</div>
+      ${DB.estiramiento.map(e=>`<a href="${e.video||'#'}" target="_blank"${!e.video?' style="opacity:.5;pointer-events:none;"':''}><span class="play"></span>${e.nombre}</a>`).join('')}
+    </div>`;
+  }
+  if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
+  scr.innerHTML=html;
+}
+
+const _DIA_NAMES=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+
+async function toggleDiaHorario(aId,dia){
+  const a=getAlumna();if(!a)return;
+  const curr=Array.isArray(a.dias_disponibles)?[...a.dias_disponibles]:[];
+  const nombre=_DIA_NAMES[dia];
+  const idx=curr.indexOf(nombre);
+  if(idx>=0)curr.splice(idx,1);else curr.push(nombre);
+  curr.sort((x,y)=>_DIA_NAMES.indexOf(x)-_DIA_NAMES.indexOf(y));
+  a.dias_disponibles=curr.length?curr:null;
+  try{await sbPatch('alumnas',`id=eq.${aId}`,{dias_disponibles:curr.length?curr:null});}
+  catch(e){console.warn('dias_disponibles:',e);}
+  renderNotas();
+}
+
+async function savePesoCorp(aId){
+  const v=parseFloat(document.getElementById('pc-input')?.value);
+  if(!v||isNaN(v)||v<30||v>300)return;
+  const hoy=new Date().toISOString().split('T')[0];
+  try{
+    const saved=await sbUpsert('peso_alumna',{alumna_id:aId,fecha:hoy,peso:v});
+    const row=saved||{alumna_id:aId,fecha:hoy,peso:v};
+    const idx=(DB.pesoAlumnaHist||[]).findIndex(p=>p.fecha===hoy);
+    if(idx>=0)DB.pesoAlumnaHist[idx]=row;else(DB.pesoAlumnaHist||[]).unshift(row);
+    renderProgreso();
+    mostrarToast('Peso guardado ✓');
+  }catch(e){mostrarToast('Error al guardar');}
+}
+
+function renderProgreso(){
+  const scr=document.getElementById('screen-progreso'); if(!scr) return;
+  const a=getAlumna(); if(!a){scr.innerHTML='';return;}
+  const ciclos=getCiclos(a.id);
+  const ps=Object.fromEntries(Object.entries(pesos).filter(([k])=>k.startsWith(`p-${a.id}-`)));
+  const totalP=Object.values(ps).filter(v=>parseFloat(v)>0).length;
+  const totalD=new Set(Object.keys(done).filter(k=>k.startsWith(`${a.id}-`)&&done[k]).map(k=>{const p=k.split('-');return`${p[2]}-${p[3]}`;}).filter(k=>k&&k!=='-')).size;
+  const hist={};
+  Object.entries(ps).forEach(([k,v])=>{
+    const p=k.split('-');
+    // formato: p-aId-cN-sem-dia-idx
+    if(p.length<6) return;
+    const sem=+p[3],dia=+p[4],idx=+p[5];
+    const ex=getExs(a.id,selCiclo,sem,dia)[idx];
+    if(!ex||!parseFloat(v)) return;
+    if(!hist[ex.nombre]) hist[ex.nombre]=[];
+    hist[ex.nombre].push({sem,dia,kg:parseFloat(v),label:`S${sem}D${dia}`});
+  });
+  const exns=Object.keys(hist).sort((a,b)=>a.localeCompare(b,'es'));
+  if(!selHistEx&&exns.length>0) selHistEx=exns[0];
+  const badges=[
+    {icon:'🏁',label:'Primera rutina',e:totalD>=1},
+    {icon:'🔥',label:'3 días entrenados',e:totalD>=3},
+    {icon:'💪',label:'Primer peso cargado',e:totalP>=1},
+    {icon:'⭐',label:'10 ejercicios con peso',e:totalP>=10},
+    {icon:'🏆',label:'Semana completa',e:totalD>=3},
+    {icon:'🚀',label:'Mes de constancia',e:totalD>=12},
+  ];
+
+  // ── Calendario de constancia ─────────────────────────────────
+  // Construir mapa de días completados: "ciclo-sem-dia" → true
+  const diasHechos=new Set(
+    Object.keys(done)
+      .filter(k=>k.startsWith(`${a.id}-`)&&done[k])
+      .map(k=>{ const p=k.split('-'); return p.length>=4?`${p[1]}-${p[2]}-${p[3]}`:null; })
+      .filter(Boolean)
+  );
+
+  const ciclosDisp=[...getCiclos(a.id)].reverse(); // ciclo actual primero
+  const numDias=parseInt(a.dias)||3;
+
+  // Asegurar que selProgCiclo apunte a un ciclo válido (por defecto el más reciente)
+  if(!selProgCiclo||!ciclosDisp.includes(selProgCiclo)) selProgCiclo=ciclosDisp[0]||1;
+  const cic=selProgCiclo;
+  const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
+  const totalCeldas=4*numDias;
+  function isDayDone80(sem,dia){
+    const exs=getExs(a.id,cic,sem,dia);
+    const total=exs.length;
+    if(total===0)return false;
+    let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
+    return cnt/total>=0.8;
+  }
+  let completados=0;
+  for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
+  const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
+
+  const cicloSelectorHtml=ciclosDisp.length>1
+    ?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${ciclosDisp.map(c=>{
+          const cn=a.ciclos_nombres?.[c]||a.ciclos_nombres?.[String(c)]||`Ciclo ${c}`;
+          const active=c===cic;
+          return`<button onclick="selProgCiclo=${c};renderProgreso()" style="
+            padding:5px 14px;border-radius:99px;border:1.5px solid ${active?'var(--v)':'var(--b)'};
+            background:${active?'var(--v)':'var(--s)'};color:${active?'white':'var(--t)'};
+            font-size:12px;font-weight:${active?'600':'400'};cursor:pointer;
+            font-family:'DM Sans',sans-serif;transition:all .15s;
+          ">${cn}</button>`;
+        }).join('')}
+      </div>`
+    :'';
+
+  const calHtml=`
+    ${cicloSelectorHtml}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+      <span style="font-size:13px;font-weight:600;color:var(--t);">${cicloNombre}</span>
+      <span style="font-size:11px;color:var(--tm);">${completados}/${totalCeldas} días</span>
+    </div>
+    <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
+      <div></div>
+      ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
+      ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
+      <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
+      ${[1,2,3,4].map(sem=>{
+        const hecho=isDayDone80(sem,dia);
+        return`<div style="height:30px;border-radius:6px;
+          background:${hecho?'var(--v)':'var(--s2)'};
+          border:1px solid ${hecho?'var(--vd)':'var(--b)'};
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;color:white;font-weight:600;
+        ">${hecho?'✓':''}</div>`;
+      }).join('')}`).join('')}
+    </div>`;
+
+  // Racha de semanas consecutivas
+  const _nDias=parseInt(a.dias)||3;
+  const _semList=[];
+  ciclos.forEach(cic=>{for(let s=1;s<=4;s++)_semList.push({cic,s});});
+  const _semHecha=(cic,s)=>{for(let d=1;d<=_nDias;d++){const exs=getExs(a.id,cic,s,d);if(!exs.length)continue;let cnt=0;for(let i=0;i<exs.length;i++)if(done[`${a.id}-c${cic}-${s}-${d}-${i}`])cnt++;if(cnt/exs.length>=0.8)return true;}return false;};
+  let racha=0;
+  for(let i=_semList.length-1;i>=0;i--){const{cic,s}=_semList[i];if(_semHecha(cic,s))racha++;else break;}
+
+  let html=`
+    <div class="stat-grid">
+      <div class="stat-card"><span class="stat-num">${totalD}</span><span class="stat-lbl">Días entrenados</span></div>
+      <div class="stat-card"><span class="stat-num">${totalP}</span><span class="stat-lbl">Ejercicios con peso</span></div>
+    </div>
+    ${racha>=2?`<div style="background:linear-gradient(135deg,var(--a),#fde68a22);border:1px solid #f59e0b44;border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2rem;line-height:1;">${racha>=6?'🏆':racha>=3?'🔥':'⭐'}</span>
+      <div><div style="font-size:1.1rem;font-family:'DM Serif Display',serif;color:var(--t);">${racha} semanas seguidas</div><div style="font-size:11px;color:var(--tm);">¡Seguí así, lo estás haciendo genial!</div></div>
+    </div>`:''}
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Constancia</div>
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      ${calHtml}
+    </div>
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Logros</div>
+    <div class="badge-row">
+      ${badges.map(b=>`<div class="badge-item${b.e?' earned':''}"><span style="font-size:16px;">${b.icon}</span><span>${b.label}</span></div>`).join('')}
+    </div>`;
+  // ── Mi peso corporal (prominent, above exercise weights) ────────
+  const _pc=DB.pesoAlumnaHist||[];
+  const _pcLast=_pc[0];
+  const _pcLastStr=_pcLast?`${_pcLast.peso} kg · ${new Date(_pcLast.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}`:'Sin registros aún';
+  const _pcHoy=new Date().toISOString().split('T')[0];
+  const _pcEntradaHoy=_pc.find(p=>p.fecha===_pcHoy);
+  html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Mi peso corporal</div>
+  <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length>1?'.6rem':'0'};">
+      <input type="number" id="pc-input" step="0.1" min="30" max="300" placeholder="Peso hoy (kg)" value="${_pcEntradaHoy?_pcEntradaHoy.peso:''}" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'" onkeydown="if(event.key==='Enter')savePesoCorp(${a.id})">
+      <button class="btn btn-p btn-s" style="white-space:nowrap;" onclick="savePesoCorp(${a.id})">${_pcEntradaHoy?'Actualizar':'Guardar'}</button>
+    </div>
+    ${_pcEntradaHoy?`<div style="font-size:11px;color:var(--vd);margin-bottom:${_pc.length>1?'.4rem':'0'};">✓ Registrado hoy · un registro por día</div>`:''}
+    ${_pc.filter(p=>p.fecha!==_pcHoy).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
+    ${_pc.filter(p=>p.fecha!==_pcHoy).length>5?`<div style="font-size:11px;color:var(--th);text-align:center;padding-top:4px;">y más registros</div>`:''}
+  </div>`;
+  const _hasPcChart=_pc.length>=1;
+  if(exns.length>0||_hasPcChart){
+    const _allOpts=[...(_hasPcChart?['__peso_corp__']:[]),...exns];
+    if(!selHistEx||(!_allOpts.includes(selHistEx))) selHistEx=_allOpts[0];
+    html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos</div>
+    <select class="ex-sel" onchange="selHistEx=this.value;renderProgreso()">
+      ${_hasPcChart?`<option value="__peso_corp__" ${selHistEx==='__peso_corp__'?'selected':''}>⚖ Mi peso corporal</option>`:''}
+      ${exns.map(n=>`<option value="${n}" ${n===selHistEx?'selected':''}>${n}</option>`).join('')}
+    </select>
+    <div class="chart-wrap"><canvas id="pchart"></canvas></div>`;
+  }else{
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:1.5rem;text-align:center;color:var(--tm);font-size:13px;">
+      Cargá el peso que usás en cada ejercicio durante tu rutina para ver tu progreso acá.
+    </div>`;
+  }
+  scr.innerHTML=html;
+  if(exns.length>0||_hasPcChart) setTimeout(()=>{
+    const c=document.getElementById('pchart'); if(!c) return;
+    if(charts.p) charts.p.destroy();
+    const dk=document.documentElement.getAttribute('data-theme')==='dark';
+    const gc=dk?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+    const tc=dk?'#9ca3af':'#6b7280';
+    let labels,values,labelStr;
+    if(selHistEx==='__peso_corp__'){
+      const sorted=[..._pc].reverse(); // ascendente para el gráfico
+      labels=sorted.map(p=>new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'}));
+      values=sorted.map(p=>parseFloat(p.peso));
+      labelStr='Peso corporal';
+    }else{
+      const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
+      labels=data.map(d=>d.label);
+      values=data.map(d=>d.kg);
+      labelStr=selHistEx;
+    }
+    charts.p=new Chart(c,{type:'line',data:{labels,datasets:[{label:labelStr,data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' kg'}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+' kg'},beginAtZero:false}}}});
+  },50);
+}
+
+function renderNotas(){
+  const scr=document.getElementById('screen-notas'); if(!scr) return;
+  const a=getAlumna(); if(!a){scr.innerHTML='';return;}
+  const coms=DB.comentarios.filter(c=>c.alumna_id===a.id);
+  const ciK=`af-ci-${a.id}-c${selCiclo}-s${selSem}`;
+  const ciDado=localStorage.getItem(ciK);
+  const ciLabels={excelente:'💪 Excelente',bien:'😊 Bien',regular:'😐 Regular',duro:'😤 Duro',descanso:'😴 Descanso',lesion:'🤕 Lesión'};
+  let ciHtml='';
+  if(!ciDado){
+    const opts=[{k:'excelente',l:'💪 Excelente'},{k:'bien',l:'😊 Bien'},{k:'regular',l:'😐 Regular'},{k:'duro',l:'😤 Duro'},{k:'descanso',l:'😴 Descanso'},{k:'lesion',l:'🤕 Lesión'}];
+    ciHtml=`<div class="ci-card">
+      <div class="ci-title">Check-in semanal</div>
+      <div class="ci-sub">Semana ${selSem} — ¿Cómo te fue en general?</div>
+      <div class="ci-opts">
+        ${opts.map(o=>`<button class="ci-opt" onclick="selCheckin(this,'${o.k}')">${o.l}</button>`).join('')}
+      </div>
+      <textarea id="ci-nota" class="cinput" rows="2" placeholder="Algo más para Amira... (opcional)" style="width:100%;margin-bottom:.6rem;margin-top:0;"></textarea>
+      <button class="btn btn-p btn-s" onclick="enviarCheckin(${a.id})">Enviar check-in ✓</button>
+    </div>`;
+  }else{
+    ciHtml=`<div class="ci-card" style="padding:.75rem 1rem;">
+      <div style="font-size:12px;color:var(--pd);">✓ Check-in semana ${selSem}: <strong>${ciLabels[ciDado]||ciDado}</strong></div>
+    </div>`;
+  }
+  // Recordatorios de entrenamiento
+  const _diasDisp=Array.isArray(a.dias_disponibles)?a.dias_disponibles:[];
+  const _diasNom=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const _horHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">🔔 Mis días de entrenamiento</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:.65rem;">Usamos esto para recordarte entrenar cuando abrís la app.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">
+      ${[0,1,2,3,4,5,6].map(d=>`<button onclick="toggleDiaHorario(${a.id},${d})" style="padding:5px 10px;border-radius:20px;font-size:12px;border:1px solid ${_diasDisp.includes(_DIA_NAMES[d])?'var(--v)':'var(--bm)'};background:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vl)':'var(--s2)'};color:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;">${_diasNom[d]}</button>`).join('')}
+    </div>
+    ${_diasDisp.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasDisp.map(d=>_diasNom[_DIA_NAMES.indexOf(d)]||d).join(', ')}</div>`:'<div style="font-size:11px;color:#b45309;">⚠️ Sin días seleccionados — tocá los días para que el recordatorio llegue solo cuando corresponde</div>'}
+  </div>`;
+  const _pushSupported='PushManager' in window&&'serviceWorker' in navigator;
+  const _pushAsked=localStorage.getItem('af-push-asked');
+  const _notifPerm=_pushSupported?(typeof Notification!=='undefined'?Notification.permission:'default'):'unsupported';
+  let _pushHtml;
+  if(!_pushSupported){
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.3rem;">🔕 Recordatorios push</div>
+      <div style="font-size:11px;color:var(--tm);line-height:1.5;">En iPhone, primero agregá la app a tu pantalla de inicio y después podrás activarlos.</div>
+    </div>`;
+  } else if(_notifPerm==='granted'&&_pushAsked==='granted'){
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--t);">🔔 Recordatorios activos</div>
+        <div style="font-size:11px;color:var(--tm);margin-top:2px;">Te avisamos a las 9AM los días de entrenamiento.</div>
+      </div>
+      <button onclick="desactivarPush(${a.id})" style="white-space:nowrap;padding:6px 12px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s2);color:var(--tm);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">Desactivar</button>
+    </div>`;
+  } else if(_notifPerm==='denied'){
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.3rem;">🔕 Notificaciones bloqueadas</div>
+      <div style="font-size:11px;color:var(--tm);line-height:1.5;">Tu navegador las bloqueó. Para reactivarlas, andá a Configuración del navegador → esta página → Notificaciones → Permitir.</div>
+    </div>`;
+  } else {
+    _pushHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.3rem;">🔕 Recordatorios push</div>
+      <div style="font-size:11px;color:var(--tm);margin-bottom:.65rem;line-height:1.5;">Recibí un aviso cuando tenés entrenamiento. Sin spam.</div>
+      <button onclick="activarPushManual(${a.id})" style="padding:7px 16px;border-radius:var(--rp);border:none;background:var(--v);color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar recordatorios</button>
+    </div>`;
+  }
+  scr.innerHTML=ciHtml+_horHtml+_pushHtml+`<div class="csec">
+    <div class="ctit">Mis notas para Amira</div>
+    <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>
+    ${coms.length===0?`<div style="font-size:12px;color:var(--tm);margin-bottom:10px;">Todavía no tenés notas. ¡Dejale una a Amira!</div>`:''}
+    ${coms.map(c=>`<div class="citem"><div class="cmeta">C${c.ciclo||1} Sem ${c.semana} Día ${c.dia} · ${c.fecha||''}</div>${c.texto}</div>`).join('')}
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <textarea class="cinput" id="cinp2" rows="3" placeholder="Ej: Día 1 terminado. Sentadilla con 12kg."></textarea>
+      <button class="csend" onclick="enviarCom(${a.id})">Enviar</button>
+    </div>
+  </div>`;
+}
+
+// ── Skeleton screen ───────────────────────────────────────────
+function mostrarSkeleton(){
+  const scr=document.getElementById('screen-rutina'); if(!scr) return;
+  scr.innerHTML=`
+    <div class="skel-card"><div style="display:flex;gap:12px;align-items:center;">
+      <div class="skel" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;"></div>
+      <div style="flex:1;"><div class="skel skel-line" style="width:60%;margin-bottom:8px;"></div><div class="skel skel-line" style="width:40%;height:10px;"></div></div>
+    </div></div>
+    <div class="skel-card"><div class="skel skel-line" style="width:35%;margin-bottom:12px;"></div><div style="display:flex;gap:8px;">${[1,2,3,4].map(()=>'<div class="skel" style="width:60px;height:28px;border-radius:20px;"></div>').join('')}</div></div>
+    ${[1,2,3].map(()=>`<div class="skel-card"><div style="display:flex;gap:10px;align-items:center;"><div class="skel" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;"></div><div style="flex:1;"><div class="skel skel-line" style="width:70%;margin-bottom:8px;"></div><div class="skel skel-line" style="width:45%;height:10px;"></div></div></div></div>`).join('')}`;
+}
+
+// ── Pull-to-refresh ───────────────────────────────────────────
+let _ptrY=0,_ptrPulled=false;
+document.addEventListener('touchstart',e=>{if(window.scrollY===0)_ptrY=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(!_ptrY)return;
+  const dy=e.touches[0].clientY-_ptrY;
+  if(dy>20&&window.scrollY===0){
+    _ptrPulled=dy>65;
+    const ind=document.getElementById('ptr-ind');
+    if(ind){ind.textContent=_ptrPulled?'↑ Soltá para actualizar':'↓ Jalá para actualizar';ind.classList.toggle('show',dy>30);}
+  }
+},{passive:true});
+document.addEventListener('touchend',()=>{
+  const ind=document.getElementById('ptr-ind');
+  if(ind)ind.classList.remove('show');
+  if(_ptrPulled){_ptrPulled=false;_ptrY=0;mostrarToast('Actualizando...');mostrarSkeleton();init();}
+  _ptrY=0;
+});
+
+// ── Init ──────────────────────────────────────────────────────
+async function init(){
+  // Auth check
+  const authed=await checkAlumnaAuth();
+  if(!authed)return;
+  showApp();
+
+  initTimerPicker(); // Aplicar preferencia de duración guardada
+  window._cargando = true; // Bandera: estamos en proceso de carga
+  // 1. Cargar datos locales primero — la pantalla responde de inmediato
+  loadLocal();
+  // Inyectar fotos cacheadas en las alumnas del cache
+  loadFotosCache();
+  // Si ya tenemos cache, renderizar en el acto (modo offline inmediato)
+  const tieneCache = DB.alumnas.length > 0;
+  if(tieneCache){
+    // Hay caché — intentar mostrar inmediatamente
+    // Pero si la alumna no se encuentra en el caché, mostrar loading
+    // (puede que el caché sea de otro dispositivo o el slug cambió)
+    const aCache = getAlumna();
+    if(aCache) renderRutina();
+    else {
+      const scr = document.getElementById('screen-rutina');
+      mostrarSkeleton();
+    }
+  } else {
+    // Sin caché: mostrar "Cargando..." mientras espera Supabase
+    const scr = document.getElementById('screen-rutina');
+    mostrarSkeleton();
+  }
+
+  // 2. Intentar actualizar desde Supabase (solo datos de esta alumna)
+  try{
+    // Si no hay conexión y ya tenemos caché con la alumna, no hay nada que hacer.
+    // El SW devuelve [] para todas las requests Supabase cuando está offline, lo que
+    // pisaría DB.alumnas con vacío y mostraría "Link no encontrado" incorrectamente.
+    if(!navigator.onLine && tieneCache && getAlumna()){
+      window._cargando=false;
+      return;
+    }
+    const email=_getAlumnaEmail();
+    let alumnas=email
+      ?await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}`)
+      :await sbGet('alumnas','order=created_at.asc');
+    // Fallback: si el email no está registrado en alumnas, buscar por slug de la URL
+    if(!alumnas.length&&slug){
+      alumnas=await sbGet('alumnas',`slug=eq.${encodeURIComponent(slug)}`);
+    }
+    const a0=alumnas[0];
+    const rutinas=a0
+      ?await sbGet('rutinas',`alumna_id=eq.${a0.id}&order=ciclo.asc,semana.asc,dia.asc&limit=5000`)
+      :[];
+    DB.alumnas=alumnas;
+    loadFotosCache(); // inyectar foto cacheada antes de cualquier render para evitar parpadeo
+    DB.rutinas={};
+    rutinas.forEach(r=>{
+      const aId=r.alumna_id, c=parseInt(r.ciclo)||1, s=parseInt(r.semana);
+      if(!DB.rutinas[aId]) DB.rutinas[aId]={};
+      if(!DB.rutinas[aId][c]) DB.rutinas[aId][c]={};
+      if(!DB.rutinas[aId][c][s]) DB.rutinas[aId][c][s]=[];
+      if(!DB.rutinas[aId][c][s].find(d=>parseInt(d.dia)===parseInt(r.dia))){
+        DB.rutinas[aId][c][s].push({dia:parseInt(r.dia),ejercicios:r.ejercicios||[]});
+      }
+    });
+
+    const a=getAlumna();
+    // Si el slug de la URL no corresponde a esta alumna, redirigir al slug/nombre correcto
+    if(!a && a0){
+      const dest=a0.slug||norm(a0.nombre?.split(' ')[0]||'');
+      if(dest){
+        localStorage.setItem('af-last-slug',dest);
+        location.replace('/alumna/'+dest);
+        return;
+      }
+    }
+    if(a){
+      // Don't force selCiclo here — renderRutina() handles cycle visibility logic
+      DB.pesoAlumnaHist=[];
+      const [coms,prog,avs,calBib,estBib,pcRows]=await Promise.all([
+        sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
+        sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc&limit=5000`),
+        sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
+        sbGet('ejercicios_biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
+        sbGet('ejercicios_biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
+        sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[])
+      ]);
+      DB.comentarios=coms;
+      DB.avisos=avs;
+      if(calBib.length>0)DB.calentamiento=calBib;
+      if(estBib.length>0)DB.estiramiento=estBib;
+      DB.pesoAlumnaHist=pcRows;
+      mostrarAvisos(a);
+      // Si el panel reseteó el progreso, limpiar caché local antes de cargar
+      const lastReset=localStorage.getItem('af-last-reset');
+      if(a.progreso_reset_at && (!lastReset || new Date(a.progreso_reset_at)>new Date(lastReset))){
+        done={}; pesos={};
+        localStorage.setItem('af-last-reset', a.progreso_reset_at);
+      }
+      DB.progresoRaw = prog;
+      prog.forEach(p=>{
+        if(p.hecho){
+          const k=`${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
+          done[k]=true;
+        }
+        if(p.peso_kg){
+          const k=`p-${a.id}-c${p.ciclo}-${p.semana}-${p.dia}-${p.ejercicio_idx}`;
+          pesos[k]=String(p.peso_kg);
+        }
+      });
+      saveDone();
+      localStorage.setItem('af-pesos',JSON.stringify(pesos));
+      initMaxPesos(a.id);
+      setTimeout(()=>setupPush(a.id), 3000);
+    }
+
+    // 3. Inyectar fotos del cache local si Supabase no las devolvió aún
+    loadFotosCache();
+    // 4. Guardar snapshot actualizado para la próxima vez sin conexión
+    saveCache();
+    window._cargando = false; // Carga completa
+    renderRutina();
+    if(curTab==='p') renderProgreso();
+
+  }catch(e){
+    window._cargando = false; // Aunque haya error, la carga terminó
+    console.warn('Sin conexión, usando datos en caché:', e);
+
+    // Si ya renderizamos desde cache, mostrar aviso discreto
+    if(tieneCache){
+      // Hay datos guardados — la alumna puede entrenar normalmente
+      mostrarToast('📵 Sin conexión — mostrando tu última rutina');
+    } else {
+      // Primera vez sin conexión: no hay nada guardado todavía
+      // No podemos mostrar nada sin haber cargado al menos una vez con señal
+      const scr = document.getElementById('screen-rutina');
+      if(scr) scr.innerHTML = `
+        <div style="text-align:center;padding:3rem 1.25rem;">
+          <div style="font-size:3rem;margin-bottom:1rem;">📵</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:.75rem;color:var(--t);">Sin conexión</div>
+          <div style="font-size:13px;color:var(--tm);line-height:1.7;margin-bottom:1.5rem;">
+            Para ver tu rutina por primera vez necesitás conectarte a internet al menos una vez.<br><br>
+            Una vez que cargues con señal, tu rutina queda guardada en el celular y podés entrenar sin conexión.
+          </div>
+          <button onclick="location.reload()" style="
+            background:var(--v);color:white;border:none;border-radius:var(--rp);
+            padding:10px 24px;font-size:13px;font-weight:500;cursor:pointer;
+            font-family:'DM Sans',sans-serif;
+          ">Reintentar</button>
+        </div>`;
+    }
+  }
+  mostrarBannerIOS();
+}
+// Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
+init();
+</script>
+</body>
+</html>

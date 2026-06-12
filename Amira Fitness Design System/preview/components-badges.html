@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Badges & chips" subtitle="Status badges, filter chips, ciclo pill" viewport="700x360" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;width:120px;font-weight:500;}
+  .badge{font-size:10px;padding:2px 9px;border-radius:30px;font-weight:500;}
+  .badge.bg{background:#E1F5EE;color:#0F6E56;}
+  .badge.bd{background:#EEEDFE;color:#3C3289;}
+  .chip{padding:5px 13px;border-radius:30px;font-size:11px;border:1px solid rgba(0,0,0,0.12);background:#fff;color:#6b7280;font-weight:400;cursor:pointer;}
+  .chip.selected{background:#EEEDFE;color:#3C3289;border-color:transparent;font-weight:500;}
+  .chip.v{background:#E1F5EE;color:#0F6E56;border-color:#0F6E56;font-weight:500;}
+  .pbadge{display:inline-flex;align-items:center;gap:6px;background:#EEEDFE;border-radius:30px;padding:4px 12px;font-size:11px;color:#3C3289;font-weight:500;}
+  .ciclo-num{font-family:'DM Serif Display',serif;font-size:18px;color:#3C3289;line-height:1;}
+  .service-tag{font-size:11.5px;font-weight:500;color:#0F6E56;background:#E1F5EE;display:inline-block;padding:3px 10px;border-radius:30px;}
+  .trust{display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280;}
+  .dot{width:6px;height:6px;border-radius:50%;background:#1D9E75;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="lbl">Status badges</div>
+    <span class="badge bg">Activa</span>
+    <span class="badge bd">Pausada</span>
+    <span class="badge" style="background:#FAEEDA;color:#633806;">Pendiente</span>
+  </div>
+  <div class="row">
+    <div class="lbl">Chips (filter)</div>
+    <span class="chip">Todos</span>
+    <span class="chip selected">Activas</span>
+    <span class="chip">Pausadas</span>
+    <span class="chip">Pendientes</span>
+  </div>
+  <div class="row">
+    <div class="lbl">Chips (multi)</div>
+    <span class="chip">Fuerza</span>
+    <span class="chip v">Tonificar</span>
+    <span class="chip">Bajar de peso</span>
+    <span class="chip v">Postura</span>
+  </div>
+  <div class="row">
+    <div class="lbl">Ciclo badge</div>
+    <span class="pbadge"><span class="ciclo-num">3</span>Ciclo 3 — Semana 2</span>
+  </div>
+  <div class="row">
+    <div class="lbl">Service tag</div>
+    <span class="service-tag">A distancia</span>
+    <span class="service-tag">Incluido siempre</span>
+    <span class="service-tag">WhatsApp + app</span>
+  </div>
+  <div class="row">
+    <div class="lbl">Trust strip</div>
+    <span class="trust"><span class="dot"></span>Cupos limitados</span>
+    <span class="trust"><span class="dot"></span>Sin contrato</span>
+    <span class="trust"><span class="dot"></span>Respuesta en el día</span>
+  </div>
+</body></html>

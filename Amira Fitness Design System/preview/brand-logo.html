@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Brand" name="Brand — Logo & PWA icon" subtitle="Circle 'A' mark in DM Serif Display" viewport="700x280" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .row{display:flex;gap:30px;align-items:center;flex-wrap:wrap;}
+  .item{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .nm{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;}
+  .lockup{display:flex;align-items:center;gap:10px;}
+  .logo-circle{width:48px;height:48px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:20px;color:#0F6E56;}
+  .logo-circle.solid{background:#1D9E75;color:white;}
+  .wordmark{font-weight:500;font-size:18px;color:#1a1a1a;}
+  .pwa{width:80px;height:80px;border-radius:18px;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:48px;color:white;position:relative;overflow:hidden;}
+  .pwa::before{content:'';position:absolute;width:50px;height:50px;border-radius:50%;background:rgba(225,245,238,.2);}
+  .pwa span{position:relative;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item">
+      <div class="logo-circle">A</div>
+      <div class="nm">Tinted</div>
+    </div>
+    <div class="item">
+      <div class="logo-circle solid">A</div>
+      <div class="nm">Solid</div>
+    </div>
+    <div class="item">
+      <div class="lockup"><div class="logo-circle">A</div><div class="wordmark">Amira Fitness</div></div>
+      <div class="nm">Horizontal lockup</div>
+    </div>
+    <div class="item">
+      <div class="pwa"><span>A</span></div>
+      <div class="nm">PWA app icon · 192/512</div>
+    </div>
+  </div>
+  <div style="margin-top:24px;font-size:11px;color:#6b7280;line-height:1.6;max-width:600px;">
+    The brand mark is a single capital <strong>A</strong> in DM Serif Display, set inside a circle. Tinted background is the default UI lockup; solid-green is used on dark hero backgrounds. There is no wordmark variant — pair the circle with the company name set in DM Sans medium 18px.
+  </div>
+</body></html>

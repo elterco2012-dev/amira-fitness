@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Service cards" subtitle="Marketing 'Qué incluye' card pattern" viewport="700x280" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#f8f8f6;padding:28px 32px;color:#1a1a1a;}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .service-card{background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:16px;padding:1.5rem;transition:box-shadow .2s;}
+  .service-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.06);}
+  .service-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:1rem;}
+  .icon-green{background:#E1F5EE;}
+  .icon-amber{background:#FAEEDA;}
+  .icon-purple{background:#EEEDFE;}
+  .service-card h3{font-size:14px;font-weight:500;margin-bottom:.4rem;color:#1a1a1a;}
+  .service-card p{font-size:12px;color:#6b7280;line-height:1.65;}
+  .service-tag{margin-top:1rem;font-size:11px;font-weight:500;color:#0F6E56;background:#E1F5EE;display:inline-block;padding:3px 10px;border-radius:30px;}
+</style></head>
+<body>
+  <div class="grid">
+    <div class="service-card">
+      <div class="service-icon icon-green">📋</div>
+      <h3>Rutina 100% personalizada</h3>
+      <p>Armada para vos: tus objetivos, tu nivel, tu equipamiento.</p>
+      <span class="service-tag">A distancia</span>
+    </div>
+    <div class="service-card">
+      <div class="service-icon icon-amber">📊</div>
+      <h3>Seguimiento semanal real</h3>
+      <p>Reviso tu progreso y ajusto la rutina semana a semana.</p>
+      <span class="service-tag">Incluido siempre</span>
+    </div>
+    <div class="service-card">
+      <div class="service-icon icon-purple">💬</div>
+      <h3>Contacto directo conmigo</h3>
+      <p>Podés escribirme desde la app — no respuestas automáticas.</p>
+      <span class="service-tag">WhatsApp + app</span>
+    </div>
+  </div>
+</body></html>

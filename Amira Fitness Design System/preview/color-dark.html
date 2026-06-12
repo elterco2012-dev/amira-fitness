@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Colors" name="Colors — Dark mode" subtitle="data-theme=dark overrides" viewport="700x320" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#111110;padding:28px 32px;color:#f0ede8;}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .sw{display:flex;flex-direction:column;gap:7px;}
+  .chip{aspect-ratio:1.8/1;border-radius:12px;border:1px solid rgba(255,255,255,0.07);}
+  .lbl{font-size:12px;font-weight:500;}
+  .hex{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6b7280;}
+  .role{font-size:10px;color:#9ca3af;line-height:1.4;}
+  .badge{display:inline-block;font-size:10px;background:#0a2e20;color:#5DCAA5;border-radius:30px;padding:3px 8px;margin-bottom:12px;letter-spacing:.05em;}
+</style></head>
+<body>
+  <span class="badge">DARK MODE — data-theme="dark"</span>
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:#111110;"></div><div class="lbl">Bg</div><div class="hex">#111110</div><div class="role">Page background</div></div>
+    <div class="sw"><div class="chip" style="background:#1c1c1a;"></div><div class="lbl">Surface</div><div class="hex">#1c1c1a</div><div class="role">Cards</div></div>
+    <div class="sw"><div class="chip" style="background:#242422;"></div><div class="lbl">Surface 2</div><div class="hex">#242422</div><div class="role">Inputs, sunken</div></div>
+    <div class="sw"><div class="chip" style="background:#0a2e20;"></div><div class="lbl">Verde light</div><div class="hex">#0a2e20</div><div class="role">Tip backgrounds in dark</div></div>
+
+    <div class="sw"><div class="chip" style="background:#f0ede8;"></div><div class="lbl">Foreground</div><div class="hex">#f0ede8</div><div class="role">Primary text</div></div>
+    <div class="sw"><div class="chip" style="background:#1a6b50;"></div><div class="lbl">Verde mid</div><div class="hex">#1a6b50</div><div class="role">Secondary brand</div></div>
+    <div class="sw"><div class="chip" style="background:#a5a0e8;"></div><div class="lbl">Purple text</div><div class="hex">#a5a0e8</div><div class="role">Info chip text</div></div>
+    <div class="sw"><div class="chip" style="background:#d4a854;"></div><div class="lbl">Amber text</div><div class="hex">#d4a854</div><div class="role">Warn chip text</div></div>
+  </div>
+</body></html>

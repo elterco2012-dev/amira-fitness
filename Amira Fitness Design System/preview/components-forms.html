@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Components" name="Components — Forms" subtitle="Inputs, focus, error, textarea, switch" viewport="700x380" -->
+<html lang="es"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',sans-serif;}
+  body{background:#fff;padding:28px 32px;color:#1a1a1a;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  label{font-size:12px;color:#6b7280;display:block;margin-bottom:5px;font-weight:500;}
+  input,select,textarea{width:100%;padding:10px 14px;border:1px solid rgba(0,0,0,0.12);border-radius:10px;font-size:13px;font-family:inherit;color:#1a1a1a;background:#f3f4f2;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#1D9E75;background:#fff;}
+  textarea{height:60px;resize:vertical;}
+  .focus{border-color:#1D9E75;background:#fff;box-shadow:0 0 0 3px rgba(29,158,117,0.12);}
+  .err{border-color:#A32D2D;background:#FCEBEB;}
+  .errlbl{color:#A32D2D;font-size:11px;margin-top:4px;}
+  .switch{display:inline-block;width:36px;height:20px;background:#1D9E75;border-radius:99px;position:relative;}
+  .switch::after{content:'';position:absolute;top:2px;right:2px;width:16px;height:16px;background:white;border-radius:50%;}
+  .switch.off{background:#ebebea;}
+  .switch.off::after{left:2px;right:auto;}
+</style></head>
+<body>
+  <div class="grid">
+    <div>
+      <label>Nombre (default)</label>
+      <input value="María González">
+    </div>
+    <div>
+      <label>Email (focused)</label>
+      <input class="focus" value="maria@ejemplo.com">
+    </div>
+    <div>
+      <label>Teléfono (error)</label>
+      <input class="err" value="123">
+      <div class="errlbl">Ingresá un teléfono válido</div>
+    </div>
+    <div>
+      <label>Días por semana</label>
+      <select><option>3 días</option></select>
+    </div>
+    <div style="grid-column:1/-1;">
+      <label>Notas para la alumna</label>
+      <textarea>Cualquier molestia, avisame enseguida 💪</textarea>
+    </div>
+    <div>
+      <label>Recordatorios</label>
+      <div style="display:flex;align-items:center;gap:10px;padding-top:6px;"><span class="switch"></span><span style="font-size:13px;">Activos</span></div>
+    </div>
+    <div>
+      <label>Modo oscuro</label>
+      <div style="display:flex;align-items:center;gap:10px;padding-top:6px;"><span class="switch off"></span><span style="font-size:13px;color:#9ca3af;">Apagado</span></div>
+    </div>
+  </div>
+</body></html>
