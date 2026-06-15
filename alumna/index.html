@@ -2225,11 +2225,14 @@ function renderRutina(){
 
   // Obtener datos
   const ciclos = getCiclos(a.id);
-  // Use the highest of: ciclo_actual from DB, highest cycle with rutinas, highest key in ciclos_nombres.
-  // This prevents the app from being stuck on an old cycle when ciclo_actual wasn't updated properly.
-  // ciclos_nombres is only a display-name dict — it must not advance the active cycle.
-  // Use ciclo_actual (authoritative) and the highest cycle that has actual rutinas rows (safety net).
-  let _cicloTope = Math.max(parseInt(a.ciclo_actual)||1, ciclos[ciclos.length-1]||1);
+  // ciclo_actual is the source of truth. Only fall back to the highest rutinas cycle when ciclo_actual
+  // has no rows at all (handles the edge case where ciclo_actual was never updated after creating new rutinas).
+  // This prevents spurious empty rows (e.g. semana=0 placeholders) in a future cycle from overriding ciclo_actual.
+  const _cicloActualNum = parseInt(a.ciclo_actual)||1;
+  const _cicloActualHasRutinas = ciclos.includes(_cicloActualNum);
+  let _cicloTope = _cicloActualHasRutinas
+    ? _cicloActualNum
+    : Math.max(_cicloActualNum, ciclos[ciclos.length-1]||1);
   // Date gating: a cycle with a future start date (ciclos_inicio) is not active yet → fall back to the
   // previous one until that date arrives. Cycles without a start date activate immediately (backward compat).
   const _ciclosInicio = a.ciclos_inicio || {};
