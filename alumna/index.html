@@ -2227,8 +2227,9 @@ function renderRutina(){
   const ciclos = getCiclos(a.id);
   // Use the highest of: ciclo_actual from DB, highest cycle with rutinas, highest key in ciclos_nombres.
   // This prevents the app from being stuck on an old cycle when ciclo_actual wasn't updated properly.
-  const _maxCicloNombres = Object.keys(a.ciclos_nombres||{}).map(Number).filter(n=>n>0).reduce((m,n)=>Math.max(m,n),0);
-  let _cicloTope = Math.max(parseInt(a.ciclo_actual)||1, ciclos[ciclos.length-1]||1, _maxCicloNombres||1);
+  // ciclos_nombres is only a display-name dict — it must not advance the active cycle.
+  // Use ciclo_actual (authoritative) and the highest cycle that has actual rutinas rows (safety net).
+  let _cicloTope = Math.max(parseInt(a.ciclo_actual)||1, ciclos[ciclos.length-1]||1);
   // Date gating: a cycle with a future start date (ciclos_inicio) is not active yet → fall back to the
   // previous one until that date arrives. Cycles without a start date activate immediately (backward compat).
   const _ciclosInicio = a.ciclos_inicio || {};
@@ -2927,13 +2928,14 @@ async function init(){
     if(a){
       // Don't force selCiclo here — renderRutina() handles cycle visibility logic
       DB.pesoAlumnaHist=[];
-      const [coms,prog,avs,calBib,estBib,pcRows]=await Promise.all([
+      const [coms,prog,avs,calBib,estBib,pcRows,fbNoPude]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc&limit=5000`),
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
         sbGet('ejercicios_biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
         sbGet('ejercicios_biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
-        sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[])
+        sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[]),
+        sbGet('feedbacks',`alumna_id=eq.${a.id}&tipo=in.(pausa_activa,no_pude)&order=created_at.asc&limit=1000`).catch(()=>[])
       ]);
       DB.comentarios=coms;
       DB.avisos=avs;
@@ -2960,6 +2962,15 @@ async function init(){
         }
       });
       loadKmFromDB(a.id, prog);
+      // Sync pausa_activa / no_pude from DB → localStorage (cross-device).
+      // Local state takes priority: if there's already a key we don't overwrite it.
+      fbNoPude.forEach(f=>{
+        if(!f.ciclo||!f.semana||!f.dia) return;
+        const k=npKey(a.id,f.ciclo,f.semana,f.dia);
+        if(localStorage.getItem(k)) return;
+        const ts=f.created_at||new Date().toISOString();
+        localStorage.setItem(k,(f.tipo==='pausa_activa'?'activo':'nopude')+'|'+ts);
+      });
       saveDone();
       localStorage.setItem('af-pesos',JSON.stringify(pesos));
       initMaxPesos(a.id);
