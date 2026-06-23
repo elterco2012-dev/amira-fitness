@@ -800,6 +800,74 @@ function startTokenRefresh(){
   },5*60*1000);
 }
 
+// ── Cola de guardado resiliente ───────────────────────────────
+// Garantiza que un guardado de rutina que falla (conexión inestable, JWT
+// vencido, etc.) se reintente solo y NUNCA se pierda en silencio. Espeja el
+// syncQueue de la app de alumna, que el panel no tenía. Persiste en localStorage.
+let _saveQueue=JSON.parse(localStorage.getItem('af-panel-save-queue')||'[]');
+function _persistSaveQueue(){try{localStorage.setItem('af-panel-save-queue',JSON.stringify(_saveQueue));}catch(e){}}
+// Clave de deduplicación: un día (alumna+ciclo+semana+dia) tiene un solo
+// guardado pendiente — si se edita dos veces offline, queda el más nuevo.
+function _saveKey(op){const b=op.body||{};return `${op.table}:${b.alumna_id}-${b.ciclo}-${b.semana}-${b.dia}`;}
+
+// Intenta guardar una rutina; si falla, la encola para reintento automático.
+// Nunca lanza. Devuelve {ok:true,row} si persistió o {ok:false,queued:true} si quedó en cola.
+async function guardarRutina(body){
+  try{
+    const row=await sbUpsert('rutinas',body);
+    return {ok:true,row};
+  }catch(e){
+    const op={table:'rutinas',body,ts:Date.now()};
+    const k=_saveKey(op);
+    _saveQueue=_saveQueue.filter(o=>_saveKey(o)!==k);
+    _saveQueue.push(op);
+    if(_saveQueue.length>100)_saveQueue=_saveQueue.slice(-100);
+    _persistSaveQueue();
+    updateSaveBanner();
+    return {ok:false,queued:true};
+  }
+}
+
+async function flushSaveQueue(){
+  if(!_saveQueue.length||!navigator.onLine)return;
+  const pend=[..._saveQueue];
+  const fallidos=[];
+  for(const op of pend){
+    try{await sbUpsert(op.table,op.body);}
+    catch(e){fallidos.push(op);}
+  }
+  _saveQueue=fallidos;
+  _persistSaveQueue();
+  updateSaveBanner();
+  if(!fallidos.length&&pend.length){
+    S.msg='✓ Cambios sincronizados';if(typeof render==='function')render();
+    setTimeout(()=>{S.msg='';if(typeof render==='function')render();},2500);
+  }
+}
+
+// Banner fijo y persistente: avisa cuántos cambios quedan sin guardar.
+// No depende de render() (que recrea vistas) — se inyecta directo en el DOM.
+function updateSaveBanner(){
+  if(!document.body)return;
+  let b=document.getElementById('save-queue-banner');
+  const n=_saveQueue.length;
+  if(!n){if(b)b.remove();return;}
+  if(!b){
+    b=document.createElement('div');
+    b.id='save-queue-banner';
+    b.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:9998;background:#b45309;color:#fff;text-align:center;padding:9px 14px;font-size:13px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 -2px 8px rgba(0,0,0,.25);';
+    document.body.appendChild(b);
+  }
+  b.innerHTML=`⏳ ${n} cambio${n>1?'s':''} sin guardar — reintentando solo… <button id="sqr-btn" style="background:#fff;color:#b45309;border:none;border-radius:6px;padding:3px 11px;font-size:12px;font-weight:700;cursor:pointer;">Reintentar ahora</button>`;
+  const rb=document.getElementById('sqr-btn');if(rb)rb.onclick=()=>flushSaveQueue();
+}
+
+window.addEventListener('online',()=>{updateSaveBanner();flushSaveQueue();});
+window.addEventListener('offline',updateSaveBanner);
+window.addEventListener('beforeunload',e=>{if(_saveQueue.length){e.preventDefault();e.returnValue='Tenés cambios sin guardar. Si salís ahora podrían perderse.';}});
+setInterval(()=>{if(_saveQueue.length&&navigator.onLine)flushSaveQueue();},20000);
+setTimeout(()=>{updateSaveBanner();if(navigator.onLine)flushSaveQueue();},0);
+
 async function login(){
   const email=document.getElementById('email').value.trim();
   const pwd=document.getElementById('pwd').value;
@@ -1021,13 +1089,15 @@ async function saveDay(){
   const day=DB.rutinas[S.selA]?.[ciclo]?.[semana]?.find(d=>d.dia===dia);
   if(!day){S.err='No hay ejercicios para guardar';render();return;}
   S.msg='Guardando...';S.err='';render();
-  try{
-    await sbUpsert('rutinas',{alumna_id:S.selA,ciclo,semana,dia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
-    S.msg='Guardado ✓';S.err='';render();
+  const r=await guardarRutina({alumna_id:S.selA,ciclo,semana,dia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
+  S.err='';
+  if(r.ok){
+    S.msg='Guardado ✓';render();
     setTimeout(()=>{S.msg='';render();},2000);
-  }catch(e){
-    S.err='Error al guardar';S.msg='';render();
-    throw e;
+  }else{
+    // No se pierde: quedó en cola y se reintenta solo (el banner lo muestra)
+    S.msg='Sin conexión — se guardará solo al reconectar ⏳';render();
+    setTimeout(()=>{S.msg='';render();},3500);
   }
 }
 
@@ -1147,7 +1217,7 @@ async function confirmarNuevoCiclo(){
               if(last)ex.peso_base=Math.round(last.kg*(1+pct)*2)/2;
             });
           }
-          ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem),dia:dayObj.dia,ejercicios:exsCopy,updated_at:new Date().toISOString()}));
+          ops.push(guardarRutina({alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem),dia:dayObj.dia,ejercicios:exsCopy,updated_at:new Date().toISOString()}));
         }
       }
     }
@@ -1565,7 +1635,7 @@ async function saveGeneratedRoutine(){
           return obj;
         });
         if(exs.length){
-          ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem.semana)||1,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
+          ops.push(guardarRutina({alumna_id:a.id,ciclo:nuevoCiclo,semana:parseInt(sem.semana)||1,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
         }
       }
     }
@@ -1619,7 +1689,7 @@ async function saveGeneratedRoutineEnSemana(){
         return obj;
       });
       if(exs.length){
-        ops.push(sbUpsert('rutinas',{alumna_id:a.id,ciclo,semana,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
+        ops.push(guardarRutina({alumna_id:a.id,ciclo,semana,dia:parseInt(dia.dia)||1,ejercicios:exs,updated_at:new Date().toISOString()}));
       }
     }
     await Promise.all(ops);
@@ -1651,7 +1721,7 @@ async function aplicarPlantilla(plantId){
     // 1. Guardar todo en Supabase en paralelo — si falla alguno, no toca el estado local
     await Promise.all(Object.keys(estructura).map(dia=>{
       const exsCopy=JSON.parse(JSON.stringify(estructura[dia]));
-      return sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:parseInt(dia),ejercicios:exsCopy,updated_at:new Date().toISOString()});
+      return guardarRutina({alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:parseInt(dia),ejercicios:exsCopy,updated_at:new Date().toISOString()});
     }));
     // 2. Solo si todo OK actualizar estado local
     ensureLocal(a.id,S.selCiclo,S.selSem);
@@ -2426,8 +2496,8 @@ function getWarmupExs(aId,ciclo){
 }
 async function saveWarmup(aId,ciclo){
   const exs=getWarmupExs(aId,ciclo);
-  await sbUpsert('rutinas',{alumna_id:aId,ciclo,semana:0,dia:1,ejercicios:exs,updated_at:new Date().toISOString()});
-  S.msg='✓ Calentamiento guardado';render();setTimeout(()=>{S.msg='';render();},2000);
+  const r=await guardarRutina({alumna_id:aId,ciclo,semana:0,dia:1,ejercicios:exs,updated_at:new Date().toISOString()});
+  S.msg=r.ok?'✓ Calentamiento guardado':'Sin conexión — se guardará solo al reconectar ⏳';render();setTimeout(()=>{S.msg='';render();},r.ok?2000:3500);
 }
 function addWarmupEx(bibId){
   const aId=S.selA,ciclo=S.selCiclo;
@@ -3736,7 +3806,7 @@ async function copiarSemRapida(dstSem){
   const ops=srcDias.map(d=>{
     const copy={dia:d.dia,ejercicios:JSON.parse(JSON.stringify(d.ejercicios||[]))};
     DB.rutinas[a.id][S.selCiclo][dst].push(copy);
-    return sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:dst,dia:d.dia,ejercicios:copy.ejercicios,updated_at:new Date().toISOString()});
+    return guardarRutina({alumna_id:a.id,ciclo:S.selCiclo,semana:dst,dia:d.dia,ejercicios:copy.ejercicios,updated_at:new Date().toISOString()});
   });
   await Promise.all(ops);
   S.selSem=dst;S.selDia=1;S.msg='✓ Sem '+dst+' copiada desde Sem '+src;
@@ -3756,7 +3826,7 @@ async function copiarDiaRapido(dstDia){
   let dstDay=week.find(d=>d.dia===dstDia);
   if(!dstDay){dstDay={dia:dstDia,ejercicios:[]};week.push(dstDay);}
   dstDay.ejercicios=JSON.parse(JSON.stringify(srcExs));
-  await sbUpsert('rutinas',{alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:dstDia,ejercicios:dstDay.ejercicios,updated_at:new Date().toISOString()});
+  await guardarRutina({alumna_id:a.id,ciclo:S.selCiclo,semana:S.selSem,dia:dstDia,ejercicios:dstDay.ejercicios,updated_at:new Date().toISOString()});
   S.selDia=dstDia;S.msg='✓ Día '+dstDia+' copiado desde Día '+src;
   render();setTimeout(()=>{S.msg='';render();},2500);
 }
