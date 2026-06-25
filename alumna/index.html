@@ -1820,16 +1820,17 @@ async function toggleDone(aId,i,nextName){
       if(allDone){
         const alm=getAlumna();
         if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
-        // Detectar ciclo completo (las 4 semanas con al menos un día hecho)
+        // Detectar ciclo completo (todas las semanas con rutina completadas)
         if(alm){
-          const semsCompletas=[1,2,3,4].filter(s=>{
+          const _totalSemsC=Math.max(4,...Object.keys(DB.rutinas?.[aId]?.[selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
+          const semsCompletas=Array.from({length:_totalSemsC},(_,i)=>i+1).filter(s=>{
             const dCount=parseInt(alm.dias)||3;
             return[1,2,3,4,5].slice(0,dCount).some(d=>{
               const exsD=getExs(aId,selCiclo,s,d);
               return exsD.length>0&&exsD.every((_2,idx2)=>done[dKey(aId,s,d,idx2)]);
             });
           });
-          if(semsCompletas.length>=4){
+          if(semsCompletas.length>=_totalSemsC){
             const diasH=new Set(Object.keys(done).filter(k2=>k2.startsWith(`${aId}-c${selCiclo}-`)&&done[k2]).map(k2=>{const pp=k2.split('-');return pp.length>=5?`${pp[2]}-${pp[3]}`:null;}).filter(Boolean)).size;
             const exsH=Object.keys(done).filter(k2=>k2.startsWith(`${aId}-c${selCiclo}-`)&&done[k2]).length;
             const rachaC=calcRacha(aId,selCiclo);
@@ -2370,9 +2371,10 @@ function renderRutina(){
     </div>`;
   }
 
-  // Selector de semanas — siempre visible (1-4)
+  // Selector de semanas — dinámico según semanas con rutina en DB
+  const _semMaxA=Math.max(4,...Object.keys(DB.rutinas?.[a.id]?.[selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
-    ${[1,2,3,4].map(s=>{
+    ${Array.from({length:_semMaxA},(_,i)=>i+1).map(s=>{
       const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
       return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
     }).join('')}

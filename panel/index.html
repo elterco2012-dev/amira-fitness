@@ -2822,7 +2822,8 @@ function drawerRutina(a){
   const ciclos=Array.from({length:maxC},(_,i)=>i+1);
   if(!ciclos.includes(S._drawerCiclo))S._drawerCiclo=parseInt(a.ciclo_actual)||1;
   const numDias=parseInt(a.dias)||3;
-  const sems=[1,2,3,4];
+  const _semMax=Math.max(4,...Object.keys(DB.rutinas[a.id]?.[S._drawerCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
+  const sems=Array.from({length:_semMax},(_,i)=>i+1);
   const exs=getEx(a.id,S._drawerCiclo,S._drawerSem,S._drawerDia);
   const _pm={};
   (DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id&&parseInt(r.ciclo)===S._drawerCiclo&&parseInt(r.semana)===S._drawerSem&&parseInt(r.dia)===S._drawerDia)
@@ -3813,6 +3814,22 @@ async function copiarSemRapida(dstSem){
   render();setTimeout(()=>{S.msg='';render();},2500);
 }
 
+async function agregarSemana(){
+  const a=getA(S.selA); if(!a)return;
+  const existing=Object.keys(DB.rutinas[a.id]?.[S.selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k));
+  const newSem=Math.max(4,...existing)+1;
+  const numDias=parseInt(a.dias)||3;
+  ensureLocal(a.id,S.selCiclo,newSem);
+  DB.rutinas[a.id][S.selCiclo][newSem]=[];
+  const ops=Array.from({length:numDias},(_,i)=>i+1).map(d=>{
+    DB.rutinas[a.id][S.selCiclo][newSem].push({dia:d,ejercicios:[]});
+    return guardarRutina({alumna_id:a.id,ciclo:S.selCiclo,semana:newSem,dia:d,ejercicios:[],updated_at:new Date().toISOString()});
+  });
+  await Promise.all(ops);
+  S.selSem=newSem;S.selDia=1;S.msg=`✓ Semana ${newSem} creada`;
+  render();setTimeout(()=>{S.msg='';render();},2500);
+}
+
 async function copiarDiaRapido(dstDia){
   const a=getA(S.selA); if(!a)return;
   const src=S.selDia;
@@ -4000,14 +4017,16 @@ function rRutinas(){
       const _done=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===S.selSem&&r.hecho).map(r=>parseInt(r.dia)));
       const numDias=parseInt(a.dias)||3;
       const doneCount=_done.size;
-      const semTabs=[1,2,3,4].map(s=>{
+      const _semMaxR=Math.max(4,...Object.keys(DB.rutinas[S.selA]?.[S.selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
+      const _semList=Array.from({length:_semMaxR},(_,i)=>i+1);
+      const semTabs=_semList.map(s=>{
         const hasExs=[1,2,3,4,5].slice(0,numDias).some(d=>getEx(a.id,S.selCiclo,s,d).length>0);
         // Días hechos en esta semana (para badge)
         const sDone=new Set((DB.progresoHechos||[]).filter(r=>r.alumna_id===S.selA&&parseInt(r.ciclo)===parseInt(S.selCiclo)&&parseInt(r.semana)===s&&r.hecho).map(r=>parseInt(r.dia)));
         const allDone=hasExs&&sDone.size>=numDias;
         const someDone=sDone.size>0&&!allDone;
         return`<button class="stab${S.selSem===s?' active':''}" onclick="S.selSem=${s};S.selDia=1;render()" style="position:relative;">Sem ${s}${allDone?' ✓':hasExs?'':' ·'}${someDone?`<span style="position:absolute;top:2px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--v);"></span>`:''}</button>`;
-      }).join('');
+      }).join('')+`<button class="stab" onclick="agregarSemana()" title="Agregar semana extra" style="opacity:.65;">+ Sem</button>`;
       const dayTabs=[1,2,3,4,5].slice(0,numDias).map(d=>{
         const done=_done.has(d);
         return`<button class="dtab${S.selDia===d?' active':''}" onclick="S.selDia=${d};render()" style="${done&&S.selDia!==d?'border-color:var(--v);color:var(--vd);':''}">${done?'✓ ':''}Día ${d}</button>`;
@@ -4019,7 +4038,8 @@ function rRutinas(){
         <div class="stabs" style="margin-bottom:0;">${semTabs}</div>
         <select onchange="if(this.value)copiarSemRapida(parseInt(this.value));this.value=''" style="font-size:11px;padding:4px 6px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);color:var(--t);cursor:pointer;" title="Clonar semana actual a otra semana">
           <option value="">→ Clonar sem a...</option>
-          ${[1,2,3,4].filter(s=>s!==S.selSem).map(s=>`<option value="${s}">Sem ${s}</option>`).join('')}
+          ${_semList.filter(s=>s!==S.selSem).map(s=>`<option value="${s}">Sem ${s}</option>`).join('')}
+          <option value="${_semMaxR+1}">+ Sem ${_semMaxR+1} (nueva)</option>
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.5rem;">
@@ -4878,7 +4898,7 @@ function envResumenGeneral(){
     const ciclo=parseInt(a.ciclo_actual)||1;
     // Semanas con al menos un día hecho en ciclo actual
     const semanasHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
-    const totalSems=4; const hechas=semanasHechas.size;
+    const totalSems=Math.max(4,...Object.keys(DB.rutinas?.[a.id]?.[ciclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k))); const hechas=semanasHechas.size;
     const icon=hechas>=totalSems?'✅':hechas>0?'⚠️':'❌';
     return`${fn(a.nombre)}: ${hechas}/${totalSems} sem ${icon}`;
   });
