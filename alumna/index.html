@@ -2261,8 +2261,9 @@ function renderRutina(){
     selCiclo = cicloActual;
     localStorage.setItem('af-selCiclo', String(selCiclo));
   }
-  // Permitir cualquier semana 1-4 aunque no tenga ejercicios cargados
-  if(selSem < 1 || selSem > 4) selSem = 1;
+  // Permitir cualquier semana cargada (incluye sem 5+ en meses largos)
+  const _semMaxClamp=Math.max(4,...Object.keys(DB.rutinas?.[a.id]?.[selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
+  if(selSem < 1 || selSem > _semMaxClamp) selSem = 1;
   // Primera visita: ir directo al primer día que tenga ejercicios
   if(isFirstEver) autoSelectFirstDay(a.id, selCiclo);
 
