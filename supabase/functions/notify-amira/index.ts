@@ -182,17 +182,22 @@ Deno.serve(async (req) => {
       }
       if (table === "feedbacks") {
         const tipo = String(record.tipo || "");
-        const em: Record<string, string> = {
-          dolor_preocupante:  "🚨",
-          dolor_articular:    "⚠️",
-          ejercicio_problema: "🔧",
-          bajo_rendimiento:   "📉",
-          dolor_normal:       "💪",
-          bueno:              "😊",
-          excelente:          "🔥",
-        };
-        title = `${em[tipo] || "💬"} Feedback — ${name || "alumna"}`;
-        body  = String(record.nota || record.texto || `Tipo: ${tipo}`).slice(0, 120);
+        if (tipo === "dia_completo") {
+          title = `✅ ${name || "Una alumna"} entrenó hoy`;
+          body  = String(record.nota || "Completó todos los ejercicios del día").slice(0, 120);
+        } else {
+          const em: Record<string, string> = {
+            dolor_preocupante:  "🚨",
+            dolor_articular:    "⚠️",
+            ejercicio_problema: "🔧",
+            bajo_rendimiento:   "📉",
+            dolor_normal:       "💪",
+            bueno:              "😊",
+            excelente:          "🔥",
+          };
+          title = `${em[tipo] || "💬"} Feedback — ${name || "alumna"}`;
+          body  = String(record.nota || record.texto || `Tipo: ${tipo}`).slice(0, 120);
+        }
       } else if (table === "comentarios") {
         title = `💬 Nota — ${name || "alumna"}`;
         body  = String(record.texto || record.contenido || "Nueva nota desde la app").slice(0, 120);
