@@ -430,6 +430,22 @@ Revisá su perfil en el panel para aprobar y asignarle una rutina.`);
   document.getElementById('success').style.display='block';
   document.getElementById('wa-link').href=waLink;
 
+  // ── Conversión REAL ────────────────────────────────────────────
+  // Solo se dispara acá: cuando el registro se guardó con éxito en la DB.
+  // El camino del honeypot/bot (arriba) NO llega hasta acá, así que este
+  // evento cuenta inscripciones reales, no cargas de página.
+  // PENDIENTE de config (no es código): en GA4 marcar "registro_completado"
+  // como evento clave e importarlo como conversión en Google Ads, y pausar
+  // la conversión vieja (ads_conversion_Env...) que dispara en cada visita.
+  try{
+    if(typeof gtag==='function'){
+      gtag('event','registro_completado',{
+        method:'formulario_registro',
+        ubicacion:ubicacion
+      });
+    }
+  }catch(e){}
+
   // Auto-abrir WhatsApp si hay número configurado
   if(amiraPhone)setTimeout(()=>window.open(waLink,'_blank'),1000);
 }

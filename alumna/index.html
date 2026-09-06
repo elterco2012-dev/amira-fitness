@@ -1820,6 +1820,12 @@ async function toggleDone(aId,i,nextName){
       if(allDone){
         const alm=getAlumna();
         if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
+        // Avisar a Amira que la alumna completó el día (una sola vez por día)
+        const diaPushKey=`af-dia-amira-${aId}-c${selCiclo}-${selSem}-${selDia}`;
+        if(!localStorage.getItem(diaPushKey)){
+          localStorage.setItem(diaPushKey,'1');
+          sbNotifyAmira('feedbacks',{alumna_id:aId,tipo:'dia_completo',ciclo:selCiclo,semana:selSem,dia:selDia,nota:`Completó el Día ${selDia} · Semana ${selSem}`});
+        }
         // Detectar ciclo completo (todas las semanas con rutina completadas)
         if(alm){
           const _totalSemsC=Math.max(4,...Object.keys(DB.rutinas?.[aId]?.[selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
