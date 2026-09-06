@@ -1,4 +1,4 @@
-const CACHE = 'amira-v28';
+const CACHE = 'amira-v29';
 const STATIC = [
   '/',
   '/alumna/',
