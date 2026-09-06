@@ -425,7 +425,7 @@
 <footer>
   <strong>Amira Fitness</strong> · Entrenamiento personalizado · Buenos Aires, Argentina<br>
   <span style="margin-top:6px;display:block;">
-    <a href="/panel">Panel</a> · © 2025
+    <a href="/panel">Panel</a> · © <span id="yr">2025</span>
   </span>
 </footer>
 
@@ -453,6 +453,8 @@
       }
     }catch(_){}
   },true);
+  // Año actual en el pie de página
+  try{var _yr=document.getElementById('yr');if(_yr)_yr.textContent=new Date().getFullYear();}catch(_){}
 })();
 </script>
 </body>
