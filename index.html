@@ -382,5 +382,22 @@
   }).catch(function(){});
 }catch(e){}})();
 </script>
+
+<!-- Tracking de clic a WhatsApp — conversión "contacto" desde la landing.
+     Detecta el clic en cualquier botón de WhatsApp (nav, hero, CTA final).
+     Marcá "click_whatsapp" como evento clave en GA4 para medirlo como conversión. -->
+<script>
+(function(){
+  document.addEventListener('click',function(e){
+    var a=e.target.closest && e.target.closest('a[href*="wa.me"]');
+    if(!a)return;
+    try{
+      if(typeof gtag==='function'){
+        gtag('event','click_whatsapp',{origen:'landing'});
+      }
+    }catch(_){}
+  },true);
+})();
+</script>
 </body>
 </html>
