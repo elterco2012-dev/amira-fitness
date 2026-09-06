@@ -169,7 +169,8 @@
     .testi-quote{font-size:14px;color:var(--txt);line-height:1.8;flex:1;}
     .testi-quote::before{content:'“';font-family:'DM Serif Display',serif;color:var(--verde-m);font-size:1.4rem;margin-right:2px;}
     .testi-who{display:flex;align-items:center;gap:11px;}
-    .testi-avatar{width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;}
+    .testi-avatar{position:relative;overflow:hidden;width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:17px;}
+    .testi-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
     .testi-who .name{font-size:13px;font-weight:500;color:var(--txt);}
     .testi-who .role{font-size:11.5px;color:var(--txt-h);}
 
@@ -377,31 +378,31 @@
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Empecé a notar cambios más rápidos que otras veces que hice gimnasio. Siento el cuerpo más fuerte y firme, y me mejoró bastante el dolor de rodilla.</p>
-        <div class="testi-who"><div class="testi-avatar">M</div><div><div class="name">María</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar"><img src="/testi/maria.jpg" alt="María" onerror="this.remove()">M</div><div><div class="name">María</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Me gusta cómo explicás, que corregís las técnicas. Me siento segura y no me da vergüenza. Nos cuidás para no lastimarnos.</p>
-        <div class="testi-who"><div class="testi-avatar">P</div><div><div class="name">Paula</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar"><img src="/testi/paula.jpg" alt="Paula" onerror="this.remove()">P</div><div><div class="name">Paula</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Estoy más activa. La buena energía que tenés contagia y motiva a seguir. En cada clase nos matás y eso es lo más. ¡Súper recomendable!</p>
-        <div class="testi-who"><div class="testi-avatar">L</div><div><div class="name">Luciana</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar"><img src="/testi/luciana.jpg" alt="Luciana" onerror="this.remove()">L</div><div><div class="name">Luciana</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">La clase es llevadera, no “cuesta” ir… y encima se ven los resultados. Los ejercicios son variados y se adaptan a una.</p>
-        <div class="testi-who"><div class="testi-avatar">A</div><div><div class="name">Anita</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar"><img src="/testi/anita.jpg" alt="Anita" onerror="this.remove()">A</div><div><div class="name">Anita</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">La dedicación que le das a cada alumna según su situación, sus dolores o sus tiempos. Explicás bien claro. Súper preparada y súper responsable. ¡Una divina!</p>
-        <div class="testi-who"><div class="testi-avatar">S</div><div><div class="name">Silvina</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar"><img src="/testi/silvina.jpg" alt="Silvina" onerror="this.remove()">S</div><div><div class="name">Silvina</div><div class="role">Alumna</div></div></div>
       </div>
 
     </div>
