@@ -378,13 +378,23 @@ async function enviarRegistro(){
   const exp=getChips('chips-exp');
   const extra=document.getElementById('f-extra').value||'—';
 
+  // Origen del registro (Google Ads / Instagram / etc.) — guardado al entrar al sitio.
+  // Se descarta si es muy viejo (más de 45 días) para no atribuir mal.
+  let origen='Directo';
+  try{
+    const o=localStorage.getItem('af-origen');
+    const ts=parseInt(localStorage.getItem('af-origen-ts')||'0',10);
+    if(o && (!ts || (Date.now()-ts) < 45*86400000)) origen=o;
+  }catch(e){}
+
   // Objeto a guardar — sin id, la DB lo genera automáticamente
   const nuevo={
     nombre:`${nombre} ${apellido}`,tel,mail,nacimiento,genero,ubicacion,
     objetivos,dias,lugar_entrenamiento:lugar,fuma,peso,altura,lesiones,exp,extra,
     fecha:new Date().toLocaleDateString('es-AR'),
     tipo:'registro',
-    estado:'pendiente'
+    estado:'pendiente',
+    origen
   };
 
   // Armar mensaje de WhatsApp para Amira
@@ -450,6 +460,28 @@ Revisá su perfil en el panel para aprobar y asignarle una rutina.`);
   if(amiraPhone)setTimeout(()=>window.open(waLink,'_blank'),1000);
 }
 </script>
+<!-- Detecta de dónde viene la persona (Google Ads / Instagram / etc.) y lo guarda.
+     Se lee al completar el registro para saber el origen de cada alumna. -->
+<script>(function(){try{
+  var qs=new URLSearchParams(location.search);
+  var utm=(qs.get('utm_source')||'').toLowerCase();
+  var ref=(document.referrer||'').toLowerCase();
+  var src;
+  if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads'){src='Google Ads';}
+  else if(utm.indexOf('instagram')>-1||utm==='ig'){src='Instagram';}
+  else if(utm.indexOf('facebook')>-1||utm==='fb'){src='Facebook';}
+  else if(ref.indexOf('instagram')>-1){src='Instagram';}
+  else if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1){src='Facebook';}
+  else if(ref.indexOf('tiktok')>-1){src='TikTok';}
+  else if(ref.indexOf('google.')>-1){src='Google';}
+  else if(!ref){src='Directo';}
+  else{src='Otro';}
+  var real=(src!=='Directo'&&src!=='Otro');
+  if(real||!localStorage.getItem('af-origen')){
+    localStorage.setItem('af-origen',src);
+    localStorage.setItem('af-origen-ts',String(Date.now()));
+  }
+}catch(e){}})();</script>
 <script>(function(){try{fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},body:JSON.stringify({page:'/registro',referrer:document.referrer||null})}).catch(function(){});}catch(e){}})();</script>
 </body>
 </html>

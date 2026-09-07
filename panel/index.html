@@ -4618,31 +4618,40 @@ function rAnalisis(){
     if(!rows.length)return`<div class="card" style="margin-bottom:1rem;"><div class="ctitle">🌐 Visitas al sitio</div><div style="font-size:12px;color:var(--th);">Sin datos aún — ejecutá la migración SQL o esperá que entre alguien al sitio.</div></div>`;
     const cnt={};rows.forEach(r=>{cnt[r.page]=(cnt[r.page]||0)+1;});
     const ago7=Date.now()-7*86400000;
+    const ago30=Date.now()-30*86400000;
     // Solo visitas reales al sitio (excluye eventos de bio)
     const siteRows=rows.filter(r=>!r.page.startsWith('/bio/'));
-    const siteTotal=siteRows.length;
-    const last7=siteRows.filter(r=>new Date(r.created_at).getTime()>ago7).length;
-    // Bio: separar vistas de página vs clics en botones
+    const vis30=siteRows.length;
+    const vis7=siteRows.filter(r=>new Date(r.created_at).getTime()>ago7).length;
+    // Registros reales (personas que completaron el formulario)
+    const regsAll=(DB.registros||[]).filter(r=>(r.tipo||'registro')==='registro');
+    const reg7=regsAll.filter(r=>new Date(r.created_at).getTime()>ago7).length;
+    const reg30=regsAll.filter(r=>new Date(r.created_at).getTime()>ago30).length;
+    const convPct=vis7>0?(reg7/vis7*100):0;
+    const convTxt=vis7>0?(convPct>=1?Math.round(convPct):convPct.toFixed(1)):'—';
+    // De dónde vienen los registros (últimos 30 días)
+    const regs30=regsAll.filter(r=>new Date(r.created_at).getTime()>ago30);
+    const srcCnt={};regs30.forEach(r=>{const o=(r.origen&&r.origen.trim())?r.origen:'Sin dato';srcCnt[o]=(srcCnt[o]||0)+1;});
+    const srcEmoji={'Google Ads':'🟢','Instagram':'📸','Facebook':'🔵','TikTok':'🎵','Google':'🔍','Directo':'🔗','Otro':'🌐','Sin dato':'❔'};
+    const srcRows=Object.entries(srcCnt).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${srcEmoji[s]||'🌐'} ${s}: <strong>${n}</strong></span>`).join('');
+    // Bio: vistas vs clics
     const bioViews=cnt['/bio/view']||0;
     const bioClicks=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').reduce((a,[,n])=>a+n,0);
-    const bioDetail=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>`${p.replace('/bio/','')}: ${n}`).join(' · ');
-    // Desde Instagram: visitas al sitio con referrer que contiene /bio
-    const desdeIG=siteRows.filter(r=>r.referrer&&r.referrer.includes('/bio')).length;
-    // Barras solo páginas públicas (ficha es privada, siempre 0 acá)
-    const pages=[['/', '🌐 Inicio'],['/registro','📝 Registro']];
-    const maxN=Math.max(...pages.map(([p])=>cnt[p]||0),1);
-    const bars=pages.map(([p,label])=>{const n=cnt[p]||0;const pct=Math.round(n/maxN*100);return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.45rem;"><div style="flex:1;font-size:13px;">${label}</div><div style="font-size:13px;font-weight:500;min-width:28px;text-align:right;">${n}</div><div style="width:70px;height:5px;background:var(--s2);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--v);border-radius:3px;"></div></div></div>`;}).join('');
-    // Detalle de clics en bio con labels amigables
     const bioLabelMap={wa:'💬 WA',registro:'📝 Registro',sitio:'🌐 Sitio',instagram:'📸 Instagram'};
     const bioDetailRows=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>{const k=p.replace('/bio/','');return`<span style="background:var(--s2);border-radius:6px;padding:2px 7px;">${bioLabelMap[k]||k}: <strong>${n}</strong></span>`;}).join('');
     return`<div class="card" style="margin-bottom:1rem;">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;">
-<div class="metric"><div class="mlabel">Esta semana</div><div class="mval g">${last7}</div></div>
-<div class="metric"><div class="mlabel">Este mes</div><div class="mval">${siteTotal}</div></div>
-<div class="metric"><div class="mlabel">Desde Instagram</div><div class="mval">${desdeIG}</div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><div class="ctitle" style="margin:0;">📊 Cómo viene tu web</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div>
+<div style="font-size:13px;color:var(--t);line-height:1.65;margin-bottom:.85rem;">En los <strong>últimos 7 días</strong> entraron <strong>${vis7}</strong> personas a tu web y <strong>${reg7}</strong> se ${reg7===1?'anotó':'anotaron'} completando el formulario.</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.6rem;">
+<div class="metric"><div class="mlabel">👀 Entraron</div><div class="mval">${vis7}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">personas a tu web</div></div>
+<div class="metric"><div class="mlabel">📝 Se anotaron</div><div class="mval g">${reg7}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">nuevas alumnas</div></div>
+<div class="metric"><div class="mlabel">📈 Se anotan</div><div class="mval">${convTxt}${vis7>0?'%':''}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de cada 100 que entran</div></div>
 </div>
-${bars}
+<div style="font-size:11px;color:var(--tm);margin-bottom:.25rem;">Este mes entraron <strong>${vis30}</strong> personas y se anotaron <strong>${reg30}</strong>.</div>
+<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
+<div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.45rem;">📍 De dónde vienen tus registros (30 días)</div>
+${srcRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--tm);">${srcRows}</div>`:`<div style="font-size:12px;color:var(--th);">Todavía sin registros nuevos en este período.</div>`}
+</div>
 <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
 <div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem;">📲 Link en bio de Instagram</div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--tm);">
@@ -4730,6 +4739,13 @@ function rComentarios(){
   ${DB.alumnas.map(a=>{const cs=byA[a.id]||[];if(!cs.length)return'';return`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;"><div class="av av-${a.color}">${avH(a)}</div><div><div class="aname">${a.nombre}</div><div class="asub">${cs.length} comentario${cs.length!==1?'s':''}</div></div></div>${cs.map(c=>`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;"><div style="font-size:10px;color:var(--th);margin-bottom:3px;">Ciclo ${c.ciclo||1} · Sem ${c.semana} · Día ${c.dia} · ${c.fecha||''}</div><div style="font-size:12px;color:var(--t);">${c.texto}</div></div>`).join('')}</div>`;}).join('')}`;
 }
 
+// Etiqueta de origen del registro (de dónde vino la persona)
+function oBadge(o){
+  if(!o)return'';
+  const e={'Google Ads':'🟢','Instagram':'📸','Facebook':'🔵','TikTok':'🎵','Google':'🔍','Directo':'🔗','Otro':'🌐'}[o]||'🌐';
+  return `<span class="badge" style="background:var(--s2);color:var(--tm);font-weight:500;">${e} ${o}</span>`;
+}
+
 function rRegistros(){
   const pend=DB.registros.filter(r=>r.estado==='pendiente');
   const otros=DB.registros.filter(r=>r.estado!=='pendiente');
@@ -4737,7 +4753,7 @@ function rRegistros(){
   ${pend.length===0&&otros.length===0?`<div class="card"><div class="empty">Sin registros todavía.</div></div>`:''}
   ${pend.map(r=>`<div class="card" style="border-left:3px solid var(--v);border-radius:0 var(--r) var(--r) 0;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
-      <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div></div>
+      <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div>${r.origen?`<div style="margin-top:5px;">${oBadge(r.origen)}</div>`:''}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-p btn-s" onclick="aprobar(${r.id})">✓ Aprobar</button><button class="btn btn-s btn-d" onclick="rechazar(${r.id})">Rechazar</button><button class="btn btn-s" style="color:#25D366;border-color:#25D366;" onclick="onboardingWA(${r.id})">💬 Onboarding</button></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
@@ -4755,7 +4771,7 @@ function rRegistros(){
     const detOpen=S[`hreg_open_${r.id}`];
     return`<div class="card" style="opacity:.85;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${detOpen?'.75rem':'0'};">
-        <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div></div>
+        <div><div class="aname">${r.nombre}</div><div class="asub">${r.fecha||''} · ${r.ubicacion||''}</div>${r.origen?`<div style="margin-top:5px;">${oBadge(r.origen)}</div>`:''}</div>
         <div style="display:flex;gap:6px;align-items:center;">
           <span class="badge" style="background:${r.estado==='aprobado'?'var(--vl)':'var(--rl)'};color:${r.estado==='aprobado'?'var(--vd)':'var(--rd)'};">${r.estado}</span>
           <button class="btn btn-s" style="font-size:10px;" onclick="S['hreg_open_${r.id}']=!S['hreg_open_${r.id}'];render()">${detOpen?'▲':'Ver ▼'}</button>
