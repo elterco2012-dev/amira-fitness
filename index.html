@@ -445,6 +445,29 @@
 }catch(e){}})();
 </script>
 
+<!-- Detecta de dónde viene la persona (Google Ads / Instagram / etc.) y lo guarda,
+     para saber el origen cuando complete el registro. -->
+<script>(function(){try{
+  var qs=new URLSearchParams(location.search);
+  var utm=(qs.get('utm_source')||'').toLowerCase();
+  var ref=(document.referrer||'').toLowerCase();
+  var src;
+  if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads'){src='Google Ads';}
+  else if(utm.indexOf('instagram')>-1||utm==='ig'){src='Instagram';}
+  else if(utm.indexOf('facebook')>-1||utm==='fb'){src='Facebook';}
+  else if(ref.indexOf('instagram')>-1){src='Instagram';}
+  else if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1){src='Facebook';}
+  else if(ref.indexOf('tiktok')>-1){src='TikTok';}
+  else if(ref.indexOf('google.')>-1){src='Google';}
+  else if(!ref){src='Directo';}
+  else{src='Otro';}
+  var real=(src!=='Directo'&&src!=='Otro');
+  if(real||!localStorage.getItem('af-origen')){
+    localStorage.setItem('af-origen',src);
+    localStorage.setItem('af-origen-ts',String(Date.now()));
+  }
+}catch(e){}})();</script>
+
 <!-- Tracking de clic a WhatsApp — conversión "contacto" desde la landing.
      Detecta el clic en cualquier botón de WhatsApp (nav, hero, CTA final).
      Marcá "click_whatsapp" como evento clave en GA4 para medirlo como conversión. -->
