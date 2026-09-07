@@ -86,7 +86,7 @@
       <div class="link-arrow">→</div>
     </a>
 
-    <a href="/registro" class="link-btn" onclick="trackClick('registro')">
+    <a href="/registro?utm_source=instagram" class="link-btn" onclick="trackClick('registro')">
       <div class="link-icon">📝</div>
       <div class="link-text">
         <div class="link-title">Quiero empezar</div>
@@ -95,7 +95,7 @@
       <div class="link-arrow">→</div>
     </a>
 
-    <a href="/" class="link-btn" onclick="trackClick('sitio')">
+    <a href="/?utm_source=instagram" class="link-btn" onclick="trackClick('sitio')">
       <div class="link-icon">🌐</div>
       <div class="link-text">
         <div class="link-title">Mi sitio web</div>
@@ -134,6 +134,21 @@ function trackClick(link){
     }).catch(function(){});
   }catch(e){}
 }
+
+// Guardar el origen como Instagram (esta página /bio es el link del perfil de IG).
+// Si algún día se comparte con otra etiqueta (?utm_source=), se respeta esa.
+(function(){try{
+  var utm=(new URLSearchParams(location.search).get('utm_source')||'').toLowerCase();
+  var src='Instagram';
+  if(utm){
+    if(utm.indexOf('facebook')>-1||utm==='fb')src='Facebook';
+    else if(utm==='tiktok')src='TikTok';
+    else if(utm==='google'||utm==='cpc')src='Google Ads';
+    else src='Instagram';
+  }
+  localStorage.setItem('af-origen',src);
+  localStorage.setItem('af-origen-ts',String(Date.now()));
+}catch(e){}})();
 
 // Track página bio visit
 trackClick('view');
