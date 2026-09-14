@@ -42,6 +42,7 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-YM3V2F8C2Z"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-YM3V2F8C2Z');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -179,7 +180,7 @@
     .testi-avatar{position:relative;overflow:hidden;width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:17px;}
     .testi-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
     .testi-who .name{font-size:13px;font-weight:500;color:var(--txt);}
-    .testi-who .role{font-size:11.5px;color:var(--txt-h);}
+    .testi-who .role{font-size:11.5px;color:var(--txt-m);}
 
     /* Footer */
     footer{background:#111;color:rgba(255,255,255,.35);padding:2rem;text-align:center;font-size:12px;line-height:1.9;}
@@ -256,7 +257,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
           Escribime y charlamos
         </a>
-        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-h);text-align:center;line-height:1.5;">La primera charla es sin costo — me contás y vemos si te sirve.</p>
+        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-m);text-align:center;line-height:1.5;">La primera charla es sin costo — me contás y vemos si te sirve.</p>
         <a href="/registro" style="display:block;margin-top:.5rem;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;">o completá el formulario · corto, 2 min →</a>
       </div>
       <div class="hero-trust">
@@ -266,7 +267,7 @@
       </div>
     </div>
     <div class="hero-photo">
-      <img src="foto-amira.jpg" alt="Amira Lezcano, entrenadora personal" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:center 22%;">
+      <img src="foto-amira.jpg" alt="Amira Lezcano, entrenadora personal" width="1000" height="1250" fetchpriority="high" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:center 22%;">
       <div class="hero-photo-placeholder" style="display:none;">🏋️‍♀️</div>
     </div>
   </div>
@@ -417,37 +418,37 @@
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Empecé a notar cambios más rápidos que otras veces que hice gimnasio. Siento el cuerpo más fuerte y firme, y me mejoró bastante el dolor de rodilla.</p>
-        <div class="testi-who"><div class="testi-avatar"><img src="/testi/maria.jpg" alt="María" onerror="this.remove()">M</div><div><div class="name">María</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar">M</div><div><div class="name">María</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">La clase es llevadera, no “cuesta” ir… y encima se ven los resultados. Los ejercicios son variados y se adaptan a una.</p>
-        <div class="testi-who"><div class="testi-avatar"><img src="/testi/anita.jpg" alt="Anita" onerror="this.remove()">A</div><div><div class="name">Anita</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar">A</div><div><div class="name">Anita</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Me gusta cómo explicás, que corregís las técnicas. Me siento segura y no me da vergüenza. Nos cuidás para no lastimarnos.</p>
-        <div class="testi-who"><div class="testi-avatar"><img src="/testi/paula.jpg" alt="Paula" onerror="this.remove()">P</div><div><div class="name">Paula</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar">P</div><div><div class="name">Paula</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Lo que más me cambió fue el humor, y bajé la retención de líquidos. Me encanta poder hacerlo desde casa a mi ritmo, con el seguimiento y la contención después de cada entrenamiento.</p>
-        <div class="testi-who"><div class="testi-avatar"><img src="/testi/daiana.jpg" alt="Daiana" onerror="this.remove()">D</div><div><div class="name">Daiana</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar">D</div><div><div class="name">Daiana</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">Estoy más activa. La buena energía que tenés contagia y motiva a seguir. En cada clase nos matás y eso es lo más. ¡Súper recomendable!</p>
-        <div class="testi-who"><div class="testi-avatar"><img src="/testi/luciana.jpg" alt="Luciana" onerror="this.remove()">L</div><div><div class="name">Luciana</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar">L</div><div><div class="name">Luciana</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
         <p class="testi-quote">La dedicación que le das a cada alumna según su situación, sus dolores o sus tiempos. Explicás bien claro. Súper preparada y súper responsable. ¡Una divina!</p>
-        <div class="testi-who"><div class="testi-avatar"><img src="/testi/silvina.jpg" alt="Silvina" onerror="this.remove()">S</div><div><div class="name">Silvina</div><div class="role">Alumna</div></div></div>
+        <div class="testi-who"><div class="testi-avatar">S</div><div><div class="name">Silvina</div><div class="role">Alumna</div></div></div>
       </div>
 
     </div>
