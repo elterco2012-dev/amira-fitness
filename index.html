@@ -134,6 +134,13 @@
     .service-card p{font-size:13px;color:var(--txt-m);line-height:1.75;}
     .service-tag{margin-top:1.25rem;font-size:11.5px;font-weight:500;color:var(--verde-d);background:var(--verde-l);display:inline-block;padding:3px 10px;border-radius:var(--rp);}
 
+    /* Ideal si querés */
+    .ideal-bg{background:var(--white);}
+    .ideal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem 2.5rem;margin-top:2.5rem;max-width:900px;}
+    .ideal-item{display:flex;align-items:flex-start;gap:12px;font-size:14.5px;color:var(--txt);line-height:1.55;}
+    .ideal-check{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:1px;}
+    .ideal-cta{margin-top:2.5rem;}
+
     /* App preview */
     .app-bg{background:var(--txt);color:white;}
     .app-bg .stag{color:var(--verde-m);}
@@ -191,6 +198,7 @@
       .steps-grid{grid-template-columns:1fr 1fr;}
       .step-connector{display:none;}
       .cards-grid{grid-template-columns:1fr;}
+      .ideal-grid{grid-template-columns:1fr;gap:1rem;}
       .app-inner{grid-template-columns:1fr;}
       .phone-mockup{display:none;}
       .app-features{grid-template-columns:1fr;}
@@ -238,7 +246,8 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
           Escribime y charlamos
         </a>
-        <a href="/registro" style="display:block;margin-top:.25rem;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;">o completá el formulario · 2 min →</a>
+        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-h);text-align:center;line-height:1.5;">Sin compromiso — primero charlamos y vemos si puedo ayudarte.</p>
+        <a href="/registro" style="display:block;margin-top:.5rem;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;">o completá el formulario · corto, 2 min →</a>
       </div>
       <div class="hero-trust">
         <div class="trust-item"><div class="trust-dot"></div>Cupos limitados</div>
@@ -336,6 +345,26 @@
         <p>Podés escribirme desde la app, dejar notas en cada ejercicio y hacer preguntas. Atención personalizada — no respuestas automáticas.</p>
         <span class="service-tag">WhatsApp + app</span>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ideal si querés -->
+<section class="section ideal-bg" id="ideal">
+  <div class="container">
+    <div class="stag">Para quién es</div>
+    <h2 class="stitle">Esto es para vos si…</h2>
+    <p class="ssub">No importa desde dónde arranques. Lo armamos juntas, a tu ritmo.</p>
+    <div class="ideal-grid">
+      <div class="ideal-item"><div class="ideal-check">✓</div>Querés empezar a entrenar pero no sabés por dónde.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Ya entrenás, pero sentís que no avanzás con rutinas de internet.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Necesitás algo que se adapte a tu tiempo, entrenes en casa o en el gimnasio.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Querés que alguien te guíe de verdad, no un video más.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Preferís ir a tu ritmo, sin presiones ni contratos.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Buscás sentirte más fuerte y con energía, sin lastimarte.</div>
+    </div>
+    <div class="ideal-cta">
+      <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn btn-verde">Me identifico — escribime</a>
     </div>
   </div>
 </section>
