@@ -187,8 +187,14 @@
     footer a{color:rgba(255,255,255,.35);text-decoration:none;}
     footer a:hover{color:rgba(255,255,255,.65);}
 
+    /* Barra fija de WhatsApp en mobile */
+    .sticky-wa{display:none;}
+
     /* Mobile */
     @media(max-width:768px){
+      .sticky-wa{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -4px 20px rgba(0,0,0,.06);}
+      .sticky-wa a{flex:1;justify-content:center;padding:14px;font-size:15px;}
+      body{padding-bottom:74px;}
       .hero-wrap{grid-template-columns:1fr;padding:3rem 1.5rem 3.5rem;gap:2rem;}
       .hero-photo{order:-1;aspect-ratio:4/5;max-width:340px;margin:0 auto;}
       .hero-quote{font-size:2rem;}
@@ -241,12 +247,16 @@
         No quiero darte <em>otra rutina de internet</em>.<br>Quiero conocerte y armarte la tuya.
       </h1>
       <p class="hero-desc">Soy Amira. Trabajo con pocas alumnas a la vez para poder responderte yo, no un bot. Te armo tu rutina, te la ajusto cada semana, y te contesto las dudas por WhatsApp el mismo día.</p>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.75rem;font-size:13px;color:var(--verde-d);font-weight:500;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Entrenadora certificada · +30 alumnas acompañadas
+      </div>
       <div class="hero-ctas">
         <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn btn-wa">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
           Escribime y charlamos
         </a>
-        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-h);text-align:center;line-height:1.5;">Sin compromiso — primero charlamos y vemos si puedo ayudarte.</p>
+        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-h);text-align:center;line-height:1.5;">La primera charla es sin costo — me contás y vemos si te sirve.</p>
         <a href="/registro" style="display:block;margin-top:.5rem;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;">o completá el formulario · corto, 2 min →</a>
       </div>
       <div class="hero-trust">
@@ -463,6 +473,14 @@
     <a href="/panel">Panel</a> · © <span id="yr">2025</span>
   </span>
 </footer>
+
+<!-- Barra fija de WhatsApp (solo mobile). Usa wa.me → el listener existente dispara click_whatsapp. -->
+<div class="sticky-wa">
+  <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn btn-wa">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
+    Escribime por WhatsApp
+  </a>
+</div>
 
 <script>
 (function(){try{
