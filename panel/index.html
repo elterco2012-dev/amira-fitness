@@ -1782,7 +1782,7 @@ function renderBib(){
   const _nrm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const qn=_nrm(q);
   const filtered=DB.biblioteca.filter(e=>{
-    const matchQ=!qn||_nrm(e.nombre).includes(qn)||_nrm(e.grupo_muscular||'').includes(qn);
+    const matchQ=!qn||_nrm(e.nombre).includes(qn)||_nrm(e.grupo_muscular||'').includes(qn)||_nrm(e.observaciones||'').includes(qn);
     const matchG=!grupo||e.grupo_muscular===grupo;
     return matchQ&&matchG;
   });
@@ -2313,7 +2313,7 @@ function renderModalPlantilla(){
 
 function renderPlantBibPicker(){
   const q=(document.getElementById('plant-bib-q')?.value||'').toLowerCase();
-  const filtered=DB.biblioteca.filter(e=>!q||e.nombre.toLowerCase().includes(q)||(e.grupo_muscular||'').toLowerCase().includes(q));
+  const filtered=DB.biblioteca.filter(e=>!q||e.nombre.toLowerCase().includes(q)||(e.grupo_muscular||'').toLowerCase().includes(q)||(e.observaciones||'').toLowerCase().includes(q));
   const list=document.getElementById('plant-bib-list');
   if(!list)return;
   list.innerHTML=filtered.map(e=>`<div onclick="addPlantExFromBib(${e.id})" style="cursor:pointer;padding:7px 9px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s);font-size:11px;">
@@ -4170,7 +4170,7 @@ function rBiblioteca(){
   const normStr=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const qn=normStr(q);
   const filtered=DB.biblioteca.filter(e=>{
-    const mq=!qn||normStr(e.nombre).includes(qn)||normStr(e.grupo_muscular||'').includes(qn);
+    const mq=!qn||normStr(e.nombre).includes(qn)||normStr(e.grupo_muscular||'').includes(qn)||normStr(e.observaciones||'').includes(qn);
     const mg=!g||e.grupo_muscular===g;
     return mq&&mg;
   });
