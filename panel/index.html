@@ -957,7 +957,7 @@ async function loadAll(){
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
     const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv]=await Promise.allSettled([
-      sbGet('feedbacks','order=created_at.desc&limit=50'),
+      sbGet('feedbacks','tipo=neq.dia_completo&order=created_at.desc&limit=50'),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
       sbGet('avisos','order=created_at.desc&limit=5000'),
@@ -1014,7 +1014,7 @@ async function loadAll(){
     prevCom=coms.length?Math.max(...coms.map(c=>+c.id)):0;
     localStorage.setItem('af-prevCom',String(prevCom));
     prevReg=regs.filter(r=>r.estado==='pendiente').length;
-    try{const fbs=await sbGet('feedbacks','select=id&order=id.desc&limit=1');prevFb=fbs.length?+fbs[0].id:0;localStorage.setItem('af-prevFb',String(prevFb));}catch(_){}
+    try{const fbs=await sbGet('feedbacks','select=id&tipo=neq.dia_completo&order=id.desc&limit=1');prevFb=fbs.length?+fbs[0].id:0;localStorage.setItem('af-prevFb',String(prevFb));}catch(_){}
     try{
       const _nav=localStorage.getItem('af-nav');
       if(_nav){
@@ -1046,7 +1046,7 @@ function startPoll(){
       const [coms,regs,fbs]=await Promise.all([
         sbGet('comentarios','select=id,alumna_id,texto&order=created_at.desc&limit=1'),
         sbGet('registros','estado=eq.pendiente&select=id'),
-        sbGet('feedbacks','select=id,alumna_id,tipo,nota&order=id.desc&limit=1')
+        sbGet('feedbacks','select=id,alumna_id,tipo,nota&tipo=neq.dia_completo&order=id.desc&limit=1')
       ]);
       if(coms.length&&+coms[0].id>prevCom){
         const b=document.getElementById('nb-com');if(b){b.style.display='inline';b.textContent='●';}
@@ -1068,7 +1068,7 @@ function startPoll(){
         const emojiMap={dolor_preocupante:'🚨',bajo_rendimiento:'⚠️',bueno:'😊',excelente:'🔥'};
         const emoji=emojiMap[fb.tipo]||'💬';
         _panelNotif(`${emoji} Feedback — ${aName}`,fb.nota||`Tipo: ${fb.tipo}`,'panel-feedback');
-        sbGet('feedbacks','order=created_at.desc&limit=50').then(rows=>{DB.feedbacks=rows;if(['inicio','comentarios','analisis'].includes(S.view))render();}).catch(()=>{});
+        sbGet('feedbacks','tipo=neq.dia_completo&order=created_at.desc&limit=50').then(rows=>{DB.feedbacks=rows;if(['inicio','comentarios','analisis'].includes(S.view))render();}).catch(()=>{});
       }
     }catch(e){}
   },8000);

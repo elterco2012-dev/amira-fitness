@@ -1445,7 +1445,9 @@ async function flushSyncQueue(){
   let fallidos = [];
   for(const op of pendientes){
     try{
-      await sbUpsert('progreso', op.data);
+      // Las operaciones viejas de la cola no traen tabla: son de progreso.
+      if(op.kind === 'insert') await sbInsert(op.table, op.data);
+      else await sbUpsert(op.table || 'progreso', op.data);
     }catch(e){
       fallidos.push(op); // si falla de nuevo, vuelve a la cola
     }
@@ -1820,11 +1822,14 @@ async function toggleDone(aId,i,nextName){
       if(allDone){
         const alm=getAlumna();
         if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
-        // Avisar a Amira que la alumna completó el día (una sola vez por día)
+        // Avisar a Amira que la alumna completó el día (una sola vez por día).
+        // Se guarda en la base y el trigger dispara la notificación: si no hay
+        // conexión, queda en la cola y se reintenta sola al volver la señal.
         const diaPushKey=`af-dia-amira-${aId}-c${selCiclo}-${selSem}-${selDia}`;
         if(!localStorage.getItem(diaPushKey)){
           localStorage.setItem(diaPushKey,'1');
-          sbNotifyAmira('feedbacks',{alumna_id:aId,tipo:'dia_completo',ciclo:selCiclo,semana:selSem,dia:selDia,nota:`Completó el Día ${selDia} · Semana ${selSem}`});
+          const diaData={alumna_id:aId,tipo:'dia_completo',ciclo:selCiclo,semana:selSem,dia:selDia,nota:`Completó el Día ${selDia} · Semana ${selSem}`};
+          sbInsert('feedbacks',diaData).catch(()=>queueSync({kind:'insert',table:'feedbacks',data:diaData}));
         }
         // Detectar ciclo completo (todas las semanas con rutina completadas)
         if(alm){
