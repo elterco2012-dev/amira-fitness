@@ -1,4 +1,4 @@
-const CACHE = 'amira-v43';
+const CACHE = 'amira-v44';
 const STATIC = [
   '/',
   '/alumna/',
@@ -103,7 +103,7 @@ self.addEventListener('push', e => {
         icon: '/api/icon-192.svg',
         badge: '/api/icon-maskable.svg',
         vibrate: isAmiraPush ? [300, 100, 300, 100, 300] : [200, 100, 200, 100, 100],
-        tag: data.type || 'amira-reminder',
+        tag: data.tag || data.type || 'amira-reminder',
         renotify: true,
         data: { url: data.url || (isAmiraPush ? '/panel/' : '/alumna/') },
         actions: isAmiraPush

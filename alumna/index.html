@@ -1944,8 +1944,8 @@ async function guardarFeedbackDia(aId,tipo){
   localStorage.setItem(fbKey(aId,selCiclo,selSem,selDia),tipo);
   renderRutina();
   try{
-    const row=await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});
-    sbNotifyAmira('feedbacks',row||{alumna_id:aId,tipo});
+    // El aviso a Amira lo dispara el trigger de la base al insertar (evita el duplicado).
+    await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});
   }catch(e){console.warn('feedback dia:',e);}
 }
 
@@ -1964,8 +1964,7 @@ async function enviarCheckin(aId){
   localStorage.setItem(ciK,tipo);
   _ciSel='';
   try{
-    const row=await sbInsert('feedbacks',{alumna_id:aId,tipo:'checkin_semanal',ciclo:selCiclo,semana:selSem,dia:0,nota:tipo+(nota?' — '+nota:'')});
-    sbNotifyAmira('feedbacks',row||{alumna_id:aId,tipo:'checkin_semanal'});
+    await sbInsert('feedbacks',{alumna_id:aId,tipo:'checkin_semanal',ciclo:selCiclo,semana:selSem,dia:0,nota:tipo+(nota?' — '+nota:'')});
   }catch(e){}
   mostrarToast('✓ ¡Check-in enviado a Amira!');
   renderNotas();
@@ -1983,8 +1982,7 @@ async function enviarReporte(tipo){
   const nota=document.getElementById('rep-nota').value.trim();
   cerrarReporte();
   try{
-    const row=await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
-    sbNotifyAmira('feedbacks',row||{alumna_id:_repCtx.aId,tipo,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
     const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo vio y va a revisarlo.':'💪 ¡Gracias! Es parte del proceso.';
     mostrarToast(msg);
   }catch(e){mostrarToast('No se pudo enviar, gracias por avisar.');}
