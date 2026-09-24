@@ -216,7 +216,10 @@ Deno.serve(async (req) => {
 
     if (!subs.length) return Response.json({ sent: 0, reason: "no_subscriptions" }, { headers: CORS });
 
-    const notifPayload = JSON.stringify({ type: "amira-alert", title, body, url: "/panel/" });
+    // Etiqueta única por aviso: si todas comparten la misma, Android reemplaza
+    // la anterior por la nueva y Amira termina viendo una sola notificación.
+    const tag = `amira-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const notifPayload = JSON.stringify({ type: "amira-alert", tag, title, body, url: "/panel/" });
     console.log(`[notify-amira] Sending to ${subs.length} subscriptions. title="${title}"`);
     const results = await Promise.all(
       subs.map(async (s, i) => {
