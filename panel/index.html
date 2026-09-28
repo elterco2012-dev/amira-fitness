@@ -2037,6 +2037,8 @@ async function saveEditA(){
   const diasDispVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-dias-disp"]:checked')].map(cb=>cb.value);
   const tiempoVal=parseInt(document.getElementById('ea-tiempo').value)||null;
   const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),split:_ev('ea-split'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal,dias_disponibles:diasDispVal.length?diasDispVal:null,foco_muscular:_ev('ea-foco')||null,estilo_sesion:_ev('ea-estilo')||null,adaptar_ciclo_menstrual:document.getElementById('ea-ciclo-mens').checked};
+  // El mail es con lo que la alumna entra a la app: sin eso su link no le sirve.
+  if(!updates.email&&!confirm(`${updates.nombre||'Esta alumna'} queda sin mail.\n\nSin mail no va a poder entrar a la app desde su link.\n\n¿Guardás igual?`))return;
   document.getElementById('ea-msg').textContent='Guardando...';
   try{
     const newEmail=updates.email||'';
@@ -2155,6 +2157,8 @@ async function addAlumna(){
   const n=document.getElementById('na-nombre')?.value?.trim();
   if(!n)return;
   const email=document.getElementById('na-email')?.value?.trim()||null;
+  // El mail es con lo que la alumna entra a la app: sin eso su link no le sirve.
+  if(!email&&!confirm(`${n} no tiene mail cargado.\n\nSin mail no va a poder entrar a la app desde su link.\n\n¿La creás igual y se lo agregás después?`))return;
   const nac=document.getElementById('na-nacimiento')?.value||null;
   const slug=slugUnique(n);
   const _g=v=>document.getElementById(v)?.value?.trim()||null;
