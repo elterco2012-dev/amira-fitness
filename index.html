@@ -174,8 +174,9 @@
     .testi-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem;display:flex;flex-direction:column;gap:1rem;transition:box-shadow .2s;}
     .testi-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06);}
     .testi-stars{color:#F5B301;font-size:15px;letter-spacing:2px;}
+    /* Las comillas van en el texto, no como ::before: un glifo serif mas grande
+       no comparte linea base con el destacado y queda flotando. */
     .testi-lead{font-size:15.5px;font-weight:500;color:var(--txt);line-height:1.5;}
-    .testi-lead::before{content:'“';font-family:'DM Serif Display',serif;color:var(--verde-m);font-size:1.4rem;margin-right:2px;}
     .testi-quote{font-size:13.5px;color:var(--txt-m);line-height:1.75;flex:1;margin-top:-.35rem;}
     .testi-who{display:flex;align-items:center;gap:11px;}
     .testi-avatar{position:relative;overflow:hidden;width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:17px;}
@@ -418,43 +419,43 @@
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">Me encanta poder hacerlo desde casa, a mi ritmo</p>
+        <p class="testi-lead">“Me encanta poder hacerlo desde casa, a mi ritmo”</p>
         <p class="testi-quote">Lo que más me cambió fue el humor, y bajé la retención de líquidos. Con el seguimiento y la contención después de cada entrenamiento.</p>
         <div class="testi-who"><div class="testi-avatar">D</div><div><div class="name">Daiana</div><div class="role">Entrena desde casa</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">Cambios más rápidos que otras veces que hice gimnasio</p>
+        <p class="testi-lead">“Cambios más rápidos que otras veces que hice gimnasio”</p>
         <p class="testi-quote">Siento el cuerpo más fuerte y firme, y me mejoró bastante el dolor de rodilla.</p>
         <div class="testi-who"><div class="testi-avatar">M</div><div><div class="name">María</div><div class="role">Venía del gimnasio</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">Me siento segura y no me da vergüenza</p>
-        <p class="testi-quote">Me gusta cómo explicás, que corregís las técnicas. Nos cuidás para no lastimarnos.</p>
+        <p class="testi-lead">“Nos cuidás para no lastimarnos”</p>
+        <p class="testi-quote">Me gusta cómo explicás, que corregís las técnicas. Me siento segura.</p>
         <div class="testi-who"><div class="testi-avatar">P</div><div><div class="name">Paula</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">La clase es llevadera, no “cuesta” ir</p>
+        <p class="testi-lead">“La clase es llevadera, no ‘cuesta’ ir”</p>
         <p class="testi-quote">Y encima se ven los resultados. Los ejercicios son variados y se adaptan a una.</p>
         <div class="testi-who"><div class="testi-avatar">A</div><div><div class="name">Anita</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">Se adapta a la situación de cada una, sus dolores o sus tiempos</p>
+        <p class="testi-lead">“Se adapta a la situación de cada una, sus dolores o sus tiempos”</p>
         <p class="testi-quote">Explicás bien claro. Súper preparada y súper responsable.</p>
         <div class="testi-who"><div class="testi-avatar">S</div><div><div class="name">Silvina</div><div class="role">Alumna</div></div></div>
       </div>
 
       <div class="testi-card">
         <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">Estoy más activa</p>
-        <p class="testi-quote">La buena energía que tenés contagia y motiva a seguir.</p>
+        <p class="testi-lead">“La buena energía que tenés contagia y motiva a seguir”</p>
+        <p class="testi-quote">Estoy más activa.</p>
         <div class="testi-who"><div class="testi-avatar">L</div><div><div class="name">Luciana</div><div class="role">Alumna</div></div></div>
       </div>
 
