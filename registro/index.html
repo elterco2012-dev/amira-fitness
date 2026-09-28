@@ -51,6 +51,9 @@
     .chip{padding:8px 15px;border-radius:var(--rp);font-size:13px;border:1px solid var(--border-m);background:var(--white);color:var(--txt-m);cursor:pointer;transition:all .15s;user-select:none;}
     .chip.selected{background:var(--verde-l);color:var(--verde-d);border-color:var(--verde-d);font-weight:500;}
 
+    .precio{background:var(--verde-l);border-radius:var(--rs);padding:12px 14px;font-size:12.5px;color:var(--verde-d);line-height:1.55;margin-top:1.4rem;}
+    .precio strong{font-weight:500;display:block;}
+
     .btn-p{width:100%;padding:14px 22px;border-radius:var(--rp);font-size:15px;font-weight:500;border:1px solid var(--verde);background:var(--verde);color:white;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;margin-top:.5rem;}
     .btn-p:hover{background:var(--verde-d);}
     .btn-p:disabled{opacity:.6;cursor:default;}
@@ -90,7 +93,7 @@
     <img src="/foto-amira.jpg" alt="Amira Lezcano" width="64" height="64" loading="eager" decoding="async">
     <div class="intro-txt">
       <strong>Amira Lezcano</strong> — entrenadora personal.<br>
-      Te escribe ella misma, no un bot.
+      Entrena a 20 alumnas online, una por una.
     </div>
   </div>
 
@@ -123,8 +126,13 @@
       </div>
     </div>
 
+    <div class="precio">
+      <strong>Planes mensuales según cuántos días entrenes.</strong>
+      Te paso los valores en la primera charla, sin compromiso.
+    </div>
+
     <button class="btn-p" id="btn-enviar" onclick="enviarRegistro()">Quiero que Amira me escriba</button>
-    <div class="reassure">La primera charla es sin costo. No te va a llegar spam ni llamadas.</div>
+    <div class="reassure">No te va a llegar spam ni llamadas.</div>
   </div>
 
   <div class="alt">
