@@ -4736,10 +4736,23 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
   `;
 }
 
+// Dias de calendario entre una fecha ISO y hoy, en hora local. Se comparan los
+// dias, no las horas transcurridas: algo de ayer a la tarde son ~16 horas, y
+// dividir por 24 lo mostraba como "Hoy".
+function diasDeCalendario(iso){
+  if(!iso)return null;
+  const d=new Date(iso);
+  if(isNaN(d.getTime()))return null;
+  const hoy=new Date();
+  const a=Date.UTC(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  const b=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());
+  return Math.round((a-b)/86400000);
+}
+
 // Etiqueta relativa para una fecha ISO ("Hoy", "Ayer", "hace N días").
 function haceCuanto(iso){
-  if(!iso)return'';
-  const dias=Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+  const dias=diasDeCalendario(iso);
+  if(dias===null)return'';
   if(dias<=0)return'Hoy';
   if(dias===1)return'Ayer';
   if(dias<30)return`hace ${dias} días`;
@@ -4762,7 +4775,8 @@ function rComentarios(){
   return`<div class="ptitle">Comentarios</div>
   ${DB.comentarios.length===0?`<div class="card"><div class="empty">Sin comentarios todavía.</div></div>`:''}
   ${grupos.map(({a,cs,ultimo},i)=>{
-    const nuevo=ultimo&&(Date.now()-new Date(ultimo).getTime())<3*86400000;
+    const _d=diasDeCalendario(ultimo);
+    const nuevo=_d!==null&&_d<=2;
     return`<div class="card"${nuevo?' style="border-left:3px solid var(--v);border-radius:0 var(--r) var(--r) 0;"':''}>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
         <div class="av av-${a.color}">${avH(a)}</div>
