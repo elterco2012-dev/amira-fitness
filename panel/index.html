@@ -4736,11 +4736,44 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
   `;
 }
 
+// Etiqueta relativa para una fecha ISO ("Hoy", "Ayer", "hace N días").
+function haceCuanto(iso){
+  if(!iso)return'';
+  const dias=Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+  if(dias<=0)return'Hoy';
+  if(dias===1)return'Ayer';
+  if(dias<30)return`hace ${dias} días`;
+  const meses=Math.floor(dias/30);
+  return`hace ${meses} ${meses===1?'mes':'meses'}`;
+}
+
 function rComentarios(){
-  const byA={};DB.comentarios.forEach(c=>{if(!byA[c.alumna_id])byA[c.alumna_id]=[];byA[c.alumna_id].push(c);});
+  // DB.comentarios ya viene ordenado created_at.desc, asi que dentro de cada
+  // alumna el mas nuevo queda arriba. Lo que faltaba era ordenar los grupos:
+  // se recorria DB.alumnas (created_at.asc), asi que una alumna vieja que
+  // comento ayer quedaba al final de la pagina.
+  const byA={};DB.comentarios.forEach(c=>{(byA[c.alumna_id]=byA[c.alumna_id]||[]).push(c);});
+  const grupos=DB.alumnas
+    .map(a=>({a,cs:byA[a.id]||[]}))
+    .filter(g=>g.cs.length)
+    .map(g=>({...g,ultimo:g.cs.reduce((max,c)=>(c.created_at||'')>max?(c.created_at||''):max,'')}))
+    .sort((x,y)=>y.ultimo.localeCompare(x.ultimo));
+
   return`<div class="ptitle">Comentarios</div>
   ${DB.comentarios.length===0?`<div class="card"><div class="empty">Sin comentarios todavía.</div></div>`:''}
-  ${DB.alumnas.map(a=>{const cs=byA[a.id]||[];if(!cs.length)return'';return`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;"><div class="av av-${a.color}">${avH(a)}</div><div><div class="aname">${a.nombre}</div><div class="asub">${cs.length} comentario${cs.length!==1?'s':''}</div></div></div>${cs.map(c=>`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;"><div style="font-size:10px;color:var(--th);margin-bottom:3px;">Ciclo ${c.ciclo||1} · Sem ${c.semana} · Día ${c.dia} · ${c.fecha||''}</div><div style="font-size:12px;color:var(--t);">${c.texto}</div></div>`).join('')}</div>`;}).join('')}`;
+  ${grupos.map(({a,cs,ultimo},i)=>{
+    const nuevo=ultimo&&(Date.now()-new Date(ultimo).getTime())<3*86400000;
+    return`<div class="card"${nuevo?' style="border-left:3px solid var(--v);border-radius:0 var(--r) var(--r) 0;"':''}>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;">
+        <div class="av av-${a.color}">${avH(a)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="aname">${a.nombre}</div>
+          <div class="asub">${haceCuanto(ultimo)} · ${cs.length} comentario${cs.length!==1?'s':''}</div>
+        </div>
+        ${i===0&&nuevo?`<span class="badge" style="background:var(--vl);color:var(--vd);font-weight:500;">Más reciente</span>`:''}
+      </div>
+      ${cs.map(c=>`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;"><div style="font-size:10px;color:var(--th);margin-bottom:3px;">Ciclo ${c.ciclo||1} · Sem ${c.semana} · Día ${c.dia} · ${c.fecha||''}</div><div style="font-size:12px;color:var(--t);">${c.texto}</div></div>`).join('')}
+    </div>`;}).join('')}`;
 }
 
 // Etiqueta de origen del registro (de dónde vino la persona)
