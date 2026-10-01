@@ -1088,6 +1088,22 @@ async function saveDay(){
   const dia=parseInt(S.selDia)||1;
   const day=DB.rutinas[S.selA]?.[ciclo]?.[semana]?.find(d=>d.dia===dia);
   if(!day){S.err='No hay ejercicios para guardar';render();return;}
+  // Guardar un día vacío encima de uno que ya tenia ejercicios borra la rutina.
+  // Paso una vez por una carga incompleta del panel, asi que antes de pisar se
+  // confirma contra lo que hay en la base, no contra lo que el panel cree.
+  if(!(day.ejercicios||[]).length){
+    let enBase=null;
+    try{
+      const rows=await sbGet('rutinas',`alumna_id=eq.${S.selA}&ciclo=eq.${ciclo}&semana=eq.${semana}&dia=eq.${dia}&select=ejercicios&limit=1`);
+      enBase=(rows&&rows[0]&&rows[0].ejercicios)||[];
+    }catch(e){ enBase=null; }
+    const aviso=enBase===null
+      ? `No pude verificar qué hay guardado para este día (¿sin conexión?).\n\nSi guardás ahora con la lista vacía y en la nube había ejercicios, se pierden.\n\n¿Guardar igual?`
+      : enBase.length
+        ? `⚠️ Este día tiene ${enBase.length} ejercicio${enBase.length!==1?'s':''} guardados en la nube y en pantalla está vacío.\n\nSi guardás, se borran.\n\n¿Seguro que querés vaciar el día?`
+        : null;
+    if(aviso&&!confirm(aviso))return;
+  }
   S.msg='Guardando...';S.err='';render();
   const r=await guardarRutina({alumna_id:S.selA,ciclo,semana,dia,ejercicios:day.ejercicios,updated_at:new Date().toISOString()});
   S.err='';
