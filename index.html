@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="canonical" href="https://amira-fitness.vercel.app/">
   <meta name="theme-color" content="#1D9E75">
-  <meta name="description" content="Entrenamiento personalizado a distancia con seguimiento semanal real. Amira Lezcano, entrenadora personal — Buenos Aires.">
-  <title>Amira Fitness — Entrenamiento personalizado · Buenos Aires</title>
+  <meta name="description" content="Entrenadora personal online. Tu rutina para casa o gimnasio, ajustada cada semana, con respuesta por WhatsApp. Desde $20.000/mes y la primera charla sin costo.">
+  <title>Entrenadora personal online | Rutinas desde $20.000 — Amira</title>
 
   <!-- Open Graph — cómo se ve cuando alguien comparte el link en WA, IG, etc. -->
   <meta property="og:type" content="website">
@@ -23,17 +24,31 @@
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
-    "@type":"LocalBusiness",
-    "name":"Amira Fitness",
-    "description":"Entrenadora personal online con seguimiento semanal. Rutinas personalizadas para mujeres en Buenos Aires.",
-    "@id":"https://amira-fitness.vercel.app",
-    "url":"https://amira-fitness.vercel.app",
-    "telephone":"+5492226500790",
+    "@type":"ProfessionalService",
+    "@id":"https://amira-fitness.vercel.app/#servicio",
+    "name":"Amira Fitness — Entrenamiento personalizado online",
+    "description":"Rutinas de entrenamiento personalizadas para casa o gimnasio, con ajuste semanal y seguimiento por WhatsApp.",
+    "url":"https://amira-fitness.vercel.app/",
     "image":"https://amira-fitness.vercel.app/foto-amira.jpg",
-    "priceRange":"$$",
-    "address":{"@type":"PostalAddress","addressLocality":"Buenos Aires","addressCountry":"AR"},
+    "telephone":"+5492226500790",
+    "areaServed":{"@type":"Country","name":"Argentina"},
+    "availableLanguage":"es-AR",
     "sameAs":["https://instagram.com/amirafitnessok"],
-    "openingHours":"Mo-Fr 08:00-20:00"
+    "provider":{
+      "@type":"Person",
+      "name":"Amira Lezcano",
+      "jobTitle":"Entrenadora personal",
+      "image":"https://amira-fitness.vercel.app/foto-amira.jpg",
+      "worksFor":{"@type":"Organization","name":"Amira Fitness"},
+      "sameAs":["https://instagram.com/amirafitnessok"]
+    },
+    "offers":{
+      "@type":"Offer",
+      "priceCurrency":"ARS",
+      "price":"20000",
+      "description":"Plan mensual. El valor varía según cuántos días por semana entrenes.",
+      "availability":"https://schema.org/InStock"
+    }
   }
   </script>
 
@@ -173,6 +188,17 @@
     .donde-foto figcaption{margin-top:.55rem;font-size:12.5px;color:var(--txt-m);text-align:center;}
     .donde-txt{margin-top:1.25rem;text-align:center;font-size:14px;color:var(--txt);text-wrap:balance;}
 
+    /* FAQ */
+    .faq{max-width:720px;margin:2.5rem 0 0;}
+    .faq-item{border-bottom:1px solid var(--border);}
+    .faq-item summary{list-style:none;cursor:pointer;padding:1.1rem 2.25rem 1.1rem 0;position:relative;font-size:15.5px;font-weight:500;color:var(--txt);line-height:1.5;}
+    .faq-item summary::-webkit-details-marker{display:none;}
+    .faq-item summary::after{content:'+';position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--verde-d);line-height:1;}
+    .faq-item[open] summary::after{content:'−';}
+    .faq-item summary:focus-visible{outline:2px solid var(--verde-d);outline-offset:3px;border-radius:4px;}
+    .faq-item p{font-size:14px;color:var(--txt-m);line-height:1.8;padding:0 2.25rem 1.2rem 0;margin:0;}
+    .faq-aviso{max-width:720px;margin:1.75rem 0 0;padding:1rem 1.15rem;background:var(--surf-2);border-radius:var(--rs);font-size:12.5px;color:var(--txt-m);line-height:1.7;}
+
     /* CTA final */
     .cta-bg{background:linear-gradient(135deg,var(--verde-d) 0%,var(--verde) 100%);text-align:center;color:white;padding:6rem 2rem;}
     .cta-bg .stag{color:var(--verde-m);}
@@ -247,6 +273,54 @@
       .steps-grid{grid-template-columns:1fr;}
     }
   </style>
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Necesito equipamiento o puedo entrenar en casa?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Podés entrenar en casa con lo que tengas. Varias de mis alumnas arrancaron con dos mancuernas y una colchoneta, y otras entrenan en el gimnasio. Armo tu rutina con el equipamiento que tengas — nunca te voy a pedir que compres nada para empezar."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cuánto sale y cómo se paga?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Los planes arrancan en $20.000 por mes y el valor depende de cuántos días por semana entrenes. Se paga mes a mes, sin contrato ni permanencia mínima. La primera charla es sin costo: me contás tu caso y vemos si te sirve."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Tengo una lesión o salí de un embarazo, ¿puedo entrenar?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "En muchos casos sí, y de hecho entreno a alumnas con molestias de rodilla, cervicales o diástasis abdominal. Antes de armarte nada te hago una ficha donde me contás tu historial. No soy médica: si tu caso necesita el visto bueno de un profesional, te lo voy a decir."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Nunca entrené en mi vida, ¿es para mí?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Varias de mis alumnas empezaron de cero. La rutina arranca desde donde estés y sube de a poco. Cada ejercicio viene con un video de referencia y notas de técnica, y me podés preguntar cualquier cosa por WhatsApp."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿En qué se diferencia de una rutina que bajo de internet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "En que la tuya se arma para vos y cambia con vos. Reviso tu progreso y tus pesos cada semana y ajusto lo que haga falta. Si un ejercicio te molesta, te lo cambio al otro día. Una rutina de internet no sabe cómo te fue ayer."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 
@@ -261,6 +335,7 @@
     <a href="#como-funciona">Cómo funciona</a>
     <a href="#que-incluye">El servicio</a>
     <a href="#la-app">La app</a>
+    <a href="#faq">Preguntas</a>
     <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener">WhatsApp</a>
     <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener" class="nav-cta">Escribime</a>
   </div>
@@ -333,7 +408,7 @@
 <section class="section" id="como-funciona">
   <div class="container">
     <div class="stag">El proceso</div>
-    <h2 class="stitle">Cómo funciona</h2>
+    <h2 class="stitle">Cómo funciona el entrenamiento online</h2>
     <p class="ssub">Desde que me escribís hasta que empezás a entrenar, todo está pensado para que sea simple y sin vueltas.</p>
     <div class="steps-grid">
       <div class="step-card">
@@ -367,7 +442,7 @@
 <section class="section incluye-bg" id="que-incluye">
   <div class="container">
     <div class="stag">El servicio</div>
-    <h2 class="stitle">¿Qué incluye?</h2>
+    <h2 class="stitle">¿Qué incluye tu plan personalizado?</h2>
     <p class="ssub">Cada alumna tiene un plan único. No hay rutinas genéricas ni programas enlatados.</p>
     <div class="cards-grid">
       <div class="service-card">
@@ -435,7 +510,7 @@
     <div class="app-inner">
       <div>
         <div class="stag">La app</div>
-        <h2 class="stitle">Tu entrenamiento, siempre en el celu</h2>
+        <h2 class="stitle">Tu rutina personalizada, siempre en el celular</h2>
         <p class="ssub">Cada alumna recibe un link personal con su rutina completa. Sin descargas, sin registros complicados. Se instala como app en tu teléfono.</p>
         <div class="app-features">
           <div class="app-feat"><div class="feat-check">✓</div><div class="feat-txt">Videos de referencia por ejercicio</div></div>
@@ -511,6 +586,39 @@
       </div>
 
     </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="container">
+    <div class="stag">Preguntas frecuentes</div>
+    <h2 class="stitle">Preguntas frecuentes sobre el entrenamiento personalizado</h2>
+
+    <div class="faq">
+      <details class="faq-item">
+        <summary>¿Necesito equipamiento o puedo entrenar en casa?</summary>
+        <p>Podés entrenar en casa con lo que tengas. Varias de mis alumnas arrancaron con dos mancuernas y una colchoneta, y otras entrenan en el gimnasio. Armo tu rutina con el equipamiento que tengas — nunca te voy a pedir que compres nada para empezar.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cuánto sale y cómo se paga?</summary>
+        <p>Los planes arrancan en $20.000 por mes y el valor depende de cuántos días por semana entrenes. Se paga mes a mes, sin contrato ni permanencia mínima. La primera charla es sin costo: me contás tu caso y vemos si te sirve.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Tengo una lesión o salí de un embarazo, ¿puedo entrenar?</summary>
+        <p>En muchos casos sí, y de hecho entreno a alumnas con molestias de rodilla, cervicales o diástasis abdominal. Antes de armarte nada te hago una ficha donde me contás tu historial. No soy médica: si tu caso necesita el visto bueno de un profesional, te lo voy a decir.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Nunca entrené en mi vida, ¿es para mí?</summary>
+        <p>Sí. Varias de mis alumnas empezaron de cero. La rutina arranca desde donde estés y sube de a poco. Cada ejercicio viene con un video de referencia y notas de técnica, y me podés preguntar cualquier cosa por WhatsApp.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿En qué se diferencia de una rutina que bajo de internet?</summary>
+        <p>En que la tuya se arma para vos y cambia con vos. Reviso tu progreso y tus pesos cada semana y ajusto lo que haga falta. Si un ejercicio te molesta, te lo cambio al otro día. Una rutina de internet no sabe cómo te fue ayer.</p>
+      </details>
+    </div>
+
+    <p class="faq-aviso">Amira es entrenadora personal, no profesional médica. Si tenés una lesión, una condición diagnosticada o estás en posparto, consultá con tu médico antes de empezar. En la ficha inicial te pregunto por todo eso para adaptar tu plan — y si algo requiere derivación, te lo digo.</p>
   </div>
 </section>
 

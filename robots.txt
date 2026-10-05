@@ -1,0 +1,8 @@
+# Las páginas privadas (/panel, /alumna, /ficha) no se bloquean acá a propósito:
+# para que Google respete su <meta name="robots" content="noindex">, primero
+# tiene que poder leerlas. Bloquearlas acá lograría lo contrario — la URL podría
+# quedar indexada sin que Google llegue a ver la orden de no indexarla.
+User-agent: *
+Allow: /
+
+Sitemap: https://amira-fitness.vercel.app/sitemap.xml
