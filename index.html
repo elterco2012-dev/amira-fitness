@@ -188,6 +188,11 @@
     .donde-foto figcaption{margin-top:.55rem;font-size:12.5px;color:var(--txt-m);text-align:center;}
     .donde-txt{margin-top:1.25rem;text-align:center;font-size:14px;color:var(--txt);text-wrap:balance;}
 
+    /* Objeciones */
+    .obj{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem 2.5rem;margin-top:2.5rem;}
+    .obj-item h3{font-size:15.5px;font-weight:500;color:var(--txt);margin-bottom:.5rem;line-height:1.5;}
+    .obj-item p{font-size:14px;color:var(--txt-m);line-height:1.8;margin:0;}
+
     /* FAQ */
     .faq{max-width:720px;margin:2.5rem 0 0;}
     .faq-item{border-bottom:1px solid var(--border);}
@@ -252,6 +257,7 @@
       .step-connector{display:none;}
       .cards-grid{grid-template-columns:1fr;}
       .ideal-grid{grid-template-columns:1fr;gap:1rem;}
+      .obj{grid-template-columns:1fr;gap:1.5rem;}
       .app-inner{grid-template-columns:1fr;}
       /* Antes se ocultaba en movil: la seccion que habla de usar el celular
          era justamente la unica sin imagen en el celular. Van dos capturas en
@@ -307,7 +313,7 @@
         "name": "Nunca entrené en mi vida, ¿es para mí?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. Varias de mis alumnas empezaron de cero. La rutina arranca desde donde estés y sube de a poco. Cada ejercicio viene con un video de referencia y notas de técnica, y me podés preguntar cualquier cosa por WhatsApp."
+          "text": "Sobre todo si nunca entrenaste. Varias de mis alumnas empezaron de cero y hoy levantan peso — una me contó que pasó de 3 a 8 kilos en un mes y medio. Tu rutina personalizada arranca desde donde estés hoy, no desde donde debería estar alguien que entrena hace años. Cada ejercicio viene con video y notas de técnica, y si algo no te sale, me preguntás por WhatsApp y te lo cambio."
         }
       },
       {
@@ -315,7 +321,7 @@
         "name": "¿En qué se diferencia de una rutina que bajo de internet?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "En que la tuya se arma para vos y cambia con vos. Reviso tu progreso y tus pesos cada semana y ajusto lo que haga falta. Si un ejercicio te molesta, te lo cambio al otro día. Una rutina de internet no sabe cómo te fue ayer."
+          "text": "Una rutina de internet no sabe cómo te fue ayer. La tuya sí. Reviso tus pesos y tus comentarios cada semana y ajusto lo que haga falta: si un ejercicio te molesta, te lo cambio al otro día; si te quedó corto, subimos la carga. Eso es entrenamiento personalizado — no un PDF que se repite hasta que te aburrís."
         }
       }
     ]
@@ -362,9 +368,9 @@
       <div class="hero-ctas">
         <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener" class="btn btn-wa">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
-          Escribime y charlamos
+          Contame tu caso
         </a>
-        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-m);text-align:center;line-height:1.5;text-wrap:balance;">La primera charla es sin costo — me contás y vemos si te sirve.<br>Planes desde $20.000 por mes, según cuántos días entrenes.</p>
+        <p style="margin:.7rem 0 0;font-size:12.5px;color:var(--txt-m);text-align:center;line-height:1.5;text-wrap:balance;">La primera charla es sin costo — me contás y vemos si te sirve.<br>Desde $20.000 por mes: menos de $700 por día.</p>
         <a href="/registro" style="display:block;margin-top:.25rem;padding:12px 4px;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;">o dejame tus datos y te escribo · 30 segundos →</a>
       </div>
       <div class="hero-trust">
@@ -474,12 +480,12 @@
     <h2 class="stitle">Esto es para vos si…</h2>
     <p class="ssub">No importa desde dónde arranques. Lo armamos juntas, a tu ritmo.</p>
     <div class="ideal-grid">
-      <div class="ideal-item"><div class="ideal-check">✓</div>Querés empezar a entrenar pero no sabés por dónde.</div>
-      <div class="ideal-item"><div class="ideal-check">✓</div>Ya entrenás, pero sentís que no avanzás con rutinas de internet.</div>
-      <div class="ideal-item"><div class="ideal-check">✓</div>Necesitás algo que se adapte a tu tiempo, entrenes en casa o en el gimnasio.</div>
-      <div class="ideal-item"><div class="ideal-check">✓</div>Querés que alguien te guíe de verdad, no un video más.</div>
-      <div class="ideal-item"><div class="ideal-check">✓</div>Preferís ir a tu ritmo, sin presiones ni contratos.</div>
-      <div class="ideal-item"><div class="ideal-check">✓</div>Buscás sentirte más fuerte y con energía, sin lastimarte.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Arrancás un lunes y para el jueves ya lo dejaste. Otra vez.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Entrenás hace meses y seguís levantando el mismo peso.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Entre el trabajo, la casa y todo lo demás, entrenar siempre queda último.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Hacés el ejercicio mirando un video y no sabés si lo estás haciendo bien.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Te anotaste en un gimnasio y pagaste meses que no usaste.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Querés sentirte mejor, no destruirte.</div>
     </div>
     <!-- Casa y gimnasio con el mismo peso visual: no son dos productos, es el
          mismo servicio adaptado. Si las fotos todavia no estan, el bloque se
@@ -589,6 +595,32 @@
   </div>
 </section>
 
+<!-- Objeciones -->
+<section class="section" id="por-que">
+  <div class="container">
+    <div class="stag">Antes de que preguntes</div>
+    <h2 class="stitle">Por qué esta vez sí</h2>
+    <div class="obj">
+      <div class="obj-item">
+        <h3>“Me da pereza empezar sola.”</h3>
+        <p>No vas a empezar sola. El primer día ya tenés tu rutina armada, con los videos y el peso sugerido. No tenés que decidir nada: abrís la app y la seguís.</p>
+      </div>
+      <div class="obj-item">
+        <h3>“Tengo miedo de pagar y abandonar.”</h3>
+        <p>Es lo que más me escriben, y es la duda correcta. Por eso no hay contrato ni permanencia: pagás el mes que entrenás. Y si dejás de marcar tus días, te escribo — no para retarte, para preguntarte qué pasó y acomodar la semana.</p>
+      </div>
+      <div class="obj-item">
+        <h3>“No tengo espacio ni materiales en casa.”</h3>
+        <p>Varias de mis alumnas entrenan en el comedor con dos mancuernas y una colchoneta. Armo tu rutina con lo que tengas. Nunca te voy a pedir que compres nada para empezar.</p>
+      </div>
+      <div class="obj-item">
+        <h3>“No tengo tiempo.”</h3>
+        <p>Entrenás los días que puedas, aunque sean dos por semana. Tengo alumnas que van por el tercer ciclo entrenando dos días, entre el trabajo, la casa y los hijos. La rutina se arma alrededor de tu semana, no al revés.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section class="section" id="faq">
   <div class="container">
@@ -610,11 +642,11 @@
       </details>
       <details class="faq-item">
         <summary>Nunca entrené en mi vida, ¿es para mí?</summary>
-        <p>Sí. Varias de mis alumnas empezaron de cero. La rutina arranca desde donde estés y sube de a poco. Cada ejercicio viene con un video de referencia y notas de técnica, y me podés preguntar cualquier cosa por WhatsApp.</p>
+        <p>Sobre todo si nunca entrenaste. Varias de mis alumnas empezaron de cero y hoy levantan peso — una me contó que pasó de 3 a 8 kilos en un mes y medio. Tu rutina personalizada arranca desde donde estés hoy, no desde donde debería estar alguien que entrena hace años. Cada ejercicio viene con video y notas de técnica, y si algo no te sale, me preguntás por WhatsApp y te lo cambio.</p>
       </details>
       <details class="faq-item">
         <summary>¿En qué se diferencia de una rutina que bajo de internet?</summary>
-        <p>En que la tuya se arma para vos y cambia con vos. Reviso tu progreso y tus pesos cada semana y ajusto lo que haga falta. Si un ejercicio te molesta, te lo cambio al otro día. Una rutina de internet no sabe cómo te fue ayer.</p>
+        <p>Una rutina de internet no sabe cómo te fue ayer. La tuya sí. Reviso tus pesos y tus comentarios cada semana y ajusto lo que haga falta: si un ejercicio te molesta, te lo cambio al otro día; si te quedó corto, subimos la carga. Eso es entrenamiento personalizado — no un PDF que se repite hasta que te aburrís.</p>
       </details>
     </div>
 
@@ -625,11 +657,11 @@
 <!-- CTA final -->
 <section class="cta-bg">
   <h2 class="cta-title">Si llegaste hasta acá, charlemos.</h2>
-  <p class="cta-sub">Sin compromiso. Me escribís, te respondo yo.<br><span style="opacity:.75;">Planes desde $20.000 por mes, según cuántos días entrenes.</span></p>
+  <p class="cta-sub">Sin compromiso. Me escribís, te respondo yo.<br><span style="opacity:.75;">Desde $20.000 por mes — menos de $700 por día.<br>Tu rutina, el ajuste semanal, la app y mis respuestas por WhatsApp.</span></p>
   <div class="cta-btns">
     <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener" class="btn btn-white">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></svg>
-      Escribime y charlamos
+      Empecemos por una charla
     </a>
   </div>
   <a href="/registro" style="display:inline-block;margin-top:.75rem;padding:12px 8px;font-size:13px;color:rgba(255,255,255,.55);text-decoration:underline;text-underline-offset:3px;">o dejame tus datos y te escribo · 30 segundos →</a>
