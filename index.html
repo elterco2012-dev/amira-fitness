@@ -259,10 +259,12 @@
       <h1 class="hero-quote">
         No quiero darte <em>otra rutina de internet</em>.<br>Quiero conocerte y armarte la tuya.
       </h1>
-      <p class="hero-desc">Soy Amira. Trabajo con pocas alumnas a la vez para poder responderte yo misma. Te armo tu rutina con lo que tengas — dos mancuernas en casa o el gimnasio completo —, te la ajusto cada semana, y te contesto las dudas por WhatsApp el mismo día.</p>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.75rem;font-size:13px;color:var(--verde-d);font-weight:500;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-        Entrenadora certificada · En casa o en el gimnasio · 20 alumnas entrenando ahora
+      <p class="hero-desc">Soy Amira. Trabajo con pocas alumnas a la vez para poder responderte yo misma. Te armo tu rutina con lo que tengas: dos mancuernas en casa o el gimnasio completo. Te la ajusto cada semana y te contesto las dudas por WhatsApp el mismo día.</p>
+      <!-- align-items:flex-start para que el tilde quede a la altura del primer
+           renglon cuando la linea se parte en dos. -->
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:1.75rem;font-size:13px;color:var(--verde-d);font-weight:500;line-height:1.5;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M20 6L9 17l-5-5"/></svg>
+        <span style="text-wrap:balance;">Entrenadora certificada · En casa o en el gimnasio · 20 alumnas entrenando ahora</span>
       </div>
       <div class="hero-ctas">
         <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn btn-wa">
