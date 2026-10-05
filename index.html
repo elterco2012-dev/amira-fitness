@@ -49,7 +49,7 @@
     :root{
       --verde:#1D9E75;--verde-l:#E1F5EE;--verde-m:#5DCAA5;--verde-d:#0F6E56;
       --amber:#FAEEDA;--amber-d:#633806;
-      --txt:#1a1a1a;--txt-m:#6b7280;--txt-h:#9ca3af;
+      --txt:#1a1a1a;--txt-m:#6b7280;--txt-h:#6b7280;
       --surf:#f8f8f6;--surf-2:#f0f0ec;--white:#fff;
       --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.12);
       --r:16px;--rs:10px;--rp:30px;
@@ -69,8 +69,16 @@
 
     /* Shared btn */
     .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:var(--rp);font-size:14px;font-weight:500;text-decoration:none;transition:all .2s;cursor:pointer;border:none;}
-    .btn-wa{background:#25D366;color:white;}
-    .btn-wa:hover{background:#1da851;transform:translateY(-1px);}
+    /* El boton principal va en el verde de la marca, un paso mas profundo para
+       que el texto blanco se lea (4,91:1; sobre #25D366 daba 1,98). El icono de
+       WhatsApp al lado ya dice cual es el canal. */
+    .btn-wa{background:#15805E;color:white;}
+    .btn-wa:hover{background:#0F6E56;transform:translateY(-1px);}
+    /* En la barra fija del celular si conviene el verde oficial de WhatsApp:
+       ahi la senal del canal vale mas que la de marca. Se usa el tono oscuro
+       (#128C4A), que ademas se lee. */
+    .sticky-wa .btn-wa{background:#128C4A;}
+    .sticky-wa .btn-wa:hover{background:#0E7A3F;}
     .btn-outline{background:transparent;color:var(--txt);border:1.5px solid var(--border-m);}
     .btn-outline:hover{background:var(--surf);border-color:rgba(0,0,0,0.2);}
     .btn-verde{background:var(--verde);color:white;}
@@ -112,7 +120,7 @@
     .filosofia-callout p{font-size:13px;color:rgba(255,255,255,.65);line-height:1.7;}
     .filosofia-pillars{display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem;}
     .pillar{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.85);font-size:14px;}
-    .pillar-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+    .pillar-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(255,255,255,.9);}
 
     /* Cómo funciona */
     .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;margin-top:3rem;}
@@ -127,10 +135,8 @@
     .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem;}
     .service-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem;transition:box-shadow .2s;}
     .service-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06);}
-    .service-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:1.25rem;}
+    .service-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--verde-d);margin-bottom:1.25rem;}
     .icon-green{background:var(--verde-l);}
-    .icon-amber{background:var(--amber);}
-    .icon-purple{background:#EEEDFE;}
     .service-card h3{font-size:15px;font-weight:500;margin-bottom:.5rem;color:var(--txt);}
     .service-card p{font-size:13px;color:var(--txt-m);line-height:1.75;}
     .service-tag{margin-top:1.25rem;font-size:11.5px;font-weight:500;color:var(--verde-d);background:var(--verde-l);display:inline-block;padding:3px 10px;border-radius:var(--rp);}
@@ -143,7 +149,7 @@
     .ideal-cta{margin-top:2.5rem;}
 
     /* App preview */
-    .app-bg{background:var(--txt);color:white;}
+    .app-bg{background:#0C2C23;color:white;}
     .app-bg .stag{color:var(--verde-m);}
     .app-bg .stitle{color:white;}
     .app-bg .ssub{color:rgba(255,255,255,.65);}
@@ -158,6 +164,14 @@
     .phone-screen{border-radius:22px;overflow:hidden;background:#111;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.35);}
     .phone-screen img{display:block;width:100%;height:auto;}
     .phone-cap{margin-top:.6rem;text-align:center;font-size:11.5px;color:rgba(255,255,255,.45);line-height:1.4;}
+
+    /* Casa y gimnasio, mismo tamano y mismo trato */
+    .donde{margin-top:2.75rem;}
+    .donde-fotos{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .donde-foto{margin:0;}
+    .donde-foto img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r);background:var(--surf-2);}
+    .donde-foto figcaption{margin-top:.55rem;font-size:12.5px;color:var(--txt-m);text-align:center;}
+    .donde-txt{margin-top:1.25rem;text-align:center;font-size:14px;color:var(--txt);text-wrap:balance;}
 
     /* CTA final */
     .cta-bg{background:linear-gradient(135deg,var(--verde-d) 0%,var(--verde) 100%);text-align:center;color:white;padding:6rem 2rem;}
@@ -175,7 +189,7 @@
     .testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:1.5rem;margin-top:3rem;}
     .testi-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem;display:flex;flex-direction:column;gap:1rem;transition:box-shadow .2s;}
     .testi-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06);}
-    .testi-stars{color:#F5B301;font-size:15px;letter-spacing:2px;}
+    .testi-stars{color:#A8740A;font-size:15px;letter-spacing:2px;}
     /* Las comillas van en el texto, no como ::before: un glifo serif mas grande
        no comparte linea base con el destacado y queda flotando. */
     /* balance reparte los renglones parejo en vez de dejar una palabra sola
@@ -297,9 +311,9 @@
         <p>Soy entrenadora personal y lo que más me importa es entender tu punto de partida: no el de otra persona, no el de un programa genérico. El tuyo. Tus objetivos, tus tiempos, lo que te motiva y lo que te frena.</p>
         <p>Trabajo a distancia con alumnas de diferentes niveles, rutinas y cuerpos. Cada una tiene su plan, su seguimiento y su contacto directo conmigo. No hay fórmulas copiadas ni rutinas de internet.</p>
         <div class="filosofia-pillars">
-          <div class="pillar"><div class="pillar-icon">🎯</div>Objetivos reales, no ideales de revista</div>
-          <div class="pillar"><div class="pillar-icon">🔄</div>Rutinas que evolucionan con vos</div>
-          <div class="pillar"><div class="pillar-icon">💬</div>Contacto directo — siempre con Amira</div>
+          <div class="pillar"><div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></svg></div>Objetivos reales, no ideales de revista</div>
+          <div class="pillar"><div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-7.5-4"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 7.5 4"/><path d="M19.5 3v4h-4"/><path d="M4.5 21v-4h4"/></svg></div>Rutinas que evolucionan con vos</div>
+          <div class="pillar"><div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8 8 0 0 1-8 8 8 8 0 0 1-3.6-.85L3 21l1.35-4.4A8 8 0 0 1 13 3.5a8 8 0 0 1 8 8z"/></svg></div>Contacto directo — siempre con Amira</div>
         </div>
       </div>
       <div class="filosofia-callout">
@@ -353,19 +367,19 @@
     <p class="ssub">Cada alumna tiene un plan único. No hay rutinas genéricas ni programas enlatados.</p>
     <div class="cards-grid">
       <div class="service-card">
-        <div class="service-icon icon-green">📋</div>
+        <div class="service-icon icon-green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M16 5h2a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2"/><path d="M9 11h6"/><path d="M9 15h4"/></svg></div>
         <h3>Rutina 100% personalizada</h3>
         <p>Armada específicamente para vos: tus objetivos, tu nivel, tu equipamiento y tu disponibilidad. Cambia y crece con vos cada semana.</p>
         <span class="service-tag">A distancia</span>
       </div>
       <div class="service-card">
-        <div class="service-icon icon-amber">📊</div>
+        <div class="service-icon icon-green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5.5-5.5 3.5 3.5L21 6"/><path d="M15 6h6v6"/></svg></div>
         <h3>Seguimiento semanal real</h3>
         <p>Reviso tu progreso, tus pesos y tus comentarios semana a semana. La rutina se ajusta según cómo evolucionás, no según un plan fijo.</p>
         <span class="service-tag">Incluido siempre</span>
       </div>
       <div class="service-card">
-        <div class="service-icon icon-purple">💬</div>
+        <div class="service-icon icon-green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8 8 0 0 1-8 8 8 8 0 0 1-3.6-.85L3 21l1.35-4.4A8 8 0 0 1 13 3.5a8 8 0 0 1 8 8z"/></svg></div>
         <h3>Contacto directo conmigo</h3>
         <p>Podés escribirme desde la app, dejar notas en cada ejercicio y hacer preguntas. Atención personalizada — no respuestas automáticas.</p>
         <span class="service-tag">WhatsApp + app</span>
@@ -388,6 +402,23 @@
       <div class="ideal-item"><div class="ideal-check">✓</div>Preferís ir a tu ritmo, sin presiones ni contratos.</div>
       <div class="ideal-item"><div class="ideal-check">✓</div>Buscás sentirte más fuerte y con energía, sin lastimarte.</div>
     </div>
+    <!-- Casa y gimnasio con el mismo peso visual: no son dos productos, es el
+         mismo servicio adaptado. Si las fotos todavia no estan, el bloque se
+         borra solo y la seccion queda como antes. -->
+    <div class="donde" id="donde">
+      <div class="donde-fotos">
+        <figure class="donde-foto">
+          <img src="/donde/casa.jpg" alt="Alumna entrenando en el living de su casa con dos mancuernas y una colchoneta." loading="lazy" decoding="async" onerror="document.getElementById('donde')?.remove()">
+          <figcaption>En casa</figcaption>
+        </figure>
+        <figure class="donde-foto">
+          <img src="/donde/gimnasio.jpg" alt="Alumna entrenando en un gimnasio luminoso." loading="lazy" decoding="async" onerror="document.getElementById('donde')?.remove()">
+          <figcaption>En el gimnasio</figcaption>
+        </figure>
+      </div>
+      <p class="donde-txt">Entrenás donde puedas. La rutina se arma con lo que tengas.</p>
+    </div>
+
     <div class="ideal-cta">
       <a href="https://wa.me/5492226500790?text=Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" class="btn btn-verde">Me identifico — escribime</a>
     </div>
