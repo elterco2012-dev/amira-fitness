@@ -56,6 +56,38 @@
   <!-- Crear cuenta en analytics.google.com → Nueva propiedad → Flujo web → copiar G-XXXXXXX -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-YM3V2F8C2Z"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-YM3V2F8C2Z');</script>
+  <!-- ── Analitica ────────────────────────────────────────────────────────
+       Completá los dos IDs de abajo y se activan solos. Mientras estén
+       vacíos no se carga nada: ni un pedido de red ni una cookie.
+       Van solo en la landing: /panel y /alumna tienen datos de salud de las
+       alumnas y no deben grabarse. -->
+  <script>
+    window.AF_CLARITY_ID = 'ytg5n64mzv';   // Microsoft Clarity · ej: 'abc123xyz9'
+    window.AF_META_PIXEL = '1143039091621214';   // Meta Pixel · ej: '1234567890123456'
+  </script>
+  <script>
+  (function(){
+    var c = window.AF_CLARITY_ID;
+    if (c) {
+      (function(w,d,a,r,i,t,y){
+        w[a]=w[a]||function(){(w[a].q=w[a].q||[]).push(arguments)};
+        t=d.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;
+        y=d.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window,document,'clarity','script',c);
+    }
+    var p = window.AF_META_PIXEL;
+    if (p) {
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+      (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', p);
+      fbq('track', 'PageView');
+    }
+  })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
@@ -383,7 +415,7 @@
       </div>
     </div>
     <div class="hero-photo">
-      <img src="foto-amira.jpg" alt="Amira Lezcano, entrenadora personal" width="1000" height="1250" fetchpriority="high" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:center 22%;">
+      <img src="foto-amira.jpg" alt="Amira Lezcano, entrenadora personal" width="1000" height="1250" fetchpriority="high" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:center;">
       <div class="hero-photo-placeholder" style="display:none;">🏋️‍♀️</div>
     </div>
   </div>
@@ -740,6 +772,10 @@
       if(typeof gtag==='function'){
         gtag('event','click_whatsapp',{origen:'landing'});
       }
+      // Evento estandar de Meta: es por lo que optimiza una campania de mensajes.
+      if(typeof fbq==='function'){ fbq('track','Contact'); }
+      // Etiqueta la grabacion de Clarity para poder filtrar por quienes escribieron.
+      if(typeof clarity==='function'){ clarity('set','escribio_whatsapp','si'); }
     }catch(_){}
   },true);
   // Año actual en el pie de página
