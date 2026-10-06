@@ -106,7 +106,7 @@
 
     /* Nav */
     nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;}
-    .nav-brand{display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;text-decoration:none;color:var(--txt);}
+    .nav-brand{display:flex;align-items:center;min-height:44px;gap:10px;font-weight:500;font-size:15px;text-decoration:none;color:var(--txt);}
     .nav-logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
     .nav-links{display:flex;align-items:center;gap:1.5rem;}
     .nav-links a{font-size:13px;color:var(--txt-m);text-decoration:none;transition:color .15s;}
@@ -266,6 +266,14 @@
     .testi-avatar{position:relative;overflow:hidden;width:56px;height:56px;min-width:56px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:21px;}
     .testi-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
     .testi-who .name{font-size:13px;font-weight:500;color:var(--txt);}
+    .testi-extra{display:none;}
+    /* Sin JS no hay boton que los abra: mejor mostrarlos. */
+    .no-js .testi-extra{display:flex;}
+    .testi-grid.abierta .testi-extra{display:flex;}
+    .testi-ver{display:block;margin:1.75rem auto 0;min-height:44px;padding:12px 22px;
+      background:none;border:1px solid var(--border);border-radius:999px;cursor:pointer;
+      font:inherit;font-size:14px;color:var(--txt-m);}
+    .testi-ver:hover{border-color:var(--verde);color:var(--verde-d);}
     .testi-who .role{font-size:11.5px;color:var(--txt-m);}
 
     /* Footer */
@@ -363,7 +371,7 @@
   }
   </script>
 </head>
-<body>
+<body class="no-js">
 
 <!-- Nav -->
 <header>
@@ -578,59 +586,6 @@
 </section>
 
 <!-- Testimonios -->
-<section class="section testi-bg" id="testimonios">
-  <div class="container">
-    <div class="stag">Lo que dicen mis alumnas</div>
-    <h2 class="stitle">Resultados reales, de personas reales</h2>
-    <p class="ssub">Esto me escribieron algunas de las chicas que entrenan conmigo. Sin filtros.</p>
-    <div class="testi-grid">
-
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">“A los dos meses el dolor de rodillas mejoró un montón”</p>
-        <p class="testi-quote">Empecé porque me dolían las dos rodillas y los médicos me mandaron a fortalecer. Nunca me había gustado el gimnasio porque me parecía aburrido — y era porque nunca había seguido una rutina.</p>
-        <div class="testi-who"><div class="testi-avatar">M<img src="/testi/maria.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">María</div><div class="role">Empezó por indicación médica</div></div></div>
-      </div>
-
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">“El hábito de entrenar sin excusas”</p>
-        <p class="testi-quote">Iba al gimnasio todos los días con una rutina en la que no entendía dónde estaba el foco, y terminaba abandonando y volviendo a empezar. Llevo 3 meses entrenando en casa: siento las piernas con más definición y la resistencia me mejoró un montón.</p>
-        <div class="testi-who"><div class="testi-avatar">M<img src="/testi/maca.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">Macarena</div><div class="role">Entrena desde casa</div></div></div>
-      </div>
-
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">“Antes levantaba 3 kilos, ahora levanto&nbsp;8”</p>
-        <p class="testi-quote">Venía haciendo pilates, zumba y ciclismo, pero sin una rutina que se adaptara a mí. En un mes y medio me siento menos cansada e hinchada, y pasé de 55 kilos a 50. Ahora me animo con la fuerza: antes pensaba que no era para mí.</p>
-        <div class="testi-who"><div class="testi-avatar">N</div><div><div class="name">Naimid</div><div class="role">Un mes y medio entrenando</div></div></div>
-      </div>
-
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">“Cumplir conmigo misma y tomarme ese ratito”</p>
-        <p class="testi-quote">Venía con cero ganas y la energía por el piso: entre el trabajo, la casa y maternar se me complicaba. Las rutinas son muy llevaderas y la energía que sentís al terminar no tiene comparación. Si yo pude, vos también vas a poder.</p>
-        <div class="testi-who"><div class="testi-avatar">E<img src="/testi/eva.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">Eva</div><div class="role">Entrena 2 días por semana</div></div></div>
-      </div>
-
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">“Más energía, más fuerte y mucho más conectada con mi cuerpo”</p>
-        <p class="testi-quote">Llevo 5 meses y los cambios no son solo corporales, también anímicos. Lo que más me sirvió fue el seguimiento: sentir que hay alguien que acompaña tu proceso y está atenta a tus avances hace toda la diferencia.</p>
-        <div class="testi-who"><div class="testi-avatar">D<img src="/testi/dai.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">Daiana</div><div class="role">5 meses entrenando desde casa</div></div></div>
-      </div>
-
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-lead">“Voy ganando fuerza, y me motiva ir marcando en la app”</p>
-        <p class="testi-quote">Antes entrenaba muy desordenado. A alguien que piensa que no va a poder sostenerlo le diría que pruebe, porque es muy fácil.</p>
-        <div class="testi-who"><div class="testi-avatar">M</div><div><div class="name">Mel</div><div class="role">Entrena en el gimnasio</div></div></div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
 <!-- Objeciones -->
 <section class="section" id="por-que">
   <div class="container">
@@ -661,6 +616,63 @@
         </a>
         <p class="obj-cta-nota">Sin contrato. La primera charla es sin costo.</p>
       </div>
+  </div>
+</section>
+
+<section class="section testi-bg" id="testimonios">
+  <div class="container">
+    <div class="stag">Lo que dicen mis alumnas</div>
+    <h2 class="stitle">Resultados reales, de personas reales</h2>
+    <p class="ssub">Esto me escribieron algunas de las chicas que entrenan conmigo. Sin filtros.</p>
+    <div class="testi-grid" id="testi-grid">
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-lead">“A los dos meses el dolor de rodillas mejoró un montón”</p>
+        <p class="testi-quote">Empecé porque me dolían las dos rodillas y los médicos me mandaron a fortalecer. Nunca me había gustado el gimnasio porque me parecía aburrido — y era porque nunca había seguido una rutina.</p>
+        <div class="testi-who"><div class="testi-avatar">M<img src="/testi/maria.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">María</div><div class="role">Empezó por indicación médica</div></div></div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-lead">“El hábito de entrenar sin excusas”</p>
+        <p class="testi-quote">Iba al gimnasio todos los días con una rutina en la que no entendía dónde estaba el foco, y terminaba abandonando y volviendo a empezar. Llevo 3 meses entrenando en casa: siento las piernas con más definición y la resistencia me mejoró un montón.</p>
+        <div class="testi-who"><div class="testi-avatar">M<img src="/testi/maca.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">Macarena</div><div class="role">Entrena desde casa</div></div></div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-lead">“Antes levantaba 3 kilos, ahora levanto&nbsp;8”</p>
+        <p class="testi-quote">Venía haciendo pilates, zumba y ciclismo, pero sin una rutina que se adaptara a mí. En un mes y medio me siento menos cansada e hinchada, y pasé de 55 kilos a 50. Ahora me animo con la fuerza: antes pensaba que no era para mí.</p>
+        <div class="testi-who"><div class="testi-avatar">N</div><div><div class="name">Naimid</div><div class="role">Un mes y medio entrenando</div></div></div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-lead">“Cumplir conmigo misma y tomarme ese ratito”</p>
+        <p class="testi-quote">Venía con cero ganas y la energía por el piso: entre el trabajo, la casa y maternar se me complicaba. Las rutinas son muy llevaderas y la energía que sentís al terminar no tiene comparación. Si yo pude, vos también vas a poder.</p>
+        <div class="testi-who"><div class="testi-avatar">E<img src="/testi/eva.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">Eva</div><div class="role">Entrena 2 días por semana</div></div></div>
+      </div>
+
+      <div class="testi-card testi-extra">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-lead">“Más energía, más fuerte y mucho más conectada con mi cuerpo”</p>
+        <p class="testi-quote">Llevo 5 meses y los cambios no son solo corporales, también anímicos. Lo que más me sirvió fue el seguimiento: sentir que hay alguien que acompaña tu proceso y está atenta a tus avances hace toda la diferencia.</p>
+        <div class="testi-who"><div class="testi-avatar">D<img src="/testi/dai.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><div class="name">Daiana</div><div class="role">5 meses entrenando desde casa</div></div></div>
+      </div>
+
+      <div class="testi-card testi-extra">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-lead">“Voy ganando fuerza, y me motiva ir marcando en la app”</p>
+        <p class="testi-quote">Antes entrenaba muy desordenado. A alguien que piensa que no va a poder sostenerlo le diría que pruebe, porque es muy fácil.</p>
+        <div class="testi-who"><div class="testi-avatar">M</div><div><div class="name">Mel</div><div class="role">Entrena en el gimnasio</div></div></div>
+      </div>
+
+    </div>
+    <button type="button" class="testi-ver" id="testi-ver" hidden
+            aria-expanded="false" aria-controls="testi-grid">
+      Ver los 2 testimonios restantes
+    </button>
   </div>
 </section>
 
@@ -715,7 +727,8 @@
 <footer>
   <strong>Amira Fitness</strong> · Entrenamiento personalizado · Buenos Aires, Argentina<br>
   <span style="margin-top:6px;display:block;">
-    <a href="/panel">Panel</a> · © <span id="yr">2025</span>
+    <a href="https://instagram.com/amirafitnessok" target="_blank" rel="noopener">Instagram</a>
+    · <a href="/panel">Panel</a> · © <span id="yr">2025</span>
   </span>
 </footer>
 
@@ -765,6 +778,7 @@
      Marcá "click_whatsapp" como evento clave en GA4 para medirlo como conversión. -->
 <script>
 (function(){
+  document.body.classList.remove('no-js');
   document.addEventListener('click',function(e){
     var a=e.target.closest && e.target.closest('a[href*="wa.me"]');
     if(!a)return;
@@ -778,6 +792,19 @@
       if(typeof clarity==='function'){ clarity('set','escribio_whatsapp','si'); }
     }catch(_){}
   },true);
+  // Los dos ultimos testimonios se despliegan a pedido: mostrarlos todos
+  // empujaba las objeciones casi 3 pantallas hacia abajo.
+  try{
+    var grid=document.querySelector('.testi-grid'), ver=document.getElementById('testi-ver');
+    if(grid&&ver){
+      ver.hidden=false;
+      ver.addEventListener('click',function(){
+        grid.classList.add('abierta');
+        ver.setAttribute('aria-expanded','true');
+        ver.hidden=true;
+      });
+    }
+  }catch(_){}
   // Año actual en el pie de página
   try{var _yr=document.getElementById('yr');if(_yr)_yr.textContent=new Date().getFullYear();}catch(_){}
 })();
