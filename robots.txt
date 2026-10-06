@@ -5,4 +5,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://amira-fitness.vercel.app/sitemap.xml
+Sitemap: https://amirafitness.com.ar/sitemap.xml
