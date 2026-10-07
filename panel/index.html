@@ -1618,7 +1618,8 @@ function renderIAPreview(routine,a){
   if(_iaWeekSel>=routine.semanas.length)_iaWeekSel=0;
 
   // ── Razonamiento (si Claude lo incluyó) ──
-  let html=renderVerificacion(verificarRutina(routine,a));
+  let html='';
+  try{ html=renderVerificacion(verificarRutina(routine,a)); }catch(_){ html=''; }
   if(routine.razonamiento){
     html+=`<div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;">
       <div style="font-size:10px;font-weight:600;color:var(--vi);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">💡 Por qué generé esta rutina</div>
