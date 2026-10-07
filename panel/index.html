@@ -1519,6 +1519,93 @@ function postProcessRoutine(routine){
   }
 }
 
+// ── Verificación automática de la rutina generada ─────────────
+// Antes, lo único que se validaba era que estuvieran todas las semanas y días.
+// Todo lo demás (equipamiento que la alumna no tiene, impacto por encima de su
+// nivel, sesiones sin core, aislamientos antes de compuestos) había que mirarlo
+// a ojo, ejercicio por ejercicio. Esto lo revisa de una y señala dónde mirar.
+const EQUIP_NOMBRE={sin_equipamiento:'sin equipamiento',mancuernas:'mancuernas',barra:'barra',
+  maquina:'máquina',banda_elastica:'banda elástica',kettlebell:'pesa rusa',polea:'polea',
+  trx:'TRX',fitball:'esfera',step:'step'};
+const TOPE_ALTO_IMPACTO={principiante:0,intermedio:1,avanzado:2};
+const PATRON_EMPUJE=['empuje_horizontal','empuje_vertical'];
+const PATRON_JALE=['jale_horizontal','jale_vertical'];
+
+function verificarRutina(routine,a){
+  const errores=[],avisos=[];
+  if(!routine?.semanas)return{errores,avisos};
+  const bib=DB.biblioteca||[];
+  const porNombre={};for(const e of bib)porNombre[e.nombre]=e;
+
+  // En gimnasio se asume todo disponible; en casa, solo lo que declaró tener.
+  const tipo=(a.tipo||'').toLowerCase();
+  const enGym=['gym','gimnasio','musculacion','musculación'].includes(tipo);
+  const tiene=new Set([...(a.equipamiento||[]),'sin_equipamiento']);
+  const nivel=(a.nivel||'principiante').toLowerCase();
+  const topeAlto=TOPE_ALTO_IMPACTO[nivel]??0;
+  const esFullBody=(a.dias||3)<=3;
+
+  for(const sem of routine.semanas){
+    for(const dia of sem.dias||[]){
+      const ref=`Sem ${sem.semana} · Día ${dia.dia}`;
+      const ejs=dia.ejercicios||[];
+      const metas=ejs.map(e=>porNombre[e.nombre]||null);
+      let altos=0;const vistos=new Set();let primerAislamiento=-1;
+      const patrones=new Set();
+
+      ejs.forEach((ex,i)=>{
+        const m=metas[i];
+        if(!m){errores.push(`${ref}: “${ex.nombre}” no está en la biblioteca — la alumna no vería video ni técnica`);return;}
+        if(!enGym&&m.equipamiento_requerido&&!tiene.has(m.equipamiento_requerido))
+          errores.push(`${ref}: “${ex.nombre}” necesita ${EQUIP_NOMBRE[m.equipamiento_requerido]||m.equipamiento_requerido}, que no tiene`);
+        if(m.impacto==='alto')altos++;
+        if(vistos.has(ex.nombre))errores.push(`${ref}: “${ex.nombre}” está repetido en el mismo día`);
+        vistos.add(ex.nombre);
+        if(!String(ex.series||'').trim()||!String(ex.reps||'').trim())
+          errores.push(`${ref}: “${ex.nombre}” sin series o repeticiones`);
+        if(m.patron_movimiento)patrones.add(m.patron_movimiento);
+        if(m.patron_movimiento==='aislamiento'&&primerAislamiento<0)primerAislamiento=i;
+        else if(primerAislamiento>=0&&m.patron_movimiento&&!['aislamiento','core'].includes(m.patron_movimiento))
+          avisos.push(`${ref}: “${ex.nombre}” (compuesto) va después de un aislamiento`);
+      });
+
+      if(altos>topeAlto)
+        errores.push(`${ref}: ${altos} ejercicio(s) de alto impacto para nivel ${nivel} (máximo ${topeAlto})`);
+      if(a.lesiones&&String(a.lesiones).trim()&&altos>0)
+        avisos.push(`${ref}: hay alto impacto y la alumna tiene lesiones anotadas — revisá si corresponde`);
+      if(esFullBody&&ejs.length){
+        if(!patrones.has('core'))avisos.push(`${ref}: ningún ejercicio de core`);
+        if(!PATRON_EMPUJE.some(p=>patrones.has(p)))avisos.push(`${ref}: sin ningún empuje`);
+        if(!PATRON_JALE.some(p=>patrones.has(p)))avisos.push(`${ref}: sin ningún jale`);
+        if(!patrones.has('sentadilla')&&!patrones.has('bisagra'))
+          avisos.push(`${ref}: sin sentadilla ni bisagra`);
+      }
+    }
+    // Con 2 días el esquema es A/B: los ejercicios no deberían repetirse entre ambos.
+    if((a.dias||3)===2&&(sem.dias||[]).length===2){
+      const [d1,d2]=sem.dias;
+      const n1=new Set((d1.ejercicios||[]).map(e=>e.nombre));
+      const rep=(d2.ejercicios||[]).map(e=>e.nombre).filter(n=>n1.has(n));
+      if(rep.length)avisos.push(`Sem ${sem.semana}: el día A y el día B repiten ${rep.length} ejercicio(s): ${rep.join(', ')}`);
+    }
+  }
+  return{errores,avisos};
+}
+
+function renderVerificacion(v){
+  if(!v.errores.length&&!v.avisos.length){
+    return`<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.28);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.85rem;font-size:12px;color:var(--t);">
+      ✅ <b>Revisión automática sin hallazgos.</b> Equipamiento, impacto según nivel, balance y orden: todo correcto.</div>`;
+  }
+  const bloque=(tit,items,color,borde,fondo)=>!items.length?'':
+    `<div style="background:${fondo};border:1px solid ${borde};border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.6rem;">
+      <div style="font-size:10px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;">${tit} (${items.length})</div>
+      <ul style="margin:0;padding-left:1.1rem;font-size:12px;color:var(--t);line-height:1.6;">
+        ${items.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
+  return bloque('🚨 Hay que corregir',v.errores,'#dc2626','rgba(220,38,38,.28)','rgba(220,38,38,.07)')
+       + bloque('⚠️ Revisá',v.avisos,'#b45309','rgba(180,83,9,.28)','rgba(180,83,9,.07)');
+}
+
 // ── Preview editable ──────────────────────────────────────────
 function refreshIAPreview(){
   const a=getA(S.selA);
@@ -1531,7 +1618,7 @@ function renderIAPreview(routine,a){
   if(_iaWeekSel>=routine.semanas.length)_iaWeekSel=0;
 
   // ── Razonamiento (si Claude lo incluyó) ──
-  let html='';
+  let html=renderVerificacion(verificarRutina(routine,a));
   if(routine.razonamiento){
     html+=`<div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;">
       <div style="font-size:10px;font-weight:600;color:var(--vi);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">💡 Por qué generé esta rutina</div>
