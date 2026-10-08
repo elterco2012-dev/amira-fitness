@@ -692,6 +692,7 @@
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="trx"> TRX</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="fitball"> Esfera</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="step"> Step / cajón</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="banco"> Banco o cajón</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="tobillera"> Tobillera</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="ruedita"> Ruedita abdominal</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="barra"> Barra</label>
@@ -1558,6 +1559,9 @@ function verificarRutina(routine,a){
         if(!m){errores.push(`${ref}: “${ex.nombre}” no está en la biblioteca — la alumna no vería video ni técnica`);return;}
         if(!enGym&&m.equipamiento_requerido&&!tiene.has(m.equipamiento_requerido))
           errores.push(`${ref}: “${ex.nombre}” necesita ${EQUIP_NOMBRE[m.equipamiento_requerido]||m.equipamiento_requerido}, que no tiene`);
+        // Un ejercicio puede pedir dos cosas: mancuernas Y banco. El banco va aparte.
+        if(!enGym&&m.requiere_banco&&!tiene.has('banco'))
+          errores.push(`${ref}: “${ex.nombre}” necesita un banco o cajón, que no tiene`);
         if(m.impacto==='alto')altos++;
         if(vistos.has(ex.nombre))errores.push(`${ref}: “${ex.nombre}” está repetido en el mismo día`);
         vistos.add(ex.nombre);
@@ -1893,7 +1897,7 @@ function renderBib(){
   });
   const list=document.getElementById('bib-list');
   if(!list)return;
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',banco:'🪑 Banco o cajón',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
   const POS_LABEL={de_pie:'🧍 De pie',sentada:'🪑 Sentada',acostada_boca_arriba:'⬆️ B. arriba',acostada_boca_abajo:'⬇️ B. abajo',inclinada:'📐 Inclinada',en_cuadrupedia:'🐾 Cuadrup.',arrodillada:'🙏 Arrodillada',de_lateral:'↔️ De lateral'};
   const IMP_LABEL={bajo:'🟢 Bajo',medio:'🟡 Medio',alto:'🔴 Alto'};
   list.innerHTML=filtered.map(e=>`
@@ -3368,6 +3372,32 @@ function rInicio(){
     }).join('')}
   </div>`:''}
   ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
+  ${(()=>{
+    const hoy=alWithDays.filter(a=>a._days===0&&(a.tel||'').replace(/\D/g,''));
+    if(!hoy.length)return'';
+    const tplsHoy=getAlumnaTpls().filter(t=>t.key==='a_hoy'||t.key.startsWith('a_'));
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
+        <div class="ctitle" style="margin-bottom:0;">✅ Entrenaron hoy</div>
+        <span style="font-size:11px;color:var(--th);">${hoy.length} alumna${hoy.length!==1?'s':''}</span>
+      </div>
+      <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Preguntales cómo les fue mientras lo tienen fresco</div>
+      ${hoy.map(a=>{
+        const abierto=S['wah_'+a.id];
+        return`<div class="arow">
+        <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${fn(a.nombre)}</div>
+          <div style="font-size:11px;color:var(--tm);">Entrenó hoy</div></div>
+        <div style="position:relative;display:inline-block;">
+          <button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;padding:3px 10px;"
+            onclick="S['wah_${a.id}']=!S['wah_${a.id}'];render()">💬 WA</button>
+          ${abierto?`<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.12);">
+            ${tplsHoy.map(t=>`<button onclick="envTplAlu(${a.id},'${t.key}');S['wah_${a.id}']=false;render()" style="display:block;width:100%;text-align:left;padding:6px 10px;font-size:12px;color:var(--t);background:none;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</button>`).join('')}
+          </div>`:''}
+        </div>
+      </div>`;}).join('')}
+    </div>`;
+  })()}
   ${alWithDays.filter(a=>!prioIds.has(a.id)).length>0?`<div class="card" style="margin-bottom:1rem;">
     <div class="ctitle" style="margin-bottom:.5rem;">Resto de tus alumnas</div>
     <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">🟡 4–6 días sin entrenar &nbsp;·&nbsp; 🟢 al día</div>
@@ -3607,6 +3637,7 @@ function rAlumnas(){
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="trx"> TRX</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="fitball"> Esfera</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="step"> Step / cajón</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="banco"> Banco o cajón</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="tobillera"> Tobillera</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="ruedita"> Ruedita abdominal</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="barra"> Barra</label>
@@ -4286,7 +4317,7 @@ function rBiblioteca(){
 
   // ── Stats de cobertura ──
   const GYM=['maquina','barra','polea'];
-  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step','tobillera','ruedita'];
+  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step','banco','tobillera','ruedita'];
   const total=DB.biblioteca.length;
   const cSinEquip=DB.biblioteca.filter(e=>!e.equipamiento_requerido||e.equipamiento_requerido==='sin_equipamiento').length;
   const cPortable=DB.biblioteca.filter(e=>PORTABLE.includes(e.equipamiento_requerido)).length;
@@ -5029,6 +5060,7 @@ function rRecordatorios(){
   <div class="card">
     <div class="ctitle">Templates por alumna (mensajes personalizados)</div>
     <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Tokens disponibles: <code style="background:var(--s2);padding:1px 5px;border-radius:4px;">[nombre]</code> <code style="background:var(--s2);padding:1px 5px;border-radius:4px;">[link]</code> <code style="background:var(--s2);padding:1px 5px;border-radius:4px;">[ciclo]</code> · Los marcados 🚨🔴 se usan en Acciones urgentes</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;line-height:1.6;">Podés escribir <b>varias versiones</b> del mismo mensaje separándolas con una línea que diga solo <code style="background:var(--s2);padding:1px 5px;border-radius:4px;">---</code>. El panel elige una según la alumna y el día, así no recibe siempre la misma frase.<button class="btn btn-s" style="font-size:11px;padding:2px 8px;margin-left:8px;" onclick="restaurarTplsSugeridas()">Restaurar textos sugeridos</button></div>
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.9rem;">
       ${getAlumnaTpls().map(t=>`<div style="display:inline-flex;align-items:center;gap:1px;margin:0 4px 4px 0;">
         <button class="btn btn-s${S._atplSel===t.key?' btn-p':''}" style="border-radius:var(--rp) 0 0 var(--rp);" onclick="S._atplSel=S._atplSel==='${t.key}'?null:'${t.key}';S._atplEdit=null;render()">${t.l}</button>
@@ -5083,20 +5115,68 @@ const FB_LABELS={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_m
 
 // ── Templates por alumna (editable, tokens: [nombre] [link] [ciclo]) ──────────
 const WA_ALUMNA_TPLS_DEFAULTS=[
-  {key:'a_rec',  l:'💪 Recordatorio de rutina', msg:'Hola [nombre]! 💪 Hoy es día de entrenamiento. Tu rutina: [link]\n\n¡Vamos! — Amira'},
-  {key:'a_ciclo',l:'🚀 Arranque de ciclo nuevo', msg:'Hola [nombre]! 🚀 Arrancamos [ciclo]. Ya tenés tu nueva rutina: [link]\n\n¡Este ciclo va a ser increíble! — Amira'},
-  {key:'a_logro',l:'🏆 Felicitación de logro',  msg:'¡[nombre]! 🏆 Quería felicitarte — estás siendo muy constante y se nota. Seguí así. — Amira 💪'},
-  {key:'a_dolor',l:'🤒 Seguimiento de molestia', msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? Contame qué pasó 🙏 — Amira'},
-  {key:'a_como', l:'🏋️ ¿Cómo te fue?',          msg:'Hola [nombre]! ¿Cómo te fue con los entrenamientos esta semana? 🏋️‍♀️'},
+  // Sin firma "— Amira": en un chat uno a uno la otra persona ya sabe quien
+  // escribe, y firmar es lo que hacen los mensajes masivos. Varias redacciones
+  // separadas por --- para que no llegue siempre la misma frase.
+  {key:'a_rec',  l:'💪 Recordatorio de rutina', msg:'Hola [nombre]! Hoy toca entrenar 💪\n\nTu rutina: [link]'
+    +'\n---\n[nombre], te dejo la rutina de hoy acá 👉 [link]\n\n¡Dale que podés!'
+    +'\n---\nBuen día [nombre]! Cuando puedas, hoy tenés sesión: [link]'},
+  {key:'a_ciclo',l:'🚀 Arranque de ciclo nuevo', msg:'Hola [nombre]! Arrancamos [ciclo] 🚀 Ya tenés tu rutina nueva: [link]'
+    +'\n---\n[nombre], ya te dejé armado [ciclo] 👇\n[link]\n\nContame qué te parece'},
+  {key:'a_logro',l:'🏆 Felicitación de logro',  msg:'[nombre], quería decirte que venís muy constante y se nota 🏆 Seguí así'
+    +'\n---\nTe felicito [nombre]! Estuviste cumpliendo todas las sesiones 👏'},
+  {key:'a_dolor',l:'🤒 Seguimiento de molestia', msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo venís? Contame qué pasó 🙏'
+    +'\n---\n[nombre], leí lo de la molestia. ¿Cómo está hoy? Si sigue, lo ajustamos'},
+  {key:'a_hoy',  l:'✅ Entrenó hoy',             msg:'Hola [nombre]! ¿Cómo te fue hoy? 💪'
+    +'\n---\n[nombre], vi que entrenaste hoy 👏 ¿Cómo lo sentiste?'
+    +'\n---\nHola [nombre]! ¿Qué tal la sesión de hoy? ¿Algo muy pesado o muy liviano?'
+    +'\n---\n[nombre]! ¿Cómo saliste de la de hoy? 🙌'
+    +'\n---\nHola [nombre]! ¿Cómo te sentiste hoy? Contame si hay algo para ajustar'},
+  {key:'a_como', l:'🏋️ ¿Cómo te fue?',          msg:'Hola [nombre]! ¿Cómo te fue con los entrenamientos esta semana? 🏋️‍♀️'
+    +'\n---\n[nombre], ¿qué tal la semana? ¿Hay algo para acomodar en la que viene?'
+    +'\n---\nHola [nombre]! Contame cómo venís y si querés que cambie algo'},
   {key:'a_pago', l:'💰 Recordatorio de pago',    msg:'Hola [nombre]! Te recuerdo que no registré tu pago de este mes. Avisame cuando puedas 🙏'},
-  {key:'a_check',l:'💬 Chequeo general',          msg:'Hola [nombre]! Solo quería ver cómo estás y si todo bien con los entrenamientos 💪'},
-  {key:'u_dolor',l:'🚨 Urgente: molestia',        msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'},
-  {key:'u_inact',l:'🔴 Urgente: inactiva',        msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'},
+  {key:'a_check',l:'💬 Chequeo general',          msg:'Hola [nombre]! Solo quería ver cómo estás y si todo bien con los entrenamientos 💪'
+    +'\n---\n[nombre]! ¿Cómo andás? ¿Todo bien con las rutinas?'},
+  {key:'u_dolor',l:'🚨 Urgente: molestia',        msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás?'
+    +'\n---\n[nombre], ¿cómo seguís de la molestia que anotaste?'},
+  {key:'u_inact',l:'🔴 Urgente: inactiva',        msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar, ¿retomamos? 💪'
+    +'\n---\n[nombre]! ¿Cómo andás? Te extrañé esta semana en la app, ¿todo en orden?'
+    +'\n---\nHola [nombre]! Vi que venís parada hace unos días. ¿Pasó algo o fue una semana complicada?'},
 ];
 let _atplsCache=null;
-function getAlumnaTpls(){if(_atplsCache)return _atplsCache;const s=localStorage.getItem('af-alumna-tpls');_atplsCache=s?JSON.parse(s):WA_ALUMNA_TPLS_DEFAULTS.map(t=>({...t}));return _atplsCache;}
+function getAlumnaTpls(){
+  if(_atplsCache)return _atplsCache;
+  const s=localStorage.getItem('af-alumna-tpls');
+  const guardadas=s?JSON.parse(s):null;
+  if(!guardadas){_atplsCache=WA_ALUMNA_TPLS_DEFAULTS.map(t=>({...t}));return _atplsCache;}
+  // Se respetan los textos que Amira edito, pero se suman las plantillas nuevas
+  // que todavia no existian cuando guardo.
+  const claves=new Set(guardadas.map(t=>t.key));
+  _atplsCache=[...guardadas,...WA_ALUMNA_TPLS_DEFAULTS.filter(t=>!claves.has(t.key)).map(t=>({...t}))];
+  return _atplsCache;
+}
+function restaurarTplsSugeridas(){
+  if(!confirm('Esto reemplaza todos los textos por los sugeridos. ¿Seguir?'))return;
+  saveAlumnaTpls(WA_ALUMNA_TPLS_DEFAULTS.map(t=>({...t})));S._atplEdit=null;S._atplSel=null;render();
+}
 function saveAlumnaTpls(tpls){_atplsCache=tpls;localStorage.setItem('af-alumna-tpls',JSON.stringify(tpls));}
-function interpTpl(msg,vars){return msg.replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'').replace(/\[ciclo\]/g,vars.ciclo||'');}
+// Un mensaje puede traer varias redacciones separadas por una linea con ---.
+// Se elige una segun la alumna y el dia: la misma persona no recibe dos veces
+// seguidas el mismo texto, y la eleccion no cambia si se vuelve a dibujar la
+// pantalla (si fuera al azar, el mensaje cambiaria delante de los ojos).
+function elegirVariante(msg,semilla){
+  const vs=String(msg||'').split(/^\s*---\s*$/m).map(t=>t.trim()).filter(Boolean);
+  if(vs.length<2)return vs[0]||'';
+  let h=0;const str=String(semilla||'');
+  for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0;}
+  return vs[h%vs.length];
+}
+function interpTpl(msg,vars){
+  const hoy=new Date();const dia=hoy.getFullYear()+'-'+(hoy.getMonth()+1)+'-'+hoy.getDate();
+  return elegirVariante(msg,(vars.nombre||'')+dia)
+    .replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'').replace(/\[ciclo\]/g,vars.ciclo||'');
+}
 function editAluTpl(key){const tpl=getAlumnaTpls().find(t=>t.key===key);if(!tpl)return;S._atplEdit={...tpl};S._atplSel=null;render();}
 function saveAluTpl(key){
   const label=document.getElementById('atpl-label')?.value?.trim();
