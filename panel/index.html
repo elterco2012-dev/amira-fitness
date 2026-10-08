@@ -965,7 +965,7 @@ async function loadAll(){
       sbGet('avisos','order=created_at.desc&limit=5000'),
       sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200'),
-      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=5000'),
+      sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=50000'),
       sbGet('page_views',`select=page,created_at&created_at=gte.${encodeURIComponent(new Date(Date.now()-30*86400000).toISOString())}&order=created_at.desc&limit=5000`)
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
@@ -1518,6 +1518,59 @@ function postProcessRoutine(routine){
       }
     }
   }
+}
+
+// ── Qué hizo hoy cada alumna, con nombre y apellido ───────────
+// Un "¿cómo te fue hoy?" suena a plantilla; "subiste de 6 a 8 kg en sentadilla"
+// no lo puede escribir una plantilla. El dato ya está en el panel: es comparar
+// el peso de hoy contra el máximo anterior de ese mismo ejercicio.
+// No interviene ninguna IA a propósito: una resta no puede inventar un número.
+function _diaLocalDe(iso){
+  if(!iso)return'';
+  const d=new Date(iso); if(isNaN(d.getTime()))return'';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function _hoyLocal(){ return _diaLocalDe(new Date().toISOString()); }
+
+function logroDeHoy(aId){
+  try{
+    const todos=(DB.progresoHechos||[]).filter(p=>p.alumna_id===aId);
+    if(!todos.length)return null;
+    const hoy=_hoyLocal();
+    const deHoy=todos.filter(p=>_diaLocalDe(p.fecha_registro)===hoy);
+    if(!deHoy.length)return null;
+    const nombreDe=p=>((getEx(aId,p.ciclo,p.semana,p.dia)||[])[p.ejercicio_idx]||{}).nombre||'';
+
+    // 1) ¿Superó su mejor marca en algún ejercicio?
+    const maxPrevio={};
+    for(const q of todos){
+      if(_diaLocalDe(q.fecha_registro)>=hoy)continue;
+      const kg=parseFloat(q.peso_kg); if(!(kg>0))continue;
+      const nom=nombreDe(q); if(!nom)continue;
+      if(!(maxPrevio[nom]>=kg))maxPrevio[nom]=kg;
+    }
+    let mejor=null;
+    for(const p of deHoy){
+      const kg=parseFloat(p.peso_kg); if(!(kg>0))continue;
+      const nom=nombreDe(p); if(!nom)continue;
+      const prev=maxPrevio[nom];
+      if(prev>0&&kg>prev&&(!mejor||(kg-prev)>mejor.delta))
+        mejor={nom,kg,prev,delta:kg-prev};
+    }
+    if(mejor)return{tipo:'record',emoji:'⬆️',
+      texto:`subiste de ${mejor.prev} a ${mejor.kg} kg en ${mejor.nom}`,
+      corto:`${mejor.prev}→${mejor.kg} kg en ${mejor.nom}`};
+
+    // 2) ¿Completó la sesión, o quedó a mitad de camino?
+    const ult=deHoy[deHoy.length-1];
+    const total=(getEx(aId,ult.ciclo,ult.semana,ult.dia)||[]).length;
+    const hechos=deHoy.filter(p=>p.ciclo===ult.ciclo&&p.semana===ult.semana&&p.dia===ult.dia).length;
+    if(total>0&&hechos>=total)return{tipo:'completo',emoji:'✅',
+      texto:`completaste los ${total} ejercicios del día`,corto:`completó los ${total}`};
+    if(total>0&&hechos>0)return{tipo:'parcial',emoji:'🟡',
+      texto:`hiciste ${hechos} de los ${total} ejercicios`,corto:`${hechos} de ${total}`};
+    return{tipo:'entreno',emoji:'💪',texto:`entrenaste hoy`,corto:`entrenó`};
+  }catch(e){ return null; }
 }
 
 // ── Verificación automática de la rutina generada ─────────────
@@ -2647,7 +2700,8 @@ async function envTplAlu(aId, key){
   const nom=fn(a.nombre);
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
   const link=BASE+'/alumna/'+a.slug;
-  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom}));
+  const lg=logroDeHoy(aId);
+  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:''}));
 }
 function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
@@ -3375,7 +3429,9 @@ function rInicio(){
   ${(()=>{
     const hoy=alWithDays.filter(a=>a._days===0&&(a.tel||'').replace(/\D/g,''));
     if(!hoy.length)return'';
-    const tplsHoy=getAlumnaTpls().filter(t=>t.key==='a_hoy'||t.key.startsWith('a_'));
+    // La opcion con [logro] solo aparece si hoy hay algo concreto que decir:
+    // si no, el mensaje saldria con un hueco en el medio.
+    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_'));
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
         <div class="ctitle" style="margin-bottom:0;">✅ Entrenaron hoy</div>
@@ -3387,12 +3443,13 @@ function rInicio(){
         return`<div class="arow">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
         <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${fn(a.nombre)}</div>
-          <div style="font-size:11px;color:var(--tm);">Entrenó hoy</div></div>
+          <div style="font-size:11px;color:var(--tm);">${(()=>{const l=logroDeHoy(a.id);
+            return l?`${l.emoji} ${l.corto}`:'Entrenó hoy';})()}</div></div>
         <div style="position:relative;display:inline-block;">
           <button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;padding:3px 10px;"
             onclick="S['wah_${a.id}']=!S['wah_${a.id}'];render()">💬 WA</button>
-          ${abierto?`<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.12);">
-            ${tplsHoy.map(t=>`<button onclick="envTplAlu(${a.id},'${t.key}');S['wah_${a.id}']=false;render()" style="display:block;width:100%;text-align:left;padding:6px 10px;font-size:12px;color:var(--t);background:none;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</button>`).join('')}
+          ${abierto?`<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:230px;box-shadow:0 4px 20px rgba(0,0,0,.12);">
+            ${tplsHoy.filter(t=>t.key!=='a_dato'||!!logroDeHoy(a.id)).map(t=>`<button onclick="envTplAlu(${a.id},'${t.key}');S['wah_${a.id}']=false;render()" style="display:block;width:100%;text-align:left;padding:6px 10px;font-size:12px;color:var(--t);background:none;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</button>`).join('')}
           </div>`:''}
         </div>
       </div>`;}).join('')}
@@ -5132,6 +5189,10 @@ const WA_ALUMNA_TPLS_DEFAULTS=[
     +'\n---\nHola [nombre]! ¿Qué tal la sesión de hoy? ¿Algo muy pesado o muy liviano?'
     +'\n---\n[nombre]! ¿Cómo saliste de la de hoy? 🙌'
     +'\n---\nHola [nombre]! ¿Cómo te sentiste hoy? Contame si hay algo para ajustar'},
+  {key:'a_dato', l:'✨ Mencionar lo de hoy',     msg:'Hola [nombre]! Vi que [logro] 👏 ¿Cómo lo sentiste?'
+    +'\n---\n[nombre]! Muy bien lo de hoy: [logro] 💪 ¿Cómo venís?'
+    +'\n---\nHola [nombre]! Miré tu registro de hoy — [logro]. ¿Algo para ajustar?'
+    +'\n---\n[nombre], vi que [logro] 🙌 Contame cómo te sentiste'},
   {key:'a_como', l:'🏋️ ¿Cómo te fue?',          msg:'Hola [nombre]! ¿Cómo te fue con los entrenamientos esta semana? 🏋️‍♀️'
     +'\n---\n[nombre], ¿qué tal la semana? ¿Hay algo para acomodar en la que viene?'
     +'\n---\nHola [nombre]! Contame cómo venís y si querés que cambie algo'},
@@ -5175,7 +5236,8 @@ function elegirVariante(msg,semilla){
 function interpTpl(msg,vars){
   const hoy=new Date();const dia=hoy.getFullYear()+'-'+(hoy.getMonth()+1)+'-'+hoy.getDate();
   return elegirVariante(msg,(vars.nombre||'')+dia)
-    .replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'').replace(/\[ciclo\]/g,vars.ciclo||'');
+    .replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'')
+    .replace(/\[ciclo\]/g,vars.ciclo||'').replace(/\[logro\]/g,vars.logro||'');
 }
 function editAluTpl(key){const tpl=getAlumnaTpls().find(t=>t.key===key);if(!tpl)return;S._atplEdit={...tpl};S._atplSel=null;render();}
 function saveAluTpl(key){
