@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // ── 1. Recolectar contexto de la alumna ──────────────────────
     const [alumnas, biblioteca, rutinas, progreso, feedbacks] = await Promise.all([
       dbFetch(`alumnas?id=eq.${alumna_id}&select=id,nombre,tipo,dias,lesiones,notas,objetivo,equipamiento,tiempo_sesion,ciclo_actual,nivel,split,dias_disponibles,foco_muscular,adaptar_ciclo_menstrual,estilo_sesion`),
-      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones,posicion_ejercicio,bilateral,impacto&order=grupo_muscular.asc,nombre.asc"),
+      dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones,posicion_ejercicio,bilateral,impacto,requiere_banco&order=grupo_muscular.asc,nombre.asc"),
       dbFetch(`rutinas?alumna_id=eq.${alumna_id}&order=ciclo.desc,semana.asc,dia.asc&limit=100`),
       dbFetch(`progreso?alumna_id=eq.${alumna_id}&hecho=eq.true&select=ciclo,semana,dia,ejercicio_nombre,ejercicio_idx,peso_kg,rpe&order=ciclo.desc,semana.desc&limit=200`),
       dbFetch(`feedbacks?alumna_id=eq.${alumna_id}&select=tipo,nota,created_at&order=created_at.desc&limit=20`),
@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
       nombre: string; grupo_muscular?: string; descripcion?: string; observaciones?: string | null;
       equipamiento_requerido?: string; patron_movimiento?: string | null; nivel_dificultad?: number | null;
       posicion_ejercicio?: string | null; bilateral?: boolean | null; impacto?: string | null;
+      requiere_banco?: boolean | null;
     };
     const equipLabels: Record<string, string> = {
       sin_equipamiento: "sin equipamiento", mancuernas: "mancuernas", barra: "barra",
@@ -107,8 +108,9 @@ Deno.serve(async (req) => {
       const pos    = ex.posicion_ejercicio  ? `[${ex.posicion_ejercicio.replace(/_/g," ")}]` : "";
       const uni    = ex.bilateral === false  ? "[unilateral]" : "";
       const imp    = ex.impacto             ? `[${ex.impacto} impacto]` : "";
+      const banco  = ex.requiere_banco       ? "[necesita banco]" : "";
       const obs    = ex.observaciones      ? ` ⚠️ ${ex.observaciones.slice(0, 80)}` : "";
-      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${pos}${uni}${imp}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}${obs}`);
+      bibByGroup[g].push(`- ${ex.nombre} ${equip}${patron}${nivel}${pos}${uni}${imp}${banco}${ex.descripcion ? ` — ${ex.descripcion.slice(0, 50)}` : ""}${obs}`);
     }
     const bibTexto = Object.entries(bibByGroup)
       .map(([g, exs]) => `### ${g}\n${exs.join("\n")}`)
@@ -177,6 +179,13 @@ REGLA DE IMPACTO:
 - Cada ejercicio tiene su nivel de impacto: [bajo impacto], [medio impacto], [alto impacto].
 - principiante → 0 ejercicios de [alto impacto]. intermedio → máximo 1. avanzado → hasta 2 por sesión.
 - Si hay lesiones activas, usá predominantemente ejercicios de [bajo impacto] en las zonas afectadas.
+
+REGLA DEL BANCO:
+- Algunos ejercicios llevan [necesita banco]: además de su equipamiento, requieren un banco, cajón o step donde acostarse o subirse.
+- Tener mancuernas NO implica tener un banco. En casa casi nunca hay.
+- Si la alumna no tiene banco entre su equipamiento, NUNCA uses un ejercicio marcado [necesita banco], aunque sí tenga el resto del equipamiento.
+- Para el mismo estímulo en el suelo existen alternativas en la biblioteca (por ejemplo press y aperturas de pecho en suelo). Usá esas.
+- En gimnasio siempre hay banco: ahí no hay restricción.
 
 REGLA DE CALENTAMIENTO:
 - NO incluyas ejercicios de los grupos "Calentamiento" ni "Estiramiento" en la rutina generada.
@@ -269,10 +278,10 @@ NOTA sobre superset_id: solo incluí este campo cuando el estilo_sesion sea "sup
     // ── 7. User prompt (contexto variable) ───────────────────────
     // Build explicit permitted/prohibited equipment tag lists for the prompt.
     // This avoids the AI assuming mancuernas/banda are "generally available".
-    const ALL_EQUIP_KEYS = ['mancuernas','banda_elastica','kettlebell','trx','fitball','step','tobillera','ruedita','barra','polea','maquina'];
+    const ALL_EQUIP_KEYS = ['mancuernas','banda_elastica','kettlebell','trx','fitball','step','banco','tobillera','ruedita','barra','polea','maquina'];
     const EQUIP_TO_TAG: Record<string, string> = {
       mancuernas: 'mancuernas', banda_elastica: 'banda elástica', kettlebell: 'pesa rusa',
-      trx: 'TRX', fitball: 'esfera', step: 'step/cajón', tobillera: 'tobillera',
+      trx: 'TRX', fitball: 'esfera', step: 'step/cajón', banco: 'necesita banco', tobillera: 'tobillera',
       ruedita: 'ruedita abdominal', barra: 'barra', polea: 'polea/cables', maquina: 'máquina'
     };
     const tipoStr = (alumna.tipo ?? '').toLowerCase();
