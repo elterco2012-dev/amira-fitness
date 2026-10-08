@@ -1875,9 +1875,16 @@ async function toggleDone(aId,i,nextName){
     ejercicio_idx:i, ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
     hecho:done[k], fecha_registro:new Date().toISOString()
   };
+  // El peso escrito antes de marcar hecho viaja recien ahora, junto con el
+  // "hecho", y recien ahora se evalua si es record.
+  const _kgBorrador=parseFloat(pesos[pKey(aId,selSem,selDia,i)])||null;
+  if(done[k]&&_kgBorrador) progresoData.peso_kg=_kgBorrador;
   try{
     await sbUpsert('progreso', progresoData);
-    if(done[k]) sbPatch('alumnas',`id=eq.${aId}`,{last_active_at:new Date().toISOString()}).catch(()=>{});
+    if(done[k]){
+      if(_kgBorrador) evaluarRecord(aId,progresoData.ejercicio_nombre,_kgBorrador);
+      sbPatch('alumnas',`id=eq.${aId}`,{last_active_at:new Date().toISOString()}).catch(()=>{});
+    }
   }catch(e){
     queueSync({data: progresoData});
   }
@@ -1999,24 +2006,26 @@ async function enviarReporte(tipo){
 }
 
 function initMaxPesos(aId){
-  const saved=localStorage.getItem('af-maxpesos');
-  if(saved){try{maxPesos=JSON.parse(saved);return;}catch(e){}}
-  // Build from existing pesos when first run
+  // Se reconstruye siempre desde los ejercicios marcados como hechos, en vez de
+  // confiar en lo guardado: si alguna vez se grabo un record que no correspondia
+  // (un peso tecleado y despues corregido), se corrige solo al abrir la app.
+  const nuevo={};
   Object.entries(pesos).forEach(([k,v])=>{
     if(!k.startsWith('p-'+aId+'-')) return;
-    const kg=parseFloat(v); if(!kg) return;
+    const kg=parseFloat(v); if(!(kg>0)) return;
     const parts=k.split('-');
     if(parts.length<6) return;
-    const c=parseInt(parts[2].replace('c',''));
-    const sem=parseInt(parts[3]);
-    const dia=parseInt(parts[4]);
-    const idx=parseInt(parts[5]);
+    const c=parseInt(parts[2].replace('c','')),sem=parseInt(parts[3]),
+          dia=parseInt(parts[4]),idx=parseInt(parts[5]);
+    if(!done[`${aId}-c${c}-${sem}-${dia}-${idx}`]) return;
     const ex=getExs(aId,c,sem,dia)[idx];
-    if(ex?.nombre){
-      const mKey=aId+'-'+ex.nombre;
-      if(!maxPesos[mKey]||kg>maxPesos[mKey]) maxPesos[mKey]=kg;
-    }
+    if(!ex?.nombre) return;
+    const mk=aId+'-'+ex.nombre;
+    if(!(nuevo[mk]>=kg)) nuevo[mk]=kg;
   });
+  // Se conservan las marcas de otras alumnas que pudiera haber en el dispositivo.
+  Object.entries(maxPesos||{}).forEach(([k,v])=>{ if(!k.startsWith(aId+'-')) nuevo[k]=v; });
+  maxPesos=nuevo;
   localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
 }
 
@@ -2104,39 +2113,46 @@ function ajustarPeso(aId,i,delta){
   el.style.color='';
   savePeso(aId,i,el.value);
 }
+// Un peso escrito todavia no es un peso levantado. Hasta que no marque "Hecho"
+// queda solo en el telefono: no se guarda en la base, no entra al grafico y no
+// festeja ningun record. Si no, tocar "+" para ver cuanto subia ya dejaba el
+// record grabado aunque despues bajara el numero.
+function evaluarRecord(aId,exNombre,kg){
+  if(!exNombre||!(kg>0))return;
+  const mKey=aId+'-'+exNombre;
+  if(mKey in maxPesos){
+    if(kg>maxPesos[mKey]){
+      maxPesos[mKey]=kg;
+      localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+      mostrarToast('🏆 ¡Nuevo récord en '+exNombre+'! '+kg+' kg');
+    }
+  }else{
+    maxPesos[mKey]=kg;
+    localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
+  }
+}
+function guardarPesoEnBase(aId,i,kg){
+  const exNombre=getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'';
+  const pesoData={alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
+    ejercicio_idx:i,ejercicio_nombre:exNombre,peso_kg:kg,
+    hecho:true,fecha_registro:new Date().toISOString()};
+  return sbUpsert('progreso',pesoData)
+    .then(()=>evaluarRecord(aId,exNombre,kg))
+    .catch(()=>queueSync({data:pesoData}));
+}
 function savePeso(aId,i,val){
   const k=pKey(aId,selSem,selDia,i);
   pesos[k]=val;
   localStorage.setItem('af-pesos',JSON.stringify(pesos));
+  // Mientras no este marcado como hecho, el peso es un borrador: vive solo en
+  // el telefono. Se sube cuando toca "Hecho" (o ya en el momento, si lo estaba).
+  if(!done[dKey(aId,selSem,selDia,i)]) return;
   const tk=`${aId}-c${selCiclo}-${selSem}-${selDia}-${i}`;
   if(_pt[tk]) clearTimeout(_pt[tk]);
-  _pt[tk]=setTimeout(async()=>{
+  _pt[tk]=setTimeout(()=>{
     const kg=parseFloat(val)||null;
     if(!kg) return;
-    const exNombre=getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'';
-    const pesoData = {
-      alumna_id:aId, ciclo:selCiclo, semana:selSem, dia:selDia,
-      ejercicio_idx:i, ejercicio_nombre:exNombre,
-      peso_kg:kg, fecha_registro:new Date().toISOString()
-    };
-    try{
-      await sbUpsert('progreso', pesoData);
-      if(exNombre){
-        const mKey=aId+'-'+exNombre;
-        if(mKey in maxPesos){
-          if(kg>maxPesos[mKey]){
-            maxPesos[mKey]=kg;
-            localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
-            mostrarToast('🏆 ¡Nuevo récord en '+exNombre+'! '+kg+' kg');
-          }
-        }else{
-          maxPesos[mKey]=kg;
-          localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
-        }
-      }
-    }catch(e){
-      queueSync({data: pesoData});
-    }
+    guardarPesoEnBase(aId,i,kg);
   },1500);
 }
 
@@ -2604,6 +2620,8 @@ function renderProgreso(){
     const sem=+p[3],dia=+p[4],idx=+p[5];
     const ex=getExs(a.id,selCiclo,sem,dia)[idx];
     if(!ex||!parseFloat(v)) return;
+    // Un peso escrito pero no marcado como hecho es un borrador: no es historial.
+    if(!done[`${a.id}-c${selCiclo}-${sem}-${dia}-${idx}`]) return;
     if(!hist[ex.nombre]) hist[ex.nombre]=[];
     hist[ex.nombre].push({sem,dia,kg:parseFloat(v),label:`S${sem}D${dia}`});
   });
