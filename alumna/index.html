@@ -138,6 +138,10 @@
     .peso-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
     .peso-lbl{font-size:11px;color:var(--tm);white-space:nowrap;}
     .peso-in{flex:1;padding:6px 10px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);max-width:90px;text-align:center;}
+    .peso-aj{width:34px;height:34px;min-width:34px;border:1px solid var(--bm);background:var(--s);
+      color:var(--t);border-radius:9px;font-size:17px;line-height:1;cursor:pointer;
+      font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;}
+    .peso-aj:active{background:var(--vl);border-color:var(--v);}
     .peso-in:focus{outline:none;border-color:var(--v);}
 
     .timer{position:fixed;bottom:56px;left:0;right:0;max-width:430px;margin:0 auto;background:var(--s);border-top:1px solid var(--b);padding:1rem 1.5rem;display:flex;align-items:center;gap:14px;z-index:30;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 20px rgba(0,0,0,.08);visibility:hidden;pointer-events:none;}
@@ -2073,6 +2077,33 @@ function mostrarBannerIOS(){
 }
 
 let _pt={};
+// El ultimo peso que uso en ESE ejercicio, mirando todo su historial. Antes el
+// campo venia vacio (o con la sugerencia de la IA) y habia que escribir el
+// numero de nuevo cada vez; ahora, si usa lo mismo, no escribe nada.
+function ultimoPesoDe(aId,nombre){
+  if(!nombre)return null;
+  const filas=(DB.progresoRaw||[]).filter(p=>p.ejercicio_nombre===nombre&&parseFloat(p.peso_kg)>0);
+  if(!filas.length)return null;
+  filas.sort((x,y)=>String(y.fecha_registro||'').localeCompare(String(x.fecha_registro||'')));
+  const kg=parseFloat(filas[0].peso_kg);
+  return kg>0?kg:null;
+}
+// Plancha, flexiones o espinales no llevan peso: pedirlo igual enseña que el
+// campo se puede saltear, y ese habito se traslada a los que si importan.
+function llevaPeso(nombre){
+  const eq=(DB.equipPorEj||{})[nombre];
+  if(eq===undefined)return true;          // sin dato, se muestra como siempre
+  return eq!=='sin_equipamiento'&&eq!=='';
+}
+function ajustarPeso(aId,i,delta){
+  const el=document.querySelector(`#exc-${aId}-${i} .peso-in`);
+  if(!el)return;
+  const actual=parseFloat(String(el.value).replace(',','.'))||0;
+  const nuevo=Math.max(0,Math.round((actual+delta)*10)/10);
+  el.value=nuevo?String(nuevo):'';
+  el.style.color='';
+  savePeso(aId,i,el.value);
+}
 function savePeso(aId,i,val){
   const k=pKey(aId,selSem,selDia,i);
   pesos[k]=val;
@@ -2451,8 +2482,12 @@ function renderRutina(){
     const pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
     // Use peso_base as display-only hint; never write it to pesos dict to avoid
     // polluting localStorage with AI suggestions that look like real records.
-    const pvDisplay=pv||(ex.peso_base?String(ex.peso_base):'');
-    const isSuggested=!pv&&!!ex.peso_base;
+    // Prioridad: lo que ya cargo hoy > lo que uso la vez pasada > la sugerencia.
+    // El peso real que levanto pesa mas que lo que propuso la IA.
+    const _ult=pv?null:ultimoPesoDe(a.id,ex.nombre);
+    const pvDisplay=pv||(_ult?String(_ult):(ex.peso_base?String(ex.peso_base):''));
+    const isSuggested=!pv&&!_ult&&!!ex.peso_base;
+    const esAnterior=!pv&&!!_ult;
     const nextEx=exs[i+1];
     const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
     html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
@@ -2468,14 +2503,18 @@ function renderRutina(){
         ${ex.video?`<a class="bvid" href="${ex.video}" target="_blank">▶ Video</a>`:''}
         <button class="brep" onclick="event.stopPropagation();reportarProblema(${a.id},${i},decodeURIComponent('${encodeURIComponent(ex.nombre)}'))">⚑ Reportar</button>
       </div>
-      <div class="peso-row">
+      ${(llevaPeso(ex.nombre)||pv)?`<div class="peso-row">
         <span class="peso-lbl">Peso:</span>
+        <button class="peso-aj" onclick="event.stopPropagation();ajustarPeso(${a.id},${i},-1)" aria-label="Bajar un kilo">−</button>
         <input class="peso-in" type="text" inputmode="decimal" placeholder="0" value="${pvDisplay}"
           oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()"
-          style="${isSuggested?'color:var(--th);':''}">
+          style="${(isSuggested||esAnterior)?'color:var(--th);':''}">
+        <button class="peso-aj" onclick="event.stopPropagation();ajustarPeso(${a.id},${i},1)" aria-label="Subir un kilo">+</button>
         <span style="font-size:11px;color:var(--tm);">kg</span>
-        ${isSuggested?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">sugerido</span>`:(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
-      </div>
+        ${esAnterior?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">la vez pasada</span>`
+          :isSuggested?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">sugerido</span>`
+          :(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
+      </div>`:''}
       <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       ${isDone?(()=>{
         const rv=rpe[dKey(a.id,selSem,selDia,i)];
@@ -2944,12 +2983,15 @@ async function init(){
     if(a){
       // Don't force selCiclo here — renderRutina() handles cycle visibility logic
       DB.pesoAlumnaHist=[];
-      const [coms,prog,avs,calBib,estBib,pcRows,fbNoPude]=await Promise.all([
+      const [coms,prog,avs,calBib,estBib,equipBib,pcRows,fbNoPude]=await Promise.all([
         sbGet('comentarios',`alumna_id=eq.${a.id}&order=created_at.asc&limit=5000`),
         sbGet('progreso',`alumna_id=eq.${a.id}&order=ciclo.asc&limit=5000`),
         sbGet('avisos',`activo=eq.true&order=created_at.desc`).catch(()=>[]),
         sbGet('ejercicios_biblioteca','grupo_muscular=eq.Calentamiento&order=nombre.asc').catch(()=>[]),
         sbGet('ejercicios_biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
+        // Solo nombre y equipamiento: alcanza para saber en que ejercicios no
+        // tiene sentido pedir un peso (plancha, flexiones, espinales).
+        sbGet('ejercicios_biblioteca','select=nombre,equipamiento_requerido&order=nombre.asc').catch(()=>[]),
         sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[]),
         sbGet('feedbacks',`alumna_id=eq.${a.id}&tipo=in.(pausa_activa,no_pude)&order=created_at.asc&limit=1000`).catch(()=>[])
       ]);
@@ -2957,6 +2999,8 @@ async function init(){
       DB.avisos=avs;
       if(calBib.length>0)DB.calentamiento=calBib;
       if(estBib.length>0)DB.estiramiento=estBib;
+      DB.equipPorEj={};
+      (equipBib||[]).forEach(e=>{ if(e&&e.nombre)DB.equipPorEj[e.nombre]=e.equipamiento_requerido||''; });
       DB.pesoAlumnaHist=pcRows;
       mostrarAvisos(a);
       // Si el panel reseteó el progreso, limpiar caché local antes de cargar
