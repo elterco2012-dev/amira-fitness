@@ -2579,9 +2579,13 @@ function renderRutina(){
   // Progreso del día
   html+=`<div class="prog-wrap">
     <div class="prog-top"><span>${comp} de ${total} ejercicios${(()=>{
+      // Siempre fue el tiempo de lo que FALTA, pero decia solo "aprox. 20 min"
+      // y se leia como la duracion de toda la sesion. Una vez empezada, se
+      // aclara que es lo que queda.
       const falta=exs.filter((_,ix)=>!done[dKey(a.id,selSem,selDia,ix)]);
       const m=estimarMinutos(a.id,falta);
-      return m>0?` · ${textoMinutos(m)}`:'';
+      if(!(m>0)) return '';
+      return comp>0?` · te faltan ${textoMinutos(m)}` : ` · ${textoMinutos(m)}`;
     })()}</span><span>${pct}%</span></div>
     <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
   </div>
@@ -2647,7 +2651,7 @@ function renderRutina(){
           color:${_tope===o.m?'var(--vd)':'var(--t)'};">${o.l}</button>`).join('')}
       </div>
       ${_ocultos>0?`<div style="font-size:11px;color:var(--tm);margin-top:.5rem;line-height:1.5;">
-        ${_entran===1?'Te dejo el que más rinde':`Te dejo los ${_entran} que más rinden`}. Lo que hagas cuenta igual 💪</div>`:''}
+        ${_entran===1?'Te dejo el que más rinde':`Te dejo los ${_entran} que más rinden`}. Lo que hagas cuenta&nbsp;igual&nbsp;💪</div>`:''}
     </div>`;
   }
 
