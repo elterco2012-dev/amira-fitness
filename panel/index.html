@@ -927,6 +927,68 @@ function slugUnique(nombre){
 function fmtNac(str){if(!str||str==='\u2014')return null;const p=str.split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:str;}
 function calcEdad(nac){if(!nac||nac==='\u2014')return null;const b=new Date(nac);if(isNaN(b))return null;const n=new Date();let age=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))age--;return age;}
 function esLesionReal(v){if(!v)return false;const n=v.trim().toLowerCase();return n!=='no'&&n!=='\u2014'&&n!=='sin lesiones'&&n!=='ninguna'&&n.length>0;}
+
+// Lo que la alumna declara sobre lesiones y dolor al inscribirse queda en su
+// ficha de salud (tabla registros) y se ve en la pesta\u00f1a Ficha. Pero la IA, la
+// verificacion de rutinas y los avisos rojos leen otro campo: alumnas.lesiones.
+// Cinco alumnas activas tenian algo declarado y ese campo vacio o en "No", asi
+// que para la IA no existia. Esto lo encuentra para que Amira decida; nunca se
+// copia solo. Si decide que no aplica, queda anotado en lesion_revisada y el
+// aviso no vuelve, salvo que la alumna declare algo distinto.
+const _SIN_LESION=/^(no|ninguna|ninguno|nada|no tengo|no tuve|sin lesiones|sin antecedentes|sin dolor|n\/a|\u2014|-)[.!\s]*$/i;
+function textoLesionDe(r){
+  if(!r) return '';
+  return [['Lesiones',r.lesiones],['Lesiones previas',r.lesiones_previas],['Dolor en',r.dolor_zonas]]
+    .map(([k,v])=>[k,String(v||'').trim()])
+    .filter(([,v])=>v&&!_SIN_LESION.test(v))
+    .map(([k,v])=>`${k}: ${v}`).join(' \u00b7 ');
+}
+function lesionDeclarada(a){
+  if(!a) return '';
+  const r=(DB.registros||[]).filter(x=>x.alumna_id===a.id)
+    .sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')))[0];
+  return textoLesionDe(r);
+}
+function lesionSinPasar(a){
+  if(!a||esLesionReal(a.lesiones)) return '';
+  const t=lesionDeclarada(a);
+  return t&&t!==a.lesion_revisada ? t : '';
+}
+function htmlLesionSinPasar(a){
+  const t=lesionSinPasar(a); if(!t) return '';
+  return`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.6rem .75rem;font-size:12px;color:var(--rd);margin:6px 0 .75rem;line-height:1.5;">
+    <strong>\u26a0\ufe0f Declar\u00f3 al inscribirse:</strong> ${esc(t)}
+    <div style="color:var(--tm);margin-top:3px;">La IA y la verificaci\u00f3n de rutinas no lo ven, porque no est\u00e1 en el campo de lesiones.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+      <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();pasarLesionDeclarada(${a.id})">Pasarlo al campo de lesiones</button>
+      <button class="btn btn-s" style="font-size:11px;background:none;color:var(--tm);" onclick="event.stopPropagation();marcarLesionRevisada(${a.id})">Revisado, no aplica</button>
+    </div>
+  </div>`;
+}
+// Despues de guardar, render() redibuja el panel pero no el modal de IA.
+function _refrescarResumenIA(aId){
+  const modal=document.getElementById('modal-ia');
+  const summary=document.getElementById('ia-profile-summary');
+  if(modal&&modal.style.display==='flex'&&summary&&S.selA===aId) summary.innerHTML=iaProfileSummaryHTML(getA(aId));
+}
+async function pasarLesionDeclarada(aId){
+  const a=getA(aId); const t=lesionSinPasar(a);
+  if(!a||!t) return;
+  try{ await sbPatch('alumnas',`id=eq.${aId}`,{lesiones:t}); }
+  catch(e){ toastPanel('No se pudo guardar: '+e.message); return; }
+  a.lesiones=t;
+  toastPanel('\u2713 Listo. Si quer\u00e9s ajustarlo, est\u00e1 en Editar alumna.');
+  render(); _refrescarResumenIA(aId);
+}
+async function marcarLesionRevisada(aId){
+  const a=getA(aId); const t=lesionSinPasar(a);
+  if(!a||!t) return;
+  try{ await sbPatch('alumnas',`id=eq.${aId}`,{lesion_revisada:t}); }
+  catch(e){ toastPanel('No se pudo guardar: '+e.message); return; }
+  a.lesion_revisada=t;
+  toastPanel('\u2713 Anotado. Si declara algo nuevo, el aviso vuelve.');
+  render(); _refrescarResumenIA(aId);
+}
 function tipoHtml(tipo){const m={gym:'<span class="badge bg">Gimnasio</span>',casa:'<span class="badge" style="background:var(--a);color:var(--ad);">Casa</span>',otro:'<span class="badge bd">Otro</span>',distancia:'<span class="badge bd">A distancia</span>'};return m[tipo]||`<span class="badge bd">${tipo||'\u2014'}</span>`;}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function getA(id){return DB.alumnas.find(a=>a.id===id);}
@@ -1330,6 +1392,7 @@ function iaProfileSummaryHTML(a) {
       ${chips.map(c=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap;background:${c.ok?'var(--s)':'var(--a)'};border:1px solid ${c.ok?'var(--b)':'var(--bm)'};color:${c.ok?'var(--t)':'var(--ad)'};">${c.t}</span>`).join('')}
     </div>
     ${esLesionReal(a.lesiones)?`<div style="font-size:11px;color:var(--warn);margin-top:6px;font-weight:500;">⚠️ Lesión activa: ${a.lesiones.slice(0,60)}${a.lesiones.length>60?'…':''}</div>`:''}
+    ${htmlLesionSinPasar(a)}
     ${faltantes.length?`<div style="font-size:10px;color:var(--th);margin-top:5px;">Perfil incompleto — falta: ${faltantes.join(', ')}. Sin estos datos Claude generará una rutina genérica.</div>`:''}
   </div>`;
 }
@@ -2383,7 +2446,7 @@ async function addAlumna(){
   const _g=v=>document.getElementById(v)?.value?.trim()||null;
   const naEquip=[...document.querySelectorAll('input[name="na-equip"]:checked')].map(cb=>cb.value);
   const naDiasDisp=[...document.querySelectorAll('input[name="na-dias-disp"]:checked')].map(cb=>cb.value);
-  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,nivel:_g('na-nivel')||null,split:_g('na-split')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null,dias_disponibles:naDiasDisp.length?naDiasDisp:null,foco_muscular:_g('na-foco')||null,estilo_sesion:_g('na-estilo')||null,adaptar_ciclo_menstrual:!!document.getElementById('na-ciclo-mens')?.checked};
+  const a={slug,nombre:n,email,tipo:_g('na-tipo')||'gym',dias:parseInt(_g('na-dias')||'3'),notas:_g('na-notas')||'',lesiones:_g('na-lesiones')||null,foto:'',tel:_g('na-tel')||'',color:COLORS[DB.alumnas.length%COLORS.length],ciclo_actual:1,nacimiento:nac,genero:_g('na-genero')||null,ubicacion:_g('na-ubicacion')||null,fuma:_g('na-fuma')||null,peso:_g('na-peso')||null,altura:_g('na-altura')||null,exp:_g('na-exp')||null,objetivo:_g('na-objetivo')||null,nivel:_g('na-nivel')||null,split:_g('na-split')||null,tiempo_sesion:parseInt(_g('na-tiempo')||'0')||null,equipamiento:naEquip.length?naEquip:null,dias_disponibles:naDiasDisp.length?naDiasDisp:null,foco_muscular:_g('na-foco')||null,estilo_sesion:_g('na-estilo')||null,adaptar_ciclo_menstrual:!!document.getElementById('na-ciclo-mens')?.checked};
   S.msg='Guardando...';render();
   try{
     const saved=await sbInsert('alumnas',a);
@@ -2836,6 +2899,9 @@ async function aprobar(id){
     if(mapped) elObj.value=mapped[1];
   }
   const _pf=(id,val)=>{const el=document.getElementById(id);if(el&&val&&val!=='—')el.value=val;};
+  // Lo que declaro sobre lesiones y dolor se precarga para que Amira lo revise
+  // antes de guardar; antes no se copiaba y la IA planificaba sin saberlo.
+  _pf('na-lesiones',textoLesionDe(reg));
   _pf('na-genero',reg.genero);
   _pf('na-ubicacion',reg.ubicacion);
   _pf('na-fuma',reg.fuma);
@@ -2979,6 +3045,7 @@ function drawerResumen(a){
   if(esLesionReal(a.lesiones)){
     html+=`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .75rem;font-size:12px;color:var(--rd);margin-bottom:.75rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${esc(a.lesiones)}</div>`;
   }
+  html+=htmlLesionSinPasar(a);
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
     <div style="background:var(--s2);border-radius:var(--rs);padding:.7rem;text-align:center;">
       <div style="font-size:18px;font-weight:700;color:var(--t);">${a.ciclo_actual||1}</div>
@@ -3643,7 +3710,9 @@ function rAlumnas(){
       <div><label>Tipo</label><select id="na-tipo"><option value="gym">Gimnasio</option><option value="casa">Casa</option><option value="otro">Otro</option></select></div>
       <div><label>Días/semana</label><select id="na-dias"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
     </div>
-    <label>Notas / objetivos</label><textarea id="na-notas" placeholder="Objetivos, lesiones..."></textarea>
+    <label>Notas / objetivos</label><textarea id="na-notas" placeholder="Objetivos, preferencias..."></textarea>
+    <label>Lesiones o molestias <span style="color:var(--tm);font-weight:400;">(la IA y la verificación de rutinas leen este campo)</span></label>
+    <textarea id="na-lesiones" placeholder="Ej: hombro derecho (evitar press), rodilla izquierda..."></textarea>
     <div style="font-size:11px;color:var(--tm);margin:.5rem 0 .25rem;font-weight:500;">Datos de perfil (opcional)</div>
     <div class="frow">
       <div><label>Género</label><select id="na-genero"><option value="">—</option><option>Mujer</option><option>Hombre</option><option>Otro</option></select></div>
@@ -4138,6 +4207,7 @@ function rRutinas(){
     ${DB.alumnas.filter(al=>alumnaNoEsBaja(al)).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${fn(al.nombre)}</button>`).join('')}
   </div>
   ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${esc(a.lesiones)}</div>`:''}
+  ${htmlLesionSinPasar(a)}
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <div style="display:flex;align-items:center;gap:10px;">
