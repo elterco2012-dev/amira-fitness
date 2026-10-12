@@ -741,11 +741,30 @@
 </div>
 
 <script>
+// De donde viene la persona. Instagram borra el referente cuando abre el link
+// en su navegador interno, asi que el utm_source es lo unico que permite
+// atribuirle la visita.
+function afOrigen(){
+  try{
+    var qs=new URLSearchParams(location.search);
+    var utm=(qs.get('utm_source')||'').toLowerCase();
+    var ref=(document.referrer||'').toLowerCase();
+    if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads')return'Google Ads';
+    if(utm.indexOf('instagram')>-1||utm==='ig')return'Instagram';
+    if(utm.indexOf('facebook')>-1||utm==='fb')return'Facebook';
+    if(ref.indexOf('instagram')>-1)return'Instagram';
+    if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1)return'Facebook';
+    if(ref.indexOf('tiktok')>-1)return'TikTok';
+    if(ref.indexOf('google.')>-1)return'Google';
+    if(!ref)return'Directo';
+    return'Otro';
+  }catch(e){ return'Directo'; }
+}
 (function(){try{
   fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},
-    body:JSON.stringify({page:'/',referrer:document.referrer||null})
+    body:JSON.stringify({page:'/',referrer:document.referrer||null,origen:afOrigen()})
   }).catch(function(){});
 }catch(e){}})();
 </script>
@@ -753,19 +772,7 @@
 <!-- Detecta de dónde viene la persona (Google Ads / Instagram / etc.) y lo guarda,
      para saber el origen cuando complete el registro. -->
 <script>(function(){try{
-  var qs=new URLSearchParams(location.search);
-  var utm=(qs.get('utm_source')||'').toLowerCase();
-  var ref=(document.referrer||'').toLowerCase();
-  var src;
-  if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads'){src='Google Ads';}
-  else if(utm.indexOf('instagram')>-1||utm==='ig'){src='Instagram';}
-  else if(utm.indexOf('facebook')>-1||utm==='fb'){src='Facebook';}
-  else if(ref.indexOf('instagram')>-1){src='Instagram';}
-  else if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1){src='Facebook';}
-  else if(ref.indexOf('tiktok')>-1){src='TikTok';}
-  else if(ref.indexOf('google.')>-1){src='Google';}
-  else if(!ref){src='Directo';}
-  else{src='Otro';}
+  var src=afOrigen();
   var real=(src!=='Directo'&&src!=='Otro');
   if(real||!localStorage.getItem('af-origen')){
     localStorage.setItem('af-origen',src);

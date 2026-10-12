@@ -118,12 +118,24 @@
 const SB_URL='https://aywkeoxwybzcexaichtv.supabase.co';
 const SB_ANON='sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb';
 
+// Esta pagina es el link del perfil de Instagram, asi que el origen por defecto
+// es ese; si alguna vez se comparte con otra etiqueta, se respeta la etiqueta.
+function origenBio(){
+  try{
+    var utm=(new URLSearchParams(location.search).get('utm_source')||'').toLowerCase();
+    if(!utm) return 'Instagram';
+    if(utm.indexOf('facebook')>-1||utm==='fb') return 'Facebook';
+    if(utm==='tiktok') return 'TikTok';
+    if(utm==='google'||utm==='cpc') return 'Google Ads';
+    return 'Instagram';
+  }catch(e){ return 'Instagram'; }
+}
 function trackClick(link){
   try{
     fetch(SB_URL+'/rest/v1/page_views',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_ANON,'Prefer':'return=minimal'},
-      body:JSON.stringify({page:'/bio/'+link,referrer:document.referrer||null})
+      body:JSON.stringify({page:'/bio/'+link,referrer:document.referrer||null,origen:origenBio()})
     }).catch(function(){});
   }catch(e){}
 }

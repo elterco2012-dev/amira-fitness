@@ -297,6 +297,6 @@ document.getElementById('wa-directo').href=
     localStorage.setItem('af-origen-ts',String(Date.now()));
   }
 }catch(e){}})();</script>
-<script>(function(){try{fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},body:JSON.stringify({page:'/registro',referrer:document.referrer||null})}).catch(function(){});}catch(e){}})();</script>
+<script>(function(){try{fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},body:JSON.stringify({page:'/registro',referrer:document.referrer||null,origen:(localStorage.getItem('af-origen')||null)})}).catch(function(){});}catch(e){}})();</script>
 </body>
 </html>
