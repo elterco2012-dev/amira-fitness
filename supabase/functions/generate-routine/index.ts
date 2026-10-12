@@ -68,6 +68,37 @@ Deno.serve(async (req) => {
       .filter(r => r.ciclo === cicloAnterior)
       .sort((a, b) => a.semana - b.semana || a.dia - b.dia);
 
+    // ── 2b. Desgaste: qué viene repitiendo hace muchos ciclos ────
+    // El modelo recibe la rutina anterior como contexto y tiende a copiarla.
+    // Medido sobre una alumna de 6 ciclos: 20 ejercicios aparecian en los 6, y
+    // la novedad por ciclo cayo de 38% a 4%. La mitad de la biblioteca que su
+    // equipamiento permite nunca le toco. No falta biblioteca: falta rotacion.
+    const ciclosPorEj: Record<string, Set<number>> = {};
+    for (const r of rutinas as Array<{ ciclo: number; ejercicios: unknown[] }>) {
+      for (const e of (r.ejercicios ?? [])) {
+        const nom = (e as { nombre?: string })?.nombre;
+        if (!nom) continue;
+        (ciclosPorEj[nom] ??= new Set()).add(r.ciclo);
+      }
+    }
+    const ciclosVistos = new Set((rutinas as Array<{ ciclo: number }>).map(r => r.ciclo)).size;
+    const repetidos = Object.entries(ciclosPorEj)
+      .map(([nom, cs]) => ({ nom, n: cs.size }))
+      .filter(x => x.n >= 3)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 20);
+    const desgasteStr = repetidos.length
+      ? repetidos.map(x => `- ${x.nom} (en ${x.n} de los últimos ${ciclosVistos} ciclos)`).join("\n")
+      : "Ninguno todavía: es una alumna nueva o lleva pocos ciclos.";
+    // Nombres que la biblioteca tiene y esta alumna nunca hizo. El filtro de
+    // equipamiento y nivel lo sigue aplicando el modelo con las reglas de abajo.
+    const nuncaUsados = (biblioteca as Array<{ nombre: string }>)
+      .filter(ex => !ciclosPorEj[ex.nombre])
+      .map(ex => ex.nombre);
+    const frescosStr = nuncaUsados.length
+      ? nuncaUsados.slice(0, 60).join(", ")
+      : "Ninguno: ya hizo toda la biblioteca compatible.";
+
     // ── 3. Historial de pesos y RPE (últimas 3 sesiones por ejercicio → tendencia)
     type ProgresoRow = { ejercicio_nombre?: string; peso_kg?: number | null; rpe?: number | null; semana: number; ciclo: number };
     const sessionsByEx: Record<string, Array<{ kg: number; rpe: number | null }>> = {};
@@ -147,6 +178,14 @@ REGLA DE NIVEL (CRÍTICO):
 - intermedio → mix de N1 y N2, podés incluir algún N3 como variante de semana 3.
 - avanzado → podés usar N1/N2/N3 libremente según el objetivo de la sesión.
 - Si la alumna no tiene nivel definido, usá criterio moderado (mix N1+N2).
+
+REGLA DE ROTACIÓN (evitar que la rutina se vuelva repetitiva):
+- Recibís la rutina anterior como referencia de ESTRUCTURA (días, volumen, orden), NO como plantilla para copiar ejercicio por ejercicio.
+- Al menos el 40% de los ejercicios del ciclo nuevo deben ser DISTINTOS de los del ciclo anterior.
+- La lista "EJERCICIOS DESGASTADOS" son los que la alumna viene repitiendo hace varios ciclos. Sacá o reemplazá la mayoría: elegí otro ejercicio del MISMO patrón de movimiento y grupo muscular, para que el estímulo se mantenga y cambie solo la variante.
+- La lista "EJERCICIOS QUE NUNCA HIZO" es tu primera fuente para reemplazar, siempre que respeten su equipamiento, su nivel y sus lesiones. Si uno no cumple alguna de esas tres cosas, descartalo: la variedad nunca justifica romper una restricción.
+- EXCEPCIÓN: los multiarticulares base (sentadilla, peso muerto, press, remo) SÍ deben repetirse ciclo a ciclo, porque la progresión de carga vive ahí. Rotá su variante (goblet → sumo → búlgara), no el patrón. Lo que cansa es repetir aislamientos, no repetir sentadillas.
+- Si la alumna lleva muchos ciclos y casi no quedan ejercicios sin usar, priorizá rotar los de la lista de desgastados entre sí, alternando cuáles entran en este ciclo.
 
 REGLA DE PATRONES DE MOVIMIENTO:
 - Cada ejercicio tiene su patrón entre corchetes: [empuje_horizontal], [empuje_vertical], [jale_horizontal], [jale_vertical], [bisagra], [sentadilla], [core], [aislamiento], [cardio].
@@ -376,8 +415,14 @@ PERFIL:
 - Lesiones/limitaciones activas: ${alumna.lesiones ?? "ninguna"}
 - Notas del entrenador sobre esta alumna: ${alumna.notas?.trim() || "ninguna"}
 ${instruccionesStr}
-RUTINA ANTERIOR (ciclo ${cicloAnterior}):
+RUTINA ANTERIOR (ciclo ${cicloAnterior}) — usala como referencia de estructura, no como plantilla:
 ${prevRutinaStr}
+
+EJERCICIOS DESGASTADOS (los viene repitiendo hace varios ciclos — reemplazá la mayoría por otra variante del mismo patrón):
+${desgasteStr}
+
+EJERCICIOS QUE NUNCA HIZO (primera fuente para reemplazar, siempre que respeten su equipamiento, nivel y lesiones):
+${frescosStr}
 
 HISTORIAL DE PESOS Y RPE (más reciente por ejercicio, ↑ subiendo ↓ bajando = estancado):
 ${pesoHistStr}
