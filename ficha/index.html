@@ -388,11 +388,11 @@ async function enviar(){
         body:JSON.stringify({p_slug:fichaSlug,p_lesiones:lesiones,p_tel:datos.tel||''})});
       if(!r.ok) console.warn('ficha_guardar:', r.status, await r.text());
     }catch(e){console.warn('ficha_guardar:',e);}
-    try{await sbInsert('registros',datos);}catch(e){console.warn('insert registro:',e);}
+    try{await sbInsertSinRespuesta('registros',datos);}catch(e){console.warn('insert registro:',e);}
   } else {
     // Alumna nueva: crear registro pendiente para revisión
     datos.estado = 'pendiente';
-    try{await sbInsert('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+    try{await sbInsertSinRespuesta('registros',datos);}catch(e){console.warn('Supabase error:',e);}
   }
   
   // Marcar como completada en localStorage (no se puede reenviar)

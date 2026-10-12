@@ -239,7 +239,7 @@ async function enviarRegistro(){
   const btn=document.getElementById('btn-enviar');
   btn.textContent='Enviando...';btn.disabled=true;
   try {
-    await sbInsert('registros', nuevo);
+    await sbInsertSinRespuesta('registros', nuevo);
   } catch(e) {
     console.error('Error al guardar registro:', e);
     btn.textContent='Quiero que Amira me escriba';btn.disabled=false;
