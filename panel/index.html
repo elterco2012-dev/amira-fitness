@@ -989,6 +989,119 @@ async function marcarLesionRevisada(aId){
   toastPanel('\u2713 Anotado. Si declara algo nuevo, el aviso vuelve.');
   render(); _refrescarResumenIA(aId);
 }
+
+// \u2500\u2500 Alertas de dolor con cierre \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Un reporte de dolor no tenia forma de marcarse como atendido: quedaba en "Hoy
+// hay que atender" hasta que 50 reportes mas nuevos lo sacaban de la ventana, y
+// a unos 15 por semana eso eran 3 semanas en rojo aunque Amira ya hubiera
+// actuado. Una alerta que no se apaga deja de leerse.
+// Las anteriores a esta fecha ya no se veian en el panel y nadie las cerro en el
+// sistema; para que no reaparezcan de golpe quedan fuera del seguimiento. Siguen
+// en el historial de cada alumna.
+const SEGUIMIENTO_DOLOR_DESDE='2026-10-01';
+function dolorPendiente(f){
+  return !!f&&f.tipo==='dolor_preocupante'&&!f.atendido_at&&String(f.created_at||'')>=SEGUIMIENTO_DOLOR_DESDE;
+}
+// Los recientes se cargan de a 50; las de dolor se piden aparte y se suman, asi
+// una alerta sin atender no se pierde porque hayan llegado muchos reportes.
+async function cargarFeedbacks(){
+  const [rec,dolor]=await Promise.allSettled([
+    sbGet('feedbacks','tipo=neq.dia_completo&order=created_at.desc&limit=50'),
+    sbGet('feedbacks','tipo=eq.dolor_preocupante&order=created_at.desc&limit=500'),
+  ]);
+  const base=rec.status==='fulfilled'?rec.value:[];
+  const ids=new Set(base.map(f=>f.id));
+  const extra=(dolor.status==='fulfilled'?dolor.value:[]).filter(f=>!ids.has(f.id));
+  return base.concat(extra).sort((x,y)=>String(y.created_at||'').localeCompare(String(x.created_at||'')));
+}
+function htmlAtendido(f){
+  if(S._atendOpen===f.id) return`<div style="width:100%;display:flex;gap:6px;margin-top:6px;" onclick="event.stopPropagation()">
+    <input id="atn-${f.id}" placeholder="Qu\u00e9 hiciste (opcional)" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;">
+    <button class="btn btn-p btn-s" style="font-size:11px;" onclick="marcarAtendido(${f.id})">Guardar</button>
+    <button class="btn btn-s" style="font-size:11px;" onclick="S._atendOpen=null;render()">Cancelar</button>
+  </div>`;
+  return`<button class="btn btn-s" style="font-size:11px;white-space:nowrap;" onclick="event.stopPropagation();S._atendOpen=${f.id};render()">\u2713 Atendido</button>`;
+}
+async function marcarAtendido(fid){
+  const f=(DB.feedbacks||[]).find(x=>x.id===fid); if(!f) return;
+  const nota=(document.getElementById('atn-'+fid)?.value||'').trim()||null;
+  const ahora=new Date().toISOString();
+  try{ await sbPatch('feedbacks',`id=eq.${fid}`,{atendido_at:ahora,atendido_nota:nota}); }
+  catch(e){ toastPanel('No se pudo guardar: '+e.message); return; }
+  f.atendido_at=ahora; f.atendido_nota=nota; S._atendOpen=null;
+  toastPanel('\u2713 Alerta cerrada. Queda en el historial de la alumna.');
+  render();
+}
+
+// \u2500\u2500 Registro de contactos por WhatsApp \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Mas de una docena de botones abren WhatsApp y ninguno dejaba rastro: el panel
+// no sabia que Amira ya le habia escrito ayer a una alumna inactiva y la volvia
+// a mostrar como pendiente. Se registra que se abrio el chat, no que el mensaje
+// se envio: WhatsApp no lo confirma.
+const DIAS_ESPERA_CONTACTO=3;
+const _MOTIVO_TPL={a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
+  a_dolor:'dolor',u_dolor:'dolor',a_hoy:'seguimiento',a_como:'seguimiento',a_check:'seguimiento',check:'seguimiento',u_inact:'inactividad',a_pago:'cobro',pago:'cobro'};
+const _MOTIVO_LBL={dolor:'por la molestia',inactividad:'por la inactividad',cobro:'por el pago',logro:'para felicitarla',seguimiento:'para ver c\u00f3mo ven\u00eda',
+  recordatorio:'un recordatorio',ciclo:'por el ciclo nuevo',motivacion:'para motivarla',resumen:'el resumen',informe:'el informe',bienvenida:'la bienvenida',cumpleanos:'por el cumplea\u00f1os'};
+function registrarContacto(aId,motivo){
+  if(!aId) return;
+  const row={alumna_id:aId,motivo:motivo||'otro',created_at:new Date().toISOString()};
+  (DB.contactos=DB.contactos||[]).unshift(row);
+  sbInsert('contactos',{alumna_id:row.alumna_id,motivo:row.motivo}).catch(()=>{});
+}
+function ultimoContacto(aId){ return (DB.contactos||[]).find(c=>c.alumna_id===aId)||null; }
+function diasDesdeContacto(aId){ const c=ultimoContacto(aId); return c?Math.max(0,localDayDiff(c.created_at)??0):null; }
+function esperandoRespuesta(aId){ const d=diasDesdeContacto(aId); return d!==null&&d<DIAS_ESPERA_CONTACTO; }
+function textoContacto(aId){
+  const c=ultimoContacto(aId); if(!c) return '';
+  const d=diasDesdeContacto(aId);
+  const cuando=d===0?'hoy':d===1?'ayer':`hace ${d} d\u00edas`;
+  const por=_MOTIVO_LBL[c.motivo];
+  return`Le escribiste ${cuando}${por?' '+por:''}`;
+}
+
+// \u2500\u2500 Ciclos por renovar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// La seccion "Completaron el ciclo" leia DB.progreso, que se carga solo al abrir
+// el historial de cada alumna, asi que casi nunca aparecia. Entre el ultimo
+// entrenamiento de un ciclo y el primero del siguiente pasaban 5 dias (mediana)
+// contra 2 dentro de un ciclo. Esta version usa lo que se carga al abrir el panel.
+// El ciclo que la alumna hace de verdad es el ultimo que ya empezo: uno con fecha
+// de inicio futura ya esta preparado pero ella todavia no lo ve.
+function cicloEnCurso(a){
+  const hoy=_hoyLocal(); const ini=a.ciclos_inicio||{};
+  let c=parseInt(a.ciclo_actual)||1;
+  while(c>1&&ini[c]&&ini[c]>hoy) c--;
+  return c;
+}
+function _tieneEjercicios(sems){ return !!sems&&Object.values(sems).some(ds=>(ds||[]).some(d=>d.ejercicios?.length)); }
+function estadoCiclo(a){
+  const c=cicloEnCurso(a);
+  const sems=DB.rutinas?.[a.id]?.[c]||{};
+  const plan=new Set(); let maxSem=0;
+  for(const [s,dias] of Object.entries(sems))
+    for(const d of (dias||[])) if(d.ejercicios?.length){ plan.add(`${parseInt(s)}-${d.dia}`); maxSem=Math.max(maxSem,parseInt(s)); }
+  const hechos=new Set(); let ultimaSemana=false;
+  for(const p of (DB.progresoHechos||[])){
+    if(p.alumna_id!==a.id||parseInt(p.ciclo)!==c||!p.hecho) continue;
+    const k=`${parseInt(p.semana)}-${parseInt(p.dia)}`;
+    if(!plan.has(k)) continue;
+    hechos.add(k);
+    if(parseInt(p.semana)===maxSem) ultimaSemana=true;
+  }
+  const tieneSiguiente=(parseInt(a.ciclo_actual)||1)>c||_tieneEjercicios(DB.rutinas?.[a.id]?.[c+1]);
+  return {c,plan:plan.size,hechos:hechos.size,pct:plan.size?hechos.size/plan.size:0,ultimaSemana,tieneSiguiente};
+}
+function porRenovar(){
+  return DB.alumnas.filter(alumnaActiva).map(a=>({a,e:estadoCiclo(a)}))
+    .filter(({e})=>e.plan>0&&!e.tieneSiguiente&&(e.pct>=0.75||e.ultimaSemana))
+    .sort((x,y)=>y.e.pct-x.e.pct);
+}
+function irARenovar(aId,conIA){
+  const a=getA(aId); if(!a) return;
+  S.selA=aId; S.selCiclo=parseInt(a.ciclo_actual)||1; S.selSem=1; S.selDia=1;
+  go('rutinas');
+  if(conIA) generarRutinaIA();
+}
 function tipoHtml(tipo){const m={gym:'<span class="badge bg">Gimnasio</span>',casa:'<span class="badge" style="background:var(--a);color:var(--ad);">Casa</span>',otro:'<span class="badge bd">Otro</span>',distancia:'<span class="badge bd">A distancia</span>'};return m[tipo]||`<span class="badge bd">${tipo||'\u2014'}</span>`;}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function getA(id){return DB.alumnas.find(a=>a.id===id);}
@@ -1020,15 +1133,16 @@ async function loadAll(){
       sbGet('plantillas','order=created_at.asc')
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
-    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv]=await Promise.allSettled([
-      sbGet('feedbacks','tipo=neq.dia_completo&order=created_at.desc&limit=50'),
+    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct]=await Promise.allSettled([
+      cargarFeedbacks(),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
       sbGet('avisos','order=created_at.desc&limit=5000'),
       sbGet('peso_alumna','order=alumna_id.asc,fecha.desc&limit=5000'),
       sbGet('notas_sesion','order=created_at.desc&limit=200'),
       sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=50000'),
-      sbGet('page_views',`select=page,created_at,origen&created_at=gte.${encodeURIComponent(new Date(Date.now()-30*86400000).toISOString())}&order=created_at.desc&limit=5000`)
+      sbGet('page_views',`select=page,created_at,origen&created_at=gte.${encodeURIComponent(new Date(Date.now()-30*86400000).toISOString())}&order=created_at.desc&limit=5000`),
+      sbGet('contactos',`created_at=gte.${encodeURIComponent(new Date(Date.now()-90*86400000).toISOString())}&order=created_at.desc&limit=5000`)
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -1038,6 +1152,7 @@ async function loadAll(){
     DB.notasSesion    = _ns.status==='fulfilled'?_ns.value:[];
     DB.progresoHechos = _prg.status==='fulfilled'?_prg.value:[];
     DB.pageViews      = _pv.status==='fulfilled'&&Array.isArray(_pv.value)?_pv.value:[];
+    DB.contactos      = _ct.status==='fulfilled'&&Array.isArray(_ct.value)?_ct.value:[];
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -1132,7 +1247,7 @@ function startPoll(){
         const emojiMap={dolor_preocupante:'🚨',bajo_rendimiento:'⚠️',bueno:'😊',excelente:'🔥'};
         const emoji=emojiMap[fb.tipo]||'💬';
         _panelNotif(`${emoji} Feedback — ${aName}`,fb.nota||`Tipo: ${fb.tipo}`,'panel-feedback');
-        sbGet('feedbacks','tipo=neq.dia_completo&order=created_at.desc&limit=50').then(rows=>{DB.feedbacks=rows;if(['inicio','comentarios','analisis'].includes(S.view))render();}).catch(()=>{});
+        cargarFeedbacks().then(rows=>{DB.feedbacks=rows;if(['inicio','comentarios','analisis'].includes(S.view))render();}).catch(()=>{});
       }
     }catch(e){}
   },8000);
@@ -2740,10 +2855,11 @@ function toastPanel(msg){
   el.textContent=msg;el.style.opacity='1';
   clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2800);
 }
-async function waOpen(ph, msg){
+async function waOpen(ph, msg, aId, motivo){
   try{await navigator.clipboard.writeText(msg);}catch(e){}
   toastPanel('✓ Mensaje copiado — pegá con Ctrl+V en WhatsApp');
   window.open('https://wa.me/'+ph,'_blank');
+  registrarContacto(aId, motivo);
 }
 
 async function saveQuickNote(aId){
@@ -2812,7 +2928,7 @@ async function resetWarmup(){
 }
 
 // ── Recordatorios ─────────────────────────────────────────────
-function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=`Hola ${fn(a.nombre)}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`;waOpen(ph,msg);}
+function envRec(aId){const a=getA(aId);if(!a)return;const ph=(a.tel||'').replace(/\D/g,'');if(!ph){alert('Sin WhatsApp');return;}const msg=`Hola ${fn(a.nombre)}! 💪 Hoy es día de entrenamiento.\n\nTu rutina: ${BASE}/alumna/${a.slug}\n\n¡Vamos! — Amira`;waOpen(ph,msg,aId,'recordatorio');}
 async function envTplAlu(aId, key){
   const a=getA(aId); if(!a||!a.tel) return;
   const tpl=getAlumnaTpls().find(t=>t.key===key); if(!tpl) return;
@@ -2821,7 +2937,7 @@ async function envTplAlu(aId, key){
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
   const link=BASE+'/alumna/'+a.slug;
   const lg=logroDeHoy(aId);
-  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:''}));
+  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:''}), aId, _MOTIVO_TPL[key]||'mensaje');
 }
 function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
@@ -3032,15 +3148,30 @@ function renderDrawer(){
 function drawerResumen(a){
   const pagado=hasPagado(a.id);
   const ph=(a.tel||'').replace(/\D/g,'');
-  const alertas=(DB.feedbacks||[]).filter(f=>f.alumna_id===a.id&&f.tipo==='dolor_preocupante');
+  const alertas=(DB.feedbacks||[]).filter(f=>f.alumna_id===a.id&&dolorPendiente(f));
+  const atendidas=(DB.feedbacks||[]).filter(f=>f.alumna_id===a.id&&f.tipo==='dolor_preocupante'&&f.atendido_at);
   const fbs=(DB.feedbacks||[]).filter(f=>f.alumna_id===a.id).slice(0,6);
   const notas=(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id);
   let html='';
+  const _contacto=textoContacto(a.id);
+  if(_contacto) html+=`<div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">💬 ${_contacto}</div>`;
   if(alertas.length){
     html+=`<div style="background:var(--rl);border:1px solid #f59595;border-radius:var(--rs);padding:.75rem;margin-bottom:1rem;">
       <div style="font-size:11px;font-weight:600;color:var(--rd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">⚠️ Alertas activas</div>
-      ${alertas.map(f=>`<div style="font-size:12px;color:var(--rd);padding:2px 0;">🚨 ${esc(f.ejercicio_nombre||'Ejercicio')}${f.nota?' — '+esc(f.nota):''}</div>`).join('')}
+      ${alertas.map(f=>`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--rd);padding:3px 0;">
+        <span style="flex:1;min-width:0;">🚨 ${esc(f.ejercicio_nombre||'Ejercicio')}${f.nota?' — '+esc(f.nota):''} <span style="color:var(--tm);font-size:10px;">· ${fmtWhen(f.created_at)}</span></span>
+        ${htmlAtendido(f)}
+      </div>`).join('')}
     </div>`;
+  }
+  if(atendidas.length){
+    html+=`<details style="margin-bottom:1rem;font-size:12px;color:var(--tm);">
+      <summary style="cursor:pointer;">Alertas de dolor atendidas (${atendidas.length})</summary>
+      ${atendidas.map(f=>`<div style="padding:4px 0;border-bottom:1px solid var(--b);">
+        ✓ ${esc(f.ejercicio_nombre||'Ejercicio')}${f.nota?' — '+esc(f.nota):''}
+        <div style="font-size:11px;color:var(--th);">Reportado ${fmtWhen(f.created_at)} · atendido ${fmtWhen(f.atendido_at)}${f.atendido_nota?' · '+esc(f.atendido_nota):''}</div>
+      </div>`).join('')}
+    </details>`;
   }
   if(esLesionReal(a.lesiones)){
     html+=`<div style="background:var(--rl);border-radius:var(--rs);padding:.5rem .75rem;font-size:12px;color:var(--rd);margin-bottom:.75rem;border-left:3px solid var(--rd);">⚠️ <strong>Lesión:</strong> ${esc(a.lesiones)}</div>`;
@@ -3077,7 +3208,7 @@ function drawerResumen(a){
         return`<div style="padding:.4rem 0;border-bottom:1px solid var(--b);">
           <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;">
             <span>${em}</span>
-            <span style="font-size:12px;font-weight:500;color:${isUrg?'var(--rd)':'var(--t)'};">${tl}</span>
+            <span style="font-size:12px;font-weight:500;color:${isUrg&&!f.atendido_at?'var(--rd)':'var(--t)'};">${tl}${isUrg&&f.atendido_at?' · atendido':''}</span>
             <span style="font-size:10px;color:var(--tm);">${cNom}·S${f.semana}·D${f.dia}</span>
             <span style="font-size:10px;color:var(--th);margin-left:auto;">${fmtWhen(f.created_at||f.fecha)}</span>
           </div>
@@ -3294,7 +3425,7 @@ function drawerFicha(a){
   const nf=fmtNac(nac); const edad=calcEdad(nac);
   const fields=[
     a.email||regData?.mail?['Email',a.email||regData.mail]:null,
-    a.tel||regData?.tel?['WhatsApp',`<a href="https://wa.me/${(a.tel||regData.tel).replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel||regData.tel}</a>`]:null,
+    a.tel||regData?.tel?['WhatsApp',`<a href="https://wa.me/${(a.tel||regData.tel).replace(/\D/g,'')}" target="_blank" onclick="registrarContacto(${a.id},'otro')" style="color:var(--v);">${a.tel||regData.tel}</a>`]:null,
     nf?['Nacimiento',nf+(edad!==null?' ('+edad+' años)':'')]:null,
     a.genero||regData?.genero?['Género',a.genero||regData.genero]:null,
     (a.ubicacion||regData?.ubicacion)&&(a.ubicacion||regData?.ubicacion)!=='—'?['Ubicación',a.ubicacion||regData.ubicacion]:null,
@@ -3403,14 +3534,19 @@ function rInicio(){
   const _tplDolorR=getAlumnaTpls().find(t=>t.key==='u_dolor')||{msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'};
   const _tplInactR=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
   const prioMap=new Map();
-  (DB.feedbacks||[]).filter(f=>f.tipo==='dolor_preocupante').forEach(f=>{
+  // Un dolor queda hasta que Amira lo marca como atendido, aunque ya le haya
+  // escrito: escribir no es lo mismo que resolver.
+  (DB.feedbacks||[]).filter(dolorPendiente).forEach(f=>{
     if(prioMap.has(f.alumna_id))return;
     const al=DB.alumnas.find(a=>a.id===f.alumna_id);
     if(!al)return;
-    prioMap.set(f.alumna_id,{a:al,kind:'pain',tag:'🚨 Dolor reportado',
+    prioMap.set(f.alumna_id,{a:al,kind:'pain',tag:'🚨 Dolor reportado',fb:f,
       sub:f.ejercicio_nombre?`${f.ejercicio_nombre}${f.nota?' — '+f.nota:''}`:(f.nota||'reportó dolor'),
       msg:_tplDolorR.msg});
   });
+  // A la que Amira le escribio hace menos de DIAS_ESPERA_CONTACTO no se la vuelve
+  // a pedir: queda en una linea aparte, esperando respuesta.
+  const esperando=[];
   alumnaActivas.forEach(a=>{
     if(prioMap.has(a.id))return;
     const daysSince=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):null;
@@ -3433,11 +3569,16 @@ function rInicio(){
     } else if(memberDays>14&&totalTrained>0&&adherencia<0.55&&daysSince>=4){
       item={a,tag:'🟡 Frecuencia baja',sub:`${Math.round(adherencia*100)}% de adherencia`};
     }
-    if(item){item.kind='churn';item.msg=_tplInactR.msg;prioMap.set(a.id,item);}
+    if(item){
+      item.kind='churn';item.msg=_tplInactR.msg;
+      if(esperandoRespuesta(a.id)) esperando.push(item); else prioMap.set(a.id,item);
+    }
   });
   const _kindRank={pain:0,churn:1};
   const prioritarias=Array.from(prioMap.values()).sort((x,y)=>(_kindRank[x.kind]-_kindRank[y.kind])||x.a.nombre.localeCompare(y.a.nombre,'es'));
-  const prioIds=new Set(prioritarias.map(p=>p.a.id));
+  // Las que esperan respuesta tampoco van a "Resto de tus alumnas", donde volverian
+  // a aparecer en rojo con el boton de WhatsApp.
+  const prioIds=new Set([...prioritarias,...esperando].map(p=>p.a.id));
 
   const semHtml=DB.alumnas.length===0?'<div class="empty">Sin alumnas todavía.</div>':
     alWithDays.filter(a=>!prioIds.has(a.id)).map(a=>{
@@ -3447,7 +3588,7 @@ function rInicio(){
       const _ph=(a.tel||'').replace(/\D/g,'');
       const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:fn(a.nombre)}));
       const _actionBtn=_isUrg&&_ph
-        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'))">💬 WA</button>`
+        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'),${a.id},'inactividad')">💬 WA</button>`
         :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
       const _noteOpen=S._quickNoteA===a.id;
       return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="openDrawer('+a.id+')"'}>
@@ -3455,7 +3596,7 @@ function rInicio(){
         <div class="av av-${a.color}">${avH(a)}</div>
         <div style="flex:1;min-width:0;">
           <div class="aname">${a.nombre}</div>
-          <div class="asub">${sub}</div>
+          <div class="asub">${sub}${textoContacto(a.id)?' · '+textoContacto(a.id):''}</div>
         </div>
         ${_actionBtn}
         <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
@@ -3496,7 +3637,7 @@ function rInicio(){
   }
 
   return`<div class="ptitle">Bienvenida, Amira</div>
-  ${prioritarias.length>0?(()=>{
+  ${prioritarias.length>0||esperando.length>0?(()=>{
     const open=S._prioOpen;
     const list=open?prioritarias:prioritarias.slice(0,5);
     const restantes=prioritarias.length-5;
@@ -3505,20 +3646,28 @@ function rInicio(){
         <div class="ctitle" style="margin-bottom:0;">⚡ Hoy hay que atender</div>
         <span style="font-size:10px;color:var(--th);">${prioritarias.length} alumna${prioritarias.length!==1?'s':''}</span>
       </div>
-      ${list.map(({a,tag,sub,msg})=>{
+      ${prioritarias.length===0?`<div style="font-size:12px;color:var(--tm);padding:2px 0 6px;">Nada pendiente por ahora.</div>`:''}
+      ${list.map(({a,tag,sub,msg,kind,fb})=>{
         const ph=(a.tel||'').replace(/\D/g,'');
         const mn=encodeURIComponent(interpTpl(msg,{nombre:fn(a.nombre)}));
+        const yaEscribio=textoContacto(a.id);
         return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
           <div class="av av-${a.color}" style="width:30px;height:30px;font-size:12px;flex-shrink:0;">${avH(a)}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:500;color:var(--t);">${fn(a.nombre)} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
-            <div style="font-size:10px;color:var(--th);">${sub}</div>
+            <div style="font-size:10px;color:var(--th);">${esc(sub)}${yaEscribio?' · '+yaEscribio:''}</div>
           </div>
-          ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'))" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
+          ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'),${a.id},'${kind==='pain'?'dolor':'inactividad'}')" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
+          ${kind==='pain'&&fb&&S._atendOpen!==fb.id?htmlAtendido(fb):''}
           <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();openDrawer(${a.id})">Ver →</button>
+          ${kind==='pain'&&fb&&S._atendOpen===fb.id?htmlAtendido(fb):''}
         </div>`;
       }).join('')}
       ${restantes>0?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="S._prioOpen=!S._prioOpen;render()">${open?'Ver menos ▲':'Ver '+restantes+' más ▼'}</button>`:''}
+      ${esperando.length?`<div style="font-size:11px;color:var(--tm);margin-top:8px;line-height:1.6;">💬 Esperando respuesta: ${esperando.map(({a})=>{
+        const d=diasDesdeContacto(a.id);
+        return`<a href="#" onclick="event.preventDefault();openDrawer(${a.id})" style="color:var(--tm);">${fn(a.nombre)}</a> (${d===0?'hoy':d===1?'ayer':'hace '+d+' días'})`;
+      }).join(', ')}</div>`:''}
     </div>`;
   })():''}
   ${(()=>{
@@ -3529,6 +3678,22 @@ function rInicio(){
       <div class="metric" style="${prioritarias.length>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Atender hoy</div><div class="mval" style="color:${prioritarias.length>0?'var(--rd)':'var(--tm)'};">${prioritarias.length}</div></div>
       <div class="metric" style="${_aten>0?'border-bottom:2px solid var(--warn);':''}"><div class="mlabel">A observar</div><div class="mval" style="color:${_aten>0?'var(--warn)':'var(--tm)'};">${_aten}</div></div>
       <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
+    </div>`;
+  })()}
+  ${(()=>{
+    const lista=porRenovar();
+    if(!lista.length)return'';
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
+      <div class="ctitle" style="margin-bottom:.3rem;">🗓 Ciclos por renovar</div>
+      <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Están en la última semana o hicieron el 75% del ciclo, y todavía no tienen el siguiente.</div>
+      ${lista.map(({a,e})=>`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" onclick="irARenovar(${a.id},false)">
+        <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
+          <div style="font-size:11px;color:var(--tm);">${esc((a.ciclos_nombres||{})[e.c]||'Ciclo '+e.c)} · ${e.hechos} de ${e.plan} días${e.pct>=1?' · lo terminó':''}</div>
+        </div>
+        <button class="btn btn-s" style="font-size:11px;white-space:nowrap;background:linear-gradient(135deg,var(--vi),var(--vi2));color:#fff;border-color:var(--vi);" onclick="event.stopPropagation();irARenovar(${a.id},true)">✨ Generar con IA</button>
+      </div>`).join('')}
     </div>`;
   })()}
   ${cumples7.length>0?`<div style="background:var(--a);border:1.5px solid var(--bm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;">
@@ -3545,7 +3710,7 @@ function rInicio(){
           <div style="font-size:13px;font-weight:600;color:var(--t);">${esc(a.nombre)}</div>
         </div>
         <span style="font-size:12px;font-weight:600;color:${cuandoColor};white-space:nowrap;">${cuando}</span>
-        ${waLink?`<a href="${waLink}" target="_blank" style="text-decoration:none;"><button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;">🎉 Saludar</button></a>`:''}
+        ${waLink?`<a href="${waLink}" target="_blank" onclick="registrarContacto(${a.id},'cumpleanos')" style="text-decoration:none;"><button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;">🎉 Saludar</button></a>`:''}
       </div>`;
     }).join('')}
   </div>`:''}
@@ -3644,25 +3809,6 @@ function rInicio(){
         <div class="mval" style="font-size:1.6rem;color:${retencion>=70?'var(--vd)':retencion>=40?'var(--ad)':'var(--rd)'};">${retencion}%</div>
         <div style="font-size:10px;color:var(--tm);margin-top:3px;">${activas}/${DB.alumnas.length} alumnas activas</div>
       </div>
-    </div>`;
-  })()}
-  ${(()=>{
-    // Renovación automática — alumnas que completaron ciclo (si progreso está cargado)
-    const completaron=DB.alumnas.filter(a=>{
-      const rows=DB.progreso?.[a.id]||[];
-      if(!rows.length)return false;
-      const ciclo=a.ciclo_actual||1;
-      const semsHechas=new Set(rows.filter(r=>r.hecho&&parseInt(r.ciclo)===ciclo).map(r=>r.semana));
-      return semsHechas.size>=4;
-    });
-    if(!completaron.length)return'';
-    return`<div class="card" style="margin-bottom:1rem;background:var(--vl);border-color:var(--vm);">
-      <div class="ctitle" style="margin-bottom:.5rem;color:var(--vd);">🎉 Completaron el ciclo</div>
-      ${completaron.map(a=>`<div class="arow" style="cursor:pointer;" onclick="S.selA=${a.id};go('rutinas')">
-        <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;font-size:13px;font-weight:500;color:var(--vd);">${fn(a.nombre)}</div>
-        <span style="font-size:11px;color:var(--vd);">Crear nuevo ciclo →</span>
-      </div>`).join('')}
     </div>`;
   })()}
   ${S.msg?`<div class="sm">${S.msg}</div>`:''}`;
@@ -3923,7 +4069,7 @@ function alumnaCardHTML(a){
       // — Datos personales —
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">'
       +(mail?'<div><span style="color:var(--tm);">Mail:</span> '+mail+'</div>':'')
-      +(tel?'<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/'+tel.replace(/\D/g,'')+'" target="_blank" style="color:var(--v);font-weight:500;">'+tel+'</a></div>':'')
+      +(tel?'<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/'+tel.replace(/\D/g,'')+'" target="_blank" onclick="registrarContacto('+a.id+',\'otro\')" style="color:var(--v);font-weight:500;">'+tel+'</a></div>':'')
       +(nf?'<div><span style="color:var(--tm);">Nacimiento:</span> <strong>'+nf+'</strong>'+(edad!==null?' ('+edad+' años)':'')+'</div>':'')
       +(gen?'<div><span style="color:var(--tm);">Género:</span> '+gen+'</div>':'')
       +(ubic&&ubic!=='—'?'<div><span style="color:var(--tm);">Ubicación:</span> '+ubic+'</div>':'')
@@ -4024,7 +4170,7 @@ function alumnaCardHTML(a){
       <input type="file" id="fp-p-${a.id}" accept="image/*" style="display:none;" onchange="handleFoto(${a.id},this)">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span class="aname">${a.nombre}</span>${estBadge}${uaBadge}${pushBadge}${diasBadge}</div>
-        <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel?`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--v);">${a.tel}</a>`:'<span style="color:var(--rd)">Sin WA</span>'} · <strong style="color:var(--pd)">${cicNom}</strong></div>
+        <div class="asub">${tipoHtml(a.tipo)} · ${a.dias} días/sem · ${a.tel?`<a href="https://wa.me/${a.tel.replace(/\D/g,'')}" target="_blank" onclick="event.stopPropagation();registrarContacto(${a.id},'otro')" style="color:var(--v);">${a.tel}</a>`:'<span style="color:var(--rd)">Sin WA</span>'} · <strong style="color:var(--pd)">${cicNom}</strong></div>
       </div>
       <div style="position:relative;flex-shrink:0;">
         <button class="btn btn-s" onclick="S['menu_${a.id}']=!S['menu_${a.id}'];render()" style="padding:5px 10px;font-weight:700;letter-spacing:2px;color:var(--tm);">···</button>
@@ -5462,7 +5608,7 @@ function envTemplate(aId, key){
   const a=getA(aId); if(!a||!a.tel){S.msg='Esta alumna no tiene WhatsApp.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
   const tpl=getTpls().find(t=>t.key===key); if(!tpl)return;
   const msg=tpl.msg.replace('[nombre]',fn(a.nombre));
-  waOpen(a.tel.replace(/\D/g,''), msg);
+  waOpen(a.tel.replace(/\D/g,''), msg, aId, _MOTIVO_TPL[key]||'mensaje');
 }
 
 async function envRes(aId){
@@ -5481,7 +5627,7 @@ async function envRes(aId){
     +`¡Seguimos la próxima semana! 🔥`;
   const tel=a.tel?a.tel.replace(/\D/g,''):'';
   if(!tel){S.msg='Esta alumna no tiene WhatsApp cargado.';render();setTimeout(()=>{S.msg='';render();},2000);return;}
-  waOpen(tel, msg);
+  waOpen(tel, msg, aId, 'resumen');
 }
 
 function _buildResumenPush(a){
@@ -5749,7 +5895,7 @@ async function informeMensual(aId){
   if(pesoDiff!==null){const ds=pesoDiff>0?'+'+pesoDiff.toFixed(1):pesoDiff.toFixed(1);msg+='\n⚖️ Peso corporal: '+pesoIni+' → '+pesoFin+' kg ('+ds+' kg)\n';}
   msg+='\n¡Seguimos el próximo ciclo! 🔥 — Amira';
   S.msg='';render();
-  waOpen(tel, msg);
+  waOpen(tel, msg, aId, 'informe');
 }
 
 // ── Onboarding WA ─────────────────────────────────────────────
@@ -5770,7 +5916,7 @@ function onboardingWA(regId){
   if(exp)msg+='🏋️ Experiencia: '+exp+'\n';
   msg+='\nEn breve te cargo tu rutina personalizada. Cuando te llegue el link, ya podés empezar.\n\n';
   msg+='Cualquier duda, escribime acá. ¡Arrancamos! — Amira 🔥';
-  waOpen(tel, msg);
+  waOpen(tel, msg, reg.alumna_id, 'bienvenida');
 }
 
 // ── Validar que el push de Amira siga registrado en la BD ─────
