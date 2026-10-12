@@ -219,7 +219,7 @@ Estrategias:
 
 **Sin framework:** la app es usada por una sola persona entrenadora. Agregar React/Vue introduce build steps, dependencias que vencen, y complejidad innecesaria. El tradeoff (archivos HTML grandes) es aceptable para el tamaño del proyecto.
 
-**Sin variables de entorno en cliente:** la SB_KEY es la anon key pública de Supabase, intencionalmente pública. La seguridad real está en Row Level Security (RLS) del lado de Postgres.
+**Sin variables de entorno en cliente:** la SB_KEY es la anon key pública de Supabase, intencionalmente pública. La seguridad real está en Row Level Security (RLS) del lado de Postgres, y solo vale si las políticas no dejan pasar a cualquiera: ver "RLS" en Problemas conocidos.
 
 **Ciclos como números enteros, no fechas:** permite ciclos de cualquier duración (no forzosamente mensuales) y simplifica las queries.
 
@@ -272,4 +272,10 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 
 **`ciclos_inicio` sin migración:** si la columna no existe en producción, el panel muestra error silencioso (el código tiene try/catch que omite el campo). La solución es correr la migración de arriba.
 
-**Autenticación alumna con anon key:** si la alumna no tiene sesión activa, todas sus requests usan la anon key pública. El acceso a datos sensibles está protegido por RLS, pero hay que asegurar que cada tabla nueva tenga políticas RLS definidas.
+**RLS: hasta el 12/10/2026 casi todas las tablas estaban abiertas.** Las políticas permisivas se suman (OR), así que bastaba una con `USING (true)` para que cualquiera con la anon key (que está en `sb.js`) pudiera leer, modificar y borrar. La app de alumna exige ingresar (email + PIN) antes de cargar datos, así que cada alumna puede operar viendo solo lo suyo.
+
+- **Cerradas el 12/10/2026:** `alumnas` (Amira todo; cada alumna lee y actualiza solo su fila por `lower(email) = lower(auth.email())`) y `comentarios` (Amira todo; cada alumna solo los suyos). Ver `migrations/rls_alumnas_1_funciones.sql` y `rls_alumnas_2_permisos.sql`. Marcha atrás de emergencia: `rls_alumnas_2_marcha_atras.sql`.
+- **Lo previo al ingreso pasa por funciones `security definer`** que devuelven lo justo: `alumna_registrada(email)` (sí/no, al crear el PIN), `ficha_alumna(slug)` y `ficha_guardar(slug, lesiones, tel)` (ficha de salud). Nunca exponer `nacimiento`: es el PIN de ingreso.
+- **Todavía abiertas (leer, modificar y borrar con la anon key):** `registros` (cuestionario de salud completo), `rutinas`, `progreso`, `peso_alumna`, `pesos`, `push_subscriptions`, `plantillas`, `ejercicios_biblioteca`. Antes de cerrar cada una, inventariar quién la usa sin haber ingresado (el formulario `/registro` y la ficha insertan en `registros` como anónimas).
+- Cada tabla nueva tiene que nacer con RLS activado y sin políticas `USING (true)`.
+- Los emails de `alumnas` se guardan en minúscula: el de ingreso siempre llega en minúscula.
