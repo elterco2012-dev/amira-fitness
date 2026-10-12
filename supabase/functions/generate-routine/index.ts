@@ -92,8 +92,10 @@ Deno.serve(async (req) => {
       : "Ninguno todavía: es una alumna nueva o lleva pocos ciclos.";
     // Nombres que la biblioteca tiene y esta alumna nunca hizo. El filtro de
     // equipamiento y nivel lo sigue aplicando el modelo con las reglas de abajo.
-    const nuncaUsados = (biblioteca as Array<{ nombre: string }>)
-      .filter(ex => !ciclosPorEj[ex.nombre])
+    // Mismo filtro de tecnica que la biblioteca de abajo: si no se los puede
+    // recetar, tampoco hay que ofrecerlos como alternativa fresca.
+    const nuncaUsados = (biblioteca as Array<{ nombre: string; descripcion?: string }>)
+      .filter(ex => !ciclosPorEj[ex.nombre] && (ex.descripcion ?? "").trim() !== "")
       .map(ex => ex.nombre);
     const frescosStr = nuncaUsados.length
       ? nuncaUsados.slice(0, 60).join(", ")
@@ -129,8 +131,13 @@ Deno.serve(async (req) => {
       maquina: "máquina", banda_elastica: "banda elástica", kettlebell: "pesa rusa",
       polea: "polea/cables", trx: "TRX", fitball: "esfera", step: "step/cajón"
     };
+    // Un ejercicio sin tecnica cargada no se le puede dar a nadie: la alumna
+    // abriria la tarjeta y encontraria el boton "Ver tecnica" vacio. Amira carga
+    // los ejercicios nuevos primero y les escribe la tecnica despues, asi que
+    // hasta que la tenga quedan fuera de la biblioteca que ve el modelo.
+    const bibUsable = (biblioteca as BibRow[]).filter(ex => (ex.descripcion ?? "").trim() !== "");
     const bibByGroup: Record<string, string[]> = {};
-    for (const ex of biblioteca as BibRow[]) {
+    for (const ex of bibUsable) {
       const g = ex.grupo_muscular ?? "Otros";
       if (!bibByGroup[g]) bibByGroup[g] = [];
       const equip = ex.equipamiento_requerido ? `[${equipLabels[ex.equipamiento_requerido] ?? ex.equipamiento_requerido}]` : "[sin equipamiento]";
