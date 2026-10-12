@@ -89,6 +89,18 @@ async function sbInsert(table, body) {
   return Array.isArray(rows) ? rows[0] : rows;
 }
 
+// Inserta sin pedir la fila de vuelta. Quien se inscribe sin haber ingresado
+// puede escribir en registros pero no leerla, y pedir la fila de vuelta
+// (return=representation) exige permiso de lectura: el insert fallaria.
+async function sbInsertSinRespuesta(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: getSBH({ 'Prefer': 'return=minimal' }),
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.text(); throw new Error(`INSERT ${table}: ${e}`); }
+}
+
 async function sbPatch(table, filter, body) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
     method: 'PATCH',
