@@ -2135,12 +2135,20 @@ function factorPersonal(aId){
       const k=`${p.ciclo}-${p.semana}-${p.dia}`;
       (porDia[k]=porDia[k]||[]).push(new Date(p.fecha_registro).getTime());
     }
-    const huecos=[];
+    // Solo las ultimas sesiones: si la alumna se vuelve mas rapida, el numero
+    // tiene que seguirla. Con el historial completo, sus primeras semanas
+    // lentas la frenarian para siempre.
+    const sesiones=[];
     for(const ts of Object.values(porDia)){
       if(ts.length<5) continue;
       ts.sort((a,b)=>a-b);
       const dur=(ts[ts.length-1]-ts[0])/60000;
       if(dur<15||dur>120) continue;          // marcadas de golpe o muy espaciadas
+      sesiones.push(ts);
+    }
+    sesiones.sort((x,y)=>y[0]-x[0]);         // de la mas reciente a la mas vieja
+    const huecos=[];
+    for(const ts of sesiones.slice(0,10)){
       for(let i=1;i<ts.length;i++){
         const g=(ts[i]-ts[i-1])/60000;
         if(g>=0&&g<=25) huecos.push(g);
@@ -2185,7 +2193,15 @@ function estimarMinutos(aId,exs){
   const f=factorPersonal(aId);
   return Math.round(exs.reduce((t,e)=>t+minutosDe(e.nombre),0)*f);
 }
-function textoMinutos(m){ return m>=60?`${Math.floor(m/60)} h ${m%60} min`:`~${m} min`; }
+// Se redondea a multiplos de 5: decir "1 h 9 min" promete una exactitud que la
+// estimacion no tiene, y despues la alumna siente que el numero le mintio.
+function textoMinutos(m){
+  if(!m) return '';
+  const r=Math.max(5,Math.round(m/5)*5);
+  if(r<60) return `aprox. ${r} min`;
+  const h=Math.floor(r/60), mm=r%60;
+  return mm?`aprox. ${h} h ${mm} min`:`aprox. ${h} h`;
+}
 
 // El ultimo peso que uso en ESE ejercicio, mirando todo su historial. Antes el
 // campo venia vacio (o con la sugerencia de la IA) y habia que escribir el
@@ -2555,8 +2571,9 @@ function renderRutina(){
 
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
+  let _htmlPausa='';
   if(exs.length>0&&!justDone&&!_noPude){
-    html+=`<div style="margin-bottom:.5rem;">
+    _htmlPausa=`<div style="margin-top:.9rem;margin-bottom:.5rem;">
       <div style="display:flex;gap:8px;margin-bottom:4px;">
         <button class="np-btn" style="flex:1;" onclick="abrirModalPausa(${a.id})">🚶 Pausa activa</button>
         <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
@@ -2602,7 +2619,7 @@ function renderRutina(){
   const _entran=cuantosEntran(a.id,exs,_tope);
   const _ocultos=Math.max(0,exs.length-_entran);
   if(exs.length>3&&!justDone&&!_noPude){
-    const _opts=[{m:10,l:'10 min'},{m:25,l:'25 min'},{m:0,l:'Todo'}];
+    const _opts=[{m:15,l:'15 min'},{m:30,l:'30 min'},{m:0,l:'Todo'}];
     html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .85rem;margin-bottom:.6rem;">
       <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">¿Cuánto tiempo tenés hoy?</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
@@ -2638,7 +2655,7 @@ function renderRutina(){
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
           <div class="ex-det">${ex.series} series × ${ex.reps}${(()=>{
-            const m=estimarMinutos(a.id,[ex]); return m>0?` · ~${m} min`:'';})()}</div>
+            const m=estimarMinutos(a.id,[ex]); return m>0?` · ${textoMinutos(m)}`:'';})()}</div>
         </div>
       </div>
       <div class="ex-btns">
@@ -2674,6 +2691,11 @@ function renderRutina(){
     </div>`;
   });
 
+  // Va despues de los ejercicios a proposito: es la salida para el dia que no
+  // se pudo entrenar, no la accion principal.
+  html+=_htmlPausa;
+
+
   if(justDone){
     html+=`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉<br><span style="font-size:13px;opacity:.85;font-family:'DM Sans',sans-serif;font-weight:400;">Recordá estirar para no sentirte adolorida 🤸</span></div>`;
     const _fbK=fbKey(a.id,selCiclo,selSem,selDia);
@@ -2701,6 +2723,27 @@ function renderRutina(){
   }
   if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
   scr.innerHTML=html;
+  acomodarVista(a.id);
+}
+
+// Arriba de los ejercicios hay saludo, progreso, semana, dia y tiempo: al abrir,
+// la alumna ve todo eso y ningun ejercicio. Se baja suave hasta el primero que
+// le falta, dejando el encabezado del dia a la vista para que no se desoriente.
+// Solo la primera vez que entra a ese dia: si ya scrolleo, no se le mueve nada.
+let _vistaAcomodada=null;
+function acomodarVista(aId){
+  try{
+    const clave=`${aId}-${selCiclo}-${selSem}-${selDia}`;
+    if(_vistaAcomodada===clave) return;
+    _vistaAcomodada=clave;
+    requestAnimationFrame(()=>{
+      const cards=[...document.querySelectorAll('.ex-card')];
+      if(!cards.length) return;
+      const objetivo=cards.find(c=>!c.classList.contains('done'))||cards[0];
+      const y=objetivo.getBoundingClientRect().top+window.scrollY-170;
+      if(y>60) window.scrollTo({top:y,behavior:'smooth'});
+    });
+  }catch(e){}
 }
 
 const _DIA_NAMES=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
