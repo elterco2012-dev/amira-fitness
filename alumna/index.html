@@ -653,8 +653,11 @@ async function doAlumnaSignup(){
   if(pin.length!==6||!/^\d{6}$/.test(pin)){msg.textContent='El PIN debe ser exactamente 6 dígitos.';return;}
   msg.textContent='Verificando...';
   try{
-    const rows=await sbGet('alumnas',`email=eq.${encodeURIComponent(email)}&select=id`);
-    if(!rows.length){msg.textContent='Email no registrado. Consultá a Amira.';return;}
+    // Sin haber ingresado no se puede leer la tabla de alumnas: solo se pregunta
+    // si el email esta registrado, y la respuesta es si o no.
+    const rr=await fetch(`${SB_URL}/rest/v1/rpc/alumna_registrada`,{method:'POST',headers:getSBH(),body:JSON.stringify({p_email:email})});
+    if(!rr.ok) throw new Error('rpc '+rr.status);
+    if(await rr.json()!==true){msg.textContent='Email no registrado. Consultá a Amira.';return;}
   }catch(e){msg.textContent='Error al verificar. Revisá tu conexión.';return;}
   try{
     msg.textContent='Creando acceso...';
