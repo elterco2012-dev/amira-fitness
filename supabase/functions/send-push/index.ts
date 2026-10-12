@@ -162,10 +162,11 @@ Deno.serve(async (req) => {
     if (!subs.length) return Response.json({ sent: 0, failed: 0, total: 0, reason: "no_subscriptions" }, { headers: CORS });
 
     const alumnaIds = [...new Set(subs.map(s => s.alumna_id))];
-    let alumnas: Array<{ id: number; nombre: string; slug: string; dias_disponibles?: string[] | null }> = [];
+    let alumnas: Array<{ id: number; nombre: string; slug: string; estado?: string | null; dias_disponibles?: string[] | null }> = [];
+    let alumnasLeidas = true;
     try {
-      alumnas = await dbGet(`alumnas?select=id,nombre,slug,dias_disponibles&id=in.(${alumnaIds.join(",")})`) as typeof alumnas;
-    } catch (_) { /* names are optional */ }
+      alumnas = await dbGet(`alumnas?select=id,nombre,slug,estado,dias_disponibles&id=in.(${alumnaIds.join(",")})`) as typeof alumnas;
+    } catch (_) { alumnasLeidas = false; }
     const alumnaMap = new Map(alumnas.map(a => [a.id, a]));
 
     // Mapeo de nombre de día → número UTC (0=Dom … 6=Sáb)
@@ -174,16 +175,37 @@ Deno.serve(async (req) => {
       jueves: 4, viernes: 5, sabado: 6,
     };
 
-    // Filter by training day when requested (used by cron, not manual panel sends)
     let filteredSubs = subs;
+
+    // Un envio a todas (sin alumna_id) es para las alumnas, no para las que se
+    // dieron de baja: 4 ex alumnas seguian recibiendo "tu entrenamiento de hoy te
+    // espera" todos los dias. Si una lo marca como spam, Chrome bloquea todas las
+    // notificaciones del sitio en ese telefono. Misma regla que el panel: sin
+    // estado cuenta como activa. Un envio a una alumna puntual lo decide Amira y
+    // no se filtra.
+    if (!alumnaFilter) {
+      // Sin poder leer el estado no se sabe quien se dio de baja: mejor no mandar
+      // nada ese dia que volver a escribirles a ellas.
+      if (!alumnasLeidas) {
+        return Response.json({ error: "No se pudo leer el estado de las alumnas; no se envió nada." }, { status: 500, headers: CORS });
+      }
+      filteredSubs = filteredSubs.filter(s => {
+        const a = alumnaMap.get(s.alumna_id);
+        return !!a && (!a.estado || a.estado === "activa");
+      });
+    }
+
+    // Filter by training day when requested (used by cron, not manual panel sends)
     if (filterByDay && !alumnaFilter) {
       // Argentina UTC-3: a las 12:00 UTC el día local coincide con el UTC
       const todayDow = new Date().getUTCDay();
-      filteredSubs = subs.filter(s => {
-        const alumna = alumnaMap.get(s.alumna_id);
-        const diasDisp = alumna?.dias_disponibles ?? [];
-        // Sin días específicos → enviar siempre (mejor notificar de más que de menos)
-        if (!diasDisp.length) return true;
+      filteredSubs = filteredSubs.filter(s => {
+        const diasDisp = alumnaMap.get(s.alumna_id)?.dias_disponibles ?? [];
+        // Sin dias cargados no se sabe cuando entrena. Antes se le mandaba todos
+        // los dias: 7 recordatorios por semana para 2 o 3 entrenamientos, que es
+        // justo lo que hace que una notificacion se marque como spam. Recibe el
+        // recordatorio cuando Amira le cargue los dias.
+        if (!diasDisp.length) return false;
         return diasDisp.some(d => DOW[d] === todayDow);
       });
     }
