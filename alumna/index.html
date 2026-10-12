@@ -86,6 +86,22 @@
     .prog-fill{height:100%;background:var(--v);border-radius:99px;transition:width .4s cubic-bezier(.4,0,.2,1);}
     .dlbl{font-size:10px;font-weight:500;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem;}
 
+    /* Franja fina con el progreso, debajo del encabezado fijo. Sale de pantalla
+       con transform (no con display) para que entre y salga sin saltos. */
+    .prog-mini{position:fixed;left:0;right:0;z-index:19;background:var(--s);
+      border-bottom:1px solid var(--b);padding:7px 1.25rem 8px;
+      transform:translateY(-130%);transition:transform .18s ease;pointer-events:none;}
+    .prog-mini.on{transform:translateY(0);}
+    .prog-mini .pm-txt{display:flex;justify-content:space-between;gap:10px;
+      font-size:11px;color:var(--tm);margin-bottom:5px;}
+    .prog-mini .pm-bar{height:4px;background:var(--b);border-radius:99px;overflow:hidden;}
+    .prog-mini .pm-fill{height:100%;background:var(--v);border-radius:99px;
+      transition:width .4s cubic-bezier(.4,0,.2,1);}
+    @media (prefers-reduced-motion:reduce){
+      .prog-mini{transition:none;}
+      .prog-mini .pm-fill{transition:none;}
+    }
+
     .ex-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem;transition:all .25s;}
     .ex-card.done{background:var(--vl);border-color:var(--vm);}
     .ex-top{display:flex;align-items:center;gap:10px;cursor:pointer;}
@@ -2606,17 +2622,27 @@ function renderRutina(){
   html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
 
   // Progreso del día
+  // Siempre fue el tiempo de lo que FALTA, pero decia solo "aprox. 20 min" y se
+  // leia como la duracion de toda la sesion. Una vez empezada, se aclara que es
+  // lo que queda.
+  const _progTxt=(()=>{
+    const falta=exs.filter((_,ix)=>!done[dKey(a.id,selSem,selDia,ix)]);
+    const m=estimarMinutos(a.id,falta);
+    if(!(m>0)) return `${comp} de ${total} ejercicios`;
+    return comp>0
+      ? `${comp} de ${total} ejercicios · te faltan ${textoMinutos(m)}`
+      : `${comp} de ${total} ejercicios · ${textoMinutos(m)}`;
+  })();
   html+=`<div class="prog-wrap">
-    <div class="prog-top"><span>${comp} de ${total} ejercicios${(()=>{
-      // Siempre fue el tiempo de lo que FALTA, pero decia solo "aprox. 20 min"
-      // y se leia como la duracion de toda la sesion. Una vez empezada, se
-      // aclara que es lo que queda.
-      const falta=exs.filter((_,ix)=>!done[dKey(a.id,selSem,selDia,ix)]);
-      const m=estimarMinutos(a.id,falta);
-      if(!(m>0)) return '';
-      return comp>0?` · te faltan ${textoMinutos(m)}` : ` · ${textoMinutos(m)}`;
-    })()}</span><span>${pct}%</span></div>
+    <div class="prog-top"><span>${_progTxt}</span><span>${pct}%</span></div>
     <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+  </div>
+  <!-- El dato que mas sirve ("te faltan 15 min") vivia solo arriba de todo, asi
+       que desaparecia justo cuando la alumna bajaba a marcar el ejercicio 8. Se
+       repite en una franja fina que aparece sola al pasar el bloque grande. -->
+  <div class="prog-mini" id="prog-mini" aria-hidden="true">
+    <div class="pm-txt"><span>${_progTxt}</span><span>${pct}%</span></div>
+    <div class="pm-bar"><div class="pm-fill" style="width:${pct}%"></div></div>
   </div>
   <div class="dlbl">${(a.ciclos_nombres||{})[selCiclo]||'Ciclo '+selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
 
@@ -2774,7 +2800,28 @@ function renderRutina(){
   }
   if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
   scr.innerHTML=html;
+  montarProgMini();
   acomodarVista(a.id);
+}
+
+// La franja se muestra solo cuando el bloque grande de progreso quedo arriba de
+// la pantalla: mientras se lo ve, repetirlo seria ruido. Se apoya justo debajo
+// del encabezado, que es fijo y cuya altura cambia segun el telefono.
+let _obsProg=null;
+function montarProgMini(){
+  try{
+    if(_obsProg){ _obsProg.disconnect(); _obsProg=null; }
+    const mini=document.getElementById('prog-mini');
+    const grande=document.querySelector('.prog-wrap');
+    if(!mini||!grande) return;
+    const hdr=document.querySelector('.header');
+    mini.style.top=((hdr?hdr.offsetHeight:0))+'px';
+    if(!('IntersectionObserver' in window)) return;   // sin soporte, no aparece
+    _obsProg=new IntersectionObserver(([e])=>{
+      mini.classList.toggle('on',!e.isIntersecting&&e.boundingClientRect.top<0);
+    },{threshold:0});
+    _obsProg.observe(grande);
+  }catch(e){}
 }
 
 // Arriba de los ejercicios hay saludo, progreso, semana, dia y tiempo: al abrir,
