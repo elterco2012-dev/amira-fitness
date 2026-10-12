@@ -229,7 +229,11 @@ if(fichaSlug && localStorage.getItem(fichaKey)){
 // Pre-cargar nombre de la alumna si viene en la URL
 async function cargarAlumna(){
   try{
-    const alumnas = await sbGet('alumnas',`slug=eq.${encodeURIComponent(fichaSlug)}`);
+    // La ficha se abre con un link, sin haber ingresado. Antes leia la fila
+    // completa de la alumna, incluida la fecha de nacimiento, que es su PIN de
+    // ingreso a la app. Ahora recibe solo lo necesario para precargar.
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/ficha_alumna`,{method:'POST',headers:getSBH(),body:JSON.stringify({p_slug:fichaSlug})});
+    const alumnas = r.ok ? await r.json() : [];
     const a = alumnas[0];
     if(a){
       fichaAlumnaId=a.id;
@@ -241,21 +245,12 @@ async function cargarAlumna(){
       const h=document.querySelector('.header h1');
       if(h) h.textContent=`Ficha de salud — ${a.nombre.split(' ')[0]}`;
 
-      // Auto-fill known fields and hide them — alumna data already exists
-      if(a.email){
-        document.getElementById('f-mail').value=a.email;
-        document.getElementById('row-mail').style.display='none';
-      }
-      if(a.tel){
-        document.getElementById('f-tel').value=a.tel;
-        document.getElementById('row-tel').style.display='none';
-      }
-      if(a.nacimiento){
-        const hoy=new Date();const nac=new Date(a.nacimiento);
-        let edad=hoy.getFullYear()-nac.getFullYear();
-        const dm=hoy.getMonth()-nac.getMonth();
-        if(dm<0||(dm===0&&hoy.getDate()<nac.getDate()))edad--;
-        document.getElementById('f-edad').value=edad;
+      // Lo que ya esta en su ficha no se vuelve a pedir. Email y telefono no
+      // viajan al navegador: alcanza con saber que estan cargados.
+      if(a.tiene_email) document.getElementById('row-mail').style.display='none';
+      if(a.tiene_tel) document.getElementById('row-tel').style.display='none';
+      if(a.edad!=null){
+        document.getElementById('f-edad').value=a.edad;
         document.getElementById('row-edad').style.display='none';
       }
       // Pre-select lugar from alumna tipo and hide the section
@@ -385,11 +380,14 @@ async function enviar(){
     // Alumna existente: actualizar sus datos de salud y guardar como aprobado (sin revisión manual)
     datos.alumna_id = fichaAlumnaId;
     datos.estado = 'aprobado';
-    const healthUpd = {};
-    if(datos.lesiones && datos.lesiones !== 'Sin lesiones') healthUpd.lesiones = datos.lesiones;
-    if(datos.tel) healthUpd.tel = datos.tel;
-    // Health data is stored in the registro record — don't duplicate into a.notas
-    try{await sbPatch('alumnas',`id=eq.${fichaAlumnaId}`,healthUpd);}catch(e){console.warn('patch alumna:',e);}
+    // Actualiza solo lesiones y telefono de esta alumna. Sin haber ingresado no se
+    // puede escribir la tabla de alumnas directamente.
+    const lesiones = datos.lesiones && datos.lesiones !== 'Sin lesiones' ? datos.lesiones : '';
+    try{
+      const r = await fetch(`${SB_URL}/rest/v1/rpc/ficha_guardar`,{method:'POST',headers:getSBH(),
+        body:JSON.stringify({p_slug:fichaSlug,p_lesiones:lesiones,p_tel:datos.tel||''})});
+      if(!r.ok) console.warn('ficha_guardar:', r.status, await r.text());
+    }catch(e){console.warn('ficha_guardar:',e);}
     try{await sbInsert('registros',datos);}catch(e){console.warn('insert registro:',e);}
   } else {
     // Alumna nueva: crear registro pendiente para revisión
