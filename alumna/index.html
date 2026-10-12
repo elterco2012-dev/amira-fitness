@@ -2086,6 +2086,123 @@ function mostrarBannerIOS(){
 }
 
 let _pt={};
+// ── Cuánto va a durar la sesión ───────────────────────────────
+// La pantalla decía "10 ejercicios" y nada más. Una persona con 20 minutos
+// libres no podía saber si le entraba, así que no empezaba: el 37% de los días
+// planificados nunca arrancan, y solo el 1% se abandona a mitad de camino. El
+// problema es el costo de arrancar, no el de seguir.
+//
+// Las medianas salen de 3.647 intervalos medidos entre un ejercicio marcado y
+// el siguiente, sobre sesiones de entre 15 minutos y 2 horas (las que se marcan
+// de golpe quedan afuera porque no reflejan tiempo real). Las series casi no
+// mueven la aguja (3,1 / 3,2 / 3,7 min para 2, 3 y 4); lo que manda es el tipo
+// de ejercicio: de 2,5 min una espalda con mancuernas a 6,4 un cuádriceps en
+// máquina. Las máquinas son lo más lento (hay que llegar, regularla, esperarla).
+const MIN_GLOBAL = 3.2;
+const MIN_POR_GRUPO = {
+  'Cuádriceps|maquina':6.4, 'Glúteos|maquina':5.0, 'Isquiotibiales|sin_equipamiento':4.9,
+  'Isquiotibiales|mancuernas':4.0, 'Cuádriceps|sin_equipamiento':3.8, 'Espalda|maquina':3.8,
+  'Glúteos|mancuernas':3.8, 'Aductores|mancuernas':3.6, 'Cuádriceps|mancuernas':3.5,
+  'Pecho|sin_equipamiento':3.3, 'Glúteos|sin_equipamiento':3.1, 'Core|mancuernas':2.9,
+  'Core|sin_equipamiento':2.9, 'Tríceps|mancuernas':2.6, 'Espalda|sin_equipamiento':2.6,
+  'Espalda|mancuernas':2.5,
+};
+const MIN_POR_EQUIP = {
+  maquina:4.7, trx:4.4, barra:4.1, banda_elastica:3.6, step:3.5,
+  sin_equipamiento:3.2, polea:2.9, mancuernas:2.9, fitball:2.7,
+};
+
+function minutosDe(nombre){
+  const m=(DB.metaEj||{})[nombre];
+  if(!m) return MIN_GLOBAL;
+  const k=`${m.grupo}|${m.equip}`;
+  if(MIN_POR_GRUPO[k]!=null) return MIN_POR_GRUPO[k];
+  if(MIN_POR_EQUIP[m.equip]!=null) return MIN_POR_EQUIP[m.equip];
+  return MIN_GLOBAL;
+}
+
+// Cada alumna tiene su propio ritmo, y la diferencia es grande: medido, va de
+// 2,0 a 6,1 minutos por ejercicio. Dos personas con la misma rutina de 10
+// ejercicios tardan 25 y 65 minutos. Por eso la estimación se corrige con su
+// historial. Con menos de 3 sesiones medidas se usa el promedio de todas.
+let _factorCache=null;
+function factorPersonal(aId){
+  if(_factorCache!=null) return _factorCache;
+  try{
+    const porDia={};
+    for(const p of (DB.progresoRaw||[])){
+      if(!p.hecho||p.ejercicio_idx<0||!p.fecha_registro) continue;
+      const k=`${p.ciclo}-${p.semana}-${p.dia}`;
+      (porDia[k]=porDia[k]||[]).push(new Date(p.fecha_registro).getTime());
+    }
+    // Solo las ultimas sesiones: si la alumna se vuelve mas rapida, el numero
+    // tiene que seguirla. Con el historial completo, sus primeras semanas
+    // lentas la frenarian para siempre.
+    const sesiones=[];
+    for(const ts of Object.values(porDia)){
+      if(ts.length<5) continue;
+      ts.sort((a,b)=>a-b);
+      const dur=(ts[ts.length-1]-ts[0])/60000;
+      if(dur<15||dur>120) continue;          // marcadas de golpe o muy espaciadas
+      sesiones.push(ts);
+    }
+    sesiones.sort((x,y)=>y[0]-x[0]);         // de la mas reciente a la mas vieja
+    const huecos=[];
+    for(const ts of sesiones.slice(0,10)){
+      for(let i=1;i<ts.length;i++){
+        const g=(ts[i]-ts[i-1])/60000;
+        if(g>=0&&g<=25) huecos.push(g);
+      }
+    }
+    if(huecos.length<20){ _factorCache=1; return 1; }
+    huecos.sort((a,b)=>a-b);
+    const med=huecos[Math.floor(huecos.length/2)];
+    // Se acota para que un historial raro no dé estimaciones absurdas.
+    _factorCache=Math.min(2.5,Math.max(0.5,med/MIN_GLOBAL));
+  }catch(e){ _factorCache=1; }
+  return _factorCache;
+}
+
+// "Tengo 10 minutos" es una respuesta que se puede dar; "tengo 45 seguidos"
+// casi nunca. Los ejercicios ya vienen ordenados de mayor a menor importancia
+// (compuestos pesados primero, aislamientos al final), asi que quedarse con los
+// primeros no es recortar al azar: es quedarse con lo que mas rinde.
+function claveTope(aId){ return `af-tope-${aId}-c${selCiclo}-${selSem}-${selDia}`; }
+function topeDelDia(aId){ const v=localStorage.getItem(claveTope(aId)); return v?parseInt(v):0; }
+function fijarTope(aId,mins){
+  if(mins) localStorage.setItem(claveTope(aId),String(mins));
+  else localStorage.removeItem(claveTope(aId));
+  renderRutina();
+}
+// Cuantos ejercicios entran en el tiempo disponible. Los ya hechos no se
+// descuentan del presupuesto pero tampoco se esconden.
+function cuantosEntran(aId,exs,mins){
+  if(!mins) return exs.length;
+  const f=factorPersonal(aId);
+  let acum=0,n=0;
+  for(const e of exs){
+    acum+=minutosDe(e.nombre)*f;
+    n++;
+    if(acum>=mins) break;
+  }
+  return Math.max(1,n);
+}
+
+function estimarMinutos(aId,exs){
+  if(!exs||!exs.length) return 0;
+  const f=factorPersonal(aId);
+  return Math.round(exs.reduce((t,e)=>t+minutosDe(e.nombre),0)*f);
+}
+// Se redondea a multiplos de 5: decir "1 h 9 min" promete una exactitud que la
+// estimacion no tiene, y despues la alumna siente que el numero le mintio.
+function textoMinutos(m){
+  if(!m) return '';
+  const r=Math.max(5,Math.round(m/5)*5);
+  if(r<60) return `aprox. ${r} min`;
+  const h=Math.floor(r/60), mm=r%60;
+  return mm?`aprox. ${h} h ${mm} min`:`aprox. ${h} h`;
+}
+
 // El ultimo peso que uso en ESE ejercicio, mirando todo su historial. Antes el
 // campo venia vacio (o con la sugerencia de la IA) y habia que escribir el
 // numero de nuevo cada vez; ahora, si usa lo mismo, no escribe nada.
@@ -2443,15 +2560,20 @@ function renderRutina(){
 
   // Progreso del día
   html+=`<div class="prog-wrap">
-    <div class="prog-top"><span>${comp} de ${total} ejercicios</span><span>${pct}%</span></div>
+    <div class="prog-top"><span>${comp} de ${total} ejercicios${(()=>{
+      const falta=exs.filter((_,ix)=>!done[dKey(a.id,selSem,selDia,ix)]);
+      const m=estimarMinutos(a.id,falta);
+      return m>0?` · ${textoMinutos(m)}`:'';
+    })()}</span><span>${pct}%</span></div>
     <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
   </div>
   <div class="dlbl">${(a.ciclos_nombres||{})[selCiclo]||'Ciclo '+selCiclo} · Semana ${selSem} · Día ${selDia}</div>`;
 
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
+  let _htmlPausa='';
   if(exs.length>0&&!justDone&&!_noPude){
-    html+=`<div style="margin-bottom:.5rem;">
+    _htmlPausa=`<div style="margin-top:.9rem;margin-bottom:.5rem;">
       <div style="display:flex;gap:8px;margin-bottom:4px;">
         <button class="np-btn" style="flex:1;" onclick="abrirModalPausa(${a.id})">🚶 Pausa activa</button>
         <button class="np-btn" style="flex:1;opacity:.75;" onclick="marcarNoPude(${a.id})">😔 No pude nada hoy</button>
@@ -2492,8 +2614,29 @@ function renderRutina(){
     }
   }
 
+  // ── ¿Cuánto tiempo tenés hoy? ──
+  const _tope=topeDelDia(a.id);
+  const _entran=cuantosEntran(a.id,exs,_tope);
+  const _ocultos=Math.max(0,exs.length-_entran);
+  if(exs.length>3&&!justDone&&!_noPude){
+    const _opts=[{m:15,l:'15 min'},{m:30,l:'30 min'},{m:0,l:'Todo'}];
+    html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .85rem;margin-bottom:.6rem;">
+      <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;">¿Cuánto tiempo tenés hoy?</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+        ${_opts.map(o=>`<button onclick="fijarTope(${a.id},${o.m})" style="padding:8px 4px;border-radius:9px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;
+          border:1px solid ${_tope===o.m?'var(--v)':'var(--bm)'};
+          background:${_tope===o.m?'var(--vl)':'var(--s)'};
+          color:${_tope===o.m?'var(--vd)':'var(--t)'};">${o.l}</button>`).join('')}
+      </div>
+      ${_ocultos>0?`<div style="font-size:11px;color:var(--tm);margin-top:.5rem;line-height:1.5;">
+        ${_entran===1?'Te dejo el que más rinde':`Te dejo los ${_entran} que más rinden`}. Lo que hagas cuenta igual 💪</div>`:''}
+    </div>`;
+  }
+
   exs.forEach((ex,i)=>{
     const isDone=!!done[dKey(a.id,selSem,selDia,i)];
+    // Un ejercicio ya hecho nunca se esconde: se perderia el registro de vista.
+    if(i>=_entran&&!isDone) return;
     const isExp=!!expanded[eKey(a.id,selSem,selDia,i)];
     const pv=pesos[pKey(a.id,selSem,selDia,i)]||'';
     // Use peso_base as display-only hint; never write it to pesos dict to avoid
@@ -2511,7 +2654,8 @@ function renderRutina(){
         <div class="ex-num" id="exn-${a.id}-${i}">${isDone?'✓':i+1}</div>
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
-          <div class="ex-det">${ex.series} series × ${ex.reps}</div>
+          <div class="ex-det">${ex.series} series × ${ex.reps}${(()=>{
+            const m=estimarMinutos(a.id,[ex]); return m>0?` · ${textoMinutos(m)}`:'';})()}</div>
         </div>
       </div>
       <div class="ex-btns">
@@ -2547,6 +2691,11 @@ function renderRutina(){
     </div>`;
   });
 
+  // Va despues de los ejercicios a proposito: es la salida para el dia que no
+  // se pudo entrenar, no la accion principal.
+  html+=_htmlPausa;
+
+
   if(justDone){
     html+=`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉<br><span style="font-size:13px;opacity:.85;font-family:'DM Sans',sans-serif;font-weight:400;">Recordá estirar para no sentirte adolorida 🤸</span></div>`;
     const _fbK=fbKey(a.id,selCiclo,selSem,selDia);
@@ -2574,6 +2723,27 @@ function renderRutina(){
   }
   if(a.notas) html+=`<div class="nota">💬 ${a.notas}</div>`;
   scr.innerHTML=html;
+  acomodarVista(a.id);
+}
+
+// Arriba de los ejercicios hay saludo, progreso, semana, dia y tiempo: al abrir,
+// la alumna ve todo eso y ningun ejercicio. Se baja suave hasta el primero que
+// le falta, dejando el encabezado del dia a la vista para que no se desoriente.
+// Solo la primera vez que entra a ese dia: si ya scrolleo, no se le mueve nada.
+let _vistaAcomodada=null;
+function acomodarVista(aId){
+  try{
+    const clave=`${aId}-${selCiclo}-${selSem}-${selDia}`;
+    if(_vistaAcomodada===clave) return;
+    _vistaAcomodada=clave;
+    requestAnimationFrame(()=>{
+      const cards=[...document.querySelectorAll('.ex-card')];
+      if(!cards.length) return;
+      const objetivo=cards.find(c=>!c.classList.contains('done'))||cards[0];
+      const y=objetivo.getBoundingClientRect().top+window.scrollY-170;
+      if(y>60) window.scrollTo({top:y,behavior:'smooth'});
+    });
+  }catch(e){}
 }
 
 const _DIA_NAMES=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
@@ -3009,7 +3179,7 @@ async function init(){
         sbGet('ejercicios_biblioteca','grupo_muscular=eq.Estiramiento&order=nombre.asc').catch(()=>[]),
         // Solo nombre y equipamiento: alcanza para saber en que ejercicios no
         // tiene sentido pedir un peso (plancha, flexiones, espinales).
-        sbGet('ejercicios_biblioteca','select=nombre,equipamiento_requerido&order=nombre.asc').catch(()=>[]),
+        sbGet('ejercicios_biblioteca','select=nombre,equipamiento_requerido,grupo_muscular&order=nombre.asc').catch(()=>[]),
         sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[]),
         sbGet('feedbacks',`alumna_id=eq.${a.id}&tipo=in.(pausa_activa,no_pude)&order=created_at.asc&limit=1000`).catch(()=>[])
       ]);
@@ -3018,7 +3188,10 @@ async function init(){
       if(calBib.length>0)DB.calentamiento=calBib;
       if(estBib.length>0)DB.estiramiento=estBib;
       DB.equipPorEj={};
-      (equipBib||[]).forEach(e=>{ if(e&&e.nombre)DB.equipPorEj[e.nombre]=e.equipamiento_requerido||''; });
+      DB.metaEj={};
+      (equipBib||[]).forEach(e=>{ if(!e||!e.nombre)return;
+        DB.equipPorEj[e.nombre]=e.equipamiento_requerido||'';
+        DB.metaEj[e.nombre]={equip:e.equipamiento_requerido||'',grupo:e.grupo_muscular||''}; });
       DB.pesoAlumnaHist=pcRows;
       mostrarAvisos(a);
       // Si el panel reseteó el progreso, limpiar caché local antes de cargar
@@ -3028,6 +3201,7 @@ async function init(){
         localStorage.setItem('af-last-reset', a.progreso_reset_at);
       }
       DB.progresoRaw = prog;
+      _factorCache=null;   // el ritmo se recalcula con el historial recien traido
       prog.forEach(p=>{
         if(p.ejercicio_idx<0) return; // km activities handled by loadKmFromDB
         if(p.hecho){
