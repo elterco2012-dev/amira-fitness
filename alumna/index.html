@@ -2112,9 +2112,24 @@ const MIN_POR_EQUIP = {
   sin_equipamiento:3.2, polea:2.9, mancuernas:2.9, fitball:2.7,
 };
 
-function minutosDe(nombre){
-  const m=(DB.metaEj||{})[nombre];
-  if(!m) return MIN_GLOBAL;
+function equipDelNombre(nombre){
+  const n=(nombre||'').toLowerCase();
+  if(n.includes('máquina')||n.includes('maquina')) return 'maquina';
+  if(n.includes('polea')) return 'polea';
+  if(n.includes('barra')&&!n.includes('barra fija')) return 'barra';
+  if(n.includes('mancuerna')) return 'mancuernas';
+  if(n.includes('banda')) return 'banda_elastica';
+  if(n.includes('kettlebell')||n.includes('pesa rusa')) return 'kettlebell';
+  return '';
+}
+function minutosDe(nombre,grupoRutina){
+  let m=(DB.metaEj||{})[nombre];
+  if(!m){
+    // La biblioteca puede no haber llegado: se arma con lo que si se tiene.
+    const eq=equipDelNombre(nombre);
+    if(!eq&&!grupoRutina) return MIN_GLOBAL;
+    m={equip:eq,grupo:grupoRutina||''};
+  }
   const k=`${m.grupo}|${m.equip}`;
   if(MIN_POR_GRUPO[k]!=null) return MIN_POR_GRUPO[k];
   if(MIN_POR_EQUIP[m.equip]!=null) return MIN_POR_EQUIP[m.equip];
@@ -2181,7 +2196,7 @@ function cuantosEntran(aId,exs,mins){
   const f=factorPersonal(aId);
   let acum=0,n=0;
   for(const e of exs){
-    acum+=minutosDe(e.nombre)*f;
+    acum+=minutosDe(e.nombre,e.grupo)*f;
     n++;
     if(acum>=mins) break;
   }
@@ -2191,7 +2206,7 @@ function cuantosEntran(aId,exs,mins){
 function estimarMinutos(aId,exs){
   if(!exs||!exs.length) return 0;
   const f=factorPersonal(aId);
-  return Math.round(exs.reduce((t,e)=>t+minutosDe(e.nombre),0)*f);
+  return Math.round(exs.reduce((t,e)=>t+minutosDe(e.nombre,e.grupo),0)*f);
 }
 // Se redondea a multiplos de 5: decir "1 h 9 min" promete una exactitud que la
 // estimacion no tiene, y despues la alumna siente que el numero le mintio.
@@ -2202,13 +2217,16 @@ function textoMinutos(m){
   const h=Math.floor(r/60), mm=r%60;
   return mm?`aprox. ${h} h ${mm} min`:`aprox. ${h} h`;
 }
+// Para UN ejercicio no se redondea a 5: entre 3 y 5 minutos hay una diferencia
+// que la alumna percibe, y agruparlos a todos en "5 min" vuelve inutil el dato.
+function textoMinutosEj(m){ return m>0?`~${Math.max(1,Math.round(m))} min`:''; }
 
 // El ultimo peso que uso en ESE ejercicio, mirando todo su historial. Antes el
 // campo venia vacio (o con la sugerencia de la IA) y habia que escribir el
 // numero de nuevo cada vez; ahora, si usa lo mismo, no escribe nada.
 function ultimoPesoDe(aId,nombre){
   if(!nombre)return null;
-  const filas=(DB.progresoRaw||[]).filter(p=>p.ejercicio_nombre===nombre&&parseFloat(p.peso_kg)>0);
+  const filas=(DB.progresoRaw||[]).filter(p=>p.hecho&&p.ejercicio_nombre===nombre&&parseFloat(p.peso_kg)>0);
   if(!filas.length)return null;
   filas.sort((x,y)=>String(y.fecha_registro||'').localeCompare(String(x.fecha_registro||'')));
   const kg=parseFloat(filas[0].peso_kg);
@@ -2655,7 +2673,7 @@ function renderRutina(){
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
           <div class="ex-det">${ex.series} series × ${ex.reps}${(()=>{
-            const m=estimarMinutos(a.id,[ex]); return m>0?` · ${textoMinutos(m)}`:'';})()}</div>
+            const m=estimarMinutos(a.id,[ex]); return m>0?` · ${textoMinutosEj(m)}`:'';})()}</div>
         </div>
       </div>
       <div class="ex-btns">
