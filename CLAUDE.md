@@ -82,6 +82,10 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 
 **Deployment:** push a `main` → Vercel deploya automáticamente. Las Edge Functions se despliegan con `supabase functions deploy <nombre>`.
 
+**Qué se publica:** Vercel publica en amirafitness.com.ar todo lo que está en el repo, salvo lo que figura en `.vercelignore`: notas técnicas, migraciones, funciones del servidor y `.claude/`. Hasta el 13/10/2026 este archivo se podía leer desde el sitio. Un archivo nuevo que no sea para el sitio va en esa lista.
+
+**Permisos de Claude (`.claude/settings.json`, 13/10/2026):** las sesiones de este repo trabajan sin pedir permiso a cada paso, salvo para cambiar la base: el SQL que escribe o borra, `apply_migration` y `deploy_edge_function` pasan por `.claude/hooks/preguntar_si_cambia_la_base.py`, que le pregunta a Aaron y le explica el motivo en el cartel. No sacar ese control. Solo vale en sesiones con un único repositorio.
+
 ---
 
 ## Base de datos — tablas principales
