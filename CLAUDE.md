@@ -184,7 +184,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v67` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v68` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -206,6 +206,7 @@ Estrategias:
 **Arranque guiado (desde el 13/10/2026):** durante sus primeros 14 días (`DIAS_ARRANQUE`), cada alumna aparece en Inicio → "🌱 Primeras dos semanas".
 - Pasos: bienvenida, entró a la app, eligió sus días, notificaciones, primer entrenamiento, mensaje del día 3 y mensaje del día 7.
 - Botón con el próximo mensaje que toca. Mientras no entre a la app, solo "¿Pudiste entrar?", un día después de la bienvenida y cada dos días.
+- Si ya entró a la app, la bienvenida cuenta como hecha, aunque no haya registro del envío. Desde el día 7, el mensaje del día 3 que no se mandó queda salteado y toca el del día 7.
 - Los mensajes son las plantillas `o_entrar`, `o_dia3`, `o_dia3b` y `o_dia7` (`[arranque]` dice cuántos entrenamientos hizo). El prefijo `o_` las deja editables en Recordatorios sin llenar el menú de WhatsApp de la ficha.
 - Cada envío queda en `contactos`, con motivo `ingreso`, `arranque3` o `arranque7`.
 - "Entró a la app" sale de `ingresos_alumnas()`, que devuelve el último ingreso de `auth.users` solo a Amira. Si no responde, cuenta cualquier cosa que solo se hace adentro de la app.
