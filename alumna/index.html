@@ -1477,8 +1477,11 @@ function getSemanas(aId, ciclo){
 function getCiclos(aId){
   const r = DB.rutinas[aId];
   if(!r) return [1];
+  // Un ciclo con solo el calentamiento (semana 0) no tiene nada para entrenar: a
+  // varias alumnas nuevas la rutina les quedo en el ciclo 2 y veian un "Ciclo 1" vacio.
+  const conDias = c => Object.entries(r[c]||{}).some(([s,dias])=>parseInt(s)>0&&Array.isArray(dias)&&dias.some(d=>d.ejercicios&&d.ejercicios.length));
   // Orden numerico: sort() a secas ordena como texto y desde el ciclo 10 queda 1, 10, 2...
-  const ciclos = Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort((x,y)=>x-y);
+  const ciclos = Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0&&conDias(k)).sort((x,y)=>x-y);
   return ciclos.length>0 ? ciclos : [1];
 }
 
@@ -2719,9 +2722,11 @@ function renderRutina(){
   // Primera visita: ir directo al primer día que tenga ejercicios
   if(isFirstEver) autoSelectFirstDay(a.id, selCiclo);
   // Con los datos ya cargados (no con los de la copia local del arranque).
+  // Tambien sin dia guardado (otro telefono, o se borraron los datos del navegador):
+  // ahi se elige el primer dia con ejercicios, y si ya esta hecho se sigue al pendiente.
   if(_irAlPendiente&&!window._cargando){
     _irAlPendiente=false;
-    if(!isFirstEver&&selCiclo===cicloActual&&diaHechoOCorto(a.id,selCiclo,selSem,selDia)){
+    if(selCiclo===cicloActual&&diaHechoOCorto(a.id,selCiclo,selSem,selDia)){
       const p=proximoPendiente(a.id,selCiclo,selSem,selDia);
       if(p){ selSem=p.s; selDia=p.d; localStorage.setItem('af-selSem',selSem); localStorage.setItem('af-selDia',selDia); }
     }
