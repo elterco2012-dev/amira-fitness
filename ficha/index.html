@@ -192,7 +192,7 @@
       <input type="checkbox" id="acepto" style="width:auto;margin:0;margin-top:2px;">
       <span style="font-size:12px;color:var(--tm);">Acepto y confirmo la veracidad de los datos proporcionados.</span>
     </label>
-    <div class="nav-btns"><button class="btn btn-back" onclick="prev(4)">← Volver</button><button class="btn btn-p" onclick="enviar()">Enviar ficha</button></div>
+    <div class="nav-btns"><button class="btn btn-back" onclick="prev(4)">← Volver</button><button class="btn btn-p" id="btn-enviar" onclick="enviar()">Enviar ficha</button></div>
     <div id="s4-msg" style="font-size:12px;margin-top:8px;color:var(--rd);"></div>
   </div>
 
@@ -351,6 +351,8 @@ function prev(n){goTo(n-1);}
 
 async function enviar(){
   if(!validate(4))return;
+  const btn=document.getElementById('btn-enviar'), msg4=document.getElementById('s4-msg');
+  btn.disabled=true; btn.textContent='Enviando…'; msg4.textContent='';
   const datos={
     nombre:document.getElementById('f-nombre').value.trim(),
     tel:document.getElementById('f-tel').value.trim(),
@@ -376,25 +378,37 @@ async function enviar(){
     tipo:'ficha_salud'
   };
 
-  if(fichaAlumnaId){
-    // Alumna existente: actualizar sus datos de salud y guardar como aprobado (sin revisión manual)
-    datos.alumna_id = fichaAlumnaId;
-    datos.estado = 'aprobado';
-    // Actualiza solo lesiones y telefono de esta alumna. Sin haber ingresado no se
-    // puede escribir la tabla de alumnas directamente.
-    const lesiones = datos.lesiones && datos.lesiones !== 'Sin lesiones' ? datos.lesiones : '';
-    try{
-      const r = await fetch(`${SB_URL}/rest/v1/rpc/ficha_guardar`,{method:'POST',headers:getSBH(),
-        body:JSON.stringify({p_slug:fichaSlug,p_lesiones:lesiones,p_tel:datos.tel||''})});
-      if(!r.ok) console.warn('ficha_guardar:', r.status, await r.text());
-    }catch(e){console.warn('ficha_guardar:',e);}
-    try{await sbInsertSinRespuesta('registros',datos);}catch(e){console.warn('insert registro:',e);}
-  } else {
-    // Alumna nueva: crear registro pendiente para revisión
-    datos.estado = 'pendiente';
-    try{await sbInsertSinRespuesta('registros',datos);}catch(e){console.warn('Supabase error:',e);}
+  // Lo que importa es que la ficha le llegue a Amira (registros). Hasta el 13/10
+  // un error se tragaba en silencio: decia "¡Ficha enviada!", bloqueaba el
+  // formulario y la ficha no estaba en ningun lado. Ahora, si no se guarda, se
+  // avisa y se puede volver a enviar.
+  try{
+    if(fichaAlumnaId){
+      // Alumna existente: se guarda como aprobada (sin revision manual)
+      datos.alumna_id = fichaAlumnaId;
+      datos.estado = 'aprobado';
+      await sbInsertSinRespuesta('registros',datos);
+      // Copia lesiones y telefono a su perfil (sin haber ingresado no se puede
+      // escribir la tabla de alumnas). Si esto falla la ficha igual le llego, y el
+      // panel le avisa a Amira que hay una lesion declarada sin pasar.
+      const lesiones = datos.lesiones && datos.lesiones !== 'Sin lesiones' ? datos.lesiones : '';
+      try{
+        const r = await fetch(`${SB_URL}/rest/v1/rpc/ficha_guardar`,{method:'POST',headers:getSBH(),
+          body:JSON.stringify({p_slug:fichaSlug,p_lesiones:lesiones,p_tel:datos.tel||''})});
+        if(!r.ok) console.warn('ficha_guardar:', r.status, await r.text());
+      }catch(e){console.warn('ficha_guardar:',e);}
+    } else {
+      // Alumna nueva: crear registro pendiente para revisión
+      datos.estado = 'pendiente';
+      await sbInsertSinRespuesta('registros',datos);
+    }
+  }catch(e){
+    console.warn('ficha:',e);
+    btn.disabled=false; btn.textContent='Enviar ficha';
+    msg4.textContent='No se pudo enviar la ficha. Revisá tu conexión y tocá "Enviar ficha" de nuevo. Si sigue sin andar, escribile a Amira.';
+    return;
   }
-  
+
   // Marcar como completada en localStorage (no se puede reenviar)
   if(fichaSlug) localStorage.setItem(fichaKey, '1');
 

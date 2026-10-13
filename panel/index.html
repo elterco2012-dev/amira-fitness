@@ -3797,8 +3797,11 @@ function rInicio(){
     const ingresosMesAnt=pagosMesAnt.reduce((s,p)=>s+(p.monto||(DB.alumnas.find(a=>a.id===p.alumna_id)?.precio)||0),0);
     const diff=ingresosMes-ingresosMesAnt;
     const pct=ingresosMesAnt>0?Math.round((diff/ingresosMesAnt)*100):null;
-    const activas=DB.alumnas.filter(a=>{if(!a.last_active_at)return false;return localDayDiff(a.last_active_at)<7;}).length;
-    const retencion=DB.alumnas.length>0?Math.round((activas/DB.alumnas.length)*100):0;
+    // Sobre las alumnas activas: hasta el 13/10 dividia tambien por las bajas, y
+    // el porcentaje salia mas o menos la mitad del real.
+    const _activasTot=DB.alumnas.filter(alumnaActiva);
+    const activas=_activasTot.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<7).length;
+    const retencion=_activasTot.length>0?Math.round((activas/_activasTot.length)*100):0;
     if(!ingresosMes&&!DB.alumnas.filter(a=>a.precio).length)return'';
     return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
       <div class="card" style="margin-bottom:0;padding:1rem;">
@@ -3809,7 +3812,7 @@ function rInicio(){
       <div class="card" style="margin-bottom:0;padding:1rem;">
         <div class="mlabel">Retención 7 días</div>
         <div class="mval" style="font-size:1.6rem;color:${retencion>=70?'var(--vd)':retencion>=40?'var(--ad)':'var(--rd)'};">${retencion}%</div>
-        <div style="font-size:10px;color:var(--tm);margin-top:3px;">${activas}/${DB.alumnas.length} alumnas activas</div>
+        <div style="font-size:10px;color:var(--tm);margin-top:3px;">${activas} de ${_activasTot.length} activas entrenaron en 7 días</div>
       </div>
     </div>`;
   })()}
@@ -4432,7 +4435,7 @@ function rRutinas(){
       const opts=todasAlumnas.map(al=>'<option value="'+al.id+'"'+(S._copSemDstA===al.id?' selected':'')+'>'+al.nombre+'</option>').join('');
       const dstA=S._copSemDstA?getA(S._copSemDstA):null;
       const dstCiclos=S._copSemDstA
-        ?(()=>{const cs=Object.keys(DB.rutinas[S._copSemDstA]||{}).map(Number).filter(c=>c>0).sort();return cs.length?cs:[1];})()
+        ?(()=>{const cs=Object.keys(DB.rutinas[S._copSemDstA]||{}).map(Number).filter(c=>c>0).sort((x,y)=>x-y);return cs.length?cs:[1];})()
         :[];
       const ready=S._copSemDstA&&dstA;
       const dstCicloNom=dstA?(dstA.ciclos_nombres||{})[S._copSemDstCiclo]||'Ciclo '+S._copSemDstCiclo:'';
@@ -5101,9 +5104,11 @@ function rAnalisis(){
   const topProgr=Object.entries(progrMap).sort((a,b)=>b[1].n-a[1].n).slice(0,5);
 
   // ── 5. Retención por cohort ─────────────────────────────────
-  const actHoy=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
-  const act7=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=7).length;
-  const act30=all.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=30).length;
+  // Solo las alumnas activas: una baja que entreno hace 20 dias no es una activa.
+  const _act=all.filter(alumnaActiva);
+  const actHoy=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
+  const act7=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=7).length;
+  const act30=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=30).length;
 
   // ── Widget visitas al sitio ─────────────────────────────────
   const pvWidget=(()=>{
@@ -5172,9 +5177,9 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
   return`<div class="ptitle">Análisis</div>
   ${pvWidget}
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.5rem;">
-    <div class="metric"><div class="mlabel">Activas hoy</div><div class="mval g">${actHoy}</div></div>
-    <div class="metric"><div class="mlabel">Activas (7d)</div><div class="mval">${act7}</div></div>
-    <div class="metric"><div class="mlabel">Activas (30d)</div><div class="mval">${act30}</div></div>
+    <div class="metric"><div class="mlabel">Entrenaron hoy</div><div class="mval g">${actHoy}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${_act.length} activas</div></div>
+    <div class="metric"><div class="mlabel">Entrenaron (7d)</div><div class="mval">${act7}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${_act.length} activas</div></div>
+    <div class="metric"><div class="mlabel">Entrenaron (30d)</div><div class="mval">${act30}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${_act.length} activas</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
     <div class="card" style="margin-bottom:0;">
