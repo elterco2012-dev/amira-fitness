@@ -25,6 +25,7 @@ const ON_CONFLICT = {
   registros:            'id',
   comentarios:          'id',
   push_subscriptions:        'endpoint',
+  plantillas_mensajes:       'conjunto',
   amira_push_subscriptions:  'endpoint',
   pagos:                'alumna_id,mes',
   peso_alumna:          'alumna_id,fecha',
