@@ -1263,23 +1263,28 @@ function pasosArranque(a){
   const entro=!!(DB.ingresos||{})[a.id]||!!primero||tienePush||tieneDias;
   return {dia, entro, entreno:!!primero, sesiones:diasEntrenadosP(a.id).length,
     arrancoDia:primero?(localDayDiff(a.created_at)??0)-(localDayDiff(primero)??0)+1:null,
+    primeroDM:primero?(([,m,d])=>`${+d}/${+m}`)(_diaLocalDe(primero).split('-')):null,
     dBienv:ult('bienvenida'), dIngreso:ult('ingreso'), d3:ult('arranque3'), d7:ult('arranque7'),
     pasos:[
-      {l:'Bienvenida',ok:ult('bienvenida')!==null},
+      // Si ya entro, la bienvenida le llego (aunque se la hayan mandado antes de
+      // que el panel registrara los envios, o por otro lado).
+      {l:'Bienvenida',ok:ult('bienvenida')!==null||entro},
       {l:'Entró a la app',ok:entro},
       {l:'Eligió sus días',ok:tieneDias},
       {l:'Notificaciones',ok:tienePush},
       {l:'Primer entrenamiento',ok:!!primero},
-      {l:'Mensaje del día 3',ok:ult('arranque3')!==null||ult('arranque7')!==null,desde:3},
+      {l:'Mensaje del día 3',ok:ult('arranque3')!==null||ult('arranque7')!==null,desde:3,hasta:7},
       {l:'Mensaje del día 7',ok:ult('arranque7')!==null,desde:7},
     ]};
 }
 // El proximo mensaje que le toca mandar a Amira, o null si por ahora no hay.
 function proximoMensajeArranque(p){
-  if(p.dBienv===null) return {tpl:'a_bienv',l:'💬 Bienvenida'};
-  // Mientras no entre a la app, lo unico que toca es preguntarle si pudo: un dia
-  // despues de la bienvenida y, si sigue sin entrar, cada dos dias.
-  if(!p.entro) return p.dBienv>=1&&(p.dIngreso===null||p.dIngreso>=2)?{tpl:'o_entrar',l:'💬 ¿Pudiste entrar?'}:null;
+  if(!p.entro){
+    if(p.dBienv===null) return {tpl:'a_bienv',l:'💬 Bienvenida'};
+    // Mientras no entre a la app, lo unico que toca es preguntarle si pudo: un dia
+    // despues de la bienvenida y, si sigue sin entrar, cada dos dias.
+    return p.dBienv>=1&&(p.dIngreso===null||p.dIngreso>=2)?{tpl:'o_entrar',l:'💬 ¿Pudiste entrar?'}:null;
+  }
   if(p.dia>=7&&p.d7===null) return {tpl:'o_dia7',l:'💬 Mensaje del día 7'};
   if(p.dia>=3&&p.dia<7&&p.d3===null) return {tpl:p.entreno?'o_dia3':'o_dia3b',l:'💬 Mensaje del día 3'};
   return null;
@@ -3935,10 +3940,14 @@ function rInicio(){
         const ph=(a.tel||'').replace(/\D/g,'');
         const chip=x=>{
           const futuro=!x.ok&&x.desde&&p.dia<x.desde;
-          const [bg,fg,ic]=x.ok?['#dcfce7','#15803d','✓ ']:futuro?['var(--s2)','var(--th)','']:['#fef9c3','#a16207','○ '];
+          // El del dia 3 que no se mando: desde el dia 7 ya no toca, va el del 7.
+          const paso=!x.ok&&x.hasta&&p.dia>=x.hasta;
+          const [bg,fg,ic]=x.ok?['#dcfce7','#15803d','✓ ']:futuro?['var(--s2)','var(--th)','']:paso?['var(--s2)','var(--th)','– ']:['#fef9c3','#a16207','○ '];
           return`<span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:${bg};color:${fg};margin:0 3px 3px 0;white-space:nowrap;">${ic}${x.l}</span>`;
         };
-        const sub=p.entreno?`Arrancó el día ${p.arrancoDia} · ${_sP(p.sesiones,'entrenamiento')}`:'Todavía no entrenó';
+        // "Arranco el dia 3" se podia leer como el 3 del mes: se dice que es el dia
+        // de sus dos semanas y la fecha.
+        const sub=p.entreno?`Primer entrenamiento el día ${p.arrancoDia} de sus dos semanas (${p.primeroDM}) · lleva ${_sP(p.sesiones,'entrenamiento')}`:'Todavía no entrenó';
         return`<div class="arow" style="flex-wrap:wrap;align-items:flex-start;">
           <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
           <div style="flex:1;min-width:12rem;">
