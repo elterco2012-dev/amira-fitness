@@ -183,7 +183,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v63` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v64` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -214,9 +214,20 @@ Estrategias:
 
 **Sesión corta (desde el 13/10/2026):** si la alumna elige 15 o 30 minutos y marca todos los ejercicios que entran (`cuantosEntran`), cuenta como día entrenado: festejo propio, "¿Cómo te fue?", ✓ en el calendario de constancia y último entrenamiento. Se anota en `localStorage` (`af-corta-…`) y en la base como un `feedbacks` `dia_completo` cuya nota empieza con "Sesión corta de N min" (así le llega el aviso a Amira y la ven los otros teléfonos). No cuenta como avance del plan del ciclo, que sigue pidiendo el 80% del día.
 
+**Constancia (desde el 13/10/2026, decidido con Amira):** reemplaza las tres "rachas" que había, que volvían a cero con un corte. Son los días entrenados del mes contra los planificados, con meta de 3 de cada 4 (`META_CONSTANCIA`). Los planificados son sus días por semana repartidos en el mes; si empezó ese mes, se cuentan desde su primer entrenamiento. Día entrenado: el 80% de los ejercicios o una sesión corta completa. La pausa activa no cuenta y se muestra al lado. La cuenta está dos veces y tiene que dar lo mismo: `constanciaMes` en la app y `constanciaMesP` en el panel.
+- Festejos: "mes constante" al llegar a la meta (una vez por mes en cada teléfono), "qué bueno que volviste" después de 7 días o más sin entrenar, y el primer entrenamiento.
+- No hay festejo de récord de peso, también por decisión de Amira: la evolución ("empezaste con 10 kg, hoy 20 kg") se ve en Progreso → "Desde que empezaste".
+- Lo que la alumna marca en la sesión entra a `DB.progresoRaw` (`anotarEnHistorial`), así la constancia y "hace cuánto no entrenás" se actualizan sin recargar.
+
+**Revisión semanal (lunes, decidido con Amira):** en Inicio aparece la lista de alumnas activas con lo que hizo cada una la semana anterior. No entran la cuenta de Amira ni las que empezaron esa semana.
+- "💬 Devolución" copia la plantilla `a_rev` (o `a_rev0` si no entrenó). `[semana]` trae los días, las pausas activas, los pesos que subió y cómo va el mes.
+- La alumna queda revisada en `contactos` con motivo `revision`. Saltearla se guarda solo en el teléfono.
+- Si la revisión no se termina el lunes, la lista sigue plegada el resto de la semana.
+
 ### Mediciones
 - **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa, así que el panel y el resumen la cuentan; para métricas de alumnas, excluirla.
 - **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
+- **Constancia** (punto de partida, 13/10/2026): con la cuenta de "Constancia" hecha en SQL sobre `progreso`, `rutinas` y las sesiones cortas de `feedbacks`, en septiembre habrían llegado a la meta 9 de las 16 alumnas activas que ya entrenaban.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".

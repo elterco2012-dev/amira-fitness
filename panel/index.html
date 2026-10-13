@@ -1060,10 +1060,10 @@ async function marcarAtendido(fid){
 // a mostrar como pendiente. Se registra que se abrio el chat, no que el mensaje
 // se envio: WhatsApp no lo confirma.
 const DIAS_ESPERA_CONTACTO=3;
-const _MOTIVO_TPL={a_bienv:'bienvenida',a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
+const _MOTIVO_TPL={a_bienv:'bienvenida',a_rev:'revision',a_rev0:'revision',a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
   a_dolor:'dolor',u_dolor:'dolor',a_hoy:'seguimiento',a_como:'seguimiento',a_check:'seguimiento',check:'seguimiento',u_inact:'inactividad',a_pago:'cobro',pago:'cobro'};
 const _MOTIVO_LBL={dolor:'por la molestia',inactividad:'por la inactividad',cobro:'por el pago',logro:'para felicitarla',seguimiento:'para ver c\u00f3mo ven\u00eda',
-  recordatorio:'un recordatorio',ciclo:'por el ciclo nuevo',motivacion:'para motivarla',resumen:'el resumen',informe:'el informe',bienvenida:'la bienvenida',cumpleanos:'por el cumplea\u00f1os'};
+  recordatorio:'un recordatorio',ciclo:'por el ciclo nuevo',motivacion:'para motivarla',resumen:'el resumen',informe:'el informe',bienvenida:'la bienvenida',cumpleanos:'por el cumplea\u00f1os',revision:'por la revisi\u00f3n semanal'};
 function registrarContacto(aId,motivo){
   if(!aId) return;
   const row={alumna_id:aId,motivo:motivo||'otro',created_at:new Date().toISOString()};
@@ -1117,6 +1117,118 @@ function porRenovar(){
     .filter(({e})=>e.plan>0&&!e.tieneSiguiente&&(e.pct>=0.75||e.ultimaSemana))
     .sort((x,y)=>y.e.pct-x.e.pct);
 }
+
+// ── Constancia y revisión semanal ─────────────────────────────
+// La misma cuenta que la app de la alumna (constanciaMes en alumna/index.html):
+// dia entrenado = el 80% de los ejercicios o una sesion corta; meta, 3 de cada 4
+// dias planificados del mes. Decidido con Amira el 13/10/2026: si cambia una,
+// cambiar las dos.
+const META_CONSTANCIA=0.75;
+const CUENTA_DE_AMIRA=3;   // la alumna con la que entrena Amira (CLAUDE.md, "Mediciones")
+const _MESES_P=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function _esCortaP(aId,c,s,d){
+  return (DB.fbRecientes||[]).some(x=>x.alumna_id===aId&&x.tipo==='dia_completo'&&+x.ciclo===c&&+x.semana===s&&+x.dia===d
+    &&String(x.nota||'').startsWith('Sesión corta'));
+}
+function diasEntrenadosP(aId){
+  const g={};
+  for(const p of (DB.progresoHechos||[])){
+    if(p.alumna_id!==aId||!p.hecho||p.ejercicio_idx<0) continue;
+    const t=Date.parse(p.fecha_registro||''); if(isNaN(t)) continue;
+    const k=`${p.ciclo}-${p.semana}-${p.dia}`;
+    const x=g[k]||(g[k]={idx:new Set(),t:0});
+    x.idx.add(+p.ejercicio_idx); if(t>x.t) x.t=t;
+  }
+  const out=[];
+  for(const [k,x] of Object.entries(g)){
+    const [c,s,d]=k.split('-').map(Number);
+    const n=getEx(aId,c,s,d).length;
+    const hechos=[...x.idx].filter(i=>i<n).length;
+    if((n&&hechos/n>=0.8)||_esCortaP(aId,c,s,d)) out.push({c,s,d,t:x.t,fecha:_diaLocalDe(new Date(x.t).toISOString())});
+  }
+  return out.sort((a,b)=>a.t-b.t);
+}
+function constanciaMesP(a,ym,_dias){
+  const dias=_dias||diasEntrenadosP(a.id);
+  if(!dias.length) return null;
+  const desde=dias[0].fecha;
+  if(desde.slice(0,7)>ym) return null;
+  const [y,m]=ym.split('-').map(Number), diasMes=new Date(y,m,0).getDate();
+  const n=desde.slice(0,7)===ym?diasMes-parseInt(desde.slice(8,10))+1:diasMes;
+  const plan=Math.max(1,Math.round((parseInt(a.dias)||3)*n/7));
+  const hechos=dias.filter(x=>x.fecha.slice(0,7)===ym).length;
+  const meta=Math.ceil(plan*META_CONSTANCIA);
+  return {ym,mes:_MESES_P[m-1],hechos,plan,meta,llego:hechos>=meta};
+}
+// La semana que se revisa: de lunes a domingo, la ultima que termino.
+function semanaARevisar(){
+  const h=new Date(), dow=(h.getDay()+6)%7;
+  const lunes=new Date(h.getFullYear(),h.getMonth(),h.getDate()-dow);
+  const desde=new Date(lunes.getFullYear(),lunes.getMonth(),lunes.getDate()-7);
+  const hasta=new Date(lunes.getFullYear(),lunes.getMonth(),lunes.getDate()-1);
+  return {desde:_diaLocalDe(desde.toISOString()),hasta:_diaLocalDe(hasta.toISOString()),lunes};
+}
+const _MOLESTIAS=['dolor_normal','dolor_articular','dolor_preocupante','dia_me_dolio','ejercicio_problema'];
+function resumenSemana(a,sem){
+  const dias=diasEntrenadosP(a.id);
+  const enSem=f=>!!f&&f>=sem.desde&&f<=sem.hasta;
+  const fbs=(DB.fbRecientes||[]).filter(f=>f.alumna_id===a.id&&enSem(_diaLocalDe(f.created_at)));
+  // Pesos de esa semana por encima de su mejor marca anterior en el ejercicio
+  const nombreDe=p=>(getEx(a.id,p.ciclo,p.semana,p.dia)[p.ejercicio_idx]||{}).nombre||'';
+  const antes={},enLaSemana={};
+  for(const p of (DB.progresoHechos||[])){
+    if(p.alumna_id!==a.id) continue;
+    const kg=parseFloat(p.peso_kg), f=_diaLocalDe(p.fecha_registro);
+    if(!(kg>0)||!f) continue;
+    const nom=nombreDe(p); if(!nom) continue;
+    if(f<sem.desde){ if(!(antes[nom]>=kg)) antes[nom]=kg; }
+    else if(enSem(f)&&!(enLaSemana[nom]>=kg)) enLaSemana[nom]=kg;
+  }
+  return {
+    entreno:dias.filter(x=>enSem(x.fecha)).length,
+    plan:parseInt(a.dias)||3,
+    pausas:fbs.filter(f=>f.tipo==='pausa_activa').length,
+    subio:Object.entries(enLaSemana).filter(([n,kg])=>antes[n]>0&&kg>antes[n]).map(([nom,kg])=>({nom,kg})).sort((x,y)=>y.kg-x.kg),
+    notas:(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id&&enSem(_diaLocalDe(n.created_at))).length,
+    molestias:fbs.filter(f=>_MOLESTIAS.includes(f.tipo)).length,
+    mes:constanciaMesP(a,sem.hasta.slice(0,7),dias),
+  };
+}
+const _kgP=v=>String(+(+v).toFixed(1)).replace('.',',');
+const _yP=l=>l.length>1?l.slice(0,-1).join(', ')+' y '+l[l.length-1]:(l[0]||'');
+const _sP=(n,palabra)=>`${n} ${palabra}${n===1?'':'s'}`;
+// Para la lista del panel (HTML)
+function lineaSemana(r){
+  const p=[r.entreno?`Entrenó ${r.entreno} de ${_sP(r.plan,'día')}`:`No entrenó (tenía ${_sP(r.plan,'día')})`];
+  if(r.pausas) p.push(r.pausas===1?'1 pausa activa':`${r.pausas} pausas activas`);
+  if(r.subio.length) p.push('subió '+_yP(r.subio.slice(0,2).map(x=>`${esc(x.nom)} a ${_kgP(x.kg)} kg`)));
+  if(r.notas) p.push(_sP(r.notas,'nota'));
+  if(r.molestias) p.push(`⚠️ ${_sP(r.molestias,'molestia')}`);
+  if(r.mes) p.push(`${r.mes.mes}: ${r.mes.hechos} de ${r.mes.plan}${r.mes.llego?' ✓':''}`);
+  return p.join(' · ');
+}
+// Para el mensaje de WhatsApp (texto), en [semana]
+function textoSemana(r){
+  if(!r) return '';
+  const p=[r.entreno?`entrenaste ${r.entreno} de ${_sP(r.plan,'día')}`:'esta semana no registraste entrenamientos'];
+  if(r.pausas) p.push(`hiciste ${r.pausas===1?'1 pausa activa':`${r.pausas} pausas activas`}`);
+  if(r.subio.length) p.push('subiste '+_yP(r.subio.slice(0,2).map(x=>`${x.nom} a ${_kgP(x.kg)} kg`)));
+  let t=_yP(p);
+  t=t.charAt(0).toUpperCase()+t.slice(1)+'.';
+  if(r.mes) t+=r.mes.llego?` En ${r.mes.mes} ya llegaste a tu meta: ${r.mes.hechos} de ${r.mes.plan} días 🎯`
+    :` En ${r.mes.mes} llevás ${r.mes.hechos} de ${r.mes.plan} días.`;
+  return t;
+}
+async function enviarRevision(aId){
+  const a=getA(aId); if(!a) return;
+  const r=resumenSemana(a,semanaARevisar());
+  await envTplAlu(aId,r.entreno?'a_rev':'a_rev0');
+  render();
+}
+function saltearRevision(aId){
+  try{ localStorage.setItem(`af-rev-salteo-${aId}-${semanaARevisar().desde}`,'1'); }catch(e){}
+  render();
+}
 function irARenovar(aId,conIA){
   const a=getA(aId); if(!a) return;
   S.selA=aId; S.selCiclo=parseInt(a.ciclo_actual)||1; S.selSem=1; S.selDia=1;
@@ -1155,7 +1267,7 @@ async function loadAll(){
       sbGet('plantillas','order=created_at.asc')
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
-    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct]=await Promise.allSettled([
+    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct,_fr]=await Promise.allSettled([
       cargarFeedbacks(),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
@@ -1164,7 +1276,11 @@ async function loadAll(){
       sbGet('notas_sesion','order=created_at.desc&limit=200'),
       sbGet('progreso','select=alumna_id,ciclo,semana,dia,ejercicio_idx,peso_kg,hecho,rpe,fecha_registro&hecho=eq.true&order=alumna_id.asc&limit=50000'),
       sbGet('page_views',`select=page,created_at,origen&created_at=gte.${encodeURIComponent(new Date(Date.now()-30*86400000).toISOString())}&order=created_at.desc&limit=5000`),
-      sbGet('contactos',`created_at=gte.${encodeURIComponent(new Date(Date.now()-90*86400000).toISOString())}&order=created_at.desc&limit=5000`)
+      sbGet('contactos',`created_at=gte.${encodeURIComponent(new Date(Date.now()-90*86400000).toISOString())}&order=created_at.desc&limit=5000`),
+      // Completos y de todos los tipos (los de arriba son los ultimos 50, sin "dia
+      // completo"): la constancia necesita las sesiones cortas, y la revision
+      // semanal, las pausas activas y las molestias de la semana.
+      sbGet('feedbacks',`select=alumna_id,tipo,ciclo,semana,dia,nota,created_at&created_at=gte.${encodeURIComponent(new Date(Date.now()-70*86400000).toISOString())}&order=created_at.desc&limit=5000`)
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -1175,6 +1291,7 @@ async function loadAll(){
     DB.progresoHechos = _prg.status==='fulfilled'?_prg.value:[];
     DB.pageViews      = _pv.status==='fulfilled'&&Array.isArray(_pv.value)?_pv.value:[];
     DB.contactos      = _ct.status==='fulfilled'&&Array.isArray(_ct.value)?_ct.value:[];
+    DB.fbRecientes    = _fr.status==='fulfilled'&&Array.isArray(_fr.value)?_fr.value:[];
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -2982,7 +3099,8 @@ async function envTplAlu(aId, key){
   const link=BASE+'/alumna/'+a.slug;
   const lg=logroDeHoy(aId);
   const pin=pinDesdeNacimiento(a.nacimiento)||'tu fecha de nacimiento (día, mes y año)';
-  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:'',email:a.email||'',pin,instalar:BASE+'/instalar'}), aId, _MOTIVO_TPL[key]||'mensaje');
+  const semana=tpl.msg.includes('[semana]')?textoSemana(resumenSemana(a,semanaARevisar())):'';
+  return waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:'',email:a.email||'',pin,instalar:BASE+'/instalar',semana}), aId, _MOTIVO_TPL[key]||'mensaje');
 }
 function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
@@ -3727,6 +3845,45 @@ function rInicio(){
     </div>`;
   })()}
   ${(()=>{
+    // Revision semanal: los lunes (decidido con Amira el 13/10/2026). La web
+    // promete "reviso tus pesos y tus comentarios cada semana" y no habia un
+    // momento para hacerlo. Queda revisada al mandarle la devolucion desde aca
+    // (contactos con motivo "revision"); si no la termina el lunes, sigue en la
+    // lista el resto de la semana, plegada.
+    const sem=semanaARevisar();
+    const todas=alumnaActivas.filter(a=>a.id!==CUENTA_DE_AMIRA&&a.created_at&&new Date(a.created_at)<sem.lunes);
+    if(!todas.length) return'';
+    const revisada=a=>(DB.contactos||[]).some(c=>c.alumna_id===a.id&&c.motivo==='revision'&&new Date(c.created_at)>=sem.lunes);
+    const salteada=a=>{try{return localStorage.getItem(`af-rev-salteo-${a.id}-${sem.desde}`)==='1';}catch(e){return false;}};
+    const pend=todas.filter(a=>!revisada(a)&&!salteada(a));
+    const esLunes=new Date().getDay()===1;
+    const dm=f=>{const [,m,d]=f.split('-');return `${+d}/${+m}`;};
+    if(!pend.length) return esLunes?`<div style="font-size:12px;color:var(--vd);margin-bottom:1rem;">✓ Revisión semanal hecha (semana del ${dm(sem.desde)} al ${dm(sem.hasta)}).</div>`:'';
+    const abierta=esLunes||S._revOpen;
+    const hechas=todas.length-pend.length;
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--v);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.3rem;">
+        <div class="ctitle" style="margin-bottom:0;">📋 Revisión semanal</div>
+        <span style="font-size:10px;color:var(--th);white-space:nowrap;">${hechas} de ${todas.length} revisadas</span>
+      </div>
+      <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Semana del ${dm(sem.desde)} al ${dm(sem.hasta)}. Mirá sus pesos y comentarios y mandale la devolución: el mensaje sale con lo que hizo y vos sumás lo tuyo.</div>
+      ${abierta?pend.map(a=>{
+        const r=resumenSemana(a,sem);
+        const ph=(a.tel||'').replace(/\D/g,'');
+        return`<div class="arow" style="flex-wrap:wrap;">
+          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
+            <div style="font-size:11px;color:var(--tm);">${lineaSemana(r)}</div>
+          </div>
+          ${ph?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;" onclick="enviarRevision(${a.id})">💬 Devolución</button>`:''}
+          <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
+          <button class="btn btn-s" style="font-size:11px;background:none;color:var(--th);" title="Saltear esta semana" onclick="saltearRevision(${a.id})">✕</button>
+        </div>`;
+      }).join(''):`<button class="btn btn-s" style="font-size:11px;width:100%;" onclick="S._revOpen=true;render()">Te faltan ${pend.length} · Ver ▼</button>`}
+    </div>`;
+  })()}
+  ${(()=>{
     const lista=porRenovar();
     if(!lista.length)return'';
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
@@ -3787,8 +3944,8 @@ function rInicio(){
     if(!hoy.length)return'';
     // La opcion con [logro] solo aparece si hoy hay algo concreto que decir:
     // si no, el mensaje saldria con un hueco en el medio.
-    // La bienvenida no va para quien ya entreno hoy.
-    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_')&&t.key!=='a_bienv');
+    // La bienvenida y la revision semanal no van para quien entreno hoy.
+    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_')&&!['a_bienv','a_rev','a_rev0'].includes(t.key));
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
         <div class="ctitle" style="margin-bottom:0;">✅ Entrenaron hoy</div>
@@ -5505,7 +5662,7 @@ function rRecordatorios(){
     ${S._atplEdit?(()=>{
       const isCustom=!WA_ALUMNA_TPLS_DEFAULTS.find(t=>t.key===S._atplEdit.key);
       return`<div style="background:var(--s2);border-radius:var(--rs);padding:.8rem;border:1px solid var(--bm);margin-bottom:.75rem;">
-        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando — tokens: [nombre] [link] [ciclo] [email] [pin] [instalar]</div>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando — tokens: [nombre] [link] [ciclo] [email] [pin] [instalar] [semana]</div>
         <input type="text" id="atpl-label" value="${S._atplEdit.l.replace(/"/g,'&quot;')}" placeholder="Nombre del template" style="margin-bottom:6px;">
         <textarea id="atpl-msg" style="height:80px;">${S._atplEdit.msg}</textarea>
         <div style="display:flex;gap:6px;margin-top:.6rem;flex-wrap:wrap;">
@@ -5576,6 +5733,10 @@ const WA_ALUMNA_TPLS_DEFAULTS=[
   {key:'a_como', l:'🏋️ ¿Cómo te fue?',          msg:'Hola [nombre]! ¿Cómo te fue con los entrenamientos esta semana? 🏋️‍♀️'
     +'\n---\n[nombre], ¿qué tal la semana? ¿Hay algo para acomodar en la que viene?'
     +'\n---\nHola [nombre]! Contame cómo venís y si querés que cambie algo'},
+  // Revision semanal de los lunes: [semana] trae lo que hizo (dias, pausas,
+  // pesos que subio, como va el mes) y Amira suma su devolucion al pegarlo.
+  {key:'a_rev',  l:'📋 Revisión de la semana',   msg:'¡Hola [nombre]! Revisé tu semana 💪\n\n[semana]\n\n'},
+  {key:'a_rev0', l:'📋 Revisión: no entrenó',    msg:'¡Hola [nombre]! ¿Cómo venís? Esta semana no vi entrenamientos registrados. ¿Qué día te queda bien para retomar? Si un día tenés poco tiempo, la sesión de 15 minutos también cuenta 💪'},
   {key:'a_pago', l:'💰 Recordatorio de pago',    msg:'Hola [nombre]! Te recuerdo que no registré tu pago de este mes. Avisame cuando puedas 🙏'},
   {key:'a_check',l:'💬 Chequeo general',          msg:'Hola [nombre]! Solo quería ver cómo estás y si todo bien con los entrenamientos 💪'
     +'\n---\n[nombre]! ¿Cómo andás? ¿Todo bien con las rutinas?'},
@@ -5618,7 +5779,8 @@ function interpTpl(msg,vars){
   return elegirVariante(msg,(vars.nombre||'')+dia)
     .replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'')
     .replace(/\[ciclo\]/g,vars.ciclo||'').replace(/\[logro\]/g,vars.logro||'')
-    .replace(/\[email\]/g,vars.email||'').replace(/\[pin\]/g,vars.pin||'').replace(/\[instalar\]/g,vars.instalar||'');
+    .replace(/\[email\]/g,vars.email||'').replace(/\[pin\]/g,vars.pin||'').replace(/\[instalar\]/g,vars.instalar||'')
+    .replace(/\[semana\]/g,vars.semana||'');
 }
 function editAluTpl(key){const tpl=getAlumnaTpls().find(t=>t.key===key);if(!tpl)return;S._atplEdit={...tpl};S._atplSel=null;render();}
 function saveAluTpl(key){
