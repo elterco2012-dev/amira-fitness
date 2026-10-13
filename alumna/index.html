@@ -1384,13 +1384,14 @@ function getExs(aId, ciclo, sem, dia){
 
 function getSemanas(aId, ciclo){
   const r = getRutinas(aId, ciclo);
-  return Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort();
+  return Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort((x,y)=>x-y);
 }
 
 function getCiclos(aId){
   const r = DB.rutinas[aId];
   if(!r) return [1];
-  const ciclos = Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort();
+  // Orden numerico: sort() a secas ordena como texto y desde el ciclo 10 queda 1, 10, 2...
+  const ciclos = Object.keys(r).map(k=>parseInt(k)).filter(k=>!isNaN(k)&&k>0).sort((x,y)=>x-y);
   return ciclos.length>0 ? ciclos : [1];
 }
 
@@ -1901,8 +1902,17 @@ async function toggleDone(aId,i,nextName){
     hecho:done[k], fecha_registro:new Date().toISOString()
   };
   // El peso escrito antes de marcar hecho viaja recien ahora, junto con el
-  // "hecho", y recien ahora se evalua si es record.
-  const _kgBorrador=parseFloat(pesos[pKey(aId,selSem,selDia,i)])||null;
+  // "hecho", y recien ahora se evalua si es record. Si no toco el campo, vale el
+  // de "la vez pasada" que se le muestra: marcar hecho sin tocarlo es "use lo
+  // mismo". Hasta el 13/10 ese peso no se guardaba y 2 de cada 3 quedaban sin
+  // peso. Si lo borro a proposito no se guarda nada, y la sugerencia de la IA
+  // tampoco: no es un peso que haya levantado.
+  const _pk=pKey(aId,selSem,selDia,i);
+  let _kgBorrador=parseFloat(pesos[_pk])||null;
+  if(done[k]&&pesos[_pk]===undefined&&llevaPeso(progresoData.ejercicio_nombre)){
+    _kgBorrador=ultimoPesoDe(aId,progresoData.ejercicio_nombre);
+    if(_kgBorrador){pesos[_pk]=String(_kgBorrador);localStorage.setItem('af-pesos',JSON.stringify(pesos));}
+  }
   if(done[k]&&_kgBorrador) progresoData.peso_kg=_kgBorrador;
   try{
     await sbUpsert('progreso', progresoData);
@@ -2544,11 +2554,11 @@ function renderRutina(){
     </div>
 
     ${(()=>{
-      const hor=a.horario_entreno||{};
-      const diasConf=hor.dias||[];
-      if(!diasConf.length)return'';
-      const dow=new Date().getDay();
-      if(!diasConf.includes(dow))return'';
+      // Los dias que eligio ella (o que le cargo Amira). Hasta el 13/10 leia
+      // horario_entreno, que no se guarda desde mayo: el cartel no aparecia o
+      // aparecia en dias que ya no eran los suyos.
+      const diasConf=Array.isArray(a.dias_disponibles)?a.dias_disponibles:[];
+      if(!diasConf.includes(_DIA_NAMES[new Date().getDay()]))return'';
       const todayKey=new Date().toISOString().split('T')[0];
       const trainedToday=localStorage.getItem('af-did-train-'+a.id+'-'+todayKey);
       if(trainedToday)return'';
@@ -2888,7 +2898,9 @@ function renderProgreso(){
   const ciclos=getCiclos(a.id);
   const ps=Object.fromEntries(Object.entries(pesos).filter(([k])=>k.startsWith(`p-${a.id}-`)));
   const totalP=Object.values(ps).filter(v=>parseFloat(v)>0).length;
-  const totalD=new Set(Object.keys(done).filter(k=>k.startsWith(`${a.id}-`)&&done[k]).map(k=>{const p=k.split('-');return`${p[2]}-${p[3]}`;}).filter(k=>k&&k!=='-')).size;
+  // Un dia por (ciclo, semana, dia). Hasta el 13/10 se perdia el ciclo, y 5 dias
+  // entrenados en 3 ciclos distintos contaban como 3.
+  const totalD=new Set(Object.keys(done).filter(k=>k.startsWith(`${a.id}-c`)&&done[k]).map(k=>{const p=k.split('-');return`${p[1]}-${p[2]}-${p[3]}`;})).size;
   const hist={};
   Object.entries(ps).forEach(([k,v])=>{
     const p=k.split('-');
@@ -3122,11 +3134,11 @@ function renderNotas(){
   const _diasNom=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const _horHtml=`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">🔔 Mis días de entrenamiento</div>
-    <div style="font-size:12px;color:var(--tm);margin-bottom:.65rem;">Usamos esto para recordarte entrenar cuando abrís la app.</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:.65rem;">Esos días te llega un recordatorio a las 9 de la mañana, si tenés las notificaciones activadas.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">
       ${[0,1,2,3,4,5,6].map(d=>`<button onclick="toggleDiaHorario(${a.id},${d})" style="padding:5px 10px;border-radius:20px;font-size:12px;border:1px solid ${_diasDisp.includes(_DIA_NAMES[d])?'var(--v)':'var(--bm)'};background:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vl)':'var(--s2)'};color:${_diasDisp.includes(_DIA_NAMES[d])?'var(--vd)':'var(--tm)'};cursor:pointer;font-family:'DM Sans',sans-serif;">${_diasNom[d]}</button>`).join('')}
     </div>
-    ${_diasDisp.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasDisp.map(d=>_diasNom[_DIA_NAMES.indexOf(d)]||d).join(', ')}</div>`:'<div style="font-size:11px;color:#b45309;">⚠️ Sin días seleccionados — tocá los días para que el recordatorio llegue solo cuando corresponde</div>'}
+    ${_diasDisp.length>0?`<div style="font-size:11px;color:var(--vd);">✓ Días activos: ${_diasDisp.map(d=>_diasNom[_DIA_NAMES.indexOf(d)]||d).join(', ')}</div>`:'<div style="font-size:11px;color:#b45309;">⚠️ Sin días elegidos: hasta que no elijas tus días no te llega el recordatorio</div>'}
   </div>`;
   const _pushSupported='PushManager' in window&&'serviceWorker' in navigator;
   const _pushAsked=localStorage.getItem('af-push-asked');

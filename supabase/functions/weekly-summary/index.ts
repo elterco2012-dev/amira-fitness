@@ -138,9 +138,82 @@ async function dbDelete(path: string): Promise<void> {
   }
 }
 
-function dayDiff(iso: string): number {
+// La API devuelve de a 1000 filas: pedir por paginas hasta traer todo.
+async function dbFetchAll(path: string): Promise<unknown[]> {
+  const out: unknown[] = [];
+  for (let off = 0; ; off += 1000) {
+    const page = await dbFetch(`${path}&limit=1000&offset=${off}`) as unknown[];
+    out.push(...page);
+    if (page.length < 1000) return out;
+  }
+}
+
+// ── Las mismas reglas que "Hoy hay que atender" en el Inicio del panel ──────
+// Hasta el 13/10 el resumen usaba umbrales propios (4 dias sin entrenar, 21 dias
+// para una nueva, cualquier reporte de dolor de la semana) y decia otra cosa que
+// la pantalla. Si se cambia una regla en el panel (rInicio), cambiarla aca.
+const SEGUIMIENTO_DOLOR_DESDE = "2026-10-01";
+const DIAS_ESPERA_CONTACTO = 3;
+const AR = -3 * 3600000; // Argentina, sin horario de verano: dias de calendario como en el panel
+
+function diaAR(t: number): number { return Math.floor((t + AR) / 86400000); }
+function localDayDiff(iso: string | null | undefined, ahora: number): number | null {
+  if (!iso) return null;
   const t = new Date(iso).getTime();
-  return Math.floor((Date.now() - t) / 86400000);
+  return isNaN(t) ? null : diaAR(ahora) - diaAR(t);
+}
+
+type Alumna = { id: number; estado?: string | null; last_active_at?: string | null; created_at?: string | null; dias?: number | string | null };
+type Hecho = { alumna_id: number; ciclo: number; semana: number; dia: number };
+type Dolor = { alumna_id: number; tipo: string; atendido_at?: string | null; created_at?: string | null };
+type Contacto = { alumna_id: number; created_at: string };
+
+export function calcularResumen(alumnas: Alumna[], hechos: Hecho[], dolores: Dolor[], contactos: Contacto[], ahora = Date.now()) {
+  const activas = alumnas.filter(a => !a.estado || a.estado === "activa");
+  const entrenaron = activas.filter(a => { const d = localDayDiff(a.last_active_at, ahora); return d !== null && d < 7; }).length;
+
+  // Un dolor queda hasta que Amira lo marca como atendido, aunque ya le haya escrito.
+  const atender = new Set<number>();
+  const conDolor = new Set<number>();
+  for (const f of dolores) {
+    if (f.tipo !== "dolor_preocupante" || f.atendido_at || String(f.created_at || "") < SEGUIMIENTO_DOLOR_DESDE) continue;
+    if (!alumnas.some(a => a.id === f.alumna_id)) continue;
+    atender.add(f.alumna_id); conDolor.add(f.alumna_id);
+  }
+
+  const diasHechos = new Map<number, Set<string>>();
+  for (const h of hechos) {
+    if (!diasHechos.has(h.alumna_id)) diasHechos.set(h.alumna_id, new Set());
+    diasHechos.get(h.alumna_id)!.add(`${h.ciclo}-${h.semana}-${h.dia}`);
+  }
+  const ultimoContacto = new Map<number, string>();
+  for (const c of contactos) {
+    const prev = ultimoContacto.get(c.alumna_id);
+    if (!prev || c.created_at > prev) ultimoContacto.set(c.alumna_id, c.created_at);
+  }
+
+  let esperando = 0;
+  for (const a of activas) {
+    if (atender.has(a.id)) continue;
+    const ds = localDayDiff(a.last_active_at, ahora);
+    const daysSince = ds === null ? null : Math.max(0, ds);
+    const memberDays = a.created_at ? Math.max(0, localDayDiff(a.created_at, ahora) ?? 0) : 0;
+    const freq = parseInt(String(a.dias)) || 3;
+    const totalTrained = diasHechos.get(a.id)?.size ?? 0;
+    const expectedTotal = Math.max(1, Math.floor(memberDays / 7)) * freq;
+    const adherencia = Math.min(1, totalTrained / expectedTotal);
+    const alerta = daysSince === null
+      || (memberDays <= 21 && daysSince >= 5)
+      || (memberDays > 14 && adherencia < 0.35 && daysSince >= 3)
+      || daysSince >= 7
+      || (memberDays > 14 && totalTrained > 0 && adherencia < 0.55 && daysSince >= 4);
+    if (!alerta) continue;
+    // A la que Amira le escribio hace menos de DIAS_ESPERA_CONTACTO dias se la espera.
+    const dc = localDayDiff(ultimoContacto.get(a.id), ahora);
+    if (dc !== null && Math.max(0, dc) < DIAS_ESPERA_CONTACTO) esperando++;
+    else atender.add(a.id);
+  }
+  return { total: activas.length, entrenaron, necesitanAtencion: atender.size, dolorSinAtender: conDolor.size, esperando };
 }
 
 Deno.serve(async (req) => {
@@ -152,38 +225,24 @@ Deno.serve(async (req) => {
 
   try {
     // ── Cómputo de stats ─────────────────────────────────────────
-    const alumnas = await dbFetch("alumnas?select=id,estado,last_active_at,created_at") as Array<{
-      id: number; estado?: string | null; last_active_at?: string | null; created_at?: string;
-    }>;
-    const activas = alumnas.filter(a => !a.estado || a.estado === "activa");
-
-    const entrenaron = activas.filter(a => a.last_active_at && dayDiff(a.last_active_at) < 7).length;
-    const necesitanAtencion = activas.filter(a => {
-      if (!a.last_active_at) {
-        // nunca entrenó pero ya pasó >21 días desde que se sumó
-        if (!a.created_at) return false;
-        return dayDiff(a.created_at) > 21;
-      }
-      return dayDiff(a.last_active_at) >= 4;
-    }).length;
-
-    const sinceISO = new Date(Date.now() - 7 * 86400000).toISOString();
-    let dolores = 0;
-    try {
-      const fbs = await dbFetch(
-        `feedbacks?select=id&tipo=in.(dolor_preocupante,dolor_articular)&created_at=gte.${encodeURIComponent(sinceISO)}`
-      ) as Array<{ id: number }>;
-      dolores = fbs.length;
-    } catch (_) { /* opcional */ }
+    const hace90 = encodeURIComponent(new Date(Date.now() - 90 * 86400000).toISOString());
+    const [alumnas, hechos, dolores, contactos] = await Promise.all([
+      dbFetch("alumnas?select=id,estado,last_active_at,created_at,dias") as Promise<Alumna[]>,
+      dbFetchAll("progreso?select=alumna_id,ciclo,semana,dia&hecho=eq.true&order=id.asc") as Promise<Hecho[]>,
+      dbFetchAll(`feedbacks?select=alumna_id,tipo,atendido_at,created_at&tipo=eq.dolor_preocupante&atendido_at=is.null&order=id.asc`) as Promise<Dolor[]>,
+      dbFetchAll(`contactos?select=alumna_id,created_at&created_at=gte.${hace90}&order=id.asc`) as Promise<Contacto[]>,
+    ]);
+    const { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando } = calcularResumen(alumnas, hechos, dolores, contactos);
 
     // ── Composición del mensaje ──────────────────────────────────
-    const total = activas.length;
     const title = "📊 Resumen de la semana";
     const partes: string[] = [];
     partes.push(`${entrenaron} de ${total} alumnas entrenaron esta semana`);
-    if (necesitanAtencion > 0) partes.push(`${necesitanAtencion} ${necesitanAtencion === 1 ? "necesita" : "necesitan"} atención`);
-    if (dolores > 0) partes.push(`${dolores} ${dolores === 1 ? "reporte" : "reportes"} de dolor`);
+    if (necesitanAtencion > 0) partes.push(`${necesitanAtencion} para atender en Inicio`);
+    if (dolorSinAtender > 0) partes.push(`${dolorSinAtender} con dolor sin atender`);
+    if (esperando > 0) partes.push(`${esperando} esperando respuesta`);
     const body = partes.join(" · ");
+    const stats = { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando };
 
     // ── Envío ────────────────────────────────────────────────────
     let subs: Array<{ endpoint: string; p256dh: string; auth: string }> = [];
@@ -194,7 +253,7 @@ Deno.serve(async (req) => {
     }
 
     if (!subs.length) {
-      return Response.json({ sent: 0, total: 0, reason: "no_subscriptions", stats: { total, entrenaron, necesitanAtencion, dolores } }, { headers: CORS });
+      return Response.json({ sent: 0, total: 0, reason: "no_subscriptions", stats }, { headers: CORS });
     }
 
     const notifPayload = JSON.stringify({ type: "amira-summary", title, body, url: "/panel/" });
@@ -215,7 +274,7 @@ Deno.serve(async (req) => {
     return Response.json({
       sent: results.filter(r => r.ok).length,
       total: subs.length,
-      stats: { total, entrenaron, necesitanAtencion, dolores },
+      stats,
       title,
       body,
       results
