@@ -183,7 +183,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v64` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v65` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -218,6 +218,13 @@ Estrategias:
 - Festejos: "mes constante" al llegar a la meta (una vez por mes en cada teléfono), "qué bueno que volviste" después de 7 días o más sin entrenar, y el primer entrenamiento.
 - No hay festejo de récord de peso, también por decisión de Amira: la evolución ("empezaste con 10 kg, hoy 20 kg") se ve en Progreso → "Desde que empezaste".
 - Lo que la alumna marca en la sesión entra a `DB.progresoRaw` (`anotarEnHistorial`), así la constancia y "hace cuánto no entrenás" se actualizan sin recargar.
+
+**Pantalla del día (13/10/2026):**
+- Al abrir la app, o al volver después de una hora, si el día elegido ya está hecho salta al siguiente pendiente (`proximoPendiente`). Las pestañas marcan con ✓ los días y las semanas hechos.
+- Un ejercicio se marca solo con el círculo o con "Marcar hecho". Tocar el nombre abre la técnica, porque lo marcaba sin querer y guardaba el peso precargado.
+- El festejo del día dice cuándo es el próximo entrenamiento y pregunta "¿Cómo te fue hoy?".
+- El check-in semanal de Notas se sacó: se usó 5 veces en 70 días y duplicaba la revisión de los lunes.
+- El zoom está habilitado: no volver a poner `maximum-scale=1`. En el celular los campos tienen que tener letra de 16 px o más (lo fuerza un `@media (pointer:coarse)`); si no, el iPhone agranda la pantalla al tocarlos.
 
 **Revisión semanal (lunes, decidido con Amira):** en Inicio aparece la lista de alumnas activas con lo que hizo cada una la semana anterior. No entran la cuenta de Amira ni las que empezaron esa semana.
 - "💬 Devolución" copia la plantilla `a_rev` (o `a_rev0` si no entrenó). `[semana]` trae los días, las pausas activas, los pesos que subió y cómo va el mes.
