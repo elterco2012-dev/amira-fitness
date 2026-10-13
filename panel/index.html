@@ -1294,6 +1294,7 @@ async function loadAll(){
     DB.pageViews      = _pv.status==='fulfilled'&&Array.isArray(_pv.value)?_pv.value:[];
     DB.contactos      = _ct.status==='fulfilled'&&Array.isArray(_ct.value)?_ct.value:[];
     DB.fbRecientes    = _fr.status==='fulfilled'&&Array.isArray(_fr.value)?_fr.value:[];
+    await cargarTplsDeBase();
     DB.alumnas=alumnas;
     DB.rutinas={};
     rutinas.forEach(r=>{
@@ -5764,7 +5765,7 @@ function restaurarTplsSugeridas(){
   if(!confirm('Esto reemplaza todos los textos por los sugeridos. ¿Seguir?'))return;
   saveAlumnaTpls(WA_ALUMNA_TPLS_DEFAULTS.map(t=>({...t})));S._atplEdit=null;S._atplSel=null;render();
 }
-function saveAlumnaTpls(tpls){_atplsCache=tpls;localStorage.setItem('af-alumna-tpls',JSON.stringify(tpls));}
+function saveAlumnaTpls(tpls){_atplsCache=tpls;localStorage.setItem('af-alumna-tpls',JSON.stringify(tpls));guardarTplsEnBase('alumna',tpls);}
 // Un mensaje puede traer varias redacciones separadas por una linea con ---.
 // Se elige una segun la alumna y el dia: la misma persona no recibe dos veces
 // seguidas el mismo texto, y la eleccion no cambia si se vuelve a dibujar la
@@ -5820,7 +5821,51 @@ function getTpls(){
   return _tplsCache;
 }
 
-function saveTpls(tpls){_tplsCache=tpls;localStorage.setItem('af-tpls',JSON.stringify(tpls));}
+function saveTpls(tpls){_tplsCache=tpls;localStorage.setItem('af-tpls',JSON.stringify(tpls));guardarTplsEnBase('general',tpls);}
+
+// ── Plantillas en la base ─────────────────────────────────────
+// Amira usa el panel en el celular y en la compu: hasta el 13/10/2026 cada uno
+// guardaba sus textos en su localStorage, y lo que editaba en uno no aparecia en
+// el otro. Ahora viven en plantillas_mensajes (una fila por conjunto con la lista
+// completa) y localStorage queda como copia para abrir rapido y sin conexion.
+const _CONJ_TPL={alumna:{ls:'af-alumna-tpls',defs:()=>WA_ALUMNA_TPLS_DEFAULTS},general:{ls:'af-tpls',defs:()=>WA_TPLS_DEFAULTS}};
+async function guardarTplsEnBase(conjunto,datos){
+  try{
+    await sbUpsert('plantillas_mensajes',{conjunto,datos,updated_at:new Date().toISOString()});
+    localStorage.removeItem('af-tpls-pend-'+conjunto);
+  }catch(e){
+    // Sin conexion: queda en este dispositivo y se sube la proxima vez que abra el panel.
+    localStorage.setItem('af-tpls-pend-'+conjunto,'1');
+    toastPanel('No se pudo guardar en la nube: quedó en este dispositivo y se sube la próxima vez que abras el panel.');
+  }
+}
+// La primera vez en cada dispositivo se suman sus textos editados: los que en la
+// base siguen como vienen sugeridos y las plantillas que solo existen aca.
+function _fusionarTpls(base,local,defs){
+  const out=(base||[]).map(t=>({...t}));
+  for(const t of local){
+    const i=out.findIndex(x=>x.key===t.key), d=defs.find(x=>x.key===t.key);
+    if(i<0) out.push({...t});
+    else if(d&&out[i].msg===d.msg&&(out[i].l??out[i].label)===(d.l??d.label)) out[i]={...t};
+  }
+  return out;
+}
+async function cargarTplsDeBase(){
+  let filas;
+  try{ filas=await sbGet('plantillas_mensajes','select=conjunto,datos'); }
+  catch(e){ return; }   // sin conexion (o sin la tabla): sigue con lo de este dispositivo
+  for(const [conjunto,{ls,defs}] of Object.entries(_CONJ_TPL)){
+    const fila=(filas||[]).find(f=>f.conjunto===conjunto);
+    let local=null; try{ local=JSON.parse(localStorage.getItem(ls)||'null'); }catch(e){}
+    let datos=Array.isArray(fila?.datos)?fila.datos:null;
+    if(Array.isArray(local)&&localStorage.getItem('af-tpls-pend-'+conjunto)) datos=local;   // lo ultimo editado aca no llego a subir
+    else if(Array.isArray(local)&&!localStorage.getItem('af-tpls-base-'+conjunto)) datos=_fusionarTpls(datos,local,defs());
+    if(Array.isArray(datos)&&JSON.stringify(datos)!==JSON.stringify(fila?.datos??null)) await guardarTplsEnBase(conjunto,datos);
+    localStorage.setItem('af-tpls-base-'+conjunto,'1');
+    if(Array.isArray(datos)) localStorage.setItem(ls,JSON.stringify(datos));
+  }
+  _atplsCache=null; _tplsCache=null;
+}
 
 function editTpl(key){const t=getTpls().find(t=>t.key===key);if(!t)return;S._tplSel=null;S._tplEdit={...t};render();}
 

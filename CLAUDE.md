@@ -100,7 +100,8 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 | `registros` | Formularios de inscripción recibidos |
 | `push_subscriptions` | Endpoints Web Push de alumnas |
 | `amira_push_subscriptions` | Endpoints Web Push de Amira (trainera) |
-| `plantillas` | Plantillas de texto reutilizables para mensajes |
+| `plantillas` | Plantillas de rutina (estructura de días y ejercicios para copiar a una alumna) |
+| `plantillas_mensajes` | Plantillas de WhatsApp del panel, una fila por conjunto (`alumna` y `general`): el celular y la compu de Amira usan los mismos textos |
 | `avisos` | Anuncios que aparecen en la app de alumnas |
 
 ---
@@ -183,7 +184,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v65` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v66` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -256,6 +257,10 @@ Estrategias:
 
 **Push nativo sin Firebase:** Firebase Cloud Messaging agrega dependencia de Google y complejidad. Web Push nativo funciona igual en Chrome/Edge/Firefox/Safari (iOS 16.4+).
 
+**Plantillas de WhatsApp en la base (13/10/2026):** Amira usa el panel en el celular y en la compu, y cada dispositivo guardaba sus textos en `localStorage`. Ahora viven en `plantillas_mensajes` y `localStorage` queda como copia (`cargarTplsDeBase`, `guardarTplsEnBase`).
+- La primera vez que cada dispositivo abre el panel, suma a la base los textos que tenía editados.
+- Si al guardar no hay conexión, queda pendiente (`af-tpls-pend-…`) y se sube al volver a abrir el panel.
+
 **Claude con prompt caching:** el system prompt de `generate-routine` es idéntico para todas las alumnas. Con prompt caching de Anthropic se paga el 10% del costo en tokens de input en llamadas subsecuentes del mismo bloque cacheado.
 
 ---
@@ -308,6 +313,7 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 - **Cerrada el 12/10/2026:** `registros` (Amira todo; sin sesión solo se puede insertar una fila de tipo `registro` o `ficha_salud` con estado `pendiente` o `aprobado`, sin leer, modificar ni borrar). El formulario y la ficha insertan con `sbInsertSinRespuesta` (`return=minimal`): pedir la fila de vuelta exige permiso de lectura y el insert fallaría. Ver `migrations/rls_registros_permisos.sql` y su marcha atrás.
 - **Cerradas el 12/10/2026:** `rutinas` (Amira todo; cada alumna solo lee las suyas) y `progreso` (Amira todo; cada alumna lee y guarda lo suyo, incluido el upsert sobre `progreso_unique`). Ninguna página previa al ingreso las usa, el generador de rutinas usa la clave de servicio, y el service worker no escribe: le avisa a la app abierta que sincronice. Ver `migrations/rls_rutinas_progreso_permisos.sql` y su marcha atrás.
 - **Cerradas el 13/10/2026:** `peso_alumna` y `push_subscriptions` (Amira todo; cada alumna lo suyo), `feedbacks` (Amira todo; cada alumna lee y crea los suyos, sin editar ni borrar), `avisos` (Amira todo; cada alumna lee los de `para = 'todas'` y los de su slug), `plantillas`, `pesos` y `fichas_salud` (solo Amira; las dos últimas están vacías y sin uso) y la lectura de `page_views` (solo Amira). Hasta ese día cualquier cuenta con sesión, no solo las alumnas, leía todos los reportes y publicaba avisos. Ver `migrations/rls_ultimas_tablas_permisos.sql` y su marcha atrás.
+- **Creada el 13/10/2026, con RLS:** `plantillas_mensajes` (solo Amira). Ver `migrations/plantillas_mensajes.sql`.
 - **Abiertas a propósito:** leer `ejercicios_biblioteca` (sin datos personales; la app la usa), insertar en `page_views` (las visitas de la landing, la bio y el formulario, que mandan `return=minimal`) e insertar inscripciones en `registros`.
 - **Cada alumna solo puede cambiar de su fila de `alumnas` `last_active_at`, `foto` y `dias_disponibles`**: lo frena el trigger `alumnas_limitar_cambios`, que no aplica a Amira, a las Edge Functions ni a las funciones `security definer`. Si la app tiene que cambiar otra columna, agregarla ahí.
 - **Activar notificaciones pasa por `guardar_suscripcion(alumna_id, endpoint, p256dh, auth)`** (`security definer`, solo con sesión): un celular tiene una sola suscripción, y si ya era de otra alumna se la pasa a quien la activa.
