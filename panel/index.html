@@ -477,6 +477,23 @@
   </div>
 </div>
 
+<!-- Modal motivo al pausar o dar de baja a una alumna -->
+<div class="modal-bg" id="modal-motivo" style="display:none;" onclick="if(event.target===this)cerrarMotivo()">
+  <div class="modal" style="max-width:440px;">
+    <h3 id="motivo-titulo">¿Por qué?</h3>
+    <div class="nota" style="margin-bottom:1rem;">
+      Queda en el historial de la alumna (📋). Con el tiempo te muestra por qué se van.
+    </div>
+    <div id="motivo-opciones" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.75rem;"></div>
+    <div><label>Nota (opcional)</label><input type="text" id="motivo-nota" maxlength="200" placeholder="Ej: se muda en diciembre, vuelve en marzo"></div>
+    <div style="display:flex;gap:8px;margin-top:.5rem;">
+      <button class="btn btn-p" onclick="guardarMotivo()">Guardar</button>
+      <button class="btn" onclick="cerrarMotivo()">Cancelar</button>
+    </div>
+    <div id="motivo-msg" style="font-size:12px;margin-top:8px;"></div>
+  </div>
+</div>
+
 <!-- Modal IA: generación de rutina con IA -->
 <div class="modal-bg" id="modal-ia" style="display:none;" onclick="if(event.target===this)closeIAModal()">
   <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto;">
@@ -1043,7 +1060,7 @@ async function marcarAtendido(fid){
 // a mostrar como pendiente. Se registra que se abrio el chat, no que el mensaje
 // se envio: WhatsApp no lo confirma.
 const DIAS_ESPERA_CONTACTO=3;
-const _MOTIVO_TPL={a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
+const _MOTIVO_TPL={a_bienv:'bienvenida',a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
   a_dolor:'dolor',u_dolor:'dolor',a_hoy:'seguimiento',a_como:'seguimiento',a_check:'seguimiento',check:'seguimiento',u_inact:'inactividad',a_pago:'cobro',pago:'cobro'};
 const _MOTIVO_LBL={dolor:'por la molestia',inactividad:'por la inactividad',cobro:'por el pago',logro:'para felicitarla',seguimiento:'para ver c\u00f3mo ven\u00eda',
   recordatorio:'un recordatorio',ciclo:'por el ciclo nuevo',motivacion:'para motivarla',resumen:'el resumen',informe:'el informe',bienvenida:'la bienvenida',cumpleanos:'por el cumplea\u00f1os'};
@@ -2964,7 +2981,8 @@ async function envTplAlu(aId, key){
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
   const link=BASE+'/alumna/'+a.slug;
   const lg=logroDeHoy(aId);
-  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:''}), aId, _MOTIVO_TPL[key]||'mensaje');
+  const pin=pinDesdeNacimiento(a.nacimiento)||'tu fecha de nacimiento (día, mes y año)';
+  waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:'',email:a.email||'',pin,instalar:BASE+'/instalar'}), aId, _MOTIVO_TPL[key]||'mensaje');
 }
 function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
@@ -3769,7 +3787,8 @@ function rInicio(){
     if(!hoy.length)return'';
     // La opcion con [logro] solo aparece si hoy hay algo concreto que decir:
     // si no, el mensaje saldria con un hueco en el medio.
-    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_'));
+    // La bienvenida no va para quien ya entreno hoy.
+    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_')&&t.key!=='a_bienv');
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
         <div class="ctitle" style="margin-bottom:0;">✅ Entrenaron hoy</div>
@@ -3864,6 +3883,17 @@ function rAlumnas(){
     return passEstado&&passQ;
   });
   const ftabs=[['activa+pausada','Activas + Pausadas'],['activa','Activas'],['pausada','Pausadas'],['baja','Bajas'],['todas','Todas']];
+  // En Bajas y Pausadas: cuántas por cada motivo
+  const resumenMotivos=(()=>{
+    if(S.filtroEstado!=='baja'&&S.filtroEstado!=='pausada')return'';
+    const lista=DB.alumnas.filter(a=>a.estado===S.filtroEstado);
+    if(!lista.length)return'';
+    const n={};let sin=0;
+    lista.forEach(a=>{const m=ultimoCambioEstado(a)?.motivo;if(MOTIVOS_ESTADO[m])n[m]=(n[m]||0)+1;else sin++;});
+    const partes=Object.entries(n).sort((x,y)=>y[1]-x[1]).map(([k,c])=>`${MOTIVOS_ESTADO[k]} ${c}`);
+    if(sin)partes.push(`sin anotar ${sin}`);
+    return`<div style="font-size:12px;color:var(--tm);margin:-.5rem 0 1rem;">Motivos: ${partes.join(' · ')}</div>`;
+  })();
   return`<div class="ptitle">Alumnas <span style="font-size:14px;font-weight:400;color:var(--tm);">(${filtradas.length})</span></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
     <div style="position:relative;flex:1;min-width:180px;">
@@ -3877,6 +3907,7 @@ function rAlumnas(){
   <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem;">
     ${ftabs.map(([k,l])=>`<button class="btn btn-s${S.filtroEstado===k?' btn-p':''}" onclick="S.filtroEstado='${k}';render()">${l}</button>`).join('')}
   </div>
+  ${resumenMotivos}
   ${S.addA?`<div class="card" style="margin-bottom:1rem;">
     <div class="ctitle">Nueva alumna</div>
     <label>Nombre completo</label><input type="text" id="na-nombre" placeholder="Ej: Laura Gómez">
@@ -4059,8 +4090,9 @@ function alumnaCardHTML(a){
   const est=a.estado||'activa';
   const cicNom=a.ciclos_nombres?.[a.ciclo_actual||1]||('Ciclo '+(a.ciclo_actual||1));
 
+  const motEst=est!=='activa'?MOTIVOS_ESTADO[ultimoCambioEstado(a)?.motivo]:'';
   const estBadge=est!=='activa'
-    ?'<span style="background:'+(est==='pausada'?'var(--a)':'var(--rl)')+';color:'+(est==='pausada'?'var(--ad)':'var(--rd)')+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;">'+(est==='pausada'?'⏸ Pausada':'✕ Baja')+'</span>'
+    ?'<span style="background:'+(est==='pausada'?'var(--a)':'var(--rl)')+';color:'+(est==='pausada'?'var(--ad)':'var(--rd)')+';border-radius:var(--rp);padding:1px 8px;font-size:10px;font-weight:500;">'+(est==='pausada'?'⏸ Pausada':'✕ Baja')+(motEst?' · '+motEst:'')+'</span>'
     :'';
   const ua=ultimaActividad(a.id);
   const uaColor=ua.dias<0?['#f1f5f9','#64748b']:ua.dias<=3?['#dcfce7','#15803d']:ua.dias<=7?['#fef9c3','#a16207']:ua.dias<=14?['#ffedd5','#c2410c']:['#fee2e2','var(--rd)'];
@@ -4189,7 +4221,7 @@ function alumnaCardHTML(a){
   const logHTML=logOpen&&a.estado_log?.length
     ?'<div style="background:var(--s2);border-radius:var(--rs);padding:.6rem .85rem;font-size:11px;margin-top:6px;border:1px solid var(--b);">'
       +'<div style="font-weight:500;color:var(--tm);margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;">Historial de estado</div>'
-      +a.estado_log.slice().reverse().map(e=>'<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--b);"><span style="color:var(--t);">'+(e.estado==='activa'?'● Activa':e.estado==='pausada'?'⏸ Pausada':'✕ Baja')+'</span><span style="color:var(--th);">'+new Date(e.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+'</span></div>').join('')
+      +a.estado_log.slice().reverse().map(e=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--b);"><span style="color:var(--t);">'+(e.estado==='activa'?'● Activa':e.estado==='pausada'?'⏸ Pausada':'✕ Baja')+(MOTIVOS_ESTADO[e.motivo]?' · '+MOTIVOS_ESTADO[e.motivo]:'')+(e.nota?'<span style="color:var(--tm);"> — '+esc(e.nota)+'</span>':'')+'</span><span style="color:var(--th);white-space:nowrap;">'+new Date(e.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+'</span></div>').join('')
       +'</div>'
     :'';
 
@@ -4234,11 +4266,12 @@ function alumnaCardHTML(a){
       ${waHTML}
       <button class="btn btn-s btn-warn" onclick="openEditA(${a.id})">Editar</button>
       <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
-        <select onchange="cambiarEstado(${a.id},this.value)" title="Estado de la alumna" style="font-size:11px;padding:3px 7px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;cursor:pointer;">
+        <select onchange="pedirCambioEstado(${a.id},this.value)" title="Estado de la alumna" style="font-size:11px;padding:3px 7px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;cursor:pointer;">
           <option value="activa"${(alumnaActiva(a))?' selected':''}>● Activa</option>
           <option value="pausada"${a.estado==='pausada'?' selected':''}>⏸ Pausada</option>
           <option value="baja"${a.estado==='baja'?' selected':''}>✕ Baja</option>
         </select>
+        ${(est==='pausada'||est==='baja')&&ultimoCambioEstado(a)&&!ultimoCambioEstado(a).motivo?`<button class="btn btn-s" style="padding:3px 7px;font-size:10px;" onclick="abrirMotivo(${a.id},'${est}',true)" title="Anotar por qué ${est==='baja'?'se fue':'pausó'}">+ Motivo</button>`:''}
         ${a.estado_log?.length?`<button class="btn btn-s" style="padding:3px 7px;font-size:10px;" onclick="S['log_${a.id}']=!S['log_${a.id}'];render()" title="Historial de estado">📋</button>`:''}
       </div>
     </div>
@@ -5472,7 +5505,7 @@ function rRecordatorios(){
     ${S._atplEdit?(()=>{
       const isCustom=!WA_ALUMNA_TPLS_DEFAULTS.find(t=>t.key===S._atplEdit.key);
       return`<div style="background:var(--s2);border-radius:var(--rs);padding:.8rem;border:1px solid var(--bm);margin-bottom:.75rem;">
-        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando — tokens: [nombre] [link] [ciclo]</div>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando — tokens: [nombre] [link] [ciclo] [email] [pin] [instalar]</div>
         <input type="text" id="atpl-label" value="${S._atplEdit.l.replace(/"/g,'&quot;')}" placeholder="Nombre del template" style="margin-bottom:6px;">
         <textarea id="atpl-msg" style="height:80px;">${S._atplEdit.msg}</textarea>
         <div style="display:flex;gap:6px;margin-top:.6rem;flex-wrap:wrap;">
@@ -5516,6 +5549,9 @@ const FB_LABELS={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_m
 
 // ── Templates por alumna (editable, tokens: [nombre] [link] [ciclo]) ──────────
 const WA_ALUMNA_TPLS_DEFAULTS=[
+  // Para el primer dia: hasta el 13/10 solo habia bienvenida desde una
+  // inscripcion pendiente, y quien llegaba por WhatsApp no tenia ninguna.
+  {key:'a_bienv',l:'👋 Bienvenida y cómo entrar', msg:'¡Hola [nombre]! Bienvenida a Amira Fitness 🎉\n\nTu rutina ya está lista: [link]\n\nPara entrar:\n• Email: [email]\n• PIN: [pin]\n\nInstalá la app en la pantalla de inicio y activá las notificaciones, así te llega el recordatorio los días que entrenás. Te dejo cómo hacerlo: [instalar]\n\n¿Qué día arrancás? Contame y ese día te escribo 💪'},
   // Sin firma "— Amira": en un chat uno a uno la otra persona ya sabe quien
   // escribe, y firmar es lo que hacen los mensajes masivos. Varias redacciones
   // separadas por --- para que no llegue siempre la misma frase.
@@ -5581,7 +5617,8 @@ function interpTpl(msg,vars){
   const hoy=new Date();const dia=hoy.getFullYear()+'-'+(hoy.getMonth()+1)+'-'+hoy.getDate();
   return elegirVariante(msg,(vars.nombre||'')+dia)
     .replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'')
-    .replace(/\[ciclo\]/g,vars.ciclo||'').replace(/\[logro\]/g,vars.logro||'');
+    .replace(/\[ciclo\]/g,vars.ciclo||'').replace(/\[logro\]/g,vars.logro||'')
+    .replace(/\[email\]/g,vars.email||'').replace(/\[pin\]/g,vars.pin||'').replace(/\[instalar\]/g,vars.instalar||'');
 }
 function editAluTpl(key){const tpl=getAlumnaTpls().find(t=>t.key===key);if(!tpl)return;S._atplEdit={...tpl};S._atplSel=null;render();}
 function saveAluTpl(key){
@@ -5834,11 +5871,60 @@ function rConfig(){
 }
 
 // ── Estado alumna ─────────────────────────────────────────────
-async function cambiarEstado(aId, estado){
+const MOTIVOS_ESTADO={tiempo:'Tiempo',dinero:'Dinero',salud:'Salud',motivacion:'Motivación',no_responde:'No responde',otro:'Otro'};
+// Último cambio del historial, si es el que dejó a la alumna en su estado actual
+function ultimoCambioEstado(a){
+  const log=Array.isArray(a.estado_log)?a.estado_log:[];
+  const u=log[log.length-1];
+  return u&&u.estado===(a.estado||'activa')?u:null;
+}
+let _motivo=null; // {aId, estado, soloMotivo, motivo}
+function pedirCambioEstado(aId, estado){
+  if(estado==='pausada'||estado==='baja'){abrirMotivo(aId,estado,false);return;}
+  cambiarEstado(aId,estado);
+}
+// soloMotivo: anotar el motivo de una baja o pausa ya hecha, sin cambiar el estado
+function abrirMotivo(aId, estado, soloMotivo){
   const a=getA(aId);if(!a)return;
+  _motivo={aId,estado,soloMotivo,motivo:null};
+  const nom=(a.nombre||'').split(' ')[0];
+  document.getElementById('motivo-titulo').textContent=estado==='baja'?`¿Por qué se va ${nom}?`:`¿Por qué pausa ${nom}?`;
+  document.getElementById('motivo-nota').value='';
+  document.getElementById('motivo-msg').textContent='';
+  pintarMotivos();
+  document.getElementById('modal-motivo').style.display='flex';
+}
+function pintarMotivos(){
+  document.getElementById('motivo-opciones').innerHTML=Object.entries(MOTIVOS_ESTADO)
+    .map(([k,l])=>`<button type="button" class="btn btn-s${_motivo?.motivo===k?' btn-p':''}" onclick="_motivo.motivo='${k}';pintarMotivos()">${l}</button>`).join('');
+}
+// Al cancelar, render() vuelve el selector al estado que tenía
+function cerrarMotivo(){document.getElementById('modal-motivo').style.display='none';_motivo=null;render();}
+async function guardarMotivo(){
+  if(!_motivo)return;
+  const {aId,estado,soloMotivo,motivo}=_motivo;
+  const msg=document.getElementById('motivo-msg');
+  if(!motivo){msg.textContent='Elegí un motivo. Si no lo sabés, elegí Otro.';msg.style.color='var(--rd)';return;}
+  const nota=document.getElementById('motivo-nota').value.trim().slice(0,200);
+  const ok=soloMotivo?await anotarMotivo(aId,motivo,nota):await cambiarEstado(aId,estado,motivo,nota);
+  if(ok)cerrarMotivo();
+}
+async function anotarMotivo(aId, motivo, nota){
+  const a=getA(aId);if(!a||!ultimoCambioEstado(a))return false;
+  const n=a.estado_log.length-1;
+  const log=a.estado_log.map((e,i)=>i===n?{...e,motivo,...(nota?{nota}:{})}:e);
+  try{
+    await sbPatch('alumnas',`id=eq.${aId}`,{estado_log:log});
+    a.estado_log=log;
+    render();
+    return true;
+  }catch(e){alert('No se pudo guardar el motivo: '+e.message);return false;}
+}
+async function cambiarEstado(aId, estado, motivo, nota){
+  const a=getA(aId);if(!a)return false;
   try{
     const log=Array.isArray(a.estado_log)?[...a.estado_log]:[];
-    log.push({estado,fecha:new Date().toISOString()});
+    log.push({estado,fecha:new Date().toISOString(),...(motivo?{motivo}:{}),...(nota?{nota}:{})});
     try{
       await sbPatch('alumnas',`id=eq.${aId}`,{estado,estado_log:log});
       a.estado_log=log;
@@ -5850,7 +5936,8 @@ async function cambiarEstado(aId, estado){
     }
     a.estado=estado;
     render();
-  }catch(e){alert('Error al cambiar estado: '+e.message);}
+    return true;
+  }catch(e){alert('Error al cambiar estado: '+e.message);return false;}
 }
 
 // ── Notas de sesión ───────────────────────────────────────────
@@ -5941,15 +6028,17 @@ function onboardingWA(regId){
   const tel=reg.tel?reg.tel.replace(/\D/g,''):'';
   if(!tel){alert('Este registro no tiene número de WhatsApp.');return;}
   const nombre=fn(reg.nombre);
-  const lug=(()=>{const l=String(reg.lugar_entrenamiento||'').toLowerCase();if(l.startsWith('gimnasio'))return'el gimnasio';if(l.includes('casa'))return'casa';return'tu espacio';})();
-  const dias=reg.dias&&reg.dias!=='—'?reg.dias:'varios';
+  // El formulario ya no pide lugar ni dias: sin esto el mensaje salia con
+  // "Lugar de entrenamiento: tu espacio / Días por semana: varios" para todas.
+  const lug=(()=>{const l=String(reg.lugar_entrenamiento||'').toLowerCase();if(l.startsWith('gimnasio'))return'el gimnasio';if(l.includes('casa'))return'casa';return null;})();
+  const dias=reg.dias&&reg.dias!=='—'?reg.dias:null;
   const obj=reg.objetivos&&reg.objetivos!=='—'?reg.objetivos:null;
   const exp=reg.exp&&reg.exp!=='—'?reg.exp:null;
   let msg='¡Hola '+nombre+'! 🎉 Bienvenida a Amira Fitness.\n\n';
   msg+='Leí tu registro y ya sé lo que necesitás. 💪\n\n';
   if(obj)msg+='📌 Tu objetivo: *'+obj+'*\n';
-  msg+='📍 Lugar de entrenamiento: '+lug+'\n';
-  msg+='📅 Días por semana: '+dias+'\n';
+  if(lug)msg+='📍 Lugar de entrenamiento: '+lug+'\n';
+  if(dias)msg+='📅 Días por semana: '+dias+'\n';
   if(exp)msg+='🏋️ Experiencia: '+exp+'\n';
   msg+='\nEn breve te cargo tu rutina personalizada. Cuando te llegue el link, ya podés empezar.\n\n';
   msg+='Cualquier duda, escribime acá. ¡Arrancamos! — Amira 🔥';
