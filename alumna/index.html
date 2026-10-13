@@ -379,20 +379,23 @@
       <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:1rem;">Ingresá a tu rutina</p>
       <input type="email" id="auth-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
       <input type="password" id="auth-pin" placeholder="Tu PIN (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="current-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <p style="font-size:12px;color:var(--tm);margin:0 0 12px;line-height:1.5;">Tu PIN es tu fecha de nacimiento: día, mes y año. Si naciste el 19/04/1988, es <b>190488</b>.</p>
       <button onclick="doAlumnaLogin()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Ingresar</button>
-      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Primera vez? <span onclick="showAuthTab('signup')" style="color:var(--v);cursor:pointer;font-weight:500;">Creá tu PIN</span></p>
       <div id="auth-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
+      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:10px;">¿No podés entrar? <a href="#" onclick="ayudaIngreso(event)" style="color:var(--v);font-weight:500;">Escribile a Amira</a></p>
+      <p style="text-align:center;font-size:12px;color:var(--tm);margin-top:6px;">¿Amira te pidió que crees tu PIN? <span onclick="showAuthTab('signup')" style="color:var(--v);cursor:pointer;font-weight:500;">Crealo acá</span></p>
     </div>
     <!-- Tab: Crear PIN -->
     <div id="auth-signup" style="display:none;">
       <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:4px;">Creá tu PIN de acceso</p>
-      <p style="font-size:12px;color:var(--tm);margin-bottom:1rem;">Tu entrenadora ya te registró. Ingresá tu email y elegí un PIN de 6 dígitos.</p>
+      <p style="font-size:12px;color:var(--tm);margin-bottom:1rem;">Solo si Amira te pidió que lo crees: ingresá tu email y elegí 6 números. Si te dio de alta con tu fecha de nacimiento, tu PIN ya es esa fecha.</p>
       <input type="email" id="auth-signup-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
       <input type="password" id="auth-signup-pin" placeholder="PIN nuevo (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
       <input type="password" id="auth-signup-pin2" placeholder="Repetí tu PIN" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
       <button onclick="doAlumnaSignup()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Crear acceso</button>
       <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Ya tenés PIN? <span onclick="showAuthTab('login')" style="color:var(--v);cursor:pointer;font-weight:500;">Ingresá</span></p>
       <div id="auth-signup-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
+      <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:10px;">¿No podés entrar? <a href="#" onclick="ayudaIngreso(event)" style="color:var(--v);font-weight:500;">Escribile a Amira</a></p>
     </div>
   </div>
 </div>
@@ -404,78 +407,39 @@
 <div id="onboarding" style="display:none;">
   <div class="ob-slides">
 
-    <!-- Slide 1: Bienvenida emocional -->
+    <!-- Eran 7 pantallas con informacion repetida y algun nombre viejo ("Descanso
+         activo"). Quedan 3: lo personal, como se usa cada dia y que hacer si un dia
+         no se puede. El resto se descubre usando la app. -->
+
+    <!-- Slide 1: Bienvenida -->
     <div class="ob-slide active" id="ob-s1">
       <div class="ob-icon">✨</div>
       <div class="ob-title" id="ob-nombre-titulo">Bienvenida a<br>tu rutina</div>
       <div class="ob-body">
-        Amira diseñó este programa <strong>específicamente para vos</strong> — tu nivel, tus tiempos, tu cuerpo.<br><br>
-        No es una rutina genérica. Es la tuya.
+        Amira diseñó este programa <strong>específicamente para vos</strong>: tu nivel, tus tiempos, tu cuerpo.<br><br>
+        ¿Un día tenés poco tiempo? Elegí <strong>15 o 30 minutos</strong> y hacé los ejercicios que más rinden. También cuenta.
       </div>
       <div class="ob-pill">✦ Tu entrenamiento personalizado</div>
     </div>
 
-    <!-- Slide 2: Cómo usar -->
+    <!-- Slide 2: Cómo funciona cada día -->
     <div class="ob-slide" id="ob-s2">
       <div class="ob-icon">✅</div>
-      <div class="ob-title">Así funciona<br>cada ejercicio</div>
+      <div class="ob-title">Así funciona<br>cada día</div>
       <div class="ob-body">
-        Tocá <strong>Ver técnica</strong> para leer el consejo de Amira.<br><br>
-        Tocá <strong>▶ Video</strong> para ver el movimiento.<br><br>
-        Cuando terminés las series, tocá <strong>Marcar hecho</strong> — arranca el descanso automáticamente.
+        Cuando terminás las series de un ejercicio, tocá <strong>Marcar hecho</strong>. <strong>Ver técnica</strong> y <strong>▶ Video</strong> te muestran cómo se hace.<br><br>
+        Si usás peso, anotalo: la próxima vez la app te lo propone.<br><br>
+        ¿Algo te molesta? Tocá <strong>⚑ Reportar</strong> y le llega a Amira.
       </div>
     </div>
 
-    <!-- Slide 3: Peso y progreso -->
+    <!-- Slide 3: Expectativa primeras semanas (retención) -->
     <div class="ob-slide" id="ob-s3">
-      <div class="ob-icon">📈</div>
-      <div class="ob-title">Registrá<br>tus pesos</div>
-      <div class="ob-body">
-        Cargá el peso que usás en cada ejercicio.<br><br>
-        En la pestaña <strong>Progreso</strong> vas a ver cómo mejorás semana a semana.<br><br>
-        Amira también puede verlo desde su panel.
-      </div>
-    </div>
-
-    <!-- Slide 4: Notas -->
-    <div class="ob-slide" id="ob-s4">
-      <div class="ob-icon">💬</div>
-      <div class="ob-title">Mandále notas<br>a Amira</div>
-      <div class="ob-body">
-        En la pestaña <strong>Notas</strong> podés escribirle cómo te fue, cómo te sentiste o cualquier duda.<br><br>
-        Ella las ve en su panel y te responde por WhatsApp.
-      </div>
-    </div>
-
-    <!-- Slide 5: Extras -->
-    <div class="ob-slide" id="ob-s5">
-      <div class="ob-icon">⚑</div>
-      <div class="ob-title">Reportá, compartí<br>y check-in</div>
-      <div class="ob-body">
-        Si encontrás un error en un ejercicio, tocá <strong>⚑ Reportar</strong> para avisarle a Amira directamente.<br><br>
-        Cada semana aparece una tarjeta para <strong>contarle cómo te sentiste</strong>.<br><br>
-        Al terminar el día podés <strong>compartir tu progreso por WhatsApp</strong> con un toque.
-      </div>
-    </div>
-
-    <!-- Slide 6: Descanso activo -->
-    <div class="ob-slide" id="ob-s6">
-      <div class="ob-icon">🚴</div>
-      <div class="ob-title">¿Saliste a correr<br>o andar en bici?</div>
-      <div class="ob-body">
-        Los días que hacés actividad física fuera del gym — caminar, correr, andar en bici, nadar, roller — marcalos como <strong>🚶 Descanso activo</strong>.<br><br>
-        Lo vas a ver debajo de cada día. Amira lo registra y cuenta en tu historial.<br><br>
-        Si no pudiste hacer nada, usá <strong>😔 No pude nada hoy</strong> para avisarle.
-      </div>
-    </div>
-
-    <!-- Slide 7: Expectativa primeras semanas (retención) -->
-    <div class="ob-slide" id="ob-s7">
       <div class="ob-icon">🌱</div>
       <div class="ob-title">Una cosa antes<br>de arrancar</div>
       <div class="ob-body">
-        Las primeras dos semanas son las más difíciles. No porque el entrenamiento sea imposible — sino porque el hábito todavía no existe. <strong>Es normal que cueste.</strong><br><br>
-        Si un día no podés, no lo saltes en silencio. Avisale a Amira por acá o por WhatsApp. Acá no se abandona sola.
+        Las primeras dos semanas son las más difíciles. No porque el entrenamiento sea imposible, sino porque el hábito todavía no existe. <strong>Es normal que cueste.</strong><br><br>
+        Si un día no podés, tocá <strong>😔 No pude nada hoy</strong> o escribile a Amira. Si saliste a caminar o a correr, marcá <strong>🚶 Pausa activa</strong>. Acá no se abandona sola.
       </div>
       <div class="ob-pill">🚀 ¡Arrancamos!</div>
     </div>
@@ -487,10 +451,6 @@
       <div class="ob-dot active" id="od1"></div>
       <div class="ob-dot" id="od2"></div>
       <div class="ob-dot" id="od3"></div>
-      <div class="ob-dot" id="od4"></div>
-      <div class="ob-dot" id="od5"></div>
-      <div class="ob-dot" id="od6"></div>
-      <div class="ob-dot" id="od7"></div>
     </div>
     <button class="ob-btn" id="ob-btn-next" onclick="obNext()">Siguiente →</button>
     <button class="ob-skip" id="ob-btn-skip" onclick="obCerrar()">Saltar introducción</button>
@@ -633,14 +593,23 @@ async function doAlumnaLogin(){
     if(!r.ok){
       const rb=await r.json().catch(()=>({}));
       const em=(rb.error_description||rb.msg||rb.message||'').toLowerCase();
-      if(em.includes('confirm')){msg.textContent='Tu cuenta necesita confirmación. Usá "Creá tu PIN" para establecer tu acceso.';}
-      else if(em.includes('not found')||em.includes('no user')){msg.textContent='No encontramos una cuenta con ese email.';}
-      else{msg.textContent='Email o PIN incorrecto. Tu PIN es tu fecha de nacimiento en formato DDMMAA (ej: 190488).';}
+      if(em.includes('confirm')){msg.textContent='Tu cuenta todavía no está activada. Escribile a Amira.';}
+      else if(em.includes('not found')||em.includes('no user')){msg.textContent='No encontramos una cuenta con ese email. Revisá que esté bien escrito.';}
+      else{msg.textContent='Email o PIN incorrecto. Revisá que el PIN sea tu fecha de nacimiento: día, mes y año (19/04/1988 → 190488).';}
       return;
     }
     _saveAlumnaSess(await r.json());
     await init();
   }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
+}
+
+// "¿No podés entrar?": abre WhatsApp con Amira y el email que haya escrito, asi
+// ella le confirma el PIN (las cuentas se crean con la fecha de nacimiento).
+function ayudaIngreso(ev){
+  if(ev) ev.preventDefault();
+  const em=(document.getElementById('auth-email')?.value||document.getElementById('auth-signup-email')?.value||'').trim();
+  const txt=`¡Hola Amira! No puedo entrar a la app${em?` con el mail ${em}`:''}. ¿Me ayudás?`;
+  window.open(`https://wa.me/${AMIRA_WA}?text=${encodeURIComponent(txt)}`,'_blank');
 }
 
 async function doAlumnaSignup(){
@@ -663,7 +632,18 @@ async function doAlumnaSignup(){
     msg.textContent='Creando acceso...';
     const r=await fetch(`${SB_URL}/auth/v1/signup`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({email,password:pin})});
     const d=await r.json();
-    if(!r.ok||!d.access_token){msg.textContent=d.error_description||d.msg||'Error. ¿Ya tenés PIN? Intentá con "Ingresá".';return;}
+    if(!r.ok||!d.access_token){
+      // Si Amira ya la dio de alta, la cuenta existe y su PIN es la fecha de
+      // nacimiento: crear otro falla. Antes devolvia el error en ingles.
+      const em=String(d.error_description||d.msg||d.message||'').toLowerCase();
+      if(em.includes('already')||em.includes('registered')){
+        showAuthTab('login');
+        document.getElementById('auth-email').value=email;
+        document.getElementById('auth-msg').textContent='Ya tenés una cuenta con ese email. Ingresá con tu PIN: tu fecha de nacimiento (día, mes y año).';
+        return;
+      }
+      msg.textContent='No se pudo crear el acceso. Probá de nuevo o escribile a Amira.';return;
+    }
     _saveAlumnaSess(d);
     await init();
   }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
@@ -689,7 +669,7 @@ async function checkAlumnaAuth(){
 
 // ── Onboarding ────────────────────────────────────────────────
 let obStep = 1;
-const OB_TOTAL = 7;
+const OB_TOTAL = 3;
 
 function obMostrar(nombre){
   // Solo la primera vez
@@ -775,6 +755,7 @@ function obCerrar(){
   }
   document.body.style.overflow = '';
   localStorage.setItem('af-onboarding-done', '1');
+  setTimeout(siguienteCartel, 600);
 }
 
 let DB = {alumnas:[], rutinas:{}, comentarios:[], avisos:[]};
@@ -919,16 +900,10 @@ async function setupPush(alumnaId){
       mostrarBannerPush(alumnaId);
       return;
     }
-    try{
-      const rows = await sbGet('push_subscriptions', `endpoint=eq.${encodeURIComponent(existing.endpoint)}&select=endpoint&limit=1`);
-      if(rows.length){ await guardarSuscripcion(alumnaId, existing); return; }
-      // No está en la BD (ej: fue reseteado con TRUNCATE) → re-registrar silenciosamente
-      // El usuario ya otorgó permiso antes, no hace falta volver a pedírselo
-      await guardarSuscripcion(alumnaId, existing);
-      localStorage.setItem('af-push-asked','granted');
-      return;
-    }catch{ await guardarSuscripcion(alumnaId, existing); return; }
-    mostrarBannerPush(alumnaId);
+    // Ya dio permiso: se vuelve a guardar la suscripcion por si en la base no
+    // esta (o era de otra alumna en este celular), sin volver a preguntar.
+    try{ await guardarSuscripcion(alumnaId, existing); }catch(e){}
+    pedirDiasSiFaltan(alumnaId);
     return;
   }
 
@@ -936,6 +911,7 @@ async function setupPush(alumnaId){
   if(existing){
     localStorage.setItem('af-push-asked','granted');
     await guardarSuscripcion(alumnaId, existing);
+    pedirDiasSiFaltan(alumnaId);
     return;
   }
   mostrarBannerPush(alumnaId);
@@ -980,6 +956,19 @@ function cerrarModalDias() {
   const m = document.getElementById('modal-dias');
   if(m) m.remove();
   renderNotas();
+  siguienteCartel();
+}
+
+// Con las notificaciones activadas pero sin dias elegidos no le llega ningun
+// recordatorio, y "Seleccionar despues" cerraba el cartel para siempre. Se lo
+// vuelve a pedir, como mucho una vez por semana.
+function pedirDiasSiFaltan(aId){
+  const a=getAlumna();
+  if(!a||(Array.isArray(a.dias_disponibles)&&a.dias_disponibles.length)) return;
+  const k='af-dias-pedidos-'+aId;
+  if(Date.now()-parseInt(localStorage.getItem(k)||'0')<7*864e5) return;
+  localStorage.setItem(k,String(Date.now()));
+  mostrarModalDias(aId);
 }
 
 function _renderModalDiasBtns(alumnaId) {
@@ -1028,11 +1017,15 @@ function rechazarPush(){
   if(b) b.remove();
   const n = document.getElementById('push-nudge');
   if(n) n.remove();
+  siguienteCartel();
 }
 
 function pushNudgeHTML(alumnaId){
   const prev = localStorage.getItem('af-push-asked');
   if(prev === 'granted') return '';
+  // Si nunca se le pregunto, el cartel de abajo se encarga: mostrar los dos a la
+  // vez era pedirle lo mismo dos veces.
+  if(prev === null) return '';
   // Only hide nudge if browser truly blocked — old code stored 'denied' for user dismissals too
   if(prev === 'denied'){
     if(typeof Notification === 'undefined' || Notification.permission === 'denied') return '';
@@ -1077,6 +1070,7 @@ async function activarPush(alumnaId){
     console.warn('Push subscription error:', e);
     localStorage.setItem('af-push-asked','denied');
   }
+  siguienteCartel();
 }
 
 // Pasa por una funcion de la base y no por la tabla: si en este celular ya habia
@@ -2119,9 +2113,25 @@ window.addEventListener('beforeinstallprompt',e=>{
   _androidPrompt=e;
   if(!localStorage.getItem('af-android-dismissed')&&
      !window.matchMedia('(display-mode: standalone)').matches){
-    setTimeout(mostrarBannerAndroid,3000);
+    setTimeout(()=>pedirCartel(mostrarBannerAndroid),3000);
   }
 });
+
+// ── Un cartel por vez ─────────────────────────────────────────
+// La bienvenida, instalar la app y activar notificaciones aparecian juntos y se
+// pisaban: en Android, al cerrar la bienvenida quedaban dos carteles encimados y
+// la tarjeta amarilla. Ahora esperan a que termine la bienvenida y salen de a uno.
+let _cartelesPend=[], _cartelOcupado=false;
+function hayCartel(){ return ['android-banner','ios-banner','push-banner','modal-dias'].some(id=>document.getElementById(id)); }
+function pedirCartel(fn){ _cartelesPend.push(fn); siguienteCartel(); }
+async function siguienteCartel(){
+  if(_cartelOcupado||localStorage.getItem('af-onboarding-done')!=='1'||hayCartel()) return;
+  const fn=_cartelesPend.shift(); if(!fn) return;
+  _cartelOcupado=true;
+  try{ await fn(); }catch(e){}
+  _cartelOcupado=false;
+  if(!hayCartel()) siguienteCartel();
+}
 
 function mostrarBannerAndroid(){
   if(!_androidPrompt||document.getElementById('android-banner')) return;
@@ -2135,7 +2145,7 @@ function mostrarBannerAndroid(){
     +'<div style="font-size:12px;color:var(--tm);line-height:1.6;margin-bottom:10px;">Agregá Amira Fitness a tu pantalla de inicio para acceso rápido, sin browser.</div>'
     +'<div style="display:flex;gap:8px;">'
     +'<button id="android-install-btn" style="flex:1;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:\'DM Sans\',sans-serif;">Instalar</button>'
-    +'<button onclick="document.getElementById(\'android-banner\').remove();localStorage.setItem(\'af-android-dismissed\',\'1\')" style="background:none;border:1px solid var(--bm);border-radius:var(--rp);padding:8px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:\'DM Sans\',sans-serif;">Ahora no</button>'
+    +'<button onclick="document.getElementById(\'android-banner\').remove();localStorage.setItem(\'af-android-dismissed\',\'1\');siguienteCartel()" style="background:none;border:1px solid var(--bm);border-radius:var(--rp);padding:8px 14px;font-size:12px;color:var(--tm);cursor:pointer;font-family:\'DM Sans\',sans-serif;">Ahora no</button>'
     +'</div></div></div>';
   document.body.appendChild(b);
   document.getElementById('android-install-btn').onclick=async()=>{
@@ -2145,6 +2155,7 @@ function mostrarBannerAndroid(){
     localStorage.setItem('af-android-dismissed','1');
     _androidPrompt=null;
     if(result.outcome==='accepted') mostrarToast('✓ ¡App instalada!');
+    siguienteCartel();
   };
 }
 
@@ -2163,7 +2174,7 @@ function mostrarBannerIOS(){
     +'<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:4px;">Instalá la app en tu iPhone</div>'
     +'<div style="font-size:12px;color:var(--tm);line-height:1.6;">Tocá <strong style="color:var(--t);">↑ Compartir</strong> en Safari y elegí <strong style="color:var(--t);">"Agregar a pantalla de inicio"</strong>.</div>'
     +'</div>'
-    +'<button onclick="document.getElementById(\'ios-banner\').remove();localStorage.setItem(\'af-ios-dismissed\',\'1\')" style="background:none;border:none;font-size:20px;color:var(--th);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>'
+    +'<button onclick="document.getElementById(\'ios-banner\').remove();localStorage.setItem(\'af-ios-dismissed\',\'1\');siguienteCartel()" style="background:none;border:none;font-size:20px;color:var(--th);cursor:pointer;padding:0;line-height:1;flex-shrink:0;">✕</button>'
     +'</div>';
   document.body.appendChild(b);
 }
@@ -3434,7 +3445,7 @@ async function init(){
       saveDone();
       localStorage.setItem('af-pesos',JSON.stringify(pesos));
       initMaxPesos(a.id);
-      setTimeout(()=>setupPush(a.id), 3000);
+      setTimeout(()=>pedirCartel(()=>setupPush(a.id)), 3000);
     }
 
     // 3. Inyectar fotos del cache local si Supabase no las devolvió aún
@@ -3473,7 +3484,7 @@ async function init(){
         </div>`;
     }
   }
-  mostrarBannerIOS();
+  pedirCartel(mostrarBannerIOS);
 }
 // Limpiar caches del SW viejo al iniciar (fix para "Sin conexión" falso)
 init();

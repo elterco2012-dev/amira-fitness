@@ -183,7 +183,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: `amira-v22` (incrementar con cada deploy que cambie assets cacheados).
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v63` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -200,6 +200,11 @@ Estrategias:
 2. Amira recibe notificación push y lo aprueba desde el panel.
 3. Amira crea la ficha de alumna, genera la rutina (manual o con IA).
 4. La alumna accede vía `/alumna/{slug}` con su email.
+5. Amira le manda desde la ficha (💬 WA) la plantilla "👋 Bienvenida y cómo entrar": link, email, PIN (la fecha de nacimiento en DDMMAA, `pinDesdeNacimiento`) y la guía de `/instalar`.
+
+**Primer ingreso a la app (desde el 13/10/2026):** una introducción de 3 pantallas y después los carteles de instalar, notificaciones y días de entrenamiento **de a uno**: pasan por `pedirCartel()`, que espera a que termine la introducción y a que se cierre el cartel anterior. Un cartel nuevo tiene que pasar por ahí y llamar a `siguienteCartel()` al cerrarse; si no, vuelven a salir encimados. Si tiene notificaciones pero no eligió días, la app se los pide como mucho una vez por semana.
+
+**Bajas y pausas:** al pasar a una alumna a Pausada o Baja, el panel pide el motivo y lo guarda en la última entrada de `alumnas.estado_log` (`{estado, fecha, motivo, nota}`; motivos: `tiempo`, `dinero`, `salud`, `motivacion`, `no_responde`, `otro`). En Alumnas → Bajas se ve cuántas hay por motivo, y "+ Motivo" anota el de una baja vieja.
 
 ### Una alumna entrena
 1. Ve `rutinas[ciclo][semana][dia]` renderizado en la app.
