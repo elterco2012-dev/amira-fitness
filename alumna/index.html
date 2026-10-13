@@ -1171,34 +1171,112 @@ function cerrarAviso(id){
   document.querySelectorAll('.aviso-banner').forEach(el=>el.remove());
 }
 
-// ── Racha semanal ─────────────────────────────────────────────
-function calcRacha(alumnaId, ciclo){
-  // Semanas con al menos un ejercicio hecho en el ciclo actual
-  const hechas=new Set();
-  for(const k of Object.keys(done)){
-    // formato: ${alumnaId}-c${ciclo}-${semana}-${dia}-${exIdx}
-    const m=k.match(new RegExp(`^${alumnaId}-c(\\d+)-(\\d+)-\\d+-\\d+$`));
-    if(m&&parseInt(m[1])===ciclo) hechas.add(parseInt(m[2]));
+// ── Constancia del mes ────────────────────────────────────────
+// Reemplaza las tres "rachas" que habia (semanas del ciclo, sesiones a menos de
+// 7 dias entre si y semanas seguidas), que volvian a cero con un corte y no
+// coincidian entre si. Decidido con Amira el 13/10/2026: dias entrenados del mes
+// contra los planificados, con meta de 3 de cada 4. Dia entrenado: el 80% de los
+// ejercicios o una sesion corta completa. La pausa activa no cuenta: se muestra
+// al lado. El panel hace la misma cuenta (constanciaMesP): cambiar las dos juntas.
+const META_CONSTANCIA=0.75;
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+// AAAA-MM-DD en la hora del telefono (toISOString da la de Londres: despues de
+// las 21 en Argentina ya es "mañana").
+function fechaLocal(d){
+  d=d instanceof Date?d:new Date(d);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function diasEntre(desde,hasta){ return Math.round((new Date(hasta+'T12:00:00')-new Date(desde+'T12:00:00'))/864e5); }
+function diaCompletado(aId,c,s,d){
+  const exs=getExs(aId,c,s,d);
+  if(!exs.length)return false;
+  const hechos=exs.filter((_,i)=>done[`${aId}-c${c}-${s}-${d}-${i}`]).length;
+  return hechos/exs.length>=0.8;
+}
+// Cada dia entrenado con la fecha en que lo termino (la ultima marca del dia).
+function diasEntrenados(aId){
+  const ult={};
+  for(const p of (DB.progresoRaw||[])){
+    if(!p.hecho||p.ejercicio_idx<0) continue;
+    const t=Date.parse(p.fecha_registro||p.updated_at||''); if(isNaN(t)) continue;
+    const k=`${p.ciclo}-${p.semana}-${p.dia}`;
+    if(!(ult[k]>=t)) ult[k]=t;
   }
-  // Contar consecutivas desde semana 1
-  let racha=0;
-  for(let s=1;s<=4;s++){
-    if(hechas.has(s)) racha=s;
-    else break;
+  const out=[];
+  for(const [k,t] of Object.entries(ult)){
+    const [c,s,d]=k.split('-').map(Number);
+    if(diaCompletado(aId,c,s,d)||esCorta(aId,c,s,d)) out.push({c,s,d,t,fecha:fechaLocal(new Date(t))});
   }
-  return racha;
+  return out.sort((x,y)=>x.t-y.t);
+}
+// Lo que marca en esta sesion entra al historial en memoria: sin esto la
+// constancia, el ultimo peso y "hace cuanto no entrenas" recien se enteraban
+// al recargar la app.
+function anotarEnHistorial(data){
+  const raw=DB.progresoRaw||(DB.progresoRaw=[]);
+  const r=raw.find(p=>p.ciclo===data.ciclo&&p.semana===data.semana&&p.dia===data.dia&&p.ejercicio_idx===data.ejercicio_idx);
+  if(r) Object.assign(r,data); else raw.push({...data});
+}
+// Dias planificados del mes: sus dias por semana repartidos en el mes. Si
+// empezo ese mes, se cuenta desde su primer entrenamiento.
+function planDelMes(dias,ym,desde){
+  const [y,m]=ym.split('-').map(Number);
+  const diasMes=new Date(y,m,0).getDate();
+  const n=desde&&desde.slice(0,7)===ym?diasMes-parseInt(desde.slice(8,10))+1:diasMes;
+  return Math.max(1,Math.round((parseInt(dias)||3)*n/7));
+}
+function pausasDelMes(aId,ym){
+  let n=0;
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||!k.startsWith(`af-np-${aId}-`)) continue;
+    const [tipo,ts]=String(localStorage.getItem(k)).split('|');
+    if(tipo==='activo'&&ts&&fechaLocal(ts).slice(0,7)===ym) n++;
+  }
+  return n;
+}
+// ym: AAAA-MM. null si todavia no entreno nunca o empezo despues de ese mes.
+function constanciaMes(aId,ym,_dias){
+  const a=getAlumna();
+  const dias=_dias||diasEntrenados(aId);
+  if(!dias.length) return null;
+  const desde=dias[0].fecha;
+  if(desde.slice(0,7)>ym) return null;
+  const plan=planDelMes(a?.dias,ym,desde);
+  const hechos=dias.filter(x=>x.fecha.slice(0,7)===ym).length;
+  const meta=Math.ceil(plan*META_CONSTANCIA);
+  return {ym,mes:MESES[parseInt(ym.slice(5,7))-1],hechos,plan,meta,llego:hechos>=meta,pausas:pausasDelMes(aId,ym)};
+}
+// Cuantos dias le faltan para la meta del mes en curso, solo si todavia le da
+// el mes: decirle "te faltan 5" con dos dias por delante no ayuda.
+function faltaParaMeta(m){
+  if(!m||m.llego) return null;
+  const hoy=new Date(), quedan=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate()-hoy.getDate()+1;
+  const faltan=m.meta-m.hechos;
+  return faltan<=Math.round((parseInt(getAlumna()?.dias)||3)*quedan/7)?faltan:null;
+}
+// Peso de cada ejercicio por fecha (el mayor del dia), de todos los ciclos.
+// Hasta el 13/10 el grafico mostraba solo el ciclo elegido, con etiquetas
+// "S1D2", y mezclaba los pesos de otros ciclos con los ejercicios de este.
+function historialPesos(aId){
+  const porDia={};
+  for(const p of (DB.progresoRaw||[])){
+    const kg=parseFloat(p.peso_kg), nom=p.ejercicio_nombre;
+    if(!p.hecho||p.ejercicio_idx<0||!(kg>0)||!nom||nom.startsWith('km:')) continue;
+    const t=Date.parse(p.fecha_registro||p.updated_at||''); if(isNaN(t)) continue;
+    const f=fechaLocal(new Date(t)), k=nom+'|'+f;
+    if(!porDia[k]||kg>porDia[k].kg) porDia[k]={nom,fecha:f,kg};
+  }
+  const h={};
+  for(const x of Object.values(porDia)) (h[x.nom]=h[x.nom]||[]).push({fecha:x.fecha,kg:x.kg});
+  for(const n in h) h[n].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  return h;
 }
 
 function calcStats(aId){
   const al=DB.alumnas.find(x=>x.id===aId);
   const ciclo=al?(al.ciclo_actual||1):1;
-
-  function dayCompletado(c,s,d){
-    const exs=getExs(aId,c,s,d);
-    if(!exs.length)return false;
-    const hechos=exs.filter((_,i)=>done[`${aId}-c${c}-${s}-${d}-${i}`]).length;
-    return hechos/exs.length>=0.8;
-  }
+  const dayCompletado=(c,s,d)=>diaCompletado(aId,c,s,d);
 
   // Cycle progress for current ciclo
   let cicloDone=0,cicloTotal=0;
@@ -1211,38 +1289,15 @@ function calcStats(aId){
     }
   }
 
-  // Streak from raw progreso rows (with updated_at)
-  let racha=0,lastTrainingDate=null,totalCompletedEver=0;
+  // Entreno ese dia si completo el plan o una sesion corta. Sin la sesion
+  // corta, a la que entrenaba 15 minutos la app le decia que llevaba dias sin
+  // pasar por aca.
+  let lastTrainingDate=null,totalCompletedEver=0;
   const raw=DB.progresoRaw||[];
   if(raw.length>0){
-    const groups={};
-    for(const p of raw){
-      const gk=`c${p.ciclo}-${p.semana}-${p.dia}`;
-      if(!groups[gk])groups[gk]={ciclo:p.ciclo,semana:p.semana,dia:p.dia,rows:[]};
-      groups[gk].rows.push(p);
-    }
-    const completedDates=[];
-    for(const g of Object.values(groups)){
-      // Entreno ese dia si completo el plan o una sesion corta. Sin la sesion
-      // corta, a la que entrenaba 15 minutos la app le decia que llevaba dias
-      // sin pasar por aca.
-      if(dayCompletado(g.ciclo,g.semana,g.dia)||esCorta(aId,g.ciclo,g.semana,g.dia)){
-        const ts=g.rows.map(r=>r.updated_at).filter(Boolean);
-        if(ts.length>0){
-          completedDates.push(new Date(ts.reduce((a,b)=>a>b?a:b)));
-          totalCompletedEver++;
-        }
-      }
-    }
-    completedDates.sort((a,b)=>b-a);
-    if(completedDates.length>0){
-      lastTrainingDate=completedDates[0];
-      racha=1;
-      for(let i=1;i<completedDates.length;i++){
-        if((completedDates[i-1]-completedDates[i])/(864e5)<=7)racha++;
-        else break;
-      }
-    }
+    const dias=diasEntrenados(aId);
+    totalCompletedEver=dias.length;
+    if(dias.length) lastTrainingDate=new Date(Math.max(...dias.map(x=>x.t)));
   } else {
     // Offline fallback: count completed days without dates
     const seen=new Set();
@@ -1255,24 +1310,30 @@ function calcStats(aId){
       }
     }
   }
-  return{racha,cicloDone,cicloTotal,lastTrainingDate,totalCompletedEver};
+  return{cicloDone,cicloTotal,lastTrainingDate,totalCompletedEver};
 }
 
-function getMensajeContextual(stats){
-  const{racha,totalCompletedEver,lastTrainingDate}=stats;
+// Solo se muestra si nunca entreno o lleva 3 dias o mas sin hacerlo.
+function getMensajeContextual(stats,aId){
+  const{totalCompletedEver,lastTrainingDate}=stats;
   if(totalCompletedEver===0)
     return'¡Bienvenida! Cuando completes tu primera sesión, empezamos a registrar tu progreso.';
   const diasDesde=lastTrainingDate
     ?Math.floor((new Date()-lastTrainingDate)/864e5):null;
   if(diasDesde!==null&&diasDesde>=7)
-    return'Llevas un tiempo sin entrenar, ¿todo bien? Tu rutina te espera cuando estés lista — sin presión.';
-  if(diasDesde!==null&&diasDesde>=3)
-    return'Llevas unos días sin pasar por acá. Recorda que no hace falta que sea perfecto, con que empieces ya ganás.';
-  if(racha>=5)
-    return`¡Qué racha! ${racha} sesiones seguidas. Amira lo nota y se pone orgullosa de vos.`;
-  if(racha>=3)
-    return`Vas muy bien, ${racha} sesiones seguidas. La constancia es lo que hace la diferencia.`;
-  return'Cada sesión cuenta. Seguí sumando — tu cuerpo lo agradece.';
+    return'Llevás un tiempo sin entrenar, ¿todo bien? Tu rutina te espera cuando estés lista, sin presión.';
+  if(diasDesde!==null&&diasDesde>=3){
+    // El mes solo se nombra si suma: si ya no llega a la meta, decirlo no ayuda.
+    const m=aId?constanciaMes(aId,fechaLocal(new Date()).slice(0,7)):null;
+    let mes='';
+    if(m&&m.llego) mes=` Este mes ya llegaste a tu meta: ${m.hechos} de ${m.plan} días.`;
+    else if(m&&m.hechos>0){
+      const f=faltaParaMeta(m);
+      mes=` Este mes llevás ${m.hechos} de ${m.plan} días${f?`: con ${f} más llegás a tu meta`:''}.`;
+    }
+    return'Llevás unos días sin pasar por acá. No hace falta que sea perfecto: con que empieces ya ganás.'+mes;
+  }
+  return'Cada sesión cuenta. Seguí sumando: tu cuerpo lo agradece.';
 }
 
 function toggleWarmup(){
@@ -1669,33 +1730,46 @@ async function compartirLogro(titulo,subtitulo,emoji){
   document.body.appendChild(ov);
 }
 
-function mostrarCelebracion(aId, nombre, racha){
+// Lo que se festeja al terminar un dia: como va el mes, si con este llego a la
+// meta, si volvio despues de un corte de 7 dias o mas (en vez de una racha que
+// vuelve a cero) o si es el primero.
+function infoDiaEntrenado(aId,c,s,d){
+  const dias=diasEntrenados(aId);
+  const hoy=fechaLocal(new Date());
+  const mes=constanciaMes(aId,hoy.slice(0,7),dias);
+  const previos=dias.filter(x=>!(x.c===c&&x.s===s&&x.d===d));
+  const ant=previos.length?previos[previos.length-1]:null;
+  const metaK=`af-mes-meta-${aId}-${hoy.slice(0,7)}`;
+  return {mes,primero:!ant,volvio:!!ant&&diasEntre(ant.fecha,hoy)>=7,
+    llegoAhora:!!mes&&mes.llego&&!localStorage.getItem(metaK),metaK};
+}
+const capMes=m=>m.charAt(0).toUpperCase()+m.slice(1);
+function badgeMes(m){
+  return m?`<div class="cel-badge">📅 ${capMes(m.mes)}: ${m.hechos} de ${m.plan} días${m.llego?' ✓':` · meta ${m.meta}`}</div><br>`:'';
+}
+
+function mostrarCelebracion(aId, nombre, info){
   const celK=`af-cel-${aId}-c${selCiclo}-s${selSem}-d${selDia}`;
   if(localStorage.getItem(celK)) return;
   localStorage.setItem(celK,'1');
   launchConfetti();
-  // Easter egg: racha 8+ semanas seguidas
-  if(racha>=8){
-    const ov=document.createElement('div');
-    ov.className='egg-ov';
-    ov.innerHTML=`<div class="egg-card">
-      <div class="egg-num">🔥${racha}</div>
-      <div class="egg-title">¡Sos imparable, ${nombre}!</div>
-      <div class="egg-msg">${racha} semanas seguidas. Amira está super orgullosa de tu dedicación. ¡Sos un ejemplo para todas!</div>
-      <button class="egg-btn" onclick="this.closest('.egg-ov').remove()">¡Seguir rompiendo récords!</button>
-    </div>`;
-    document.body.appendChild(ov);
-    return;
-  }
-  const emoji=CEL_EMOJIS[Math.floor(Math.random()*CEL_EMOJIS.length)];
-  const msg=CEL_MSGS[Math.floor(Math.random()*CEL_MSGS.length)];
+  const m=info?.mes, meta=!!info?.llegoAhora;
+  if(meta) localStorage.setItem(info.metaK,'1');
+  const emoji=meta?'🎯':info?.volvio?'🙌':CEL_EMOJIS[Math.floor(Math.random()*CEL_EMOJIS.length)];
+  const titulo=meta?`¡Mes constante, ${esc(nombre)}!`
+    :info?.volvio?`¡Qué bueno que volviste, ${esc(nombre)}!`
+    :info?.primero?`¡Tu primer entrenamiento, ${esc(nombre)}!`
+    :`¡Lo lograste, ${esc(nombre)}!`;
+  const msg=meta?`Llegaste a tu meta de ${m.mes}. Todo lo que sumes ahora es extra.`
+    :info?.volvio?'Retomar es lo más difícil, y ya lo hiciste.'
+    :CEL_MSGS[Math.floor(Math.random()*CEL_MSGS.length)];
   const ov=document.createElement('div');
   ov.className='cel-overlay';
   ov.innerHTML=`<div class="cel-card">
     <span class="cel-emoji">${emoji}</span>
-    <div class="cel-title">¡Lo lograste, ${nombre}!</div>
+    <div class="cel-title">${titulo}</div>
     <div class="cel-msg">${msg}</div>
-    ${racha>=2?`<div class="cel-badge">🔥 ${racha} semanas seguidas</div><br>`:''}
+    ${badgeMes(m)}
     <button class="cel-btn-sec" onclick="compartirDia()">📤 Compartir por WhatsApp</button>
     <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Vamos! →</button>
   </div>`;
@@ -1705,14 +1779,17 @@ function mostrarCelebracion(aId, nombre, racha){
 
 // Festejo de la sesion corta: dice lo que hizo y, si le sobra tiempo, la deja
 // seguir con lo que falta.
-function mostrarCelebracionCorta(aId,nombre,n,mins){
+function mostrarCelebracionCorta(aId,nombre,n,mins,info){
   launchConfetti();
+  const m=info?.mes, meta=!!info?.llegoAhora;
+  if(meta) localStorage.setItem(info.metaK,'1');
   const ov=document.createElement('div');
   ov.className='cel-overlay';
   ov.innerHTML=`<div class="cel-card">
     <span class="cel-emoji">⚡</span>
     <div class="cel-title">¡Sesión corta completa, ${esc(nombre)}!</div>
-    <div class="cel-msg">Hiciste ${n===1?'el ejercicio que más rinde':`los ${n} ejercicios que más rinden`} en ${mins} minutos. Cuenta como entrenamiento.</div>
+    <div class="cel-msg">Hiciste ${n===1?'el ejercicio que más rinde':`los ${n} ejercicios que más rinden`} en ${mins} minutos. Cuenta como entrenamiento.${info?.volvio?' Y retomar es lo más difícil: ya lo hiciste.':''}</div>
+    ${meta?`<div class="cel-badge">🎯 ¡Mes constante! Llegaste a tu meta de ${m.mes}</div><br>`:badgeMes(m)}
     <button class="cel-btn-sec" onclick="this.closest('.cel-overlay').remove();fijarTope(${aId},0)">Seguir con lo que falta</button>
     <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Listo por hoy! →</button>
   </div>`;
@@ -1746,7 +1823,7 @@ function mostrarCierreCiclo(aId, nombre, stats){
     <div class="ciclo-fin-stats">
       <div class="ciclo-fin-stat"><b>${stats.dias}</b><span>Días entrenados</span></div>
       <div class="ciclo-fin-stat"><b>${stats.exs}</b><span>Ejercicios hechos</span></div>
-      <div class="ciclo-fin-stat"><b>${stats.racha}</b><span>Sem. seguidas</span></div>
+      <div class="ciclo-fin-stat"><b>${stats.total||0}</b><span>Sesiones en total</span></div>
     </div>
     <button class="ciclo-fin-btn" onclick="this.closest('.ciclo-fin-ov').remove()">¡Seguir entrenando!</button>
     <button onclick="compartirLogro('¡Ciclo completo!','${nombre} · ${stats.dias} días entrenados','🏆')" style="margin-top:8px;width:100%;padding:10px;background:rgba(255,255,255,0.15);border:none;border-radius:var(--rp);color:white;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">📤 Compartir logro</button>
@@ -1860,16 +1937,18 @@ async function toggleDone(aId,i,nextName){
     skipTimer();
     if(done[k] && !wasDone){
       startTimer(nextName);
-      localStorage.setItem('af-did-train-'+aId+'-'+new Date().toISOString().split('T')[0],'1');
+      localStorage.setItem('af-did-train-'+aId+'-'+fechaLocal(new Date()),'1');
     }
     renderRutina();
     // Undo toast cuando se desmarca
     if(!done[k] && wasDone){
       mostrarUndoToast(()=>{
         done[k]=true; saveDone(); renderRutina();
-        sbUpsert('progreso',{alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
+        const _re={alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
           ejercicio_idx:i,ejercicio_nombre:getExs(aId,selCiclo,selSem,selDia)[i]?.nombre||'',
-          hecho:true,fecha_registro:new Date().toISOString()}).catch(()=>{});
+          hecho:true,fecha_registro:new Date().toISOString()};
+        anotarEnHistorial(_re);
+        sbUpsert('progreso',_re).catch(()=>{});
       });
     }
     // Celebración al completar el último ejercicio
@@ -1886,7 +1965,8 @@ async function toggleDone(aId,i,nextName){
         localStorage.setItem(cortaKey(aId,selCiclo,selSem,selDia),'1');
         renderRutina();
         const alm=getAlumna();
-        if(alm) setTimeout(()=>mostrarCelebracionCorta(aId,alm.nombre.split(' ')[0],_n,_tope),350);
+        const _info=infoDiaEntrenado(aId,selCiclo,selSem,selDia);
+        if(alm) setTimeout(()=>mostrarCelebracionCorta(aId,alm.nombre.split(' ')[0],_n,_tope,_info),350);
         const _hechos=currExs.filter((_,idx)=>done[dKey(aId,selSem,selDia,idx)]).length;
         const cortaData={alumna_id:aId,tipo:'dia_completo',ciclo:selCiclo,semana:selSem,dia:selDia,
           nota:`Sesión corta de ${_tope} min: ${_hechos} de ${currExs.length} ejercicios · Día ${selDia} · Semana ${selSem}`};
@@ -1894,7 +1974,8 @@ async function toggleDone(aId,i,nextName){
       }
       if(allDone){
         const alm=getAlumna();
-        if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
+        const _info=infoDiaEntrenado(aId,selCiclo,selSem,selDia);
+        if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],_info),350);
         // Avisar a Amira que la alumna completó el día (una sola vez por día).
         // Se guarda en la base y el trigger dispara la notificación: si no hay
         // conexión, queda en la cola y se reintenta sola al volver la señal.
@@ -1917,8 +1998,8 @@ async function toggleDone(aId,i,nextName){
           if(semsCompletas.length>=_totalSemsC){
             const diasH=new Set(Object.keys(done).filter(k2=>k2.startsWith(`${aId}-c${selCiclo}-`)&&done[k2]).map(k2=>{const pp=k2.split('-');return pp.length>=5?`${pp[2]}-${pp[3]}`:null;}).filter(Boolean)).size;
             const exsH=Object.keys(done).filter(k2=>k2.startsWith(`${aId}-c${selCiclo}-`)&&done[k2]).length;
-            const rachaC=calcRacha(aId,selCiclo);
-            setTimeout(()=>mostrarCierreCiclo(aId,alm.nombre.split(' ')[0],{dias:diasH,exs:exsH,racha:rachaC}),1500);
+            const totalSes=diasEntrenados(aId).length;
+            setTimeout(()=>mostrarCierreCiclo(aId,alm.nombre.split(' ')[0],{dias:diasH,exs:exsH,total:totalSes}),1500);
           }
           // Semana completa — enviar push si terminó todos los días de la semana
           const dCount=parseInt(alm.dias)||3;
@@ -1956,6 +2037,7 @@ async function toggleDone(aId,i,nextName){
     if(_kgBorrador){pesos[_pk]=String(_kgBorrador);localStorage.setItem('af-pesos',JSON.stringify(pesos));}
   }
   if(done[k]&&_kgBorrador) progresoData.peso_kg=_kgBorrador;
+  anotarEnHistorial(progresoData);
   try{
     await sbUpsert('progreso', progresoData);
     if(done[k]){
@@ -2394,9 +2476,10 @@ function evaluarRecord(aId,exNombre,kg){
   const mKey=aId+'-'+exNombre;
   if(mKey in maxPesos){
     if(kg>maxPesos[mKey]){
+      // Sin festejo de récord: decidido con Amira el 13/10/2026, para no
+      // empujarla a subir peso por el aviso. Su evolucion se ve en Progreso.
       maxPesos[mKey]=kg;
       localStorage.setItem('af-maxpesos',JSON.stringify(maxPesos));
-      mostrarToast('🏆 ¡Nuevo récord en '+exNombre+'! '+kg+' kg');
     }
   }else{
     maxPesos[mKey]=kg;
@@ -2408,6 +2491,7 @@ function guardarPesoEnBase(aId,i,kg){
   const pesoData={alumna_id:aId,ciclo:selCiclo,semana:selSem,dia:selDia,
     ejercicio_idx:i,ejercicio_nombre:exNombre,peso_kg:kg,
     hecho:true,fecha_registro:new Date().toISOString()};
+  anotarEnHistorial(pesoData);
   return sbUpsert('progreso',pesoData)
     .then(()=>evaluarRecord(aId,exNombre,kg))
     .catch(()=>queueSync({data:pesoData}));
@@ -2615,7 +2699,7 @@ function renderRutina(){
       <input type="file" id="fp-${a.id}" accept="image/*" style="display:none;" onchange="cambiarFotoAlumna(${a.id},this)">
       <div style="flex:1;min-width:0;">
         <h2>Hola, ${a.nombre.split(' ')[0]} 👋</h2>
-        <p>${a.tipo==='gym'?'Gimnasio':a.tipo==='casa'?'Casa':'A distancia'} · ${a.dias} días/semana${stats.racha>=2?` · 🔥 ${stats.racha}`:''}</p>
+        <p>${a.tipo==='gym'?'Gimnasio':a.tipo==='casa'?'Casa':'A distancia'} · ${a.dias} días/semana</p>
         ${stats.cicloTotal>0?`<div style="margin-top:7px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
             <span style="font-size:10px;color:var(--tm);">${stats.cicloDone}/${stats.cicloTotal} entrenamientos del ciclo</span>
@@ -2633,8 +2717,9 @@ function renderRutina(){
       // aparecia en dias que ya no eran los suyos.
       const diasConf=Array.isArray(a.dias_disponibles)?a.dias_disponibles:[];
       if(!diasConf.includes(_DIA_NAMES[new Date().getDay()]))return'';
-      const todayKey=new Date().toISOString().split('T')[0];
-      const trainedToday=localStorage.getItem('af-did-train-'+a.id+'-'+todayKey);
+      // Fecha del telefono: con la de Londres, la que entrenaba a la mañana
+      // volvia a ver "¡Hoy te toca!" despues de las 21.
+      const trainedToday=localStorage.getItem('af-did-train-'+a.id+'-'+fechaLocal(new Date()));
       if(trainedToday)return'';
       return`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:10px;">
         <span style="font-size:1.4rem;">💪</span>
@@ -2646,7 +2731,7 @@ function renderRutina(){
       const _showNudge=stats.totalCompletedEver===0||(_diasDesde!==null&&_diasDesde>=3);
       if(!_showNudge)return'';
       return`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.75rem;">
-        <div style="font-size:12px;color:var(--tm);line-height:1.55;">${getMensajeContextual(stats)}</div>
+        <div style="font-size:12px;color:var(--tm);line-height:1.55;">${getMensajeContextual(stats,a.id)}</div>
       </div>`;
     })()}
     ${(()=>{
@@ -2784,7 +2869,7 @@ function renderRutina(){
       const _kEmoji=_tipoD?.emoji||'🚶';
       const _kLabel=_tipoD?` · ${_tipoD.label}`:'';
       const _kKm=_kmD?.km?` · ${_kmD.km} km`:'';
-      html+=`<div class="np-done" style="background:var(--vl);color:var(--vd);border-color:var(--vm);">${_kEmoji} Pausa activa${_kLabel}${_kKm}${_npSub} — ¡eso cuenta!</div>`;
+      html+=`<div class="np-done" style="background:var(--vl);color:var(--vd);border-color:var(--vm);">${_kEmoji} Pausa activa${_kLabel}${_kKm}${_npSub}: ¡moverte siempre suma!</div>`;
     }else{
       html+=`<div class="np-done">😔 No pudiste entrenar${_npSub} — mañana es un nuevo día 💪</div>`;
     }
@@ -2993,42 +3078,91 @@ function renderProgreso(){
   const ciclos=getCiclos(a.id);
   const ps=Object.fromEntries(Object.entries(pesos).filter(([k])=>k.startsWith(`p-${a.id}-`)));
   const totalP=Object.values(ps).filter(v=>parseFloat(v)>0).length;
-  // Un dia por (ciclo, semana, dia). Hasta el 13/10 se perdia el ciclo, y 5 dias
-  // entrenados en 3 ciclos distintos contaban como 3.
-  const totalD=new Set(Object.keys(done).filter(k=>k.startsWith(`${a.id}-c`)&&done[k]).map(k=>{const p=k.split('-');return`${p[1]}-${p[2]}-${p[3]}`;})).size;
-  const hist={};
-  Object.entries(ps).forEach(([k,v])=>{
-    const p=k.split('-');
-    // formato: p-aId-cN-sem-dia-idx
-    if(p.length<6) return;
-    const sem=+p[3],dia=+p[4],idx=+p[5];
-    const ex=getExs(a.id,selCiclo,sem,dia)[idx];
-    if(!ex||!parseFloat(v)) return;
-    // Un peso escrito pero no marcado como hecho es un borrador: no es historial.
-    if(!done[`${a.id}-c${selCiclo}-${sem}-${dia}-${idx}`]) return;
-    if(!hist[ex.nombre]) hist[ex.nombre]=[];
-    hist[ex.nombre].push({sem,dia,kg:parseFloat(v),label:`S${sem}D${dia}`});
-  });
+  // Dia entrenado = 80% de los ejercicios o sesion corta: la misma cuenta que la
+  // constancia, el festejo y el panel. Antes "Dias entrenados" contaba cualquier
+  // dia con un ejercicio marcado y no coincidia con nada.
+  const dias=diasEntrenados(a.id);
+  const totalSes=dias.length;
+  const hoyF=fechaLocal(new Date()), ymHoy=hoyF.slice(0,7);
+  const hist=historialPesos(a.id);
   const exns=Object.keys(hist).sort((a,b)=>a.localeCompare(b,'es'));
   if(!selHistEx&&exns.length>0) selHistEx=exns[0];
+
+  // ── Constancia del mes ──────────────────────────────────────
+  const cm=constanciaMes(a.id,ymHoy,dias);
+  const mesesAnt=[];
+  if(cm){
+    for(let i=1;i<=24;i++){
+      const d=new Date(+ymHoy.slice(0,4),+ymHoy.slice(5,7)-1-i,1);
+      const c=constanciaMes(a.id,fechaLocal(d).slice(0,7),dias);
+      if(!c) break;
+      mesesAnt.push(c);
+    }
+  }
+  const faltan=faltaParaMeta(cm);
+  const pctMes=cm?Math.min(100,Math.round(cm.hechos/cm.plan*100)):0;
+  const constHtml=cm?`
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Constancia</div>
+    <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:600;color:var(--t);">${capMes(cm.mes)}</span>
+        <span style="font-size:13px;color:var(--t);"><b>${cm.hechos}</b> de ${cm.plan} días</span>
+      </div>
+      <div style="position:relative;height:8px;border-radius:99px;background:var(--s2);margin-bottom:8px;">
+        <div style="height:100%;width:${pctMes}%;background:var(--v);border-radius:99px;"></div>
+        <div title="Meta" style="position:absolute;top:-3px;bottom:-3px;left:calc(${Math.round(cm.meta/cm.plan*100)}% - 1px);width:2px;background:var(--t);opacity:.45;border-radius:1px;"></div>
+      </div>
+      <div style="font-size:12px;color:var(--tm);line-height:1.55;">
+        ${cm.llego?`🎯 <b style="color:var(--vd);">¡Mes constante!</b> Llegaste a tu meta de ${cm.meta} días.`
+          :`Meta: ${cm.meta} días (3 de cada 4)${faltan?`. Te faltan ${faltan}.`:'.'}`}
+        ${cm.pausas?`<br>🚶 Además, ${cm.pausas} pausa${cm.pausas>1?'s':''} activa${cm.pausas>1?'s':''} este mes.`:''}
+      </div>
+      ${mesesAnt.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.65rem;padding-top:.65rem;border-top:1px solid var(--b);">
+        ${mesesAnt.slice(0,3).map(m=>`<span style="font-size:11px;padding:3px 9px;border-radius:99px;background:${m.llego?'var(--vl)':'var(--s2)'};color:${m.llego?'var(--vd)':'var(--tm)'};">${capMes(m.mes)}: ${m.hechos} de ${m.plan}${m.llego?' ✓':''}</span>`).join('')}
+      </div>`:''}
+    </div>`
+    :`<div style="background:var(--s2);border-radius:var(--rs);padding:1rem;margin-bottom:1rem;font-size:13px;color:var(--tm);text-align:center;">
+      Cuando completes tu primer entrenamiento, acá vas a ver tu constancia del mes.
+    </div>`;
+
+  // ── Desde que empezaste ─────────────────────────────────────
+  // Solo contra si misma: lo que hizo, desde cuando, y como cambiaron sus pesos.
+  // Sin festejo de record (decidido con Amira): se muestra, no se empuja.
+  let desdeHtml='';
+  if(totalSes>0){
+    const n=diasEntre(dias[0].fecha,hoyF);
+    const tiempo=n<7?'Esta semana':n<30?`${Math.floor(n/7)} semana${Math.floor(n/7)>1?'s':''}`
+      :`${Math.floor(n/30.44)} mes${Math.floor(n/30.44)>1?'es':''}`;
+    const subidas=exns.map(nom=>{const h=hist[nom];return{nom,ini:h[0].kg,hoy:h[h.length-1].kg};})
+      .filter(x=>x.hoy>x.ini).sort((x,y)=>y.hoy/y.ini-x.hoy/x.ini).slice(0,5);
+    const kg=v=>String(+v.toFixed(1)).replace('.',',');
+    desdeHtml=`
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Desde que empezaste</div>
+    <div class="stat-grid">
+      <div class="stat-card"><span class="stat-num">${totalSes}</span><span class="stat-lbl">Sesiones</span></div>
+      <div class="stat-card"><span class="stat-num"${n<7?' style="font-size:1.1rem;"':''}>${tiempo}</span><span class="stat-lbl">Entrenando</span></div>
+    </div>
+    ${subidas.length?`<div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.7rem 1rem;margin-bottom:1rem;">
+      ${subidas.map((x,i)=>`<div style="font-size:12px;color:var(--tm);padding:5px 0;${i?'border-top:1px solid var(--b);':''}"><b style="color:var(--t);">${esc(x.nom)}</b>: empezaste con ${kg(x.ini)} kg, hoy ${kg(x.hoy)} kg</div>`).join('')}
+    </div>`:''}`;
+  }
+
+  // Semana completa: todos sus dias con rutina entrenados. Mes constante: algun
+  // mes con la meta cumplida. Antes salian con 3 y 12 dias sueltos.
+  const semanaCompleta=ciclos.some(c=>getSemanas(a.id,c).some(s=>{
+    const ds=getDias(a.id,c,s).filter(d=>d.ejercicios&&d.ejercicios.length);
+    return ds.length>0&&ds.every(d=>diaCompletado(a.id,c,s,d.dia)||esCorta(a.id,c,s,d.dia));
+  }));
   const badges=[
-    {icon:'🏁',label:'Primera rutina',e:totalD>=1},
-    {icon:'🔥',label:'3 días entrenados',e:totalD>=3},
+    {icon:'🏁',label:'Primera rutina',e:totalSes>=1},
+    {icon:'🔥',label:'3 días entrenados',e:totalSes>=3},
     {icon:'💪',label:'Primer peso cargado',e:totalP>=1},
     {icon:'⭐',label:'10 ejercicios con peso',e:totalP>=10},
-    {icon:'🏆',label:'Semana completa',e:totalD>=3},
-    {icon:'🚀',label:'Mes de constancia',e:totalD>=12},
+    {icon:'🏆',label:'Semana completa',e:semanaCompleta},
+    {icon:'🚀',label:'Mes constante',e:!!cm&&(cm.llego||mesesAnt.some(m=>m.llego))},
   ];
 
-  // ── Calendario de constancia ─────────────────────────────────
-  // Construir mapa de días completados: "ciclo-sem-dia" → true
-  const diasHechos=new Set(
-    Object.keys(done)
-      .filter(k=>k.startsWith(`${a.id}-`)&&done[k])
-      .map(k=>{ const p=k.split('-'); return p.length>=4?`${p[1]}-${p[2]}-${p[3]}`:null; })
-      .filter(Boolean)
-  );
-
+  // ── Tu ciclo: calendario del plan ───────────────────────────
   const ciclosDisp=[...getCiclos(a.id)].reverse(); // ciclo actual primero
   const numDias=parseInt(a.dias)||3;
 
@@ -3036,16 +3170,14 @@ function renderProgreso(){
   if(!selProgCiclo||!ciclosDisp.includes(selProgCiclo)) selProgCiclo=ciclosDisp[0]||1;
   const cic=selProgCiclo;
   const cicloNombre=a.ciclos_nombres?.[cic]||a.ciclos_nombres?.[String(cic)]||`Ciclo ${cic}`;
-  const totalCeldas=4*numDias;
+  // Las semanas que tiene el ciclo (hay de 5): antes siempre se dibujaban 4.
+  const semsCic=getSemanas(a.id,cic).length?getSemanas(a.id,cic):[1,2,3,4];
+  const totalCeldas=semsCic.length*numDias;
   function isDayDone80(sem,dia){
-    const exs=getExs(a.id,cic,sem,dia);
-    const total=exs.length;
-    if(total===0)return false;
-    let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
-    return cnt/total>=0.8||esCorta(a.id,cic,sem,dia);
+    return diaCompletado(a.id,cic,sem,dia)||esCorta(a.id,cic,sem,dia);
   }
   let completados=0;
-  for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
+  for(const s of semsCic) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
   const pct=totalCeldas>0?Math.round((completados/totalCeldas)*100):0;
 
   const cicloSelectorHtml=ciclosDisp.length>1
@@ -3072,12 +3204,12 @@ function renderProgreso(){
     <div style="height:5px;border-radius:99px;background:var(--s2);margin-bottom:10px;overflow:hidden;">
       <div style="height:100%;width:${pct}%;background:var(--v);border-radius:99px;"></div>
     </div>
-    <div style="display:grid;grid-template-columns:24px repeat(4,1fr);gap:3px;align-items:center;">
+    <div style="display:grid;grid-template-columns:24px repeat(${semsCic.length},1fr);gap:3px;align-items:center;">
       <div></div>
-      ${[1,2,3,4].map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
-      ${[1,2,3,4,5].slice(0,numDias).map(dia=>`
+      ${semsCic.map(s=>`<div style="text-align:center;font-size:10px;color:var(--th);font-weight:500;padding-bottom:2px;">S${s}</div>`).join('')}
+      ${[1,2,3,4,5,6,7].slice(0,numDias).map(dia=>`
       <div style="font-size:10px;color:var(--th);font-weight:500;padding-right:2px;">D${dia}</div>
-      ${[1,2,3,4].map(sem=>{
+      ${semsCic.map(sem=>{
         const hecho=isDayDone80(sem,dia);
         return`<div style="height:30px;border-radius:6px;
           background:${hecho?'var(--v)':'var(--s2)'};
@@ -3088,24 +3220,10 @@ function renderProgreso(){
       }).join('')}`).join('')}
     </div>`;
 
-  // Racha de semanas consecutivas
-  const _nDias=parseInt(a.dias)||3;
-  const _semList=[];
-  ciclos.forEach(cic=>{for(let s=1;s<=4;s++)_semList.push({cic,s});});
-  const _semHecha=(cic,s)=>{for(let d=1;d<=_nDias;d++){const exs=getExs(a.id,cic,s,d);if(!exs.length)continue;let cnt=0;for(let i=0;i<exs.length;i++)if(done[`${a.id}-c${cic}-${s}-${d}-${i}`])cnt++;if(cnt/exs.length>=0.8)return true;}return false;};
-  let racha=0;
-  for(let i=_semList.length-1;i>=0;i--){const{cic,s}=_semList[i];if(_semHecha(cic,s))racha++;else break;}
-
   let html=`
-    <div class="stat-grid">
-      <div class="stat-card"><span class="stat-num">${totalD}</span><span class="stat-lbl">Días entrenados</span></div>
-      <div class="stat-card"><span class="stat-num">${totalP}</span><span class="stat-lbl">Ejercicios con peso</span></div>
-    </div>
-    ${racha>=2?`<div style="background:linear-gradient(135deg,var(--a),#fde68a22);border:1px solid #f59e0b44;border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:12px;">
-      <span style="font-size:2rem;line-height:1;">${racha>=6?'🏆':racha>=3?'🔥':'⭐'}</span>
-      <div><div style="font-size:1.1rem;font-family:'DM Serif Display',serif;color:var(--t);">${racha} semanas seguidas</div><div style="font-size:11px;color:var(--tm);">¡Seguí así, lo estás haciendo genial!</div></div>
-    </div>`:''}
-    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Constancia</div>
+    ${constHtml}
+    ${desdeHtml}
+    <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.6rem;">Tu ciclo</div>
     <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
       ${calHtml}
     </div>
@@ -3157,7 +3275,7 @@ function renderProgreso(){
     html+=`<div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Evolución de pesos y km</div>
     <select class="ex-sel" onchange="selHistEx=this.value;renderProgreso()">
       ${_hasPcChart?`<option value="__peso_corp__" ${selHistEx==='__peso_corp__'?'selected':''}>⚖ Mi peso corporal</option>`:''}
-      ${exns.map(n=>`<option value="${n}" ${n===selHistEx?'selected':''}>${n}</option>`).join('')}
+      ${exns.map(n=>`<option value="${esc(n)}" ${n===selHistEx?'selected':''}>${esc(n)}</option>`).join('')}
       ${kmTypes.map(t=>{const def=KM_TIPOS.find(d=>d.short===t);return`<option value="km:${t}" ${selHistEx==='km:'+t?'selected':''}>${def?.emoji||'🏃'} ${def?.label||t} (km)</option>`;}).join('')}
     </select>
     <div class="chart-wrap"><canvas id="pchart"></canvas></div>`;
@@ -3191,8 +3309,8 @@ function renderProgreso(){
       const def=KM_TIPOS.find(d=>d.short===tipo);
       labelStr=(def?.label||tipo)+' (km)'; unit='km';
     }else{
-      const data=(hist[selHistEx]||[]).sort((a,b)=>a.sem-b.sem||a.dia-b.dia);
-      labels=data.map(d=>d.label);
+      const data=hist[selHistEx]||[];
+      labels=data.map(d=>new Date(d.fecha+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'}));
       values=data.map(d=>d.kg);
       labelStr=selHistEx; unit='kg';
     }
