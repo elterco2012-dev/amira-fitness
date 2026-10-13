@@ -192,7 +192,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v69` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v70` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -245,7 +245,7 @@ Estrategias:
 - El check-in semanal de Notas se sacó: se usó 5 veces en 70 días y duplicaba la revisión de los lunes.
 - El zoom está habilitado: no volver a poner `maximum-scale=1`. En el celular los campos tienen que tener letra de 16 px o más (lo fuerza un `@media (pointer:coarse)`); si no, el iPhone agranda la pantalla al tocarlos.
 
-**Revisión semanal (lunes, decidido con Amira):** en Inicio aparece la lista de alumnas activas con lo que hizo cada una la semana anterior. No entran la cuenta de Amira ni las que empezaron esa semana.
+**Revisión semanal (lunes, decidido con Amira):** en Inicio aparece la lista de alumnas activas con lo que hizo cada una la semana anterior. No entran la cuenta de Amira ni las que todavía no eran alumnas cuando empezó la semana que se revisa (13/10/2026): en su primera semana tienen los mensajes del día 3 y del día 7, y la revisión empieza el lunes siguiente.
 - "💬 Devolución" copia la plantilla `a_rev` (o `a_rev0` si no entrenó). `[semana]` trae los días, las pausas activas, los pesos que subió y cómo va el mes.
 - La alumna queda revisada en `contactos` con motivo `revision`. Saltearla se guarda solo en el teléfono.
 - Si la revisión no se termina el lunes, la lista sigue plegada el resto de la semana.

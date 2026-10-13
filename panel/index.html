@@ -4024,7 +4024,11 @@ function rInicio(){
     // (contactos con motivo "revision"); si no la termina el lunes, sigue en la
     // lista el resto de la semana, plegada.
     const sem=semanaARevisar();
-    const todas=alumnaActivas.filter(a=>a.id!==CUENTA_DE_AMIRA&&a.created_at&&new Date(a.created_at)<sem.lunes);
+    // Entran las que ya eran alumnas cuando empezo la semana que se revisa. En su
+    // primera semana tienen los mensajes del dia 3 y del dia 7 (el del 7 ya dice
+    // cuanto entreno): con la revision eran dos mensajes casi iguales, y una que se
+    // anoto el domingo figuraba "No entrenó" por una semana en la que no estaba.
+    const todas=alumnaActivas.filter(a=>a.id!==CUENTA_DE_AMIRA&&a.created_at&&_diaLocalDe(a.created_at)<sem.desde);
     if(!todas.length) return'';
     const revisada=a=>(DB.contactos||[]).some(c=>c.alumna_id===a.id&&c.motivo==='revision'&&new Date(c.created_at)>=sem.lunes);
     const salteada=a=>{try{return localStorage.getItem(`af-rev-salteo-${a.id}-${sem.desde}`)==='1';}catch(e){return false;}};
