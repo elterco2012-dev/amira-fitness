@@ -1105,7 +1105,8 @@ function irARenovar(aId,conIA){
 function tipoHtml(tipo){const m={gym:'<span class="badge bg">Gimnasio</span>',casa:'<span class="badge" style="background:var(--a);color:var(--ad);">Casa</span>',otro:'<span class="badge bd">Otro</span>',distancia:'<span class="badge bd">A distancia</span>'};return m[tipo]||`<span class="badge bd">${tipo||'\u2014'}</span>`;}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function getA(id){return DB.alumnas.find(a=>a.id===id);}
-function avH(a){return a.foto?`<img src="${a.foto}" alt="${a.nombre}">`:`${ini(a.nombre)}`;}
+// La foto la sube la alumna desde su app: va escapada para que no pueda meter codigo en el panel.
+function avH(a){return a.foto?`<img src="${esc(a.foto)}" alt="${esc(a.nombre)}">`:esc(ini(a.nombre));}
 function getEx(aId,ciclo,sem,dia){
   try{
     const c=parseInt(ciclo)||1,s=parseInt(sem),d=parseInt(dia);
@@ -2983,7 +2984,7 @@ async function aprobar(id){
   // → ir a su perfil, no crear nueva alumna
   if(reg.alumna_id){
     S.selA=reg.alumna_id;
-    S.msg=`✅ Ficha de ${reg.nombre} revisada — sus datos de salud fueron actualizados`;
+    S.msg=`✅ Ficha de ${esc(reg.nombre)} revisada — sus datos de salud fueron actualizados`;
     go('alumnas');
     setTimeout(()=>{S.msg='';render();},5000);
     return;
@@ -3203,7 +3204,7 @@ function drawerResumen(a){
       ${fbs.map(f=>{
         const isUrg=f.tipo==='dolor_preocupante';
         const em=(FB_LABELS[f.tipo]||'📋').split(' ')[0];
-        const tl=(FB_LABELS[f.tipo]||f.tipo).replace(/^\S+\s*/,'');
+        const tl=esc((FB_LABELS[f.tipo]||f.tipo).replace(/^\S+\s*/,''));
         const cNom=(a.ciclos_nombres||{})[f.ciclo]||('C'+f.ciclo);
         return`<div style="padding:.4rem 0;border-bottom:1px solid var(--b);">
           <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;">
@@ -3423,18 +3424,19 @@ function drawerFicha(a){
   const regData=DB.registros.find(r=>r.alumna_id===a.id&&r.tipo==='ficha_salud');
   const nac=a.nacimiento||regData?.nacimiento;
   const nf=fmtNac(nac); const edad=calcEdad(nac);
+  // regData viene de la ficha publica, que puede llenar cualquiera: todo va escapado.
   const fields=[
-    a.email||regData?.mail?['Email',a.email||regData.mail]:null,
-    a.tel||regData?.tel?['WhatsApp',`<a href="https://wa.me/${(a.tel||regData.tel).replace(/\D/g,'')}" target="_blank" onclick="registrarContacto(${a.id},'otro')" style="color:var(--v);">${a.tel||regData.tel}</a>`]:null,
-    nf?['Nacimiento',nf+(edad!==null?' ('+edad+' años)':'')]:null,
-    a.genero||regData?.genero?['Género',a.genero||regData.genero]:null,
-    (a.ubicacion||regData?.ubicacion)&&(a.ubicacion||regData?.ubicacion)!=='—'?['Ubicación',a.ubicacion||regData.ubicacion]:null,
-    a.fuma||regData?.fuma?['¿Fuma?',a.fuma||regData.fuma]:null,
-    (a.peso||regData?.peso)&&(a.peso||regData?.peso)!=='—'?['Peso',(a.peso||regData.peso)+' kg']:null,
-    (a.altura||regData?.altura)&&(a.altura||regData?.altura)!=='—'?['Altura',(a.altura||regData.altura)+' cm']:null,
-    a.exp||regData?.exp?['Experiencia',a.exp||regData.exp]:null,
+    a.email||regData?.mail?['Email',esc(a.email||regData.mail)]:null,
+    a.tel||regData?.tel?['WhatsApp',`<a href="https://wa.me/${(a.tel||regData.tel).replace(/\D/g,'')}" target="_blank" onclick="registrarContacto(${a.id},'otro')" style="color:var(--v);">${esc(a.tel||regData.tel)}</a>`]:null,
+    nf?['Nacimiento',esc(nf)+(edad!==null?' ('+edad+' años)':'')]:null,
+    a.genero||regData?.genero?['Género',esc(a.genero||regData.genero)]:null,
+    (a.ubicacion||regData?.ubicacion)&&(a.ubicacion||regData?.ubicacion)!=='—'?['Ubicación',esc(a.ubicacion||regData.ubicacion)]:null,
+    a.fuma||regData?.fuma?['¿Fuma?',esc(a.fuma||regData.fuma)]:null,
+    (a.peso||regData?.peso)&&(a.peso||regData?.peso)!=='—'?['Peso',esc(a.peso||regData.peso)+' kg']:null,
+    (a.altura||regData?.altura)&&(a.altura||regData?.altura)!=='—'?['Altura',esc(a.altura||regData.altura)+' cm']:null,
+    a.exp||regData?.exp?['Experiencia',esc(a.exp||regData.exp)]:null,
   ].filter(Boolean);
-  const obj=regData?.objetivos&&regData?.objetivos!=='—'?regData.objetivos:null;
+  const obj=regData?.objetivos&&regData?.objetivos!=='—'?esc(regData.objetivos):null;
   let html='';
   if(fields.length){
     html+=`<div class="dfield">${fields.map(([l,v])=>`<div class="dfield-item"><span>${l}</span><span style="font-weight:500;">${v}</span></div>`).join('')}</div>`;
@@ -3470,7 +3472,7 @@ function drawerFicha(a){
         ${regData.medicacion?`<div><span style="color:var(--tm);">Medicación:</span> ${esc(regData.medicacion)}</div>`:''}
         ${regData.patologia_cardio?`<div><span style="color:var(--tm);">Patología cardiovascular:</span> ${esc(regData.patologia_cardio)}</div>`:''}
         ${regData.extra&&regData.extra!=='—'?`<div><span style="color:var(--tm);">Notas extra:</span> ${esc(regData.extra)}</div>`:''}
-        <div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el ${regData.fecha||'—'}</div>
+        <div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el ${esc(regData.fecha||'—')}</div>
       </div>
     </div>`;
   }
@@ -3620,7 +3622,7 @@ function rInicio(){
       const al=DB.alumnas.find(a=>a.id===f.alumna_id);
       const cicloNombre=al&&al.ciclos_nombres&&al.ciclos_nombres[f.ciclo]?al.ciclos_nombres[f.ciclo]:'C'+f.ciclo;
       const diaStr=f.ciclo?cicloNombre+'·S'+f.semana+'·D'+f.dia:'';
-      const exNom=f.ejercicio_nombre?' · '+f.ejercicio_nombre:'';
+      const exNom=f.ejercicio_nombre?' · '+esc(f.ejercicio_nombre):'';
       const nota=f.nota?'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+esc(f.nota)+'"</div>':'';
       const cuando=f.created_at?fmtWhen(f.created_at):'';
       return'<div style="display:flex;gap:8px;align-items:start;padding:.5rem 0;border-bottom:1px solid var(--b);font-size:12px;">'
@@ -4068,18 +4070,19 @@ function alumnaCardHTML(a){
     perfilHTML='<div style="background:var(--s2);border-radius:var(--rs);padding:.85rem;border:1px solid var(--b);margin-bottom:8px;">'
       // — Datos personales —
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;">'
-      +(mail?'<div><span style="color:var(--tm);">Mail:</span> '+mail+'</div>':'')
-      +(tel?'<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/'+tel.replace(/\D/g,'')+'" target="_blank" onclick="registrarContacto('+a.id+',\'otro\')" style="color:var(--v);font-weight:500;">'+tel+'</a></div>':'')
-      +(nf?'<div><span style="color:var(--tm);">Nacimiento:</span> <strong>'+nf+'</strong>'+(edad!==null?' ('+edad+' años)':'')+'</div>':'')
-      +(gen?'<div><span style="color:var(--tm);">Género:</span> '+gen+'</div>':'')
-      +(ubic&&ubic!=='—'?'<div><span style="color:var(--tm);">Ubicación:</span> '+ubic+'</div>':'')
-      +(lugar?'<div><span style="color:var(--tm);">Entrena en:</span> <strong>'+lugar+'</strong></div>':'')
-      +(fuma?'<div><span style="color:var(--tm);">¿Fuma?:</span> '+fuma+'</div>':'')
-      +(peso&&peso!=='—'?'<div><span style="color:var(--tm);">Peso:</span> '+peso+' kg</div>':'')
-      +(altura&&altura!=='—'?'<div><span style="color:var(--tm);">Altura:</span> '+altura+' cm</div>':'')
-      +(exp?'<div><span style="color:var(--tm);">Experiencia:</span> '+exp+'</div>':'')
-      +(obj?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> '+obj+'</div>':'')
-      +(extra?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> '+extra+'</div>':'')
+      // regData viene del formulario publico, que puede llenar cualquiera: todo va escapado.
+      +(mail?'<div><span style="color:var(--tm);">Mail:</span> '+esc(mail)+'</div>':'')
+      +(tel?'<div><span style="color:var(--tm);">WhatsApp:</span> <a href="https://wa.me/'+tel.replace(/\D/g,'')+'" target="_blank" onclick="registrarContacto('+a.id+',\'otro\')" style="color:var(--v);font-weight:500;">'+esc(tel)+'</a></div>':'')
+      +(nf?'<div><span style="color:var(--tm);">Nacimiento:</span> <strong>'+esc(nf)+'</strong>'+(edad!==null?' ('+edad+' años)':'')+'</div>':'')
+      +(gen?'<div><span style="color:var(--tm);">Género:</span> '+esc(gen)+'</div>':'')
+      +(ubic&&ubic!=='—'?'<div><span style="color:var(--tm);">Ubicación:</span> '+esc(ubic)+'</div>':'')
+      +(lugar?'<div><span style="color:var(--tm);">Entrena en:</span> <strong>'+esc(lugar)+'</strong></div>':'')
+      +(fuma?'<div><span style="color:var(--tm);">¿Fuma?:</span> '+esc(fuma)+'</div>':'')
+      +(peso&&peso!=='—'?'<div><span style="color:var(--tm);">Peso:</span> '+esc(peso)+' kg</div>':'')
+      +(altura&&altura!=='—'?'<div><span style="color:var(--tm);">Altura:</span> '+esc(altura)+' cm</div>':'')
+      +(exp?'<div><span style="color:var(--tm);">Experiencia:</span> '+esc(exp)+'</div>':'')
+      +(obj?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Objetivos:</span> '+esc(obj)+'</div>':'')
+      +(extra?'<div style="grid-column:1/-1;"><span style="color:var(--tm);">Notas:</span> '+esc(extra)+'</div>':'')
       +'</div>'
       // — Ficha de salud —
       +(()=>{
@@ -4114,10 +4117,10 @@ function alumnaCardHTML(a){
               +'<div>'+lbl('Observaciones extra')+ta('fe-extra-'+aId,ficha.extra&&ficha.extra!=='—'?ficha.extra:'')+'</div>'
               +'</div>'
             :'<div style="display:grid;gap:6px;font-size:12px;">'
-              +'<div><span style="color:var(--tm);">Último control médico:</span> '+(ficha.control_medico||'—')+'</div>'
-              +'<div><span style="color:var(--tm);">Enfermedades:</span> '+(ficha.enfermedad||'—')+'</div>'
-              +'<div><span style="color:var(--tm);">Medicación:</span> '+(ficha.medicacion||'—')+'</div>'
-              +'<div><span style="color:var(--tm);">Patología cardiovascular:</span> '+(ficha.patologia_cardio||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Último control médico:</span> '+esc(ficha.control_medico||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Enfermedades:</span> '+esc(ficha.enfermedad||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Medicación:</span> '+esc(ficha.medicacion||'—')+'</div>'
+              +'<div><span style="color:var(--tm);">Patología cardiovascular:</span> '+esc(ficha.patologia_cardio||'—')+'</div>'
               +(ficha.lesiones&&ficha.lesiones!=='Sin lesiones'&&ficha.lesiones!=='—'
                 ?'<div style="background:var(--rl);border-radius:6px;padding:6px 8px;color:var(--rd);"><strong>⚠️ Lesiones:</strong> '+esc(ficha.lesiones)+'</div>'
                 :'<div><span style="color:var(--tm);">Lesiones:</span> '+esc(ficha.lesiones||'—')+'</div>')
@@ -4125,7 +4128,7 @@ function alumnaCardHTML(a){
               +(ficha.dolor_zonas&&ficha.dolor_zonas!=='—'?'<div><span style="color:var(--tm);">Dolor frecuente:</span> '+esc(ficha.dolor_zonas)+'</div>':'')
               +(ficha.actividad_actual&&ficha.actividad_actual!=='—'?'<div><span style="color:var(--tm);">Actividad actual:</span> '+esc(ficha.actividad_actual)+'</div>':'')
               +(ficha.extra&&ficha.extra!=='—'?'<div><span style="color:var(--tm);">Observaciones extra:</span> '+esc(ficha.extra)+'</div>':'')
-              +'<div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el '+(ficha.fecha||'—')+'</div>'
+              +'<div style="font-size:10px;color:var(--th);margin-top:2px;">Completada el '+esc(ficha.fecha||'—')+'</div>'
               +'</div>')
           +'</div>';
       })()
@@ -4568,8 +4571,8 @@ function rRutinas(){
           let r='';
           if(p){const kg=p.peso_kg?` · ${p.peso_kg} kg`:'';r+=`<div style="font-size:11px;color:#15803d;font-weight:500;margin-top:4px;">✓ Hecho${kg}</div>`;}
           if(fb){
-            const lbl=FB_LABELS[fb.tipo]||fb.tipo;
-            const nota=fb.nota?` — "${fb.nota}"` :'';
+            const lbl=FB_LABELS[fb.tipo]||esc(fb.tipo);
+            const nota=fb.nota?` — "${esc(fb.nota)}"` :'';
             const isUrg=fb.tipo==='dolor_preocupante';
             r+=`<div style="font-size:11px;color:${isUrg?'var(--rd)':'var(--warn)'};margin-top:2px;">${lbl}${nota}</div>`;
           }
@@ -5124,7 +5127,7 @@ function rAnalisis(){
     const regs30=regsAll.filter(r=>new Date(r.created_at).getTime()>ago30);
     const srcCnt={};regs30.forEach(r=>{const o=(r.origen&&r.origen.trim())?r.origen:'Sin dato';srcCnt[o]=(srcCnt[o]||0)+1;});
     const srcEmoji={'Google Ads':'🟢','Instagram':'📸','Facebook':'🔵','TikTok':'🎵','Google':'🔍','Directo':'🔗','Otro':'🌐','Sin dato':'❔'};
-    const srcRows=Object.entries(srcCnt).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${srcEmoji[s]||'🌐'} ${s}: <strong>${n}</strong></span>`).join('');
+    const srcRows=Object.entries(srcCnt).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${srcEmoji[s]||'🌐'} ${esc(s)}: <strong>${n}</strong></span>`).join('');
     // De donde vienen las VISITAS, no solo los registros. Sin esto, Instagram y
     // el trafico directo eran indistinguibles: Instagram borra el referente en
     // su navegador interno, asi que el utm es lo unico que permite atribuir.
@@ -5132,7 +5135,7 @@ function rAnalisis(){
     siteRows.filter(r=>new Date(r.created_at).getTime()>ago30)
       .forEach(r=>{const o=(r.origen&&r.origen.trim())?r.origen:'Sin dato';visCnt[o]=(visCnt[o]||0)+1;});
     const visRows=Object.entries(visCnt).sort((a,b)=>b[1]-a[1])
-      .map(([s2,n2])=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${srcEmoji[s2]||'🌐'} ${s2}: <strong>${n2}</strong></span>`).join('');
+      .map(([s2,n2])=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${srcEmoji[s2]||'🌐'} ${esc(s2)}: <strong>${n2}</strong></span>`).join('');
     const visBloque=visRows
       ? `<div style="margin-bottom:.7rem;"><div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">📍 De dónde vienen las visitas (30 días)</div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--t);">${visRows}</div></div>`
       : '';
@@ -5141,7 +5144,7 @@ function rAnalisis(){
     const bioViews=cnt['/bio/view']||0;
     const bioClicks=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').reduce((a,[,n])=>a+n,0);
     const bioLabelMap={wa:'💬 WA',registro:'📝 Registro',sitio:'🌐 Sitio',instagram:'📸 Instagram'};
-    const bioDetailRows=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>{const k=p.replace('/bio/','');return`<span style="background:var(--s2);border-radius:6px;padding:2px 7px;">${bioLabelMap[k]||k}: <strong>${n}</strong></span>`;}).join('');
+    const bioDetailRows=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>{const k=p.replace('/bio/','');return`<span style="background:var(--s2);border-radius:6px;padding:2px 7px;">${bioLabelMap[k]||esc(k)}: <strong>${n}</strong></span>`;}).join('');
     return`<div class="card" style="margin-bottom:1rem;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><div class="ctitle" style="margin:0;">📊 Cómo viene tu web</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div>
 <div style="font-size:13px;color:var(--t);line-height:1.65;margin-bottom:.85rem;">En los <strong>últimos 7 días</strong> entraron <strong>${vis7}</strong> personas a tu web y <strong>${reg7}</strong> se ${reg7===1?'anotó':'anotaron'} completando el formulario.</div>
@@ -5180,10 +5183,10 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
       ${topRep.map(([nom,v],idx)=>{
         const open=S['rep_open_'+idx];
         const details=(DB.feedbacks||[]).filter(f=>f.ejercicio_nombre===nom&&['ejercicio_problema','dolor_articular','dolor_preocupante'].includes(f.tipo));
-        const detailHtml=details.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);flex-wrap:wrap;"><span style="font-weight:500;color:var(--t);min-width:70px;">'+(al?fn(al.nombre):'?')+'</span><span style="color:var(--tm);">'+(FB_LABELS[f.tipo]||f.tipo)+'</span><span style="color:var(--th);margin-left:auto;">'+fmtWhen(f.created_at)+'</span>'+(f.nota?'<span style="width:100%;color:var(--tm);padding-left:78px;">"'+esc(f.nota)+'"</span>':'')+'</div>';}).join('');
+        const detailHtml=details.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);flex-wrap:wrap;"><span style="font-weight:500;color:var(--t);min-width:70px;">'+(al?fn(al.nombre):'?')+'</span><span style="color:var(--tm);">'+(FB_LABELS[f.tipo]||esc(f.tipo))+'</span><span style="color:var(--th);margin-left:auto;">'+fmtWhen(f.created_at)+'</span>'+(f.nota?'<span style="width:100%;color:var(--tm);padding-left:78px;">"'+esc(f.nota)+'"</span>':'')+'</div>';}).join('');
         return'<div style="border-bottom:1px solid var(--b);">'
           +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'rep_open_'+idx+'\']=!S[\'rep_open_'+idx+'\'];render()">'
-          +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
+          +'<div style="flex:1;color:var(--t);font-size:12px;">'+esc(nom)+'</div>'
           +'<span style="background:'+(v.grave>0?'var(--rl)':'var(--a)')+';color:'+(v.grave>0?'var(--rd)':'var(--ad)')+';border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;">'+v.n+' reporte'+(v.n!==1?'s':'')+'</span>'
           +'<span style="font-size:11px;color:var(--th);">'+(open?'▲':'▼')+'</span>'
           +'</div>'
@@ -5210,7 +5213,7 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
       const detailHtml=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+fn(al.nombre)+'</span><span style="color:var(--tm);">'+al.kg+' kg</span><span style="color:var(--th);margin-left:auto;">'+al.streak+' sem iguales</span></div>').join('');
       return'<div style="border-bottom:1px solid var(--b);">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'est_open_'+idx+'\']=!S[\'est_open_'+idx+'\'];render()">'
-        +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
+        +'<div style="flex:1;color:var(--t);font-size:12px;">'+esc(nom)+'</div>'
         +'<span style="background:var(--p);color:var(--pd);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;">'+v.n+' alumna'+(v.n!==1?'s':'')+'</span>'
         +'<span style="font-size:11px;color:var(--th);">'+(open?'▲':'▼')+'</span>'
         +'</div>'
@@ -5225,7 +5228,7 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
       const dh=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+fn(al.nombre)+'</span><span style="color:var(--tm);">actualmente '+al.kg+' kg</span><span style="color:var(--vd);margin-left:auto;">→ subir peso</span></div>').join('');
       return'<div style="border-bottom:1px solid var(--b);">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'prog_open_'+idx+'\']=!S[\'prog_open_'+idx+'\'];render()">'
-        +'<div style="flex:1;color:var(--t);font-size:12px;">'+nom+'</div>'
+        +'<div style="flex:1;color:var(--t);font-size:12px;">'+esc(nom)+'</div>'
         +'<span style="background:var(--vl);color:var(--vd);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;">'+v.n+' alumna'+(v.n!==1?'s':'')+'</span>'
         +'<span style="font-size:11px;color:var(--th);">'+(open2?'▲':'▼')+'</span>'
         +'</div>'
@@ -5286,7 +5289,7 @@ function rComentarios(){
         </div>
         ${i===0&&nuevo?`<span class="badge" style="background:var(--vl);color:var(--vd);font-weight:500;">Más reciente</span>`:''}
       </div>
-      ${cs.map(c=>`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;"><div style="font-size:10px;color:var(--th);margin-bottom:3px;">Ciclo ${c.ciclo||1} · Sem ${c.semana} · Día ${c.dia} · ${c.fecha||''}</div><div style="font-size:12px;color:var(--t);">${c.texto}</div></div>`).join('')}
+      ${cs.map(c=>`<div style="background:var(--s2);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.5rem;"><div style="font-size:10px;color:var(--th);margin-bottom:3px;">Ciclo ${c.ciclo||1} · Sem ${c.semana} · Día ${c.dia} · ${esc(c.fecha||'')}</div><div style="font-size:12px;color:var(--t);">${esc(c.texto)}</div></div>`).join('')}
     </div>`;}).join('')}`;
 }
 
@@ -5298,8 +5301,11 @@ function oBadge(o){
 }
 
 function rRegistros(){
-  const pend=DB.registros.filter(r=>r.estado==='pendiente');
-  const otros=DB.registros.filter(r=>r.estado!=='pendiente');
+  // Los registros llegan del formulario publico, que puede llenar cualquiera:
+  // cada texto se muestra escapado para que no pueda meter codigo en el panel.
+  const escReg=r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,typeof v==='string'?esc(v):v]));
+  const pend=DB.registros.filter(r=>r.estado==='pendiente').map(escReg);
+  const otros=DB.registros.filter(r=>r.estado!=='pendiente').map(escReg);
   return`<div class="ptitle">Registros</div>
   ${pend.length===0&&otros.length===0?`<div class="card"><div class="empty">Sin registros todavía.</div></div>`:''}
   ${pend.map(r=>`<div class="card" style="border-left:3px solid var(--v);border-radius:0 var(--r) var(--r) 0;">
@@ -5736,7 +5742,7 @@ function rAvisos(){
     <div class="ctitle">Activos (${activos.length})</div>
     ${activos.map(av=>`<div style="background:var(--a);border-radius:var(--rs);padding:.65rem .9rem;margin-bottom:.5rem;display:flex;gap:10px;align-items:flex-start;">
       <div style="flex:1;">
-        <div style="font-size:12px;color:var(--t);line-height:1.5;">${av.texto}</div>
+        <div style="font-size:12px;color:var(--t);line-height:1.5;">${esc(av.texto)}</div>
         <div style="font-size:10px;color:var(--th);margin-top:3px;">${av.para==='todas'?'Para todas':av.para} · ${av.created_at?new Date(av.created_at).toLocaleDateString('es-AR'):''}</div>
       </div>
       <button class="btn btn-s btn-d" onclick="delAviso(${av.id})">Archivar</button>
@@ -5744,7 +5750,7 @@ function rAvisos(){
   </div>`:'<div class="card" style="margin-bottom:1rem;"><div class="empty">Sin avisos activos.</div></div>'}
   ${archivados.length>0?`<div class="card">
     <div class="ctitle" style="color:var(--th);">Archivados</div>
-    ${archivados.map(av=>`<div style="opacity:.5;font-size:12px;padding:.4rem 0;border-bottom:1px solid var(--b);">${av.texto} <span style="color:var(--th);font-size:10px;">· ${av.created_at?new Date(av.created_at).toLocaleDateString('es-AR'):''}</span></div>`).join('')}
+    ${archivados.map(av=>`<div style="opacity:.5;font-size:12px;padding:.4rem 0;border-bottom:1px solid var(--b);">${esc(av.texto)} <span style="color:var(--th);font-size:10px;">· ${av.created_at?new Date(av.created_at).toLocaleDateString('es-AR'):''}</span></div>`).join('')}
   </div>`:''}`;
 }
 

@@ -241,6 +241,7 @@ Estrategias:
 - **No asumir que `ciclos_inicio` existe en la DB** sin correr la migración: `ALTER TABLE alumnas ADD COLUMN IF NOT EXISTS ciclos_inicio jsonb DEFAULT '{}'::jsonb;` — el código cliente tiene fallbacks para cuando no existe, pero idealmente se corre la migración.
 - **No agregar más notificaciones push** sin considerar el riesgo de que Chrome las marque como spam. Menos es más.
 - **No tocar `sw.js`** sin incrementar la versión del cache (`amira-vN`). Si no se incrementa, los usuarios siguen con el SW viejo cacheado.
+- **No mostrar con `innerHTML` texto que no escribió Amira sin pasarlo por `esc()`**: inscripciones y fichas (las llena cualquiera), visitas, reportes, comentarios y notas de alumnas, avisos y la foto. El panel guarda la sesión de Amira: un texto con código que se ejecute ahí se lleva su acceso a todos los datos. Hasta el 13/10/2026 el panel mostraba casi todo eso sin escapar.
 
 ---
 
