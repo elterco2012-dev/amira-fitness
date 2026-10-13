@@ -1060,10 +1060,10 @@ async function marcarAtendido(fid){
 // a mostrar como pendiente. Se registra que se abrio el chat, no que el mensaje
 // se envio: WhatsApp no lo confirma.
 const DIAS_ESPERA_CONTACTO=3;
-const _MOTIVO_TPL={a_bienv:'bienvenida',a_rev:'revision',a_rev0:'revision',a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
+const _MOTIVO_TPL={a_bienv:'bienvenida',a_rev:'revision',a_rev0:'revision',o_entrar:'ingreso',o_dia3:'arranque3',o_dia3b:'arranque3',o_dia7:'arranque7',a_rec:'recordatorio',rec:'recordatorio',a_ciclo:'ciclo',ciclo:'ciclo',a_logro:'logro',a_dato:'logro',mot:'motivacion',
   a_dolor:'dolor',u_dolor:'dolor',a_hoy:'seguimiento',a_como:'seguimiento',a_check:'seguimiento',check:'seguimiento',u_inact:'inactividad',a_pago:'cobro',pago:'cobro'};
 const _MOTIVO_LBL={dolor:'por la molestia',inactividad:'por la inactividad',cobro:'por el pago',logro:'para felicitarla',seguimiento:'para ver c\u00f3mo ven\u00eda',
-  recordatorio:'un recordatorio',ciclo:'por el ciclo nuevo',motivacion:'para motivarla',resumen:'el resumen',informe:'el informe',bienvenida:'la bienvenida',cumpleanos:'por el cumplea\u00f1os',revision:'por la revisi\u00f3n semanal'};
+  recordatorio:'un recordatorio',ciclo:'por el ciclo nuevo',motivacion:'para motivarla',resumen:'el resumen',informe:'el informe',bienvenida:'la bienvenida',cumpleanos:'por el cumplea\u00f1os',revision:'por la revisi\u00f3n semanal',ingreso:'para ver si pudo entrar',arranque3:'por el d\u00eda 3',arranque7:'por la primera semana'};
 function registrarContacto(aId,motivo){
   if(!aId) return;
   const row={alumna_id:aId,motivo:motivo||'otro',created_at:new Date().toISOString()};
@@ -1227,6 +1227,73 @@ async function enviarRevision(aId){
   await envTplAlu(aId,r.entreno?'a_rev':'a_rev0');
   render();
 }
+// ── Arranque guiado: las primeras dos semanas ─────────────────
+// De 35 alumnas, 6 nunca marcaron un ejercicio y 7 tardaron mas de una semana en
+// arrancar (medido el 13/10/2026), y lo que se pierde al principio no se
+// recupera. Para cada alumna en sus primeros 14 dias: los pasos que faltan y el
+// mensaje que toca, armado. Mientras tanto no aparece en "Hoy hay que atender".
+const DIAS_ARRANQUE=14;
+// Ultimo ingreso a la app de cada alumna (auth.users no se lee desde el panel:
+// la funcion ingresos_alumnas devuelve solo id y fecha, y solo a Amira).
+async function cargarIngresos(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/rpc/ingresos_alumnas`,{method:'POST',headers:getSBH(),body:'{}'});
+    if(!r.ok) return {};
+    const m={};
+    for(const x of (await r.json())||[]) if(x.ultimo_ingreso) m[x.alumna_id]=x.ultimo_ingreso;
+    return m;
+  }catch(e){ return {}; }
+}
+function enArranque(a){
+  if(!alumnaActiva(a)||a.id===CUENTA_DE_AMIRA||!a.created_at) return false;
+  const d=localDayDiff(a.created_at);
+  return d!==null&&d<DIAS_ARRANQUE;
+}
+function pasosArranque(a){
+  const dia=(localDayDiff(a.created_at)??0)+1;   // dia 1: el del alta
+  const contactos=(DB.contactos||[]).filter(c=>c.alumna_id===a.id);
+  const ult=m=>{const c=contactos.filter(x=>x.motivo===m).sort((x,y)=>String(y.created_at).localeCompare(String(x.created_at)))[0];
+    return c?Math.max(0,localDayDiff(c.created_at)??0):null;};
+  const hechos=(DB.progresoHechos||[]).filter(p=>p.alumna_id===a.id&&p.ejercicio_idx>=0&&p.fecha_registro);
+  const primero=hechos.map(p=>p.fecha_registro).sort()[0]||null;
+  const tieneDias=Array.isArray(a.dias_disponibles)&&a.dias_disponibles.length>0;
+  const tienePush=(DB.pushSubs||[]).some(x=>x.alumna_id===a.id);
+  // Si la funcion no respondio, cualquier cosa que solo se hace adentro de la app
+  // cuenta como que entro.
+  const entro=!!(DB.ingresos||{})[a.id]||!!primero||tienePush||tieneDias;
+  return {dia, entro, entreno:!!primero, sesiones:diasEntrenadosP(a.id).length,
+    arrancoDia:primero?(localDayDiff(a.created_at)??0)-(localDayDiff(primero)??0)+1:null,
+    dBienv:ult('bienvenida'), dIngreso:ult('ingreso'), d3:ult('arranque3'), d7:ult('arranque7'),
+    pasos:[
+      {l:'Bienvenida',ok:ult('bienvenida')!==null},
+      {l:'Entró a la app',ok:entro},
+      {l:'Eligió sus días',ok:tieneDias},
+      {l:'Notificaciones',ok:tienePush},
+      {l:'Primer entrenamiento',ok:!!primero},
+      {l:'Mensaje del día 3',ok:ult('arranque3')!==null||ult('arranque7')!==null,desde:3},
+      {l:'Mensaje del día 7',ok:ult('arranque7')!==null,desde:7},
+    ]};
+}
+// El proximo mensaje que le toca mandar a Amira, o null si por ahora no hay.
+function proximoMensajeArranque(p){
+  if(p.dBienv===null) return {tpl:'a_bienv',l:'💬 Bienvenida'};
+  // Mientras no entre a la app, lo unico que toca es preguntarle si pudo: un dia
+  // despues de la bienvenida y, si sigue sin entrar, cada dos dias.
+  if(!p.entro) return p.dBienv>=1&&(p.dIngreso===null||p.dIngreso>=2)?{tpl:'o_entrar',l:'💬 ¿Pudiste entrar?'}:null;
+  if(p.dia>=7&&p.d7===null) return {tpl:'o_dia7',l:'💬 Mensaje del día 7'};
+  if(p.dia>=3&&p.dia<7&&p.d3===null) return {tpl:p.entreno?'o_dia3':'o_dia3b',l:'💬 Mensaje del día 3'};
+  return null;
+}
+// [arranque] en el mensaje del dia 7
+function textoArranque(a){
+  const n=diasEntrenadosP(a.id).length;
+  return n?`Ya hiciste ${n} ${n===1?'entrenamiento':'entrenamientos'}.`:'Todavía no registraste entrenamientos: ¿arrancamos esta semana?';
+}
+
+async function mandarArranque(aId,tpl){
+  await envTplAlu(aId,tpl);
+  render();
+}
 function saltearRevision(aId){
   try{ localStorage.setItem(`af-rev-salteo-${aId}-${semanaARevisar().desde}`,'1'); }catch(e){}
   render();
@@ -1269,7 +1336,7 @@ async function loadAll(){
       sbGet('plantillas','order=created_at.asc')
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
-    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct,_fr]=await Promise.allSettled([
+    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct,_fr,_ig]=await Promise.allSettled([
       cargarFeedbacks(),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
@@ -1282,7 +1349,8 @@ async function loadAll(){
       // Completos y de todos los tipos (los de arriba son los ultimos 50, sin "dia
       // completo"): la constancia necesita las sesiones cortas, y la revision
       // semanal, las pausas activas y las molestias de la semana.
-      sbGet('feedbacks',`select=alumna_id,tipo,ciclo,semana,dia,nota,created_at&created_at=gte.${encodeURIComponent(new Date(Date.now()-70*86400000).toISOString())}&order=created_at.desc&limit=5000`)
+      sbGet('feedbacks',`select=alumna_id,tipo,ciclo,semana,dia,nota,created_at&created_at=gte.${encodeURIComponent(new Date(Date.now()-70*86400000).toISOString())}&order=created_at.desc&limit=5000`),
+      cargarIngresos()
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -1294,6 +1362,7 @@ async function loadAll(){
     DB.pageViews      = _pv.status==='fulfilled'&&Array.isArray(_pv.value)?_pv.value:[];
     DB.contactos      = _ct.status==='fulfilled'&&Array.isArray(_ct.value)?_ct.value:[];
     DB.fbRecientes    = _fr.status==='fulfilled'&&Array.isArray(_fr.value)?_fr.value:[];
+    DB.ingresos       = _ig.status==='fulfilled'&&_ig.value?_ig.value:{};
     await cargarTplsDeBase();
     DB.alumnas=alumnas;
     DB.rutinas={};
@@ -3103,7 +3172,8 @@ async function envTplAlu(aId, key){
   const lg=logroDeHoy(aId);
   const pin=pinDesdeNacimiento(a.nacimiento)||'tu fecha de nacimiento (día, mes y año)';
   const semana=tpl.msg.includes('[semana]')?textoSemana(resumenSemana(a,semanaARevisar())):'';
-  return waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:'',email:a.email||'',pin,instalar:BASE+'/instalar',semana}), aId, _MOTIVO_TPL[key]||'mensaje');
+  const arranque=tpl.msg.includes('[arranque]')?textoArranque(a):'';
+  return waOpen(ph, interpTpl(tpl.msg,{nombre:nom,link,ciclo:cicNom,logro:lg?lg.texto:'',email:a.email||'',pin,instalar:BASE+'/instalar',semana,arranque}), aId, _MOTIVO_TPL[key]||'mensaje');
 }
 function waTpls(a){
   return getAlumnaTpls().filter(t=>t.key.startsWith('a_')).map(t=>({
@@ -3716,6 +3786,7 @@ function rInicio(){
   const esperando=[];
   alumnaActivas.forEach(a=>{
     if(prioMap.has(a.id))return;
+    if(enArranque(a))return;   // la sigue la tarjeta "Primeras dos semanas"
     const daysSince=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):null;
     const memberDays=a.created_at?Math.max(0,localDayDiff(a.created_at)):0;
     const freqPerWeek=parseInt(a.dias)||3;
@@ -3748,7 +3819,7 @@ function rInicio(){
   const prioIds=new Set([...prioritarias,...esperando].map(p=>p.a.id));
 
   const semHtml=DB.alumnas.length===0?'<div class="empty">Sin alumnas todavía.</div>':
-    alWithDays.filter(a=>!prioIds.has(a.id)).map(a=>{
+    alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a)).map(a=>{
       const icon=a._days===null||a._days>=7?'🔴':a._days>=4?'🟡':'🟢';
       const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
       const _isUrg=a._days===null||a._days>=7;
@@ -3845,6 +3916,40 @@ function rInicio(){
       <div class="metric" style="${prioritarias.length>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Atender hoy</div><div class="mval" style="color:${prioritarias.length>0?'var(--rd)':'var(--tm)'};">${prioritarias.length}</div></div>
       <div class="metric" style="${_aten>0?'border-bottom:2px solid var(--warn);':''}"><div class="mlabel">A observar</div><div class="mval" style="color:${_aten>0?'var(--warn)':'var(--tm)'};">${_aten}</div></div>
       <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
+    </div>`;
+  })()}
+  ${(()=>{
+    // Arranque guiado: cada alumna en sus primeros 14 dias, con lo que falta y
+    // el mensaje que toca. El paso de las notificaciones y los dias los hace
+    // ella; la bienvenida los explica.
+    const nuevas=alumnaActivas.filter(enArranque).sort((x,y)=>String(x.created_at).localeCompare(String(y.created_at)));
+    if(!nuevas.length) return'';
+    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--ad);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.3rem;">
+        <div class="ctitle" style="margin-bottom:0;">🌱 Primeras dos semanas</div>
+        <span style="font-size:10px;color:var(--th);white-space:nowrap;">${nuevas.length} alumna${nuevas.length!==1?'s':''}</span>
+      </div>
+      <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Lo que falta para que cada una arranque bien. El mensaje sale armado y lo mandás vos.</div>
+      ${nuevas.map(a=>{
+        const p=pasosArranque(a), sig=proximoMensajeArranque(p);
+        const ph=(a.tel||'').replace(/\D/g,'');
+        const chip=x=>{
+          const futuro=!x.ok&&x.desde&&p.dia<x.desde;
+          const [bg,fg,ic]=x.ok?['#dcfce7','#15803d','✓ ']:futuro?['var(--s2)','var(--th)','']:['#fef9c3','#a16207','○ '];
+          return`<span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:${bg};color:${fg};margin:0 3px 3px 0;white-space:nowrap;">${ic}${x.l}</span>`;
+        };
+        const sub=p.entreno?`Arrancó el día ${p.arrancoDia} · ${_sP(p.sesiones,'entrenamiento')}`:'Todavía no entrenó';
+        return`<div class="arow" style="flex-wrap:wrap;align-items:flex-start;">
+          <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+          <div style="flex:1;min-width:12rem;">
+            <div style="font-size:13px;font-weight:500;">${esc(a.nombre)} <span style="font-weight:400;color:var(--tm);">· día ${p.dia} de ${DIAS_ARRANQUE}</span></div>
+            <div style="font-size:11px;color:var(--tm);margin:1px 0 4px;">${sub}</div>
+            <div>${p.pasos.map(chip).join('')}</div>
+          </div>
+          ${sig&&ph?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;" onclick="mandarArranque(${a.id},'${sig.tpl}')">${sig.l}</button>`:''}
+          <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
+        </div>`;
+      }).join('')}
     </div>`;
   })()}
   ${(()=>{
@@ -5665,7 +5770,7 @@ function rRecordatorios(){
     ${S._atplEdit?(()=>{
       const isCustom=!WA_ALUMNA_TPLS_DEFAULTS.find(t=>t.key===S._atplEdit.key);
       return`<div style="background:var(--s2);border-radius:var(--rs);padding:.8rem;border:1px solid var(--bm);margin-bottom:.75rem;">
-        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando — tokens: [nombre] [link] [ciclo] [email] [pin] [instalar] [semana]</div>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:.5rem;font-weight:500;">✎ Editando — tokens: [nombre] [link] [ciclo] [email] [pin] [instalar] [semana] [arranque]</div>
         <input type="text" id="atpl-label" value="${S._atplEdit.l.replace(/"/g,'&quot;')}" placeholder="Nombre del template" style="margin-bottom:6px;">
         <textarea id="atpl-msg" style="height:80px;">${S._atplEdit.msg}</textarea>
         <div style="display:flex;gap:6px;margin-top:.6rem;flex-wrap:wrap;">
@@ -5740,6 +5845,12 @@ const WA_ALUMNA_TPLS_DEFAULTS=[
   // pesos que subio, como va el mes) y Amira suma su devolucion al pegarlo.
   {key:'a_rev',  l:'📋 Revisión de la semana',   msg:'¡Hola [nombre]! Revisé tu semana 💪\n\n[semana]\n\n'},
   {key:'a_rev0', l:'📋 Revisión: no entrenó',    msg:'¡Hola [nombre]! ¿Cómo venís? Esta semana no vi entrenamientos registrados. ¿Qué día te queda bien para retomar? Si un día tenés poco tiempo, la sesión de 15 minutos también cuenta 💪'},
+  // Arranque guiado (primeras dos semanas). Con prefijo o_: se editan en
+  // Recordatorios pero no llenan el menu de WhatsApp de cada ficha.
+  {key:'o_entrar',l:'🔑 Arranque: ¿pudiste entrar?', msg:'¡Hola [nombre]! ¿Pudiste entrar a la app? Te dejo de nuevo los datos:\n\n• Link: [link]\n• Email: [email]\n• PIN: [pin]\n\nSi algo no funciona, contame y lo resolvemos.'},
+  {key:'o_dia3', l:'🌱 Arranque: día 3 (ya entrenó)', msg:'¡Hola [nombre]! ¿Cómo te fue con los primeros entrenamientos? Contame si algo te costó o si hay algo para ajustar 💪'},
+  {key:'o_dia3b',l:'🌱 Arranque: día 3 (todavía no)', msg:'¡Hola [nombre]! ¿Cómo venís? Todavía no vi tu primer entrenamiento. ¿Qué día te queda bien para arrancar? Si tenés poco tiempo, con la sesión de 15 minutos ya cuenta 💪'},
+  {key:'o_dia7', l:'🌱 Arranque: primera semana', msg:'¡Hola [nombre]! Ya pasó tu primera semana 🎉 [arranque]\n\n¿Cómo te sentiste? Contame qué te gustó y qué te costó, así ajusto lo que haga falta.'},
   {key:'a_pago', l:'💰 Recordatorio de pago',    msg:'Hola [nombre]! Te recuerdo que no registré tu pago de este mes. Avisame cuando puedas 🙏'},
   {key:'a_check',l:'💬 Chequeo general',          msg:'Hola [nombre]! Solo quería ver cómo estás y si todo bien con los entrenamientos 💪'
     +'\n---\n[nombre]! ¿Cómo andás? ¿Todo bien con las rutinas?'},
@@ -5783,7 +5894,7 @@ function interpTpl(msg,vars){
     .replace(/\[nombre\]/g,vars.nombre||'').replace(/\[link\]/g,vars.link||'')
     .replace(/\[ciclo\]/g,vars.ciclo||'').replace(/\[logro\]/g,vars.logro||'')
     .replace(/\[email\]/g,vars.email||'').replace(/\[pin\]/g,vars.pin||'').replace(/\[instalar\]/g,vars.instalar||'')
-    .replace(/\[semana\]/g,vars.semana||'');
+    .replace(/\[semana\]/g,vars.semana||'').replace(/\[arranque\]/g,vars.arranque||'');
 }
 function editAluTpl(key){const tpl=getAlumnaTpls().find(t=>t.key===key);if(!tpl)return;S._atplEdit={...tpl};S._atplSel=null;render();}
 function saveAluTpl(key){

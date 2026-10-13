@@ -154,6 +154,9 @@ async function dbFetchAll(path: string): Promise<unknown[]> {
 // la pantalla. Si se cambia una regla en el panel (rInicio), cambiarla aca.
 const SEGUIMIENTO_DOLOR_DESDE = "2026-10-01";
 const DIAS_ESPERA_CONTACTO = 3;
+// Las primeras dos semanas de cada alumna las sigue la tarjeta "Primeras dos
+// semanas" de Inicio, no "Hoy hay que atender" (igual que el panel, 13/10/2026).
+const DIAS_ARRANQUE = 14;
 const AR = -3 * 3600000; // Argentina, sin horario de verano: dias de calendario como en el panel
 
 function diaAR(t: number): number { return Math.floor((t + AR) / 86400000); }
@@ -192,9 +195,12 @@ export function calcularResumen(alumnas: Alumna[], hechos: Hecho[], dolores: Dol
     if (!prev || c.created_at > prev) ultimoContacto.set(c.alumna_id, c.created_at);
   }
 
+  const enArranque = (a: Alumna) => { const d = localDayDiff(a.created_at, ahora); return d !== null && d < DIAS_ARRANQUE; };
+  const arrancando = activas.filter(enArranque).length;
   let esperando = 0;
   for (const a of activas) {
     if (atender.has(a.id)) continue;
+    if (enArranque(a)) continue;
     const ds = localDayDiff(a.last_active_at, ahora);
     const daysSince = ds === null ? null : Math.max(0, ds);
     const memberDays = a.created_at ? Math.max(0, localDayDiff(a.created_at, ahora) ?? 0) : 0;
@@ -213,7 +219,7 @@ export function calcularResumen(alumnas: Alumna[], hechos: Hecho[], dolores: Dol
     if (dc !== null && Math.max(0, dc) < DIAS_ESPERA_CONTACTO) esperando++;
     else atender.add(a.id);
   }
-  return { total: activas.length, entrenaron, necesitanAtencion: atender.size, dolorSinAtender: conDolor.size, esperando };
+  return { total: activas.length, entrenaron, necesitanAtencion: atender.size, dolorSinAtender: conDolor.size, esperando, arrancando };
 }
 
 Deno.serve(async (req) => {
@@ -232,7 +238,7 @@ Deno.serve(async (req) => {
       dbFetchAll(`feedbacks?select=alumna_id,tipo,atendido_at,created_at&tipo=eq.dolor_preocupante&atendido_at=is.null&order=id.asc`) as Promise<Dolor[]>,
       dbFetchAll(`contactos?select=alumna_id,created_at&created_at=gte.${hace90}&order=id.asc`) as Promise<Contacto[]>,
     ]);
-    const { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando } = calcularResumen(alumnas, hechos, dolores, contactos);
+    const { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando, arrancando } = calcularResumen(alumnas, hechos, dolores, contactos);
 
     // ── Composición del mensaje ──────────────────────────────────
     const title = "📊 Resumen de la semana";
@@ -241,8 +247,9 @@ Deno.serve(async (req) => {
     if (necesitanAtencion > 0) partes.push(`${necesitanAtencion} para atender en Inicio`);
     if (dolorSinAtender > 0) partes.push(`${dolorSinAtender} con dolor sin atender`);
     if (esperando > 0) partes.push(`${esperando} esperando respuesta`);
+    if (arrancando > 0) partes.push(`${arrancando} en sus primeras dos semanas`);
     const body = partes.join(" · ");
-    const stats = { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando };
+    const stats = { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando, arrancando };
 
     // ── Envío ────────────────────────────────────────────────────
     let subs: Array<{ endpoint: string; p256dh: string; auth: string }> = [];
