@@ -115,7 +115,7 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 **Panel (Amira):**
 - Email + password via Supabase Auth
 - Email hardcodeado: `amiralezcano@gmail.com`
-- Fallback local: `localStorage.getItem('af-pwd')` (default `"amira2025"`)
+- No hay contraseña local: la tarjeta "Contraseña del panel" de Config guardaba `af-pwd` en el teléfono, el ingreso nunca la usó y se sacó el 13/10/2026. La contraseña se cambia en Supabase Auth.
 - Tokens en localStorage: `af-access-token`, `af-refresh-token`, `af-token-expires`
 
 **App alumna:**
@@ -154,6 +154,10 @@ const cicloActual = _cicloTope;
 
 Regla importante: ciclos **sin** `ciclos_inicio` se activan de inmediato (backward compatible).
 
+**Nombre del ciclo (13/10/2026):** sale de su fecha de inicio (`nombreDeCiclo`): el mes donde cae la mayor parte de sus 4 semanas, con el año ("Octubre 2026"). Si el ciclo anterior ya tiene ese mes, va el siguiente. Lo usan "Nuevo ciclo" y el generador con IA, que proponía siempre el mes que viene: una alumna que arrancó el 7/10 veía "Noviembre 2026".
+
+**Semana 0 = calentamiento propio de la alumna:** no es un día de entrenamiento. No cuenta en el avance del ciclo, ni hace que un ciclo "tenga rutina" (`_tieneEjercicios` en el panel, `getCiclos` en la app). Hasta el 13/10 la rutina con IA de una alumna nueva caía en el ciclo 2 porque el 1 tenía el calentamiento, y la app le mostraba un "Ciclo 1" vacío.
+
 **Transición de ciclo:** cuando hay un ciclo nuevo que la alumna no empezó, aparece el ciclo anterior como pestaña para que pueda terminar lo que le faltó. La pestaña desaparece sola cuando marca el primer ejercicio del ciclo nuevo.
 
 ---
@@ -188,7 +192,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v68` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v69` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -205,7 +209,8 @@ Estrategias:
 2. Amira recibe notificación push y lo aprueba desde el panel.
 3. Amira crea la ficha de alumna, genera la rutina (manual o con IA).
 4. La alumna accede vía `/alumna/{slug}` con su email.
-5. Amira le manda desde la ficha (💬 WA) la plantilla "👋 Bienvenida y cómo entrar": link, email, PIN (la fecha de nacimiento en DDMMAA, `pinDesdeNacimiento`) y la guía de `/instalar`.
+5. Al crear la alumna, el editor de rutinas vuelve a su ciclo 1, semana 1, día 1. Antes quedaba la semana de la alumna anterior: el 20/9 a una nueva le quedó toda la rutina en la semana 4. Si la semana 1 de un ciclo está vacía y hay ejercicios en otra, Rutinas lo avisa.
+6. Amira le manda desde la ficha (💬 WA) la plantilla "👋 Bienvenida y cómo entrar": link, email, PIN (la fecha de nacimiento en DDMMAA, `pinDesdeNacimiento`) y la guía de `/instalar`.
 
 **Arranque guiado (desde el 13/10/2026):** durante sus primeros 14 días (`DIAS_ARRANQUE`), cada alumna aparece en Inicio → "🌱 Primeras dos semanas".
 - Pasos: bienvenida, entró a la app, eligió sus días, notificaciones, primer entrenamiento, mensaje del día 3 y mensaje del día 7.
@@ -244,6 +249,12 @@ Estrategias:
 - "💬 Devolución" copia la plantilla `a_rev` (o `a_rev0` si no entrenó). `[semana]` trae los días, las pausas activas, los pesos que subió y cómo va el mes.
 - La alumna queda revisada en `contactos` con motivo `revision`. Saltearla se guarda solo en el teléfono.
 - Si la revisión no se termina el lunes, la lista sigue plegada el resto de la semana.
+
+**Listas del panel (revisión con datos reales, 13/10/2026):**
+- Con nombres repetidos (hay dos Paulas y dos Julietas) las listas y los selectores usan `nombreCorto`: el nombre de pila con la inicial del apellido ("Paula D."). Los selectores que aplican algo a una alumna (plantillas, avisos) muestran el nombre completo y no incluyen bajas. Los mensajes a la alumna siguen con `fn()`.
+- "Hoy hay que atender" dice si la que nunca marcó un ejercicio entró a la app (`ingresos_alumnas()`); si no se pudo consultar, no afirma nada. Con poca adherencia agrega hace cuántos días no entrena.
+- Recordatorios trabaja solo con alumnas activas: el check-in por inactividad y el resumen push mandan alumna por alumna, y `send-push` solo saltea a las bajas cuando manda a todas.
+- Los días sin entrenar se cuentan en días de calendario en todo el panel (`localDayDiff`); "en 7 días" es hoy y los 6 anteriores.
 
 ### Mediciones
 - **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa, así que el panel y el resumen la cuentan; para métricas de alumnas, excluirla.

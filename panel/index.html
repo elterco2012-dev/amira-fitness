@@ -1094,13 +1094,37 @@ function cicloEnCurso(a){
   while(c>1&&ini[c]&&ini[c]>hoy) c--;
   return c;
 }
-function _tieneEjercicios(sems){ return !!sems&&Object.values(sems).some(ds=>(ds||[]).some(d=>d.ejercicios?.length)); }
+// La semana 0 es el calentamiento propio de la alumna, no un dia de entrenamiento:
+// hasta el 13/10 contaba como un dia mas del ciclo (13 en vez de 12) y la lista
+// de renovacion avisaba tarde.
+function _tieneEjercicios(sems){ return !!sems&&Object.entries(sems).some(([s,ds])=>parseInt(s)>=1&&Array.isArray(ds)&&ds.some(d=>d.ejercicios?.length)); }
+// Nombre de un ciclo que empieza en esa fecha (AAAA-MM-DD): el mes donde cae la
+// mayor parte de sus 4 semanas. Uno que empieza el 7/10 es "Octubre 2026" y uno
+// que empieza el 28/10, "Noviembre 2026". Hasta el 13/10 era siempre el mes que
+// viene, y una alumna nueva que arranco el 7/10 vio "Noviembre 2026" en su app.
+// Si el ciclo anterior ya tiene ese mes (uno nuevo antes de que termine el mes),
+// va el mes siguiente: dos ciclos seguidos con el mismo nombre no se distinguen.
+function nombreDeCiclo(fecha,anterior){
+  const [y,m,d]=String(fecha||_hoyLocal()).split('-').map(Number);
+  const medio=new Date(y,(m||1)-1,(d||1)+13);
+  const ant=String(anterior||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if(ant&&ant.startsWith(_MESES_P[medio.getMonth()])) medio.setMonth(medio.getMonth()+1,1);
+  const mes=_MESES_P[medio.getMonth()];
+  return mes.charAt(0).toUpperCase()+mes.slice(1)+' '+medio.getFullYear();
+}
+// Nombre del ciclo en curso, si el nuevo va a ir a continuacion (el actual ya tiene rutina).
+function nombreCicloPrevio(a){
+  const c=parseInt(a.ciclo_actual)||1;
+  return _tieneEjercicios(DB.rutinas?.[a.id]?.[c])?(a.ciclos_nombres?.[c]||null):null;
+}
 function estadoCiclo(a){
   const c=cicloEnCurso(a);
   const sems=DB.rutinas?.[a.id]?.[c]||{};
   const plan=new Set(); let maxSem=0;
-  for(const [s,dias] of Object.entries(sems))
+  for(const [s,dias] of Object.entries(sems)){
+    if(!(parseInt(s)>=1)) continue;
     for(const d of (dias||[])) if(d.ejercicios?.length){ plan.add(`${parseInt(s)}-${d.dia}`); maxSem=Math.max(maxSem,parseInt(s)); }
+  }
   const hechos=new Set(); let ultimaSemana=false;
   for(const p of (DB.progresoHechos||[])){
     if(p.alumna_id!==a.id||parseInt(p.ciclo)!==c||!p.hecho) continue;
@@ -1235,14 +1259,15 @@ async function enviarRevision(aId){
 const DIAS_ARRANQUE=14;
 // Ultimo ingreso a la app de cada alumna (auth.users no se lee desde el panel:
 // la funcion ingresos_alumnas devuelve solo id y fecha, y solo a Amira).
+// null si no se pudo consultar: entonces no se sabe quien entro y nadie figura como "no entro".
 async function cargarIngresos(){
   try{
     const r=await fetch(`${SB_URL}/rest/v1/rpc/ingresos_alumnas`,{method:'POST',headers:getSBH(),body:'{}'});
-    if(!r.ok) return {};
+    if(!r.ok) return null;
     const m={};
     for(const x of (await r.json())||[]) if(x.ultimo_ingreso) m[x.alumna_id]=x.ultimo_ingreso;
     return m;
-  }catch(e){ return {}; }
+  }catch(e){ return null; }
 }
 function enArranque(a){
   if(!alumnaActiva(a)||a.id===CUENTA_DE_AMIRA||!a.created_at) return false;
@@ -1367,7 +1392,7 @@ async function loadAll(){
     DB.pageViews      = _pv.status==='fulfilled'&&Array.isArray(_pv.value)?_pv.value:[];
     DB.contactos      = _ct.status==='fulfilled'&&Array.isArray(_ct.value)?_ct.value:[];
     DB.fbRecientes    = _fr.status==='fulfilled'&&Array.isArray(_fr.value)?_fr.value:[];
-    DB.ingresos       = _ig.status==='fulfilled'&&_ig.value?_ig.value:{};
+    DB.ingresos       = _ig.status==='fulfilled'?_ig.value:null;
     await cargarTplsDeBase();
     DB.alumnas=alumnas;
     DB.rutinas={};
@@ -1520,14 +1545,19 @@ function abrirNuevoCiclo(){
   const _ci=document.getElementById('ciclo-info');
   _ci.innerHTML=`<span id="ciclo-info-nombre"></span><br>Ciclo actual: <strong>${a.ciclos_nombres?.[cicloActual]||'Ciclo '+cicloActual}</strong><br>Nuevo ciclo: <strong>${cicloActual+1}</strong><br><br>La rutina del ciclo ${cicloActual} se copiará al ciclo ${cicloActual+1} y los checks se resetearán.`;
   document.getElementById('ciclo-info-nombre').textContent=`Alumna: ${a.nombre}`;
-  // Sugerir el próximo mes como nombre
-  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const hoy=new Date();
-  const sugerido=`${meses[(hoy.getMonth()+1)%12]}`;
-  document.getElementById('ciclo-nombre').value=sugerido;
   // Default start date = today (immediate activation). Amira can set a future date to schedule it.
   const _ci2=document.getElementById('ciclo-inicio');
-  if(_ci2)_ci2.value=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+  if(_ci2)_ci2.value=_hoyLocal();
+  // El nombre sugerido sale de la fecha de inicio (nombreDeCiclo) y la sigue
+  // mientras Amira no escriba otro.
+  const _nom=document.getElementById('ciclo-nombre');
+  const _ant=a.ciclos_nombres?.[cicloActual];
+  _nom.value=_nom.dataset.sug=nombreDeCiclo(_hoyLocal(),_ant);
+  if(_ci2)_ci2.oninput=()=>{
+    const nuevo=nombreDeCiclo(_ci2.value||_hoyLocal(),_ant);
+    if(!_nom.value.trim()||_nom.value===_nom.dataset.sug) _nom.value=nuevo;
+    _nom.dataset.sug=nuevo;
+  };
   document.getElementById('ciclo-msg').textContent='';
   document.getElementById('modal-ciclo').style.display='flex';
 }
@@ -1931,6 +1961,7 @@ function _diaLocalDe(iso){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function _hoyLocal(){ return _diaLocalDe(new Date().toISOString()); }
+function _dmDe(iso){ const [,m,d]=_diaLocalDe(iso).split('-'); return m?`${+d}/${+m}`:''; }
 
 // Daiana entreno 61 sesiones en 5 meses y seguia cargada como principiante, asi
 // que la IA le planifico lo mismo seis ciclos seguidos: 20 ejercicios repetidos
@@ -2164,7 +2195,7 @@ function renderIAPreview(routine,a){
   const sem=routine.semanas[_iaWeekSel];
   const semIdx=_iaWeekSel;
 
-  html+=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.6rem;">📅 ${routine.ciclo_nombre||'Ciclo IA'} · ${a.nombre}</div>
+  html+=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.6rem;">📅 ${nombreDeCiclo(document.getElementById('ia-inicio')?.value||_hoyLocal(),nombreCicloPrevio(a))} · ${esc(a.nombre)}</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">${tabs}</div>
   <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Semana ${sem.semana}${sem.descripcion?' — '+sem.descripcion:''}</div>`;
 
@@ -2235,15 +2266,18 @@ async function saveGeneratedRoutine(){
   try{
     const cicloActual=a.ciclo_actual||1;
     // Si el ciclo actual no tiene ejercicios reales (alumna nueva), guardar en él.
-    // Si ya tiene ejercicios, crear el siguiente para no pisar el historial.
+    // Si ya tiene ejercicios, crear el siguiente para no pisar el historial. El
+    // calentamiento solo no cuenta: hasta el 13/10 las alumnas nuevas empezaban en
+    // el ciclo 2 y les quedaba un "Ciclo 1" vacio en la app.
     const _sems=DB.rutinas[a.id]?.[cicloActual];
-    const cicloActualTieneData=_sems&&Object.values(_sems).some(dias=>Array.isArray(dias)&&dias.some(d=>d.ejercicios?.length>0));
+    const cicloActualTieneData=_tieneEjercicios(_sems);
     const nuevoCiclo=cicloActualTieneData?cicloActual+1:cicloActual;
     const nomActual=a.ciclos_nombres?.[cicloActual]||`Ciclo ${cicloActual}`;
-    const nomNuevo=routine.ciclo_nombre||`Ciclo ${nuevoCiclo}`;
     const fechaInicio=(document.getElementById('ia-inicio')?.value||'').trim();
     const msgCiclo=(document.getElementById('ia-mensaje')?.value||'').trim();
     const _hoyStr=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+    // El nombre sale de la fecha de inicio, no del que propone la IA (siempre el mes que viene).
+    const nomNuevo=nombreDeCiclo(fechaInicio||_hoyStr,cicloActualTieneData?a.ciclos_nombres?.[cicloActual]:null);
     const _programado=!!fechaInicio&&fechaInicio>_hoyStr;
     const confirmMsg=cicloActualTieneData
       ?`Se va a crear un ciclo nuevo ("${nomNuevo}") para ${a.nombre.split(' ')[0]}${_programado?`, que va a ver desde el ${fechaInicio.split('-').reverse().slice(0,2).join('/')}`:', que va a ver desde hoy'}.\n\nEl ciclo actual (${nomActual}) queda guardado en el historial.\n\n¿Continuar?`
@@ -2264,8 +2298,7 @@ async function saveGeneratedRoutine(){
     }
     await Promise.all(ops);
     const ciclosNombres={...(a.ciclos_nombres||{})};
-    const nomCiclo=routine.ciclo_nombre||`Ciclo ${nuevoCiclo}`;
-    ciclosNombres[nuevoCiclo]=nomCiclo;
+    ciclosNombres[nuevoCiclo]=nomNuevo;
     const ciclosMensajes={...(a.ciclos_mensajes||{})};
     if(msgCiclo)ciclosMensajes[nuevoCiclo]=msgCiclo;
     const ciclosInicio={...(a.ciclos_inicio||{})};
@@ -2278,7 +2311,9 @@ async function saveGeneratedRoutine(){
     a.ciclos_mensajes=ciclosMensajes;
     if('ciclos_inicio' in _patch) a.ciclos_inicio=ciclosInicio;
     if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
-    DB.rutinas[a.id][nuevoCiclo]={};
+    // El calentamiento propio (semana 0) queda: la IA no lo genera y no se borra de la base.
+    const _calent=DB.rutinas[a.id][nuevoCiclo]?.[0];
+    DB.rutinas[a.id][nuevoCiclo]=_calent?{0:_calent}:{};
     for(const sem of(routine.semanas||[])){
       const semN=parseInt(sem.semana)||1;
       DB.rutinas[a.id][nuevoCiclo][semN]=[];
@@ -2290,11 +2325,11 @@ async function saveGeneratedRoutine(){
     S.selCiclo=nuevoCiclo;S.selSem=1;S.selDia=1;
     closeIAModal();
     S.msg=_programado
-      ?`✨ ${nomCiclo} generado con IA y programado para el ${fechaInicio.split('-').reverse().slice(0,2).join('/')}. La alumna lo verá desde esa fecha.`
-      :`✨ ${nomCiclo} generado con IA y guardado.`;
+      ?`✨ ${nomNuevo} generado con IA y programado para el ${fechaInicio.split('-').reverse().slice(0,2).join('/')}. La alumna lo verá desde esa fecha.`
+      :`✨ ${nomNuevo} generado con IA y guardado.`;
     render();setTimeout(()=>{S.msg='';render();},4000);
     // Como en el ciclo manual: se le avisa solo si es un ciclo nuevo que arranca hoy.
-    if(cicloActualTieneData&&!_programado) avisarCicloNuevo(a,nomCiclo);
+    if(cicloActualTieneData&&!_programado) avisarCicloNuevo(a,nomNuevo);
   }catch(e){msgEl.textContent='Error al guardar: '+e.message;}
 }
 
@@ -2804,7 +2839,10 @@ async function addAlumna(){
   try{
     const saved=await sbInsert('alumnas',a);
     DB.alumnas.push(saved);
-    S.selA=saved.id;
+    // La rutina de la nueva arranca en su semana 1: si quedaba elegida la semana de
+    // la alumna anterior, se cargaba ahi (a una le quedo todo en la semana 4 y las
+    // semanas 1 a 3 vacias el dia que entro a la app).
+    S.selA=saved.id; S.selCiclo=parseInt(saved.ciclo_actual)||1; S.selSem=1; S.selDia=1;
     // Link back to the registro that originated this alumna
     if(S._fromRegId){
       sbPatch('registros',`id=eq.${S._fromRegId}`,{alumna_id:saved.id}).catch(()=>{});
@@ -3047,6 +3085,17 @@ function esc(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').repl
 function fn(nombre){return(nombre||'').split(' ')[0];}
 function alumnaActiva(a){return !a.estado||a.estado==='activa';}
 function alumnaNoEsBaja(a){return a.estado!=='baja';}
+// Nombre de pila para las listas del panel, con la inicial del apellido si otra
+// alumna (que no sea baja) se llama igual: con dos Paulas y dos Julietas no se
+// sabia de quien era cada fila. Los mensajes a la alumna siguen con fn().
+function nombreCorto(a){
+  const sinAcento=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const n=fn(a.nombre), ap=String(a.nombre||'').trim().split(/\s+/)[1]||'';
+  const otras=DB.alumnas.filter(x=>x.id!==a.id&&alumnaNoEsBaja(x)&&sinAcento(fn(x.nombre))===sinAcento(n));
+  if(!otras.length||!ap) return n;
+  const misma=otras.some(x=>sinAcento((String(x.nombre||'').trim().split(/\s+/)[1]||'')[0])===sinAcento(ap[0]));
+  return misma?`${n} ${ap}`:`${n} ${ap[0].toUpperCase()}.`;
+}
 
 // ── Pagos ─────────────────────────────────────────────────────
 function mesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
@@ -3799,14 +3848,20 @@ function rInicio(){
     const totalTrained=trainedDays.size;
     const expectedTotal=Math.max(1,Math.floor(memberDays/7))*freqPerWeek;
     const adherencia=Math.min(1,totalTrained/expectedTotal);
+    // Si nunca marco un ejercicio, sirve saber si llego a entrar a la app. Hasta el
+    // 13/10 decia "no abrio la app" sin saberlo: una habia entrado el primer dia y
+    // hasta habia activado las notificaciones.
+    const ing=DB.ingresos?DB.ingresos[a.id]:undefined;
+    const entrada=!DB.ingresos?'':ing?`entró a la app (la última vez, el ${_dmDe(ing)}) pero no marcó ningún ejercicio`:'no entró nunca a la app';
     let item=null;
     if(daysSince===null){
-      if(memberDays<=21)item={a,tag:'🆘 Todavía no arrancó',sub:`Lleva ${memberDays}d registrada sin entrenar`};
-      else item={a,tag:'⚫ Nunca entrenó',sub:`Registrada hace ${memberDays}d, no abrió la app`};
+      if(memberDays<=21)item={a,tag:'🆘 Todavía no arrancó',sub:`Lleva ${memberDays} días registrada`+(entrada?' · '+entrada:' sin entrenar')};
+      else item={a,tag:'⚫ Nunca entrenó',sub:`Registrada hace ${memberDays} días`+(entrada?' · '+entrada:'')};
     } else if(memberDays<=21&&daysSince>=5){
-      item={a,tag:'🆘 Primera semana crítica',sub:`Lleva ${memberDays}d como alumna y ${daysSince}d sin entrenar`};
+      // Desde el arranque guiado, esto le pasa a la que frena entre el dia 15 y el 21.
+      item={a,tag:'🆘 Frenó al arrancar',sub:`Lleva ${memberDays} días como alumna y ${daysSince} sin entrenar`};
     } else if(memberDays>14&&adherencia<0.35&&daysSince>=3){
-      item={a,tag:'📉 Muy poca adherencia',sub:`Entrenó ${totalTrained} de ${expectedTotal} días esperados`};
+      item={a,tag:'📉 Muy poca adherencia',sub:`Entrenó ${totalTrained} de ${expectedTotal} días esperados`+(daysSince>=7?` · hace ${daysSince} días que no entrena`:'')};
     } else if(daysSince>=7){
       item={a,tag:'🔴 Sin entrenar',sub:`${daysSince} días sin actividad`};
     } else if(memberDays>14&&totalTrained>0&&adherencia<0.55&&daysSince>=4){
@@ -3897,7 +3952,7 @@ function rInicio(){
         return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
           <div class="av av-${a.color}" style="width:30px;height:30px;font-size:12px;flex-shrink:0;">${avH(a)}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;color:var(--t);">${fn(a.nombre)} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
+            <div style="font-size:13px;font-weight:500;color:var(--t);">${esc(nombreCorto(a))} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
             <div style="font-size:10px;color:var(--th);">${esc(sub)}${yaEscribio?' · '+yaEscribio:''}</div>
           </div>
           ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'),${a.id},'${kind==='pain'?'dolor':'inactividad'}')" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
@@ -3909,13 +3964,14 @@ function rInicio(){
       ${restantes>0?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="S._prioOpen=!S._prioOpen;render()">${open?'Ver menos ▲':'Ver '+restantes+' más ▼'}</button>`:''}
       ${esperando.length?`<div style="font-size:11px;color:var(--tm);margin-top:8px;line-height:1.6;">💬 Esperando respuesta: ${esperando.map(({a})=>{
         const d=diasDesdeContacto(a.id);
-        return`<a href="#" onclick="event.preventDefault();openDrawer(${a.id})" style="color:var(--tm);">${fn(a.nombre)}</a> (${d===0?'hoy':d===1?'ayer':'hace '+d+' días'})`;
+        return`<a href="#" onclick="event.preventDefault();openDrawer(${a.id})" style="color:var(--tm);">${esc(nombreCorto(a))}</a> (${d===0?'hoy':d===1?'ayer':'hace '+d+' días'})`;
       }).join(', ')}</div>`:''}
     </div>`;
   })():''}
   ${(()=>{
-    const _aten=alWithDays.filter(a=>!prioIds.has(a.id)&&a._days!==null&&a._days>=4&&a._days<7).length;
-    const _aldia=alWithDays.filter(a=>!prioIds.has(a.id)&&a._days!==null&&a._days<4).length;
+    // Las que estan arrancando van en su tarjeta, no en "Resto": tampoco se cuentan aca.
+    const _aten=alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a)&&a._days!==null&&a._days>=4&&a._days<7).length;
+    const _aldia=alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a)&&a._days!==null&&a._days<4).length;
     return`<div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;">
       <div class="metric"><div class="mlabel">Activas</div><div class="mval g">${alumnaActivas.length}</div></div>
       <div class="metric" style="${prioritarias.length>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Atender hoy</div><div class="mval" style="color:${prioritarias.length>0?'var(--rd)':'var(--tm)'};">${prioritarias.length}</div></div>
@@ -4073,7 +4129,7 @@ function rInicio(){
         const abierto=S['wah_'+a.id];
         return`<div class="arow">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${fn(a.nombre)}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>
           <div style="font-size:11px;color:var(--tm);">${(()=>{const l=logroDeHoy(a.id);
             return l?`${l.emoji} ${l.corto}`:'Entrenó hoy';})()}</div></div>
         <div style="position:relative;display:inline-block;">
@@ -4097,7 +4153,7 @@ function rInicio(){
     if(!deben.length)return'';
     const rows=deben.map(a=>`<div class="arow">
       <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${fn(a.nombre)}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
       <button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>
     </div>`).join('');
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
@@ -4142,7 +4198,9 @@ function ultimaActividad(alumnaId){
   const rows=(DB.progresoHechos||[]).filter(p=>p.alumna_id===alumnaId&&p.fecha_registro);
   if(!rows.length)return{label:'Sin registros',dias:-1};
   const ultima=rows.reduce((max,p)=>p.fecha_registro>max?p.fecha_registro:max,rows[0].fecha_registro);
-  const dias=Math.floor((Date.now()-new Date(ultima).getTime())/(86400000));
+  // Dias de calendario, como el Inicio: contando de a 24 horas, la misma alumna
+  // figuraba "hace 7 dias" en la lista y con 8 dias sin entrenar en el Inicio.
+  const dias=Math.max(0,localDayDiff(ultima));
   if(dias===0)return{label:'Hoy',dias:0};
   if(dias===1)return{label:'Ayer',dias:1};
   return{label:`hace ${dias} días`,dias};
@@ -4689,7 +4747,7 @@ function rRutinas(){
 
   return`<div class="ptitle">Rutinas</div>
   <div style="display:flex;gap:7px;margin-bottom:1.25rem;flex-wrap:wrap;">
-    ${DB.alumnas.filter(al=>alumnaNoEsBaja(al)).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${fn(al.nombre)}</button>`).join('')}
+    ${DB.alumnas.filter(al=>alumnaNoEsBaja(al)).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selCiclo=parseInt(${al.ciclo_actual||1});S._maxCiclo=parseInt(${al.ciclo_actual||1});S.selDia=1;S.selSem=1;render()">${esc(nombreCorto(al))}</button>`).join('')}
   </div>
   ${esLesionReal(a.lesiones)?`<div style="background:var(--rl);border:1px solid #f09595;border-radius:var(--rs);padding:.65rem 1rem;font-size:12px;color:var(--rd);margin-bottom:1rem;">⚠️ <strong>Lesión activa:</strong> ${esc(a.lesiones)}</div>`:''}
   ${htmlLesionSinPasar(a)}
@@ -4734,6 +4792,16 @@ function rRutinas(){
       <button class="btn btn-s" onclick="S._dupMode=!S._dupMode;S._copSemMode=false;S.msg='';render()" title="Copiar rutina de otra alumna" style="padding:5px 8px;">📋</button>
       <button class="btn btn-s" onclick="S._copSemMode=!S._copSemMode;S._dupMode=false;S._copSemDstA=null;S._copSemDstCiclo=1;S._copSemDstSem=1;S.msg='';render()" title="Copiar semana entre alumnas" style="padding:5px 8px;">✂️</button>
     </div>
+    ${(()=>{
+      // La alumna empieza por la semana 1. Si esta vacia y hay ejercicios en otra,
+      // casi seguro se cargaron en la semana equivocada: el 20/9 una alumna nueva
+      // entro a la app y tenia todo en la semana 4.
+      const sems=DB.rutinas[a.id]?.[S.selCiclo]||{};
+      const con=s=>Array.isArray(sems[s])&&sems[s].some(d=>d.ejercicios?.length);
+      const otras=Object.keys(sems).map(Number).filter(s=>s>=2&&con(s)).sort((x,y)=>x-y);
+      if(con(1)||!otras.length) return'';
+      return`<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:var(--rs);padding:.6rem .9rem;font-size:12px;color:#854d0e;margin-bottom:.75rem;line-height:1.5;">⚠️ La semana 1 de este ciclo está vacía y hay ejercicios en la semana ${otras.join(', ')}. ${esc(fn(a.nombre))} empieza por la semana 1: si la rutina quedó en otra semana, copiala a la 1 con ✂️.</div>`;
+    })()}
     ${S._dupMode?(()=>{
       const otras=DB.alumnas.filter(al=>al.id!==S.selA);
       const opts=otras.map(al=>'<option value="'+al.id+'"'+(S._dupSrcA===al.id?' selected':'')+'>'+al.nombre+'</option>').join('');
@@ -5133,7 +5201,7 @@ function rPlantillas(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         <select onchange="if(this.value)aplicarPlantillaA(${p.id},parseInt(this.value))" style="font-size:11px;padding:5px 8px;border-radius:20px;border:1px solid var(--bm);background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;margin-bottom:0;">
           <option value="">Aplicar a alumna...</option>
-          ${DB.alumnas.map(al=>`<option value="${al.id}">${fn(al.nombre)}</option>`).join('')}
+          ${DB.alumnas.filter(alumnaNoEsBaja).map(al=>`<option value="${al.id}">${esc(al.nombre)}</option>`).join('')}
         </select>
         <button class="btn btn-s btn-p" onclick="verPlantilla(${p.id})">Editar</button>
         <button class="btn btn-s btn-warn" onclick="editarNombrePlantilla(${p.id})">Renombrar</button>
@@ -5317,7 +5385,7 @@ function rHistorial(){
   return`<div class="ptitle">Historial de progreso</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
     <div style="display:flex;gap:7px;flex-wrap:wrap;">
-      ${DB.alumnas.filter(alumnaNoEsBaja).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${fn(al.nombre)}</button>`).join('')}
+      ${DB.alumnas.filter(alumnaNoEsBaja).map(al=>`<button class="btn btn-s${S.selA===al.id?' btn-p':''}" onclick="S.selA=${al.id};S.selHistCiclo=null;render();loadHistorial(${al.id})">${esc(nombreCorto(al))}</button>`).join('')}
     </div>
     ${a&&rows.length>0?`<button class="btn btn-s" onclick="exportarCSV(${a.id})" title="Descargar historial en Excel">⬇ CSV</button>`:''}
   </div>
@@ -5440,8 +5508,10 @@ function rAnalisis(){
   // Solo las alumnas activas: una baja que entreno hace 20 dias no es una activa.
   const _act=all.filter(alumnaActiva);
   const actHoy=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
-  const act7=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=7).length;
-  const act30=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<=30).length;
+  // Hoy y los 6 dias anteriores, como la retencion del Inicio y el resumen del domingo
+  // (con <=7 contaba 8 dias y daba una alumna mas que el Inicio).
+  const act7=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<7).length;
+  const act30=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<30).length;
 
   // ── Widget visitas al sitio ─────────────────────────────────
   const pvWidget=(()=>{
@@ -5686,17 +5756,20 @@ function rRegistros(){
 }
 
 function rRecordatorios(){
-  const sinWA=DB.alumnas.filter(a=>!a.tel);
+  // Solo las activas: hasta el 13/10 el check-in por inactividad y el resumen push
+  // les llegaban tambien a ex alumnas que seguian con las notificaciones activadas.
+  const activas=DB.alumnas.filter(alumnaActiva);
+  const sinWA=activas.filter(a=>!a.tel);
   const subIds=new Set(DB.pushSubs.map(s=>s.alumna_id));
-  const conPush=DB.alumnas.filter(a=>subIds.has(a.id));
+  const conPush=DB.alumnas.filter(a=>alumnaActiva(a)&&subIds.has(a.id));
   const hoy=Date.now();
   const inactivas=DB.alumnas.filter(a=>{
-    if(!subIds.has(a.id))return false;
-    if(!a.last_active_at)return a.created_at&&(hoy-new Date(a.created_at).getTime())>7*86400000;
-    return(hoy-new Date(a.last_active_at).getTime())>=5*86400000;
+    if(!alumnaActiva(a)||!subIds.has(a.id))return false;
+    if(!a.last_active_at)return !!a.created_at&&localDayDiff(a.created_at)>7;
+    return localDayDiff(a.last_active_at)>=5;
   });
   const inactivasRows=inactivas.map(a=>{
-    const dp=a.last_active_at?Math.floor((hoy-new Date(a.last_active_at).getTime())/86400000)+'d':'nunca';
+    const dp=a.last_active_at?localDayDiff(a.last_active_at)+'d':'nunca';
     return`<div class="arow"><div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${a.nombre}</div><div style="font-size:11px;color:var(--th);">Sin actividad: ${dp}</div></div><button class="btn btn-s btn-p" onclick="envCheckIn(${a.id})">👋 Push</button></div>`;
   }).join('');
   const inactivasCard=inactivas.length>0?`<div class="card">
@@ -5706,7 +5779,7 @@ function rRecordatorios(){
     <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);"><button class="btn btn-p" onclick="envCheckInInactivas()">👋 Check-in a todas (${inactivas.length})</button></div>
   </div>`:'';
 
-  const alumnaRows=DB.alumnas.map(a=>{
+  const alumnaRows=activas.map(a=>{
     const tp=subIds.has(a.id);
     const pushBadge=tp?`<span style="font-size:11px;color:#16a34a;font-weight:500;">● push</span>`:`<span style="font-size:11px;color:var(--th);">sin push</span>`;
     const waGroup=a.tel
@@ -5722,12 +5795,12 @@ function rRecordatorios(){
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
       <div class="ctitle" style="margin:0;">Alumnas</div>
-      <div style="font-size:11px;color:var(--th);">${conPush.length} con push · ${DB.alumnas.length-sinWA.length} con WA</div>
+      <div style="font-size:11px;color:var(--th);">${conPush.length} con push · ${activas.length-sinWA.length} con WA</div>
     </div>
     <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">💬 Rec = recordatorio · 📋 Res = resumen semanal · 📲 = push entreno · 📊 = resumen push</div>
     ${alumnaRows}
     <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);display:flex;gap:6px;flex-wrap:wrap;">
-      ${DB.alumnas.length>1?`<button class="btn" onclick="envResumenGeneral()">📋 Resumen WA (todas)</button>`:''}
+      ${activas.length>1?`<button class="btn" onclick="envResumenGeneral()">📋 Resumen WA (todas)</button>`:''}
       ${conPush.length>0?`<button class="btn" onclick="enviarPush(null)">📲 Push a todas (${conPush.length})</button>`:''}
       ${conPush.length>0?`<button class="btn btn-p" onclick="envResPushTodas()">📊 Resumen push a todas (${conPush.length})</button>`:''}
     </div>
@@ -5805,7 +5878,7 @@ function envResumenGeneral(){
   // Usa la data de progreso que ya fue cargada en historial
   const ph=localStorage.getItem('af-amira-ph')||'';
   if(!ph){alert('Guardá el WhatsApp de Amira en Configuración primero.');return;}
-  const lineas=DB.alumnas.map(a=>{
+  const lineas=DB.alumnas.filter(alumnaActiva).map(a=>{
     const rows=(DB.progreso?.[a.id])||[];
     const ciclo=parseInt(a.ciclo_actual)||1;
     // Semanas con al menos un día hecho en ciclo actual
@@ -6065,7 +6138,7 @@ async function envResPush(aId){
 
 async function envResPushTodas(){
   const subIds=new Set(DB.pushSubs.map(s=>s.alumna_id));
-  const conPush=DB.alumnas.filter(a=>subIds.has(a.id));
+  const conPush=DB.alumnas.filter(a=>alumnaActiva(a)&&subIds.has(a.id));
   if(!conPush.length){S.msg='Ninguna alumna tiene push activado.';render();setTimeout(()=>{S.msg='';render();},3000);return;}
   S.msg=`Enviando a ${conPush.length} alumnas...`;render();
   let ok=0;
@@ -6100,9 +6173,9 @@ async function envCheckInInactivas(){
   const hoy=Date.now();
   const subIds=new Set(DB.pushSubs.map(s=>s.alumna_id));
   const inactivas=DB.alumnas.filter(a=>{
-    if(!subIds.has(a.id))return false;
-    if(!a.last_active_at)return a.created_at&&(hoy-new Date(a.created_at).getTime())>7*86400000;
-    return(hoy-new Date(a.last_active_at).getTime())>=5*86400000;
+    if(!alumnaActiva(a)||!subIds.has(a.id))return false;
+    if(!a.last_active_at)return !!a.created_at&&localDayDiff(a.created_at)>7;
+    return localDayDiff(a.last_active_at)>=5;
   });
   if(!inactivas.length){S.msg='No hay alumnas inactivas con push activado.';render();setTimeout(()=>{S.msg='';render();},3000);return;}
   S.msg=`Enviando a ${inactivas.length} inactivas...`;render();
@@ -6129,7 +6202,7 @@ function rAvisos(){
     <div style="display:flex;gap:8px;align-items:center;margin-top:.65rem;">
       <select id="av-para" style="flex:1;border:1px solid var(--bm);border-radius:var(--rs);padding:.55rem .9rem;font-size:12px;background:var(--s);color:var(--t);font-family:'DM Sans',sans-serif;">
         <option value="todas">Para todas las alumnas</option>
-        ${DB.alumnas.map(a=>`<option value="${a.slug}">${fn(a.nombre)} (solo ella)</option>`).join('')}
+        ${DB.alumnas.filter(alumnaNoEsBaja).map(a=>`<option value="${a.slug}">${esc(a.nombre)} (solo ella)</option>`).join('')}
       </select>
       <button class="btn btn-p" onclick="addAviso()">Publicar</button>
     </div>
@@ -6183,11 +6256,9 @@ function rLinks(){
 
 function rConfig(){
   const ph=localStorage.getItem('af-amira-ph')||'';
-  const pwd=localStorage.getItem('af-pwd')||'amira2025';
   const notifActivas=localStorage.getItem('af-notif-panel')==='1';
   return`<div class="ptitle">Configuración</div>
   <div class="card"><div class="ctitle">Estado Supabase</div><div style="display:flex;align-items:center;gap:8px;font-size:13px;color:${S.sbOk?'var(--vd)':'var(--rd)'}"><div style="width:8px;height:8px;border-radius:50%;background:${S.sbOk?'var(--v)':'var(--rd)'}"></div>${S.sbOk?'Conectado y sincronizando':'Sin conexión'}</div></div>
-  <div class="card"><div class="ctitle">Contraseña del panel</div><input type="password" id="np" placeholder="Nueva contraseña"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('np').value;if(v.length>=4){localStorage.setItem('af-pwd',v);alert('Actualizada');}">Cambiar</button></div>
   <div class="card"><div class="ctitle">WhatsApp de Amira</div><input type="tel" id="wai" placeholder="5491123456789" value="${ph}"><button class="btn btn-p btn-s" onclick="const v=document.getElementById('wai').value;if(v){localStorage.setItem('af-amira-ph',v);S.msg='Guardado ✓';render();}">Guardar</button>${S.msg?`<span class="sm">${S.msg}</span>`:''}</div>
   <div class="card"><div class="ctitle">🔔 Notificaciones push (Amira)</div>
     <div style="font-size:12px;color:var(--tm);margin-bottom:.75rem;">Activá las notificaciones push para recibir un aviso en tu celular <strong>aunque el panel esté cerrado</strong> cada vez que una alumna mande feedback o una nota. Se guarda en este dispositivo.</div>
