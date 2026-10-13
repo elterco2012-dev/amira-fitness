@@ -205,7 +205,13 @@ Estrategias:
 1. Ve `rutinas[ciclo][semana][dia]` renderizado en la app.
 2. Ejecuta ejercicios, marca cada uno con `progreso` (hecho, peso, RPE).
 3. Al completar la semana entera: push de celebración.
-4. Al completar el ciclo: overlay de cierre, espera que Amira cree el siguiente.
+4. Al completar el ciclo: overlay de cierre con botón para escribirle a Amira (o la fecha del próximo, si ya está programado) y una tarjeta de espera en la rutina hasta que llegue el siguiente.
+
+**Sesión corta (desde el 13/10/2026):** si la alumna elige 15 o 30 minutos y marca todos los ejercicios que entran (`cuantosEntran`), cuenta como día entrenado: festejo propio, "¿Cómo te fue?", ✓ en el calendario de constancia y último entrenamiento. Se anota en `localStorage` (`af-corta-…`) y en la base como un `feedbacks` `dia_completo` cuya nota empieza con "Sesión corta de N min" (así le llega el aviso a Amira y la ven los otros teléfonos). No cuenta como avance del plan del ciclo, que sigue pidiendo el 80% del día.
+
+### Mediciones
+- **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa, así que el panel y el resumen la cuentan; para métricas de alumnas, excluirla.
+- **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".
