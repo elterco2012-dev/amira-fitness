@@ -2,7 +2,7 @@
 <html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, follow">
   <meta name="theme-color" content="#1D9E75" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
@@ -78,7 +78,7 @@
     .stab.active{background:var(--p);color:var(--pd);border-color:transparent;font-weight:500;}
     .dtabs{display:flex;gap:6px;margin-bottom:.85rem;}
     .dtab{flex:1;padding:9px 4px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;transition:all .2s;}
-    .dtab.active{background:var(--v);color:white;border-color:var(--v);}
+    .dtab.active{background:var(--vd);color:white;border-color:var(--vd);}
 
     .prog-wrap{margin-bottom:1rem;}
     .prog-top{display:flex;justify-content:space-between;font-size:11px;color:var(--tm);margin-bottom:5px;}
@@ -105,7 +105,7 @@
     .ex-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem;transition:all .25s;}
     .ex-card.done{background:var(--vl);border-color:var(--vm);}
     .ex-top{display:flex;align-items:center;gap:10px;cursor:pointer;}
-    .ex-num{width:28px;height:28px;border-radius:50%;background:var(--s2);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--tm);flex-shrink:0;transition:background .2s,border-color .2s,color .2s,transform .2s;}
+    .ex-num{width:34px;height:34px;border-radius:50%;cursor:pointer;background:var(--s2);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--tm);flex-shrink:0;transition:background .2s,border-color .2s,color .2s,transform .2s;}
     .ex-card.done .ex-num{background:var(--v);color:white;border-color:var(--v);}
     /* Animación del check al marcar hecho */
     @keyframes popCheck{
@@ -141,11 +141,11 @@
       100%{transform:scale(1);}
     }
     .bchk.anim-tap{animation:bchkBounce .18s ease;}
-    .ex-name{font-size:13px;font-weight:500;flex:1;color:var(--t);}
+    .ex-name{font-size:15px;font-weight:500;flex:1;color:var(--t);}
     .ex-det{font-size:11px;color:var(--tm);margin-top:3px;}
     .ex-btns{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--b);flex-wrap:wrap;}
-    .btip{background:var(--p);border:none;border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--pd);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
-    .bvid{background:var(--rl);border:none;border-radius:var(--rs);padding:5px 11px;font-size:11px;color:var(--rd);font-family:'DM Sans',sans-serif;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:3px;}
+    .btip{background:var(--p);border:none;border-radius:var(--rs);padding:8px 12px;min-height:36px;font-size:12px;color:var(--pd);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
+    .bvid{background:var(--rl);border:none;border-radius:var(--rs);padding:8px 12px;min-height:36px;box-sizing:border-box;font-size:12px;color:var(--rd);font-family:'DM Sans',sans-serif;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:3px;}
     .bchk{width:100%;margin-top:8px;background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .2s;text-align:center;}
     .ex-card.done .bchk{background:var(--vl);color:var(--vd);border-color:var(--vm);}
     .nota-ej{font-size:12px;color:var(--ad);background:var(--a);border-radius:var(--rs);padding:8px 10px;margin-top:8px;line-height:1.55;}
@@ -207,7 +207,10 @@
     .fb-opt{padding:8px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s2);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
     .fb-opt:active{transform:scale(.95);}
     .fb-given{font-size:12px;color:var(--tm);padding:.5rem 0;text-align:center;}
-    .brep{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);font-size:11px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;padding:5px 9px;line-height:1;transition:all .15s;}
+    .brep{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;padding:8px 12px;min-height:36px;line-height:1;transition:all .15s;}
+    /* Con el zoom habilitado, el iPhone agranda la pantalla al tocar un campo con
+       letra de menos de 16 px. */
+    @media (pointer:coarse){input,select,textarea{font-size:16px!important;}}
     .brep:hover{color:var(--rd);border-color:var(--rd);background:var(--rl);}
 
     /* Celebración */
@@ -220,6 +223,11 @@
     .cel-badge{display:inline-block;background:var(--vl);color:var(--vd);font-size:12px;font-weight:500;border-radius:var(--rp);padding:5px 14px;margin-bottom:1.25rem;}
     .cel-btn{width:100%;background:var(--v);color:white;border:none;border-radius:var(--rp);padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.02em;}
     .cel-btn-sec{width:100%;background:transparent;color:var(--tm);border:1.5px solid var(--b);border-radius:var(--rp);padding:11px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;}
+    .cel-prox{font-size:13px;color:var(--t);margin:-.5rem 0 1rem;line-height:1.5;}
+    .cel-fb{margin-bottom:1rem;}
+    .cel-fb-t{font-size:12px;color:var(--tm);margin-bottom:.45rem;}
+    .cel-fb-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+    .cel-fb-opt{padding:10px 6px;border-radius:12px;border:1px solid var(--bm);background:var(--s2);color:var(--t);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
 
     /* Progreso */
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
@@ -353,13 +361,6 @@
     .egg-msg{font-size:12px;color:rgba(255,255,255,.85);line-height:1.7;margin-bottom:1.5rem;}
     .egg-btn{background:white;color:#633806;border:none;border-radius:99px;padding:12px 28px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
 
-    /* Check-in semanal */
-    .ci-card{background:var(--p);border:1px solid rgba(60,52,137,.15);border-radius:var(--r);padding:1rem;margin-bottom:.85rem;}
-    .ci-title{font-size:13px;font-weight:500;color:var(--pd);margin-bottom:.2rem;}
-    .ci-sub{font-size:11px;color:var(--pd);opacity:.7;margin-bottom:.75rem;}
-    .ci-opts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;}
-    .ci-opt{background:var(--s);border:1px solid var(--bm);border-radius:var(--rp);padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-    .ci-opt.sel{background:var(--pd);color:white;border-color:var(--pd);}
   </style>
 </head>
 <body>
@@ -377,8 +378,8 @@
     <!-- Tab: Ingresar -->
     <div id="auth-login">
       <p style="font-size:15px;font-weight:500;color:var(--t);margin-bottom:1rem;">Ingresá a tu rutina</p>
-      <input type="email" id="auth-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
-      <input type="password" id="auth-pin" placeholder="Tu PIN (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="current-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <input type="email" id="auth-email" placeholder="Tu email" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('auth-pin').focus()" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
+      <input type="password" id="auth-pin" placeholder="Tu PIN (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAlumnaLogin()" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
       <p style="font-size:12px;color:var(--tm);margin:0 0 12px;line-height:1.5;">Tu PIN es tu fecha de nacimiento: día, mes y año. Si naciste el 19/04/1988, es <b>190488</b>.</p>
       <button onclick="doAlumnaLogin()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Ingresar</button>
       <div id="auth-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
@@ -391,7 +392,7 @@
       <p style="font-size:12px;color:var(--tm);margin-bottom:1rem;">Solo si Amira te pidió que lo crees: ingresá tu email y elegí 6 números. Si te dio de alta con tu fecha de nacimiento, tu PIN ya es esa fecha.</p>
       <input type="email" id="auth-signup-email" placeholder="Tu email" autocomplete="email" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
       <input type="password" id="auth-signup-pin" placeholder="PIN nuevo (6 dígitos)" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:10px;">
-      <input type="password" id="auth-signup-pin2" placeholder="Repetí tu PIN" maxlength="6" inputmode="numeric" autocomplete="new-password" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
+      <input type="password" id="auth-signup-pin2" placeholder="Repetí tu PIN" maxlength="6" inputmode="numeric" autocomplete="new-password" onkeydown="if(event.key==='Enter')doAlumnaSignup()" style="width:100%;padding:12px;border:1px solid var(--b);border-radius:var(--rs);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s);color:var(--t);margin-bottom:14px;">
       <button onclick="doAlumnaSignup()" style="width:100%;padding:13px;background:var(--v);color:white;border:none;border-radius:var(--rp);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;">Crear acceso</button>
       <p style="text-align:center;font-size:13px;color:var(--tm);margin-top:12px;">¿Ya tenés PIN? <span onclick="showAuthTab('login')" style="color:var(--v);cursor:pointer;font-weight:500;">Ingresá</span></p>
       <div id="auth-signup-msg" style="font-size:12px;color:#A32D2D;text-align:center;margin-top:8px;min-height:16px;"></div>
@@ -650,6 +651,9 @@ async function doAlumnaSignup(){
 }
 
 async function doAlumnaLogout(){
+  // Estaba a un toque y sin aviso: salir sin querer obligaba a escribir de nuevo
+  // el email y el PIN.
+  if(!confirm('¿Cerrar sesión? Para volver a entrar vas a necesitar tu email y tu PIN.')) return;
   const t=localStorage.getItem(AT_KEY);
   try{if(t)await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${t}`}});}catch(e){}
   _clearAlumnaSess();
@@ -1326,7 +1330,7 @@ function getMensajeContextual(stats,aId){
     // El mes solo se nombra si suma: si ya no llega a la meta, decirlo no ayuda.
     const m=aId?constanciaMes(aId,fechaLocal(new Date()).slice(0,7)):null;
     let mes='';
-    if(m&&m.llego) mes=` Este mes ya llegaste a tu meta: ${m.hechos} de ${m.plan} días.`;
+    if(m&&m.llego) mes=` Este mes ya llegaste a tu meta: ${diasDelMes(m)}.`;
     else if(m&&m.hechos>0){
       const f=faltaParaMeta(m);
       mes=` Este mes llevás ${m.hechos} de ${m.plan} días${f?`: con ${f} más llegás a tu meta`:''}.`;
@@ -1341,6 +1345,31 @@ function toggleWarmup(){
   localStorage.setItem('af-warmup-open',open?'0':'1');
   renderRutina();
 }
+
+// Dia hecho: el 80% de los ejercicios o una sesion corta (la regla de la constancia).
+function diaHechoOCorto(aId,c,s,d){ return diaCompletado(aId,c,s,d)||esCorta(aId,c,s,d); }
+// Siguiente dia con ejercicios sin hacer, despues del indicado (si no hay, el
+// primero pendiente del ciclo). null si el ciclo esta completo.
+function proximoPendiente(aId,c,desdeS,desdeD){
+  const orden=[];
+  for(const s of getSemanas(aId,c))
+    for(const dObj of getDias(aId,c,s).slice().sort((x,y)=>x.dia-y.dia))
+      if(dObj.ejercicios&&dObj.ejercicios.length) orden.push({s,d:parseInt(dObj.dia)});
+  const i=orden.findIndex(x=>x.s===desdeS&&x.d===desdeD);
+  const pend=x=>!diaHechoOCorto(aId,c,x.s,x.d);
+  return orden.slice(i+1).find(pend)||orden.find(pend)||null;
+}
+// Al abrir la app (o volver a ella despues de una hora), si el dia que quedo
+// elegido ya esta hecho, se pasa al siguiente pendiente. Hasta el 13/10 abria
+// siempre en el ultimo dia mirado, tambien desde el recordatorio de las 9.
+let _irAlPendiente=true, _ocultaDesde=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ _ocultaDesde=Date.now(); return; }
+  if(_ocultaDesde&&Date.now()-_ocultaDesde>36e5){
+    _irAlPendiente=true; _ocultaDesde=0;
+    if(curTab==='r'&&typeof getAlumna==='function'&&getAlumna()) renderRutina();
+  }
+});
 
 function autoSelectFirstDay(aId,ciclo){
   for(const s of getSemanas(aId,ciclo)){
@@ -1744,8 +1773,25 @@ function infoDiaEntrenado(aId,c,s,d){
     llegoAhora:!!mes&&mes.llego&&!localStorage.getItem(metaK),metaK};
 }
 const capMes=m=>m.charAt(0).toUpperCase()+m.slice(1);
+// "5 de 9 días". En un mes que empezo a la mitad puede entrenar mas dias de los
+// planificados: ahi decia "3 de 2".
+const diasDelMes=m=>m.hechos>m.plan?`${m.hechos} días`:`${m.hechos} de ${m.plan} días`;
 function badgeMes(m){
-  return m?`<div class="cel-badge">📅 ${capMes(m.mes)}: ${m.hechos} de ${m.plan} días${m.llego?' ✓':` · meta ${m.meta}`}</div><br>`:'';
+  return m?`<div class="cel-badge">📅 ${capMes(m.mes)}: ${diasDelMes(m)}${m.llego?' ✓':` · meta ${m.meta}`}</div><br>`:'';
+}
+// "mañana, Día 2 de la semana 3": el proximo dia pendiente del ciclo y, si eligio
+// sus dias de entrenamiento, cuando le toca. '' si termino el ciclo.
+function proximoEntreno(aId){
+  const p=proximoPendiente(aId,selCiclo,selSem,selDia);
+  if(!p) return '';
+  const dd=Array.isArray(getAlumna()?.dias_disponibles)?getAlumna().dias_disponibles:[];
+  const nombres=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  let cuando='';
+  for(let k=1;k<=7&&dd.length;k++){
+    const f=new Date(); f.setDate(f.getDate()+k);
+    if(dd.includes(_DIA_NAMES[f.getDay()])){ cuando=k===1?'mañana':`el ${nombres[f.getDay()]}`; break; }
+  }
+  return `${cuando?cuando+', ':''}Día ${p.d} de la semana ${p.s}`;
 }
 
 function mostrarCelebracion(aId, nombre, info){
@@ -1763,6 +1809,11 @@ function mostrarCelebracion(aId, nombre, info){
   const msg=meta?`Llegaste a tu meta de ${m.mes}. Todo lo que sumes ahora es extra.`
     :info?.volvio?'Retomar es lo más difícil, y ya lo hiciste.'
     :CEL_MSGS[Math.floor(Math.random()*CEL_MSGS.length)];
+  // Antes "¿Como te fue hoy?" quedaba detras del festejo: habia que cerrarlo y
+  // bajar para contestar. Es lo que Amira mira en la revision de los lunes.
+  const prox=proximoEntreno(aId);
+  const fbDado=localStorage.getItem(fbKey(aId,selCiclo,selSem,selDia));
+  const fbOpts=[['dia_bien','💪 Bien'],['dia_muy_facil','🔥 Muy fácil'],['dia_muy_dificil','😤 Muy difícil'],['dia_me_dolio','🤕 Me dolió algo']];
   const ov=document.createElement('div');
   ov.className='cel-overlay';
   ov.innerHTML=`<div class="cel-card">
@@ -1770,6 +1821,10 @@ function mostrarCelebracion(aId, nombre, info){
     <div class="cel-title">${titulo}</div>
     <div class="cel-msg">${msg}</div>
     ${badgeMes(m)}
+    ${prox?`<div class="cel-prox">Próximo entrenamiento: <b>${prox}</b></div>`:''}
+    ${fbDado?'':`<div class="cel-fb"><div class="cel-fb-t">¿Cómo te fue hoy?</div><div class="cel-fb-opts">
+      ${fbOpts.map(([t,l])=>`<button class="cel-fb-opt" onclick="this.closest('.cel-overlay').remove();guardarFeedbackDia(${aId},'${t}')">${l}</button>`).join('')}
+    </div></div>`}
     <button class="cel-btn-sec" onclick="compartirDia()">📤 Compartir por WhatsApp</button>
     <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Vamos! →</button>
   </div>`;
@@ -1790,6 +1845,7 @@ function mostrarCelebracionCorta(aId,nombre,n,mins,info){
     <div class="cel-title">¡Sesión corta completa, ${esc(nombre)}!</div>
     <div class="cel-msg">Hiciste ${n===1?'el ejercicio que más rinde':`los ${n} ejercicios que más rinden`} en ${mins} minutos. Cuenta como entrenamiento.${info?.volvio?' Y retomar es lo más difícil: ya lo hiciste.':''}</div>
     ${meta?`<div class="cel-badge">🎯 ¡Mes constante! Llegaste a tu meta de ${m.mes}</div><br>`:badgeMes(m)}
+    ${(()=>{const pr=proximoEntreno(aId);return pr?`<div class="cel-prox">Próximo entrenamiento: <b>${pr}</b></div>`:'';})()}
     <button class="cel-btn-sec" onclick="this.closest('.cel-overlay').remove();fijarTope(${aId},0)">Seguir con lo que falta</button>
     <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Listo por hoy! →</button>
   </div>`;
@@ -2125,26 +2181,9 @@ async function guardarFeedbackDia(aId,tipo){
   }catch(e){console.warn('feedback dia:',e);}
 }
 
-// ── Check-in semanal ──────────────────────────────────────────
-let _ciSel='';
-function selCheckin(btn,key){
-  document.querySelectorAll('.ci-opt').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
-  _ciSel=key;
-}
-async function enviarCheckin(aId){
-  if(!_ciSel){mostrarToast('Elegí cómo te fue primero');return;}
-  const nota=document.getElementById('ci-nota')?.value.trim()||'';
-  const tipo=_ciSel;
-  const ciK=`af-ci-${aId}-c${selCiclo}-s${selSem}`;
-  localStorage.setItem(ciK,tipo);
-  _ciSel='';
-  try{
-    await sbInsert('feedbacks',{alumna_id:aId,tipo:'checkin_semanal',ciclo:selCiclo,semana:selSem,dia:0,nota:tipo+(nota?' — '+nota:'')});
-  }catch(e){}
-  mostrarToast('✓ ¡Check-in enviado a Amira!');
-  renderNotas();
-}
+// El check-in semanal de Notas se saco el 13/10/2026: se uso 5 veces en 70 dias,
+// preguntaba por la semana de la rutina, decia "¡enviado!" aunque fallara y
+// duplicaba la revision de los lunes, que Amira hace por WhatsApp.
 
 let _repCtx={aId:null,idx:null,nombre:''};
 function reportarProblema(aId,idx,nombre){
@@ -2679,6 +2718,14 @@ function renderRutina(){
   if(selSem < 1 || selSem > _semMaxClamp) selSem = 1;
   // Primera visita: ir directo al primer día que tenga ejercicios
   if(isFirstEver) autoSelectFirstDay(a.id, selCiclo);
+  // Con los datos ya cargados (no con los de la copia local del arranque).
+  if(_irAlPendiente&&!window._cargando){
+    _irAlPendiente=false;
+    if(!isFirstEver&&selCiclo===cicloActual&&diaHechoOCorto(a.id,selCiclo,selSem,selDia)){
+      const p=proximoPendiente(a.id,selCiclo,selSem,selDia);
+      if(p){ selSem=p.s; selDia=p.d; localStorage.setItem('af-selSem',selSem); localStorage.setItem('af-selDia',selDia); }
+    }
+  }
 
   const exs = getExs(a.id, selCiclo, selSem, selDia);
   const comp = exs.filter((_,i)=>done[dKey(a.id,selSem,selDia,i)]).length;
@@ -2742,7 +2789,8 @@ function renderRutina(){
         localStorage.setItem(_wuHashKey,_wuCurrentHash);
         localStorage.setItem('af-warmup-open','1');
       }
-      const _wuOpen=localStorage.getItem('af-warmup-open')==='1';
+      // Se pliega sola cuando ya marco algo del dia: ya paso la entrada en calor.
+      const _wuOpen=localStorage.getItem('af-warmup-open')==='1'&&!exs.some((_,ix)=>done[dKey(a.id,selSem,selDia,ix)]);
       const _wuLinks=_wuCustom.length>0
         ?_wuCustom.map(e=>{
             const hasV=!!(e.video);
@@ -2769,13 +2817,9 @@ function renderRutina(){
         return`<button class="stab${isActive?' active':''}" onclick="selCiclo=${c};localStorage.setItem('af-selCiclo','${c}');selSem=1;selDia=1;renderRutina()">${cn}</button>`;
       }).join('')}
     </div></div>`;
-  }else if(ciclos.length>1){
-    // Multiple cycles exist but new one is active — show current cycle name only (no switching)
-    const cicloNombre=(a.ciclos_nombres||{})[selCiclo]||(a.ciclos_nombres||{})[String(selCiclo)]||'Ciclo '+selCiclo;
-    html+=`<div class="sel-row"><div class="sel-label">Ciclo de entrenamiento</div><div class="tabs-row">
-      <button class="stab active">${cicloNombre}</button>
-    </div></div>`;
   }
+  // Con un solo ciclo a la vista no hay nada que elegir: el nombre ya esta en la
+  // linea "Octubre · Semana 2 · Dia 1" de mas abajo.
   // Mensaje de Amira para este ciclo (se muestra una vez hasta que la alumna lo cierra)
   const _msgCiclo=(a.ciclos_mensajes||{})[selCiclo];
   const _msgSeenKey=`af-ciclo-msg-seen-${a.id}-c${selCiclo}`;
@@ -2805,15 +2849,17 @@ function renderRutina(){
     </div>`;
   }
   const _semMaxA=Math.max(4,...Object.keys(DB.rutinas?.[a.id]?.[selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
-  html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
+  html+=`<div class="sel-row"><div class="tabs-row">
     ${Array.from({length:_semMaxA},(_,i)=>i+1).map(s=>{
       const tieneEjs = getExs(a.id,selCiclo,s,1).length>0 || getExs(a.id,selCiclo,s,2).length>0 || getExs(a.id,selCiclo,s,3).length>0;
-      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${tieneEjs?'':' ·'}</button>`;
+      const dsEjs=getDias(a.id,selCiclo,s).filter(x=>x.ejercicios&&x.ejercicios.length);
+      const semHecha=dsEjs.length>0&&dsEjs.every(x=>diaHechoOCorto(a.id,selCiclo,s,parseInt(x.dia)));
+      return`<button class="stab${selSem===s?' active':''}" onclick="selSem=${s};selDia=1;renderRutina()">Sem ${s}${semHecha?' ✓':tieneEjs?'':' ·'}</button>`;
     }).join('')}
   </div></div>`;
 
   // Selector de días
-  html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}</button>`).join('')}</div>`;
+  html+=`<div class="dtabs">${[1,2,3,4,5].slice(0,parseInt(a.dias)||3).map(d=>`<button class="dtab${selDia===d?' active':''}" onclick="selDia=${d};renderRutina()">Día ${d}${diaHechoOCorto(a.id,selCiclo,selSem,d)?' ✓':''}</button>`).join('')}</div>`;
 
   // Progreso del día
   // Siempre fue el tiempo de lo que FALTA, pero decia solo "aprox. 20 min" y se
@@ -2923,9 +2969,11 @@ function renderRutina(){
     const esAnterior=!pv&&!!_ult;
     const nextEx=exs[i+1];
     const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
+    // Marcan solo el circulo y el boton: tocar el nombre lo marcaba sin querer y,
+    // desde el 13/10, guardaba el peso precargado. El nombre abre la tecnica.
     html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
-      <div class="ex-top" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">
-        <div class="ex-num" id="exn-${a.id}-${i}">${isDone?'✓':i+1}</div>
+      <div class="ex-top"${ex.tip?` onclick="toggleExp(${a.id},${i})"`:' style="cursor:default;"'}>
+        <div class="ex-num" id="exn-${a.id}-${i}" role="button" aria-label="${isDone?'Desmarcar':'Marcar hecho'}" onclick="event.stopPropagation();toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓':i+1}</div>
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
           <div class="ex-det">${ex.series} series × ${ex.reps}${(()=>{
@@ -2942,10 +2990,10 @@ function renderRutina(){
         <button class="peso-aj" onclick="event.stopPropagation();ajustarPeso(${a.id},${i},-1)" aria-label="Bajar un kilo">−</button>
         <input class="peso-in" type="text" inputmode="decimal" placeholder="0" value="${pvDisplay}"
           oninput="savePeso(${a.id},${i},this.value)" onclick="event.stopPropagation()"
-          style="${(isSuggested||esAnterior)?'color:var(--th);':''}">
+          style="${isSuggested?'color:var(--th);':''}">
         <button class="peso-aj" onclick="event.stopPropagation();ajustarPeso(${a.id},${i},1)" aria-label="Subir un kilo">+</button>
         <span style="font-size:11px;color:var(--tm);">kg</span>
-        ${esAnterior?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">la vez pasada</span>`
+        ${esAnterior?`<span style="font-size:11px;color:var(--tm);margin-left:4px;white-space:nowrap;">la vez pasada</span>`
           :isSuggested?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">sugerido</span>`
           :(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
       </div>`:''}
@@ -3106,7 +3154,7 @@ function renderProgreso(){
     <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
         <span style="font-size:13px;font-weight:600;color:var(--t);">${capMes(cm.mes)}</span>
-        <span style="font-size:13px;color:var(--t);"><b>${cm.hechos}</b> de ${cm.plan} días</span>
+        <span style="font-size:13px;color:var(--t);">${cm.hechos>cm.plan?`<b>${cm.hechos}</b> días`:`<b>${cm.hechos}</b> de ${cm.plan} días`}</span>
       </div>
       <div style="position:relative;height:8px;border-radius:99px;background:var(--s2);margin-bottom:8px;">
         <div style="height:100%;width:${pctMes}%;background:var(--v);border-radius:99px;"></div>
@@ -3118,7 +3166,7 @@ function renderProgreso(){
         ${cm.pausas?`<br>🚶 Además, ${cm.pausas} pausa${cm.pausas>1?'s':''} activa${cm.pausas>1?'s':''} este mes.`:''}
       </div>
       ${mesesAnt.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.65rem;padding-top:.65rem;border-top:1px solid var(--b);">
-        ${mesesAnt.slice(0,3).map(m=>`<span style="font-size:11px;padding:3px 9px;border-radius:99px;background:${m.llego?'var(--vl)':'var(--s2)'};color:${m.llego?'var(--vd)':'var(--tm)'};">${capMes(m.mes)}: ${m.hechos} de ${m.plan}${m.llego?' ✓':''}</span>`).join('')}
+        ${mesesAnt.slice(0,3).map(m=>`<span style="font-size:11px;padding:3px 9px;border-radius:99px;background:${m.llego?'var(--vl)':'var(--s2)'};color:${m.llego?'var(--vd)':'var(--tm)'};">${capMes(m.mes)}: ${m.hechos>m.plan?m.hechos:`${m.hechos} de ${m.plan}`}${m.llego?' ✓':''}</span>`).join('')}
       </div>`:''}
     </div>`
     :`<div style="background:var(--s2);border-radius:var(--rs);padding:1rem;margin-bottom:1rem;font-size:13px;color:var(--tm);text-align:center;">
@@ -3153,14 +3201,26 @@ function renderProgreso(){
     const ds=getDias(a.id,c,s).filter(d=>d.ejercicios&&d.ejercicios.length);
     return ds.length>0&&ds.every(d=>diaCompletado(a.id,c,s,d.dia)||esCorta(a.id,c,s,d.dia));
   }));
-  const badges=[
-    {icon:'🏁',label:'Primera rutina',e:totalSes>=1},
-    {icon:'🔥',label:'3 días entrenados',e:totalSes>=3},
-    {icon:'💪',label:'Primer peso cargado',e:totalP>=1},
-    {icon:'⭐',label:'10 ejercicios con peso',e:totalP>=10},
-    {icon:'🏆',label:'Semana completa',e:semanaCompleta},
-    {icon:'🚀',label:'Mes constante',e:!!cm&&(cm.llego||mesesAnt.some(m=>m.llego))},
+  // Metas que crecen: con los seis logros ganados no quedaba nada por alcanzar.
+  // Se muestran los ganados y el siguiente de cada serie. Sin records de peso.
+  const mesesConst=(cm&&cm.llego?1:0)+mesesAnt.filter(m=>m.llego).length;
+  const series=[
+    {icon:'🔥',n:totalSes,metas:[1,3,10,25,50,100,200],nom:k=>k===1?'Primera rutina':`${k} sesiones`,u:['sesión','sesiones']},
+    {icon:'🚀',n:mesesConst,metas:[1,3,6,12],nom:k=>k===1?'Mes constante':`${k} meses constantes`,u:['mes constante','meses constantes']},
+    {icon:'💪',n:totalP,metas:[1,10,50],nom:k=>k===1?'Primer peso cargado':`${k} ejercicios con peso`,u:['ejercicio con peso','ejercicios con peso']},
   ];
+  const badges=[];
+  let proxLogro='';
+  for(const se of series){
+    for(const k of se.metas){
+      badges.push({icon:se===series[0]&&k===1?'🏁':se.icon,label:se.nom(k),e:se.n>=k});
+      if(se.n<k){
+        if(!proxLogro&&se===series[0]){ const f=k-se.n; proxLogro=`Próximo logro: ${se.nom(k)}. Te ${f===1?'falta':'faltan'} ${f} ${se.u[f===1?0:1]}.`; }
+        break;
+      }
+    }
+  }
+  badges.splice(series[0].metas.filter(k=>totalSes>=k).length+1,0,{icon:'🏆',label:'Semana completa',e:semanaCompleta});
 
   // ── Tu ciclo: calendario del plan ───────────────────────────
   const ciclosDisp=[...getCiclos(a.id)].reverse(); // ciclo actual primero
@@ -3230,7 +3290,8 @@ function renderProgreso(){
     <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:.5rem;">Logros</div>
     <div class="badge-row">
       ${badges.map(b=>`<div class="badge-item${b.e?' earned':''}"><span style="font-size:16px;">${b.icon}</span><span>${b.label}</span></div>`).join('')}
-    </div>`;
+    </div>
+    ${proxLogro?`<div style="font-size:12px;color:var(--tm);margin:-.4rem 0 1rem;">${proxLogro}</div>`:''}`;
   // ── Mi peso corporal (prominent, above exercise weights) ────────
   const _pc=DB.pesoAlumnaHist||[];
   const _pcLast=_pc[0];
@@ -3241,7 +3302,7 @@ function renderProgreso(){
   <div style="background:var(--s);border:1px solid var(--b);border-radius:var(--rs);padding:.9rem 1rem;margin-bottom:1rem;">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:${_pc.length>1?'.6rem':'0'};">
       <input type="number" id="pc-input" step="0.1" min="30" max="300" placeholder="Peso hoy (kg)" value="${_pcEntradaHoy?_pcEntradaHoy.peso:''}" style="flex:1;padding:9px 12px;border:1.5px solid var(--bm);border-radius:var(--rs);font-size:15px;background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;" onfocus="this.style.borderColor='var(--v)'" onblur="this.style.borderColor='var(--bm)'" onkeydown="if(event.key==='Enter')savePesoCorp(${a.id})">
-      <button class="btn btn-p btn-s" style="white-space:nowrap;" onclick="savePesoCorp(${a.id})">${_pcEntradaHoy?'Actualizar':'Guardar'}</button>
+      <button style="white-space:nowrap;padding:10px 16px;border-radius:var(--rp);border:none;background:var(--v);color:white;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;" onclick="savePesoCorp(${a.id})">${_pcEntradaHoy?'Actualizar':'Guardar'}</button>
     </div>
     ${_pcEntradaHoy?`<div style="font-size:11px;color:var(--vd);margin-bottom:${_pc.length>1?'.4rem':'0'};">✓ Registrado hoy · un registro por día</div>`:''}
     ${_pc.filter(p=>p.fecha!==_pcHoy).slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-top:1px solid var(--b);"><span style="color:var(--tm);">${new Date(p.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</span><span style="font-weight:600;color:var(--t);">${p.peso} kg</span></div>`).join('')}
@@ -3314,7 +3375,12 @@ function renderProgreso(){
       values=data.map(d=>d.kg);
       labelStr=selHistEx; unit='kg';
     }
-    charts.p=new Chart(c,{type:'line',data:{labels,datasets:[{label:labelStr,data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' '+unit}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>v+' '+unit},beginAtZero:false}}}});
+    charts.p=new Chart(c,{type:'line',data:{labels,datasets:[{label:labelStr,data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#1D9E75',pointBorderColor:'white',pointBorderWidth:2,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' '+unit}}},scales:{x:{grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},beginAtZero:false,
+      // Margen alrededor de los valores, con decimales redondos: con una linea
+      // plana el eje iba de 3,75 a 4,2 kg.
+      ...(values.length?(()=>{const lo=Math.min(...values),hi=Math.max(...values),pad=hi-lo<1?Math.max(1,hi*.1):(hi-lo)*.15;
+        return{suggestedMin:Math.max(0,Math.floor(lo-pad)),suggestedMax:Math.ceil(hi+pad)};})():{}),
+      ticks:{color:tc,precision:1,callback:v=>String(Math.round(v*10)/10).replace('.',',')+' '+unit}}}}});
   },50);
 }
 
@@ -3322,26 +3388,6 @@ function renderNotas(){
   const scr=document.getElementById('screen-notas'); if(!scr) return;
   const a=getAlumna(); if(!a){scr.innerHTML='';return;}
   const coms=DB.comentarios.filter(c=>c.alumna_id===a.id);
-  const ciK=`af-ci-${a.id}-c${selCiclo}-s${selSem}`;
-  const ciDado=localStorage.getItem(ciK);
-  const ciLabels={excelente:'💪 Excelente',bien:'😊 Bien',regular:'😐 Regular',duro:'😤 Duro',descanso:'😴 Descanso',lesion:'🤕 Lesión'};
-  let ciHtml='';
-  if(!ciDado){
-    const opts=[{k:'excelente',l:'💪 Excelente'},{k:'bien',l:'😊 Bien'},{k:'regular',l:'😐 Regular'},{k:'duro',l:'😤 Duro'},{k:'descanso',l:'😴 Descanso'},{k:'lesion',l:'🤕 Lesión'}];
-    ciHtml=`<div class="ci-card">
-      <div class="ci-title">Check-in semanal</div>
-      <div class="ci-sub">Semana ${selSem} — ¿Cómo te fue en general?</div>
-      <div class="ci-opts">
-        ${opts.map(o=>`<button class="ci-opt" onclick="selCheckin(this,'${o.k}')">${o.l}</button>`).join('')}
-      </div>
-      <textarea id="ci-nota" class="cinput" rows="2" placeholder="Algo más para Amira... (opcional)" style="width:100%;margin-bottom:.6rem;margin-top:0;"></textarea>
-      <button class="btn btn-p btn-s" onclick="enviarCheckin(${a.id})">Enviar check-in ✓</button>
-    </div>`;
-  }else{
-    ciHtml=`<div class="ci-card" style="padding:.75rem 1rem;">
-      <div style="font-size:12px;color:var(--pd);">✓ Check-in semana ${selSem}: <strong>${ciLabels[ciDado]||ciDado}</strong></div>
-    </div>`;
-  }
   // Recordatorios de entrenamiento
   const _diasDisp=Array.isArray(a.dias_disponibles)?a.dias_disponibles:[];
   const _diasNom=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -3382,7 +3428,7 @@ function renderNotas(){
       <button onclick="activarPushManual(${a.id})" style="padding:7px 16px;border-radius:var(--rp);border:none;background:var(--v);color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">Activar recordatorios</button>
     </div>`;
   }
-  scr.innerHTML=ciHtml+_horHtml+_pushHtml+`<div class="csec">
+  scr.innerHTML=_horHtml+_pushHtml+`<div class="csec">
     <div class="ctit">Mis notas para Amira</div>
     <div class="chint">Amira ve esto en su panel. Contale cómo te fue, qué pesos usaste o cómo te sentiste.</div>
     ${coms.length===0?`<div style="font-size:12px;color:var(--tm);margin-bottom:10px;">Todavía no tenés notas. ¡Dejale una a Amira!</div>`:''}

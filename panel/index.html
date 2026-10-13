@@ -1197,6 +1197,8 @@ function resumenSemana(a,sem){
 const _kgP=v=>String(+(+v).toFixed(1)).replace('.',',');
 const _yP=l=>l.length>1?l.slice(0,-1).join(', ')+' y '+l[l.length-1]:(l[0]||'');
 const _sP=(n,palabra)=>`${n} ${palabra}${n===1?'':'s'}`;
+// "5 de 9 días"; si empezo a mitad de mes y entreno mas de lo planificado, "3 días".
+const _diasMesP=m=>m.hechos>m.plan?_sP(m.hechos,'día'):`${m.hechos} de ${_sP(m.plan,'día')}`;
 // Para la lista del panel (HTML)
 function lineaSemana(r){
   const p=[r.entreno?`Entrenó ${r.entreno} de ${_sP(r.plan,'día')}`:`No entrenó (tenía ${_sP(r.plan,'día')})`];
@@ -1204,7 +1206,7 @@ function lineaSemana(r){
   if(r.subio.length) p.push('subió '+_yP(r.subio.slice(0,2).map(x=>`${esc(x.nom)} a ${_kgP(x.kg)} kg`)));
   if(r.notas) p.push(_sP(r.notas,'nota'));
   if(r.molestias) p.push(`⚠️ ${_sP(r.molestias,'molestia')}`);
-  if(r.mes) p.push(`${r.mes.mes}: ${r.mes.hechos} de ${r.mes.plan}${r.mes.llego?' ✓':''}`);
+  if(r.mes) p.push(`${r.mes.mes}: ${r.mes.hechos>r.mes.plan?r.mes.hechos:`${r.mes.hechos} de ${r.mes.plan}`}${r.mes.llego?' ✓':''}`);
   return p.join(' · ');
 }
 // Para el mensaje de WhatsApp (texto), en [semana]
@@ -1215,8 +1217,8 @@ function textoSemana(r){
   if(r.subio.length) p.push('subiste '+_yP(r.subio.slice(0,2).map(x=>`${x.nom} a ${_kgP(x.kg)} kg`)));
   let t=_yP(p);
   t=t.charAt(0).toUpperCase()+t.slice(1)+'.';
-  if(r.mes) t+=r.mes.llego?` En ${r.mes.mes} ya llegaste a tu meta: ${r.mes.hechos} de ${r.mes.plan} días 🎯`
-    :` En ${r.mes.mes} llevás ${r.mes.hechos} de ${r.mes.plan} días.`;
+  if(r.mes) t+=r.mes.llego?` En ${r.mes.mes} ya llegaste a tu meta: ${_diasMesP(r.mes)} 🎯`
+    :` En ${r.mes.mes} llevás ${_diasMesP(r.mes)}.`;
   return t;
 }
 async function enviarRevision(aId){
