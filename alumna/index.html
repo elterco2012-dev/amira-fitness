@@ -1079,15 +1079,19 @@ async function activarPush(alumnaId){
   }
 }
 
+// Pasa por una funcion de la base y no por la tabla: si en este celular ya habia
+// entrado otra alumna, la suscripcion es de ella y esta alumna no la puede ver ni
+// modificar. La funcion se la pasa a quien activa las notificaciones.
 async function guardarSuscripcion(alumnaId, sub){
   const j = sub.toJSON();
   try{
-    await sbUpsert('push_subscriptions', {
-      alumna_id: alumnaId,
-      endpoint:  j.endpoint,
-      p256dh:    j.keys.p256dh,
-      auth:      j.keys.auth,
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/guardar_suscripcion`, {
+      method: 'POST',
+      headers: getSBH(),
+      body: JSON.stringify({p_alumna_id: alumnaId, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth})
     });
+    if(!r.ok) throw new Error(`rpc ${r.status}: ${await r.text()}`);
+    if(await r.json() !== true) throw new Error('la alumna no coincide con la sesión');
     console.log('Suscripción guardada ✓');
   }catch(e){ console.warn('Error guardando suscripción:', e); }
 }

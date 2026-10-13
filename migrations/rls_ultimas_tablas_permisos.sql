@@ -1,5 +1,5 @@
--- Cierre de permisos de las tablas que quedaban abiertas (13/10/2026). Se aplica
--- a mano en el SQL Editor de Supabase; antes, probarla en una transaccion.
+-- Cierre de permisos de las tablas que quedaban abiertas. Aplicada el 13/10/2026,
+-- despues de probarla en una transaccion en la base real.
 -- Hasta aca cualquiera con la clave publica del sitio podia leer, modificar y
 -- borrar estas tablas. Ademas, cualquier cuenta con sesion (incluidas dos que no
 -- son de ninguna alumna) podia leer todos los reportes de las alumnas y publicar
