@@ -178,13 +178,13 @@ Se llama con `sbNotifyAmira(table, record)` desde el cliente cuando una alumna h
 Batch classification de ejercicios. Rápida y barata. Devuelve patrón de movimiento, nivel, equipamiento, posición, bilateral, impacto.
 
 ### `weekly-summary`
-Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta semana, las que necesitan atención, reportes de dolor. Envía resumen a Amira vía push.
+Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta semana, las que necesitan atención, reportes de dolor y las que están en sus primeras dos semanas. Envía resumen a Amira vía push. `calcularResumen` usa las mismas reglas que "Hoy hay que atender" del panel: si cambia una, cambiar la otra y volver a desplegar la función.
 
 ---
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v66` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v67` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -202,6 +202,14 @@ Estrategias:
 3. Amira crea la ficha de alumna, genera la rutina (manual o con IA).
 4. La alumna accede vía `/alumna/{slug}` con su email.
 5. Amira le manda desde la ficha (💬 WA) la plantilla "👋 Bienvenida y cómo entrar": link, email, PIN (la fecha de nacimiento en DDMMAA, `pinDesdeNacimiento`) y la guía de `/instalar`.
+
+**Arranque guiado (desde el 13/10/2026):** durante sus primeros 14 días (`DIAS_ARRANQUE`), cada alumna aparece en Inicio → "🌱 Primeras dos semanas".
+- Pasos: bienvenida, entró a la app, eligió sus días, notificaciones, primer entrenamiento, mensaje del día 3 y mensaje del día 7.
+- Botón con el próximo mensaje que toca. Mientras no entre a la app, solo "¿Pudiste entrar?", un día después de la bienvenida y cada dos días.
+- Los mensajes son las plantillas `o_entrar`, `o_dia3`, `o_dia3b` y `o_dia7` (`[arranque]` dice cuántos entrenamientos hizo). El prefijo `o_` las deja editables en Recordatorios sin llenar el menú de WhatsApp de la ficha.
+- Cada envío queda en `contactos`, con motivo `ingreso`, `arranque3` o `arranque7`.
+- "Entró a la app" sale de `ingresos_alumnas()`, que devuelve el último ingreso de `auth.users` solo a Amira. Si no responde, cuenta cualquier cosa que solo se hace adentro de la app.
+- Mientras dura el arranque, la alumna no aparece en "Hoy hay que atender" ni en "Resto", y el resumen del domingo tampoco la cuenta para atender: dice "N en sus primeras dos semanas".
 
 **Primer ingreso a la app (desde el 13/10/2026):** una introducción de 3 pantallas y después los carteles de instalar, notificaciones y días de entrenamiento **de a uno**: pasan por `pedirCartel()`, que espera a que termine la introducción y a que se cierre el cartel anterior. Un cartel nuevo tiene que pasar por ahí y llamar a `siguienteCartel()` al cerrarse; si no, vuelven a salir encimados. Si tiene notificaciones pero no eligió días, la app se los pide como mucho una vez por semana.
 
@@ -235,6 +243,7 @@ Estrategias:
 ### Mediciones
 - **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa, así que el panel y el resumen la cuentan; para métricas de alumnas, excluirla.
 - **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
+- **Arranque** (punto de partida, 13/10/2026): de 35 alumnas, 6 nunca marcaron un ejercicio (1 sigue activa). De las 29 que arrancaron, la mitad marcó el primero antes de los 2 días del alta, 18 dentro de los 3 días y 7 después de una semana. Entran 4 o 5 alumnas por mes. Se mide con `alumnas.created_at` y la primera fila de `progreso` con `hecho`.
 - **Constancia** (punto de partida, 13/10/2026): con la cuenta de "Constancia" hecha en SQL sobre `progreso`, `rutinas` y las sesiones cortas de `feedbacks`, en septiembre habrían llegado a la meta 9 de las 16 alumnas activas que ya entrenaban.
 
 ### Amira crea un nuevo ciclo
@@ -316,6 +325,7 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 - **Creada el 13/10/2026, con RLS:** `plantillas_mensajes` (solo Amira). Ver `migrations/plantillas_mensajes.sql`.
 - **Abiertas a propósito:** leer `ejercicios_biblioteca` (sin datos personales; la app la usa), insertar en `page_views` (las visitas de la landing, la bio y el formulario, que mandan `return=minimal`) e insertar inscripciones en `registros`.
 - **Cada alumna solo puede cambiar de su fila de `alumnas` `last_active_at`, `foto` y `dias_disponibles`**: lo frena el trigger `alumnas_limitar_cambios`, que no aplica a Amira, a las Edge Functions ni a las funciones `security definer`. Si la app tiene que cambiar otra columna, agregarla ahí.
+- **`ingresos_alumnas()`** (`security definer`, 13/10/2026): devuelve id de alumna y fecha de su último ingreso solo a Amira; otra cuenta recibe cero filas y sin sesión no se puede llamar. Ver `migrations/ingresos_alumnas.sql`.
 - **Activar notificaciones pasa por `guardar_suscripcion(alumna_id, endpoint, p256dh, auth)`** (`security definer`, solo con sesión): un celular tiene una sola suscripción, y si ya era de otra alumna se la pasa a quien la activa.
 - **Lo previo al ingreso pasa por funciones `security definer`** que devuelven lo justo: `alumna_registrada(email)` (sí/no, al crear el PIN), `ficha_alumna(slug)` y `ficha_guardar(slug, lesiones, tel)` (ficha de salud). Nunca exponer `nacimiento`: es el PIN de ingreso.
 - **Antes de abrir o crear una tabla**, revisar también qué puede hacer cualquier cuenta con sesión: crear una cuenta es libre, así que `to authenticated using (true)` deja pasar a cualquiera, no solo a las alumnas.
