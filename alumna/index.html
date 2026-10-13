@@ -1229,7 +1229,10 @@ function calcStats(aId){
     }
     const completedDates=[];
     for(const g of Object.values(groups)){
-      if(dayCompletado(g.ciclo,g.semana,g.dia)){
+      // Entreno ese dia si completo el plan o una sesion corta. Sin la sesion
+      // corta, a la que entrenaba 15 minutos la app le decia que llevaba dias
+      // sin pasar por aca.
+      if(dayCompletado(g.ciclo,g.semana,g.dia)||esCorta(aId,g.ciclo,g.semana,g.dia)){
         const ts=g.rows.map(r=>r.updated_at).filter(Boolean);
         if(ts.length>0){
           completedDates.push(new Date(ts.reduce((a,b)=>a>b?a:b)));
@@ -1253,7 +1256,7 @@ function calcStats(aId){
       for(const s of getSemanas(aId,c)){
         for(const dObj of getDias(aId,c,s)){
           const gk=`${c}-${s}-${dObj.dia}`;
-          if(!seen.has(gk)&&dayCompletado(c,s,dObj.dia)){seen.add(gk);totalCompletedEver++;}
+          if(!seen.has(gk)&&(dayCompletado(c,s,dObj.dia)||esCorta(aId,c,s,dObj.dia))){seen.add(gk);totalCompletedEver++;}
         }
       }
     }
@@ -1706,17 +1709,46 @@ function mostrarCelebracion(aId, nombre, racha){
   document.body.appendChild(ov);
 }
 
+// Festejo de la sesion corta: dice lo que hizo y, si le sobra tiempo, la deja
+// seguir con lo que falta.
+function mostrarCelebracionCorta(aId,nombre,n,mins){
+  launchConfetti();
+  const ov=document.createElement('div');
+  ov.className='cel-overlay';
+  ov.innerHTML=`<div class="cel-card">
+    <span class="cel-emoji">⚡</span>
+    <div class="cel-title">¡Sesión corta completa, ${esc(nombre)}!</div>
+    <div class="cel-msg">Hiciste ${n===1?'el ejercicio que más rinde':`los ${n} ejercicios que más rinden`} en ${mins} minutos. Cuenta como entrenamiento.</div>
+    <button class="cel-btn-sec" onclick="this.closest('.cel-overlay').remove();fijarTope(${aId},0)">Seguir con lo que falta</button>
+    <button class="cel-btn" onclick="this.closest('.cel-overlay').remove()">¡Listo por hoy! →</button>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
 function mostrarCierreCiclo(aId, nombre, stats){
   const k=`af-ciclo-fin-${aId}-c${selCiclo}`;
   if(localStorage.getItem(k)) return;
   localStorage.setItem(k,'1');
   launchConfetti();
+  // Si Amira ya dejo el ciclo siguiente programado se dice cuando arranca; si no,
+  // un boton para escribirle (antes le decia "hablale a Amira" sin forma de hacerlo).
+  const nSem=getSemanas(aId,selCiclo).length||4;
+  const al=getAlumna();
+  const proxIni=(al?.ciclos_inicio||{})[selCiclo+1]||(al?.ciclos_inicio||{})[String(selCiclo+1)];
+  const hayProx=getCiclos(aId).includes(selCiclo+1);
+  const cicloNom=(al?.ciclos_nombres||{})[selCiclo]||(al?.ciclos_nombres||{})[String(selCiclo)]||String(selCiclo);
+  const waTxt=encodeURIComponent(`¡Hola Amira! Terminé el ciclo ${cicloNom} 💪 ¿Arrancamos el próximo?`);
+  const proxTxt=!hayProx?'Escribile a Amira para arrancar el próximo ciclo.'
+    :proxIni?`Tu próximo ciclo arranca el ${fechaLarga(proxIni)}.`
+    :'Tu próximo ciclo ya está listo.';
   const ov=document.createElement('div');
   ov.className='ciclo-fin-ov';
   ov.innerHTML=`<div class="ciclo-fin-card">
     <span class="ciclo-fin-trophy">🏆</span>
     <div class="ciclo-fin-h">¡Ciclo completo, ${nombre}!</div>
-    <div class="ciclo-fin-p">Completaste las 4 semanas. ¡Eso es dedicación de verdad! Hablale a Amira para arrancar el próximo ciclo.</div>
+    <div class="ciclo-fin-p">Completaste las ${nSem} semanas. ¡Eso es dedicación de verdad! ${proxTxt}</div>
+    ${hayProx?'':`<a class="ciclo-fin-btn" href="https://wa.me/${AMIRA_WA}?text=${waTxt}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;text-decoration:none;text-align:center;margin-bottom:8px;">💬 Escribirle a Amira</a>`}
     <div class="ciclo-fin-stats">
       <div class="ciclo-fin-stat"><b>${stats.dias}</b><span>Días entrenados</span></div>
       <div class="ciclo-fin-stat"><b>${stats.exs}</b><span>Ejercicios hechos</span></div>
@@ -1850,6 +1882,22 @@ async function toggleDone(aId,i,nextName){
     if(done[k] && !wasDone){
       const currExs=getExs(aId,selCiclo,selSem,selDia);
       const allDone=currExs.length>0&&currExs.every((_,idx)=>done[dKey(aId,selSem,selDia,idx)]);
+      // Sesion corta: eligio un tiempo y ya marco todos los ejercicios que entraban.
+      // Hasta el 13/10 le deciamos "cuenta igual" y despues no contaba: ni festejo,
+      // ni aviso a Amira, ni ✓ en el calendario.
+      const _tope=topeDelDia(aId);
+      const _n=_tope?cuantosEntran(aId,currExs,_tope):currExs.length;
+      if(!allDone&&_n<currExs.length&&currExs.slice(0,_n).every((_,idx)=>done[dKey(aId,selSem,selDia,idx)])
+         &&!esCorta(aId,selCiclo,selSem,selDia)){
+        localStorage.setItem(cortaKey(aId,selCiclo,selSem,selDia),'1');
+        renderRutina();
+        const alm=getAlumna();
+        if(alm) setTimeout(()=>mostrarCelebracionCorta(aId,alm.nombre.split(' ')[0],_n,_tope),350);
+        const _hechos=currExs.filter((_,idx)=>done[dKey(aId,selSem,selDia,idx)]).length;
+        const cortaData={alumna_id:aId,tipo:'dia_completo',ciclo:selCiclo,semana:selSem,dia:selDia,
+          nota:`Sesión corta de ${_tope} min: ${_hechos} de ${currExs.length} ejercicios · Día ${selDia} · Semana ${selSem}`};
+        sbInsert('feedbacks',cortaData).catch(()=>queueSync({kind:'insert',table:'feedbacks',data:cortaData}));
+      }
       if(allDone){
         const alm=getAlumna();
         if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],calcRacha(aId,selCiclo)),350);
@@ -2267,6 +2315,20 @@ function cuantosEntran(aId,exs,mins){
   return Math.max(1,n);
 }
 
+// Sesion corta completa: eligio 15 o 30 minutos y marco todos los ejercicios que
+// entraban. Cuenta como dia entrenado (festejo, "¿Como te fue?", aviso a Amira,
+// calendario de constancia) aunque no complete el plan del dia, que sigue siendo
+// lo que mide el avance del ciclo. Se anota al completarla porque cuantos entran
+// depende de su ritmo y cambia con el tiempo; en la base queda como un aviso de
+// dia completo cuya nota empieza con "Sesión corta".
+// "lunes 19 de octubre" para una fecha AAAA-MM-DD (sin la coma que pone toLocaleDateString).
+function fechaLarga(iso){
+  const d=new Date(iso+'T12:00:00');
+  return `${d.toLocaleDateString('es-AR',{weekday:'long'})} ${d.toLocaleDateString('es-AR',{day:'numeric',month:'long'})}`;
+}
+function cortaKey(aId,c,s,d){ return `af-corta-${aId}-c${c}-${s}-${d}`; }
+function esCorta(aId,c,s,d){ return !!localStorage.getItem(cortaKey(aId,c,s,d)); }
+
 function estimarMinutos(aId,exs){
   if(!exs||!exs.length) return 0;
   const f=factorPersonal(aId);
@@ -2528,6 +2590,7 @@ function renderRutina(){
   const total = exs.length;
   const pct = total>0 ? Math.round((comp/total)*100) : 0;
   const justDone = total>0 && comp===total;
+  const _corta = !justDone && esCorta(a.id,selCiclo,selSem,selDia);
   const avContent = a.foto ? `<img src="${a.foto}" alt="${a.nombre}">` : ini(a.nombre);
   const stats = calcStats(a.id);
   const pctCiclo = stats.cicloTotal>0 ? Math.round((stats.cicloDone/stats.cicloTotal)*100) : 0;
@@ -2629,6 +2692,22 @@ function renderRutina(){
   }
 
   // Selector de semanas — dinámico según semanas con rutina en DB
+  // Termino el ciclo y todavia no tiene el siguiente a la vista: en vez de una
+  // rutina terminada sin explicacion, cuando arranca el proximo o un boton para
+  // escribirle a Amira. Los 5 dias de pausa entre ciclos eran el hueco mas grande.
+  if(selCiclo===cicloActual&&localStorage.getItem(`af-ciclo-fin-${a.id}-c${cicloActual}`)){
+    const _proxIni=_ciclosInicio[cicloActual+1]||_ciclosInicio[String(cicloActual+1)];
+    const _proxProgramado=ciclos.includes(cicloActual+1)&&_proxIni&&_proxIni>_hoyStr;
+    const _cNom=(a.ciclos_nombres||{})[cicloActual]||(a.ciclos_nombres||{})[String(cicloActual)]||String(cicloActual);
+    const _waTxt=encodeURIComponent(`¡Hola Amira! Terminé el ciclo ${_cNom} 💪 ¿Arrancamos el próximo?`);
+    html+=`<div style="background:var(--vl);border:1px solid var(--vm);border-radius:var(--rs);padding:.8rem 1rem;margin-bottom:.75rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:1.3rem;">🏆</span>
+      <div style="flex:1;min-width:12rem;font-size:13px;color:var(--vd);line-height:1.5;">Terminaste este ciclo. ${_proxProgramado
+        ?`Tu próximo ciclo arranca el ${fechaLarga(_proxIni)}.`
+        :'Amira está preparando el próximo.'}</div>
+      ${_proxProgramado?'':`<a href="https://wa.me/${AMIRA_WA}?text=${_waTxt}" target="_blank" rel="noopener" style="font-size:12px;font-weight:600;color:var(--vd);white-space:nowrap;">💬 Escribirle</a>`}
+    </div>`;
+  }
   const _semMaxA=Math.max(4,...Object.keys(DB.rutinas?.[a.id]?.[selCiclo]||{}).map(k=>parseInt(k)).filter(k=>!isNaN(k)));
   html+=`<div class="sel-row"><div class="sel-label">Semana</div><div class="tabs-row">
     ${Array.from({length:_semMaxA},(_,i)=>i+1).map(s=>{
@@ -2646,6 +2725,7 @@ function renderRutina(){
   // lo que queda.
   const _progTxt=(()=>{
     const falta=exs.filter((_,ix)=>!done[dKey(a.id,selSem,selDia,ix)]);
+    if(_corta) return `${comp} de ${total} ejercicios · sesión corta completa ✓`;
     const m=estimarMinutos(a.id,falta);
     if(!(m>0)) return `${comp} de ${total} ejercicios`;
     return comp>0
@@ -2668,7 +2748,7 @@ function renderRutina(){
   const _npK=npKey(a.id,selCiclo,selSem,selDia);
   const _noPude=localStorage.getItem(_npK);
   let _htmlPausa='';
-  if(exs.length>0&&!justDone&&!_noPude){
+  if(exs.length>0&&!justDone&&!_corta&&!_noPude){
     _htmlPausa=`<div style="margin-top:.9rem;margin-bottom:.5rem;">
       <div style="display:flex;gap:8px;margin-bottom:4px;">
         <button class="np-btn" style="flex:1;" onclick="abrirModalPausa(${a.id})">🚶 Pausa activa</button>
@@ -2724,8 +2804,10 @@ function renderRutina(){
           background:${_tope===o.m?'var(--vl)':'var(--s)'};
           color:${_tope===o.m?'var(--vd)':'var(--t)'};">${o.l}</button>`).join('')}
       </div>
-      ${_ocultos>0?`<div style="font-size:11px;color:var(--tm);margin-top:.5rem;line-height:1.5;">
-        ${_entran===1?'Te dejo el que más rinde':`Te dejo los ${_entran} que más rinden`}. Lo que hagas cuenta igual.</div>`:''}
+      ${_corta?`<div style="font-size:11px;color:var(--vd);margin-top:.5rem;line-height:1.5;">
+        ✓ Sesión corta completa: cuenta como entrenamiento. Si te sobra tiempo, tocá <b>Todo</b>.</div>`
+      :_ocultos>0?`<div style="font-size:11px;color:var(--tm);margin-top:.5rem;line-height:1.5;">
+        ${_entran===1?'Te dejo el que más rinde. Si lo hacés':`Te dejo los ${_entran} que más rinden. Si los hacés`}, cuenta como entrenamiento del día.</div>`:''}
     </div>`;
   }
 
@@ -2792,8 +2874,10 @@ function renderRutina(){
   html+=_htmlPausa;
 
 
-  if(justDone){
-    html+=`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉<br><span style="font-size:13px;opacity:.85;font-family:'DM Sans',sans-serif;font-weight:400;">Recordá estirar para no sentirte adolorida 🤸</span></div>`;
+  if(justDone||_corta){
+    html+=justDone
+      ?`<div class="done-banner">¡Excelente, ${a.nombre.split(' ')[0]}! Completaste el día 🎉<br><span style="font-size:13px;opacity:.85;font-family:'DM Sans',sans-serif;font-weight:400;">Recordá estirar para no sentirte adolorida 🤸</span></div>`
+      :`<div class="done-banner">¡Bien, ${a.nombre.split(' ')[0]}! Sesión corta completa ⚡<br><span style="font-size:13px;opacity:.85;font-family:'DM Sans',sans-serif;font-weight:400;">Cuenta como entrenamiento. Recordá estirar 🤸</span></div>`;
     const _fbK=fbKey(a.id,selCiclo,selSem,selDia);
     const _fbDado=localStorage.getItem(_fbK);
     if(!_fbDado){
@@ -2947,7 +3031,7 @@ function renderProgreso(){
     const total=exs.length;
     if(total===0)return false;
     let cnt=0;for(let i=0;i<total;i++)if(done[`${a.id}-c${cic}-${sem}-${dia}-${i}`])cnt++;
-    return cnt/total>=0.8;
+    return cnt/total>=0.8||esCorta(a.id,cic,sem,dia);
   }
   let completados=0;
   for(let s=1;s<=4;s++) for(let d=1;d<=numDias;d++) if(isDayDone80(s,d)) completados++;
@@ -3300,7 +3384,7 @@ async function init(){
         // tiene sentido pedir un peso (plancha, flexiones, espinales).
         sbGet('ejercicios_biblioteca','select=nombre,equipamiento_requerido,grupo_muscular&order=nombre.asc').catch(()=>[]),
         sbGet('peso_alumna',`alumna_id=eq.${a.id}&order=fecha.desc`).catch(()=>[]),
-        sbGet('feedbacks',`alumna_id=eq.${a.id}&tipo=in.(pausa_activa,no_pude)&order=created_at.asc&limit=1000`).catch(()=>[])
+        sbGet('feedbacks',`alumna_id=eq.${a.id}&tipo=in.(pausa_activa,no_pude,dia_completo)&order=created_at.asc&limit=1000`).catch(()=>[])
       ]);
       DB.comentarios=coms;
       DB.avisos=avs;
@@ -3337,6 +3421,11 @@ async function init(){
       // Local state takes priority: if there's already a key we don't overwrite it.
       fbNoPude.forEach(f=>{
         if(!f.ciclo||!f.semana||!f.dia) return;
+        if(f.tipo==='dia_completo'){
+          // Una sesion corta hecha en otro telefono tambien cuenta en este.
+          if(String(f.nota||'').startsWith('Sesión corta')) localStorage.setItem(cortaKey(a.id,f.ciclo,f.semana,f.dia),'1');
+          return;
+        }
         const k=npKey(a.id,f.ciclo,f.semana,f.dia);
         if(localStorage.getItem(k)) return;
         const ts=f.created_at||new Date().toISOString();

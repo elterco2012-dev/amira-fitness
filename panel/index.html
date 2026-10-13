@@ -536,6 +536,10 @@
     <div id="ia-error" style="display:none;background:var(--rl);border-radius:var(--rs);padding:.75rem 1rem;font-size:13px;color:var(--rd);margin-bottom:1rem;"></div>
     <div id="ia-preview" style="display:none;">
       <div id="ia-preview-content"></div>
+      <!-- Igual que el ciclo manual: hasta el 13/10 el ciclo de la IA se activaba en el
+           momento, sin fecha, sin mensaje y sin aviso a la alumna. -->
+      <div style="margin-top:1rem;"><label for="ia-inicio">Fecha de inicio del ciclo</label><input type="date" id="ia-inicio"><div style="font-size:11px;color:var(--tm);margin-top:3px;line-height:1.5;">Dejá la fecha de hoy para activarlo ya y avisarle a la alumna. Poné una fecha futura (por ejemplo, el lunes después de que termine el ciclo actual) para programarlo: lo va a ver desde ese día.</div></div>
+      <div><label for="ia-mensaje">Mensaje para la alumna al iniciar este ciclo (opcional)</label><textarea id="ia-mensaje" rows="2" placeholder="Ej: Este mes trabajamos fuerza de piernas. ¡Vamos!" style="resize:vertical;"></textarea></div>
       <div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-p" onclick="saveGeneratedRoutine()">💾 Guardar como nuevo ciclo</button>
         <button class="btn" style="background:var(--vl);color:var(--vd);border-color:var(--vm);" onclick="saveGeneratedRoutineEnSemana()">📌 Guardar en semana actual</button>
@@ -1446,15 +1450,18 @@ async function confirmarNuevoCiclo(){
     const _hoyStr2=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
     const _programado=fechaInicio&&fechaInicio>_hoyStr2;
     S.msg=_programado
-      ?`${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} programado para el ${fechaInicio}. La alumna lo verá a partir de esa fecha.`
+      ?`${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} programado para el ${fechaInicio.split('-').reverse().slice(0,2).join('/')}. La alumna lo verá a partir de esa fecha.`
       :`${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} creado. Los checks se resetearán automáticamente.`;
     render();setTimeout(()=>{S.msg='';render();},3000);
     // Solo avisar a la alumna si el ciclo arranca hoy (no si está programado para el futuro)
-    if(!_programado){
-      const _pTitle=`🚀 ¡${ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo)} lista!`;
-      fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:_pTitle,body:'Tu nueva rutina ya está cargada. ¡A entrenar! 💪'})}).catch(()=>{});
-    }
+    if(!_programado) avisarCicloNuevo(a,ciclosNombres[nuevoCiclo]||('Ciclo '+nuevoCiclo));
   }catch(e){document.getElementById('ciclo-msg').textContent='Error al crear el ciclo: '+e.message;}
+}
+
+// Aviso a la alumna de que tiene el ciclo nuevo cargado. Lo usan el ciclo manual y
+// el de la IA, solo cuando el ciclo arranca hoy.
+function avisarCicloNuevo(a,nombre){
+  fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},body:JSON.stringify({alumna_id:a.id,title:`🚀 ¡${nombre} lista!`,body:'Tu nueva rutina ya está cargada. ¡A entrenar! 💪'})}).catch(()=>{});
 }
 
 // ── Generación de rutina con IA ───────────────────────────────
@@ -1627,6 +1634,9 @@ async function confirmarGenerarIA(){
     document.getElementById('ia-loading').style.display='none';
     document.getElementById('ia-preview').style.display='block';
     document.getElementById('ia-save-msg').textContent='';
+    const _hoyIA=new Date();
+    document.getElementById('ia-inicio').value=`${_hoyIA.getFullYear()}-${String(_hoyIA.getMonth()+1).padStart(2,'0')}-${String(_hoyIA.getDate()).padStart(2,'0')}`;
+    document.getElementById('ia-mensaje').value='';
     document.querySelector('#modal-ia .btn-p').style.display='';
     refreshIAPreview();
   }catch(e){
@@ -2020,8 +2030,12 @@ async function saveGeneratedRoutine(){
     const nuevoCiclo=cicloActualTieneData?cicloActual+1:cicloActual;
     const nomActual=a.ciclos_nombres?.[cicloActual]||`Ciclo ${cicloActual}`;
     const nomNuevo=routine.ciclo_nombre||`Ciclo ${nuevoCiclo}`;
+    const fechaInicio=(document.getElementById('ia-inicio')?.value||'').trim();
+    const msgCiclo=(document.getElementById('ia-mensaje')?.value||'').trim();
+    const _hoyStr=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+    const _programado=!!fechaInicio&&fechaInicio>_hoyStr;
     const confirmMsg=cicloActualTieneData
-      ?`Se va a crear un ciclo nuevo ("${nomNuevo}") y se va a activar como ciclo actual de ${a.nombre.split(' ')[0]}.\n\nEl ciclo actual (${nomActual}) queda guardado en el historial.\n\n¿Continuar?`
+      ?`Se va a crear un ciclo nuevo ("${nomNuevo}") para ${a.nombre.split(' ')[0]}${_programado?`, que va a ver desde el ${fechaInicio.split('-').reverse().slice(0,2).join('/')}`:', que va a ver desde hoy'}.\n\nEl ciclo actual (${nomActual}) queda guardado en el historial.\n\n¿Continuar?`
       :`Se van a guardar los ejercicios generados en el ciclo actual (${nomActual}) de ${a.nombre.split(' ')[0]}.\n\n¿Continuar?`;
     if(!confirm(confirmMsg)){msgEl.textContent='';return;}
     const ops=[];
@@ -2041,9 +2055,17 @@ async function saveGeneratedRoutine(){
     const ciclosNombres={...(a.ciclos_nombres||{})};
     const nomCiclo=routine.ciclo_nombre||`Ciclo ${nuevoCiclo}`;
     ciclosNombres[nuevoCiclo]=nomCiclo;
-    await sbPatch('alumnas',`id=eq.${a.id}`,{ciclo_actual:nuevoCiclo,ciclos_nombres:ciclosNombres});
+    const ciclosMensajes={...(a.ciclos_mensajes||{})};
+    if(msgCiclo)ciclosMensajes[nuevoCiclo]=msgCiclo;
+    const ciclosInicio={...(a.ciclos_inicio||{})};
+    if(fechaInicio)ciclosInicio[nuevoCiclo]=fechaInicio; else delete ciclosInicio[nuevoCiclo];
+    const _patch={ciclo_actual:nuevoCiclo,ciclos_nombres:ciclosNombres,ciclos_mensajes:ciclosMensajes,ciclos_inicio:ciclosInicio};
+    try{ await sbPatch('alumnas',`id=eq.${a.id}`,_patch); }
+    catch(e){ delete _patch.ciclos_inicio; await sbPatch('alumnas',`id=eq.${a.id}`,_patch); }
     a.ciclo_actual=nuevoCiclo;
     a.ciclos_nombres=ciclosNombres;
+    a.ciclos_mensajes=ciclosMensajes;
+    if('ciclos_inicio' in _patch) a.ciclos_inicio=ciclosInicio;
     if(!DB.rutinas[a.id])DB.rutinas[a.id]={};
     DB.rutinas[a.id][nuevoCiclo]={};
     for(const sem of(routine.semanas||[])){
@@ -2056,8 +2078,12 @@ async function saveGeneratedRoutine(){
     }
     S.selCiclo=nuevoCiclo;S.selSem=1;S.selDia=1;
     closeIAModal();
-    S.msg=`✨ ${nomCiclo} generado con IA y guardado.`;
+    S.msg=_programado
+      ?`✨ ${nomCiclo} generado con IA y programado para el ${fechaInicio.split('-').reverse().slice(0,2).join('/')}. La alumna lo verá desde esa fecha.`
+      :`✨ ${nomCiclo} generado con IA y guardado.`;
     render();setTimeout(()=>{S.msg='';render();},4000);
+    // Como en el ciclo manual: se le avisa solo si es un ciclo nuevo que arranca hoy.
+    if(cicloActualTieneData&&!_programado) avisarCicloNuevo(a,nomCiclo);
   }catch(e){msgEl.textContent='Error al guardar: '+e.message;}
 }
 
