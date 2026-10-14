@@ -33,10 +33,11 @@ async function quienLlama(req: Request): Promise<Quien | null> {
       { headers: { apikey: SB_SVC, Authorization: `Bearer ${SB_SVC}` } }).then(x => x.ok ? x.json() : []).catch(() => []);
     return filas?.[0]?.id ? { tipo: "alumna", alumnaId: filas[0].id } : null;
   }
-  // Otra clave de servicio (la que tiene guardada pg_cron puede no ser idéntica a la del
-  // entorno): solo una clave de servicio puede leer la lista de usuarios.
+  // La clave de servicio vieja, la que tienen pg_cron y los avisos de la base: solo una clave
+  // de servicio puede leer la lista de usuarios. Va como credencial, con la clave del entorno
+  // en apikey: desde el 18/4/2026 Supabase rechaza las claves viejas en ese encabezado.
   const adm = await fetch(`${SB_URL}/auth/v1/admin/users?page=1&per_page=1`,
-    { headers: { apikey: token, Authorization: `Bearer ${token}` } }).catch(() => null);
+    { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } }).catch(() => null);
   return adm?.ok ? { tipo: "servicio" } : null;
 }
 const NO_AUTORIZADO = () => new Response("Unauthorized", { status: 401, headers: CORS });
@@ -258,7 +259,7 @@ Deno.serve(async (req) => {
     // la anterior por la nueva y Amira termina viendo una sola notificación.
     const tag = `amira-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const notifPayload = JSON.stringify({ type: "amira-alert", tag, title, body, url: "/panel/" });
-    console.log(`[notify-amira] Sending to ${subs.length} subscriptions. title="${title}"`);
+    console.log(`[notify-amira] Sending to ${subs.length} subscriptions. title="${title}" tag=${tag}`);
     const results = await Promise.all(
       subs.map(async (s, i) => {
         try {
