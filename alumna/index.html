@@ -1569,9 +1569,10 @@ function _filaDeOp(op){
   const tabla = op.table || 'progreso';
   return tabla + ':' + (ON_CONFLICT[tabla]||'id').split(',').map(c=>op.data?.[c]).join('|');
 }
-// Avisos a Amira (dolor, problema con un ejercicio): se confirman aparte al mandarse.
-function _esAviso(op){
-  return op.table === 'feedbacks' && /^(dolor_|ejercicio_problema|dia_me_dolio)/.test(op.data?.tipo||'');
+// "Algo me preocupa" es el único aviso del que la alumna supo que quedó pendiente:
+// al mandarse se le confirma. Los demás salen en silencio.
+function _esAlerta(op){
+  return op.table === 'feedbacks' && op.data?.tipo === 'dolor_preocupante';
 }
 
 function queueSync(op){
@@ -1623,7 +1624,7 @@ async function flushSyncQueue(){
     syncQueue = [...fallidos, ...syncQueue];
     localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
   }
-  if(pendientes.some(op=>_esAviso(op) && !fallidos.includes(op))) mostrarToast('✓ Tu aviso le llegó a Amira');
+  if(pendientes.some(op=>_esAlerta(op) && !fallidos.includes(op))) mostrarToast('✓ Tu aviso le llegó a Amira');
   else if(pendientes.length && !fallidos.length) mostrarToast('✓ Progreso sincronizado');
   updateOfflineBanner();
 }
@@ -1736,6 +1737,46 @@ function skipTimer(){
   const el=document.getElementById('timer');
   if(el){ el.classList.remove('show'); }
 }
+
+// ── Pantalla prendida mientras entrena (14/10/2026) ───────────
+// Muchos celulares apagan la pantalla a los 30 segundos y el descanso dura 45: la
+// alumna no veía la cuenta regresiva, la vibración del final no llegaba (con la
+// pantalla apagada el teléfono frena la app) y para marcar el siguiente tenía que
+// desbloquearlo. Desde el primer ejercicio que marca hasta que termina el día queda
+// prendida; si no la toca en 10 minutos vuelve a lo normal, para no gastar batería si
+// se olvida el celular. Donde no se puede (iPhone con la app instalada antes de iOS
+// 18.4) no cambia nada.
+const PANTALLA_MIN = 10;
+let _pantalla = null, _pidiendoPantalla = false, _pantallaHasta = 0, _pantallaT = null;
+function mantenerPantalla(){
+  if(!('wakeLock' in navigator)) return;
+  _pantallaHasta = Date.now() + PANTALLA_MIN*60*1000;
+  clearTimeout(_pantallaT);
+  _pantallaT = setTimeout(soltarPantalla, PANTALLA_MIN*60*1000);
+  pedirPantalla();
+}
+function pedirPantalla(){
+  if(_pantalla || _pidiendoPantalla || document.visibilityState !== 'visible') return;
+  _pidiendoPantalla = true;
+  navigator.wakeLock.request('screen').then(l=>{
+    _pidiendoPantalla = false;
+    // Si terminó o se soltó mientras se pedía, se devuelve en el acto.
+    if(Date.now() >= _pantallaHasta){ l.release().catch(()=>{}); return; }
+    _pantalla = l;
+    l.addEventListener('release', ()=>{ if(_pantalla === l) _pantalla = null; });
+  }).catch(()=>{ _pidiendoPantalla = false; });
+}
+function soltarPantalla(){
+  clearTimeout(_pantallaT); _pantallaT = null; _pantallaHasta = 0;
+  const l = _pantalla; _pantalla = null;
+  if(l) l.release().catch(()=>{});
+}
+// Al salir de la app el teléfono la suelta solo: al volver se pide de nuevo si seguía entrenando.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && Date.now() < _pantallaHasta) pedirPantalla();
+});
+// Mientras entrena, cada toque cuenta como actividad.
+document.addEventListener('pointerdown', ()=>{ if(Date.now() < _pantallaHasta) mantenerPantalla(); }, {passive:true});
 
 // ── Confetti ──────────────────────────────────────────────────
 const CEL_EMOJIS = ['🎉','🏆','💪','⭐','🔥'];
@@ -2042,6 +2083,7 @@ async function toggleDone(aId,i,nextName){
     skipTimer();
     if(done[k] && !wasDone){
       startTimer(nextName);
+      mantenerPantalla();
       localStorage.setItem('af-did-train-'+aId+'-'+fechaLocal(new Date()),'1');
     }
     renderRutina();
@@ -2068,6 +2110,7 @@ async function toggleDone(aId,i,nextName){
       if(!allDone&&_n<currExs.length&&currExs.slice(0,_n).every((_,idx)=>done[dKey(aId,selSem,selDia,idx)])
          &&!esCorta(aId,selCiclo,selSem,selDia)){
         localStorage.setItem(cortaKey(aId,selCiclo,selSem,selDia),'1');
+        soltarPantalla(); // si sigue con lo que falta, el próximo ejercicio la vuelve a prender
         renderRutina();
         const alm=getAlumna();
         const _info=infoDiaEntrenado(aId,selCiclo,selSem,selDia);
@@ -2078,6 +2121,7 @@ async function toggleDone(aId,i,nextName){
         sbInsert('feedbacks',cortaData).catch(()=>queueSync({kind:'insert',table:'feedbacks',data:cortaData}));
       }
       if(allDone){
+        soltarPantalla();
         const alm=getAlumna();
         const _info=infoDiaEntrenado(aId,selCiclo,selSem,selDia);
         if(alm) setTimeout(()=>mostrarCelebracion(aId,alm.nombre.split(' ')[0],_info),350);
@@ -2253,36 +2297,37 @@ async function enviarReporte(tipo){
   const nota=document.getElementById('rep-nota').value.trim();
   cerrarReporte();
   const rep={alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null};
+  // "Lo va a revisar" y no "lo vio": en el momento Amira todavia no lo vio, haya salido o no.
+  const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo va a revisar.':'💪 ¡Gracias! Es parte del proceso.';
   try{
     await sbInsert('feedbacks',rep);
-    const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo vio y va a revisarlo.':'💪 ¡Gracias! Es parte del proceso.';
     mostrarToast(msg);
   }catch(e){
-    // Antes decía "gracias por avisar" y el aviso se perdía. Ahora queda en la
-    // cola, se manda solo al volver la conexión y se le dice la verdad.
+    // Antes decía "gracias por avisar" y el aviso se perdía. Ahora queda en la cola y
+    // se manda solo. Se resuelve en silencio, con el mensaje de siempre (decidido con
+    // Aaron, 14/10/2026: avisar que fallo la preocupaba sin que pudiera hacer nada), salvo
+    // "Algo me preocupa": ahi la app le promete que Amira la va a contactar, y sin saber
+    // que no le llego se quedaria esperando con un dolor que le preocupa.
     queueSync({kind:'insert',table:'feedbacks',data:rep});
-    avisoPendiente(rep);
+    if(tipo==='dolor_preocupante') alertaPendiente(rep);
+    else mostrarToast(msg);
   }
 }
 
-// Cartel cuando el aviso no salió: dice que quedó guardado y, si es algo que
-// preocupa, ofrece escribirle ya a Amira por WhatsApp.
-function avisoPendiente(rep){
-  const urgente=rep.tipo==='dolor_preocupante';
-  const sinSenal=!navigator.onLine;
+// Cartel cuando "Algo me preocupa" no salió: que quedó guardado y que, si le duele
+// mucho, le escriba ya a Amira por WhatsApp. Tranquilo, sin "Sin conexión".
+function alertaPendiente(rep){
   const ov=document.createElement('div');
   ov.className='cel-overlay';
   ov.innerHTML=`<div class="cel-card">
-    <span class="cel-emoji">${sinSenal?'📵':'⏳'}</span>
-    <div class="cel-title">${sinSenal?'Sin conexión':'No se pudo enviar'}</div>
-    <div class="cel-msg">Tu aviso quedó guardado en el teléfono y ${sinSenal?'se manda solo cuando vuelva la conexión, con la app abierta':'se vuelve a mandar solo en un rato'}.${urgente?' Si te duele mucho o te preocupa, no esperes: escribile ya a Amira.':''}</div>
-    ${urgente?`<a class="cel-btn" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">💬 Escribirle a Amira</a>`:''}
-    <button class="${urgente?'cel-btn-sec':'cel-btn'}" style="margin-bottom:0;" onclick="this.closest('.cel-overlay').remove()">Entendido</button>
+    <span class="cel-emoji">✉️</span>
+    <div class="cel-title">Tu aviso quedó guardado</div>
+    <div class="cel-msg">Todavía no le llegó a Amira: ${navigator.onLine?'se vuelve a mandar solo en un rato':'se manda solo cuando vuelva la señal y tengas la app abierta'}. Si te duele mucho, escribile ahora.</div>
+    <a class="cel-btn" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">💬 Escribirle a Amira</a>
+    <button class="cel-btn-sec" style="margin-bottom:0;" onclick="this.closest('.cel-overlay').remove()">Entendido</button>
   </div>`;
-  if(urgente){
-    const txt=`Hola Amira, entrenando me pasó algo que me preocupa${rep.ejercicio_nombre?` con ${rep.ejercicio_nombre}`:''}.${rep.nota?`\n${rep.nota}`:''}`;
-    ov.querySelector('a').href=`https://wa.me/${AMIRA_WA}?text=${encodeURIComponent(txt)}`;
-  }
+  const txt=`Hola Amira, entrenando me pasó algo que me preocupa${rep.ejercicio_nombre?` con ${rep.ejercicio_nombre}`:''}.${rep.nota?`\n${rep.nota}`:''}`;
+  ov.querySelector('a').href=`https://wa.me/${AMIRA_WA}?text=${encodeURIComponent(txt)}`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
 }
