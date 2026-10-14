@@ -176,6 +176,14 @@ Regla importante: ciclos **sin** `ciclos_inicio` se activan de inmediato (backwa
   - los webhooks de `feedbacks`, `registros` y `notas_sesion`, que llaman a `notify-amira`.
   Los `comentarios` de la alumna avisan desde la app (`sbNotifyAmira`).
 - `verify_jwt` está apagado en `send-push` y `notify-amira` y prendido en las otras. Hay que mantenerlo así al desplegar.
+- **Claves (14/10/2026):**
+  - Desde el 18/4/2026 Supabase rechaza en el encabezado `apikey` las claves viejas (anon y service_role, los JWT que empiezan con `eyJ`): "Legacy API keys are disabled".
+  - Como credencial (`Authorization: Bearer`) siguen valiendo. Es la que tienen guardada los dos crons y los tres webhooks.
+  - Las funciones tienen en el entorno las claves nuevas, así que la vieja no es igual a `SUPABASE_SERVICE_ROLE_KEY`.
+  - `quienLlama` la reconoce pidiendo `/auth/v1/admin/users` con la clave del entorno en `apikey`. Hasta el arreglo la mandaba en `apikey`, y el cron y los avisos de la base quedaban rechazados.
+  - Un cron o webhook nuevo usa la misma clave que `push-recordatorios-diarios`.
+- **Probar sin mandar nada:** desde el SQL Editor, `net.http_post` con la clave del cron y `{"probar": true}`, y después leer el resultado en `net._http_response`.
+- **El cron del domingo:** hasta el 14/10/2026 tenía el texto `<SERVICE_ROLE_KEY>` en lugar de la clave.
 
 ### `generate-routine` (Claude Opus 4.7)
 La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
