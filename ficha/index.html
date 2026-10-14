@@ -249,10 +249,6 @@ async function cargarAlumna(){
       // viajan al navegador: alcanza con saber que estan cargados.
       if(a.tiene_email) document.getElementById('row-mail').style.display='none';
       if(a.tiene_tel) document.getElementById('row-tel').style.display='none';
-      if(a.edad!=null){
-        document.getElementById('f-edad').value=a.edad;
-        document.getElementById('row-edad').style.display='none';
-      }
       // Pre-select lugar from alumna tipo and hide the section
       const lugarMap={gym:'Gimnasio',Gimnasio:'Gimnasio',home:'En casa','En casa':'En casa'};
       const lLabel=lugarMap[a.tipo]||null;
@@ -321,7 +317,8 @@ function validate(n){
 function buildResumen(){
   const rows=[
     ['Nombre',document.getElementById('f-nombre').value],
-    ['Edad',document.getElementById('f-edad').value+' años'],
+    // A una alumna existente no se le pregunta la edad (el paso 1 se saltea).
+    ['Edad',(e=>e?e+' años':'—')(document.getElementById('f-edad').value)],
     ['Mail',document.getElementById('f-mail').value],
     ['WhatsApp',document.getElementById('f-tel').value],
     ['Lugar de entrenamiento',getChips('ch-lugar')],
@@ -384,9 +381,11 @@ async function enviar(){
   // avisa y se puede volver a enviar.
   try{
     if(fichaAlumnaId){
-      // Alumna existente: se guarda como aprobada (sin revision manual)
+      // Alumna existente: queda pendiente y Amira la aprueba desde Registros. Sin
+      // sesion no se puede dar por aprobada (14/10/2026): cualquiera con el link podia
+      // cargarle una ficha aprobada a otra alumna.
       datos.alumna_id = fichaAlumnaId;
-      datos.estado = 'aprobado';
+      datos.estado = 'pendiente';
       await sbInsertSinRespuesta('registros',datos);
       // Copia lesiones y telefono a su perfil (sin haber ingresado no se puede
       // escribir la tabla de alumnas). Si esto falla la ficha igual le llego, y el
@@ -417,7 +416,7 @@ async function enviar(){
   const msg=encodeURIComponent(
 `🆕 Nueva ficha de salud — Amira Fitness
 
-👤 ${datos.nombre} · ${datos.edad} años
+👤 ${datos.nombre}${datos.edad?' · '+datos.edad+' años':''}
 📱 ${datos.tel} · ${datos.mail}
 📍 ${datos.ubicacion}
 

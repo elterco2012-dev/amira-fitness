@@ -12,6 +12,35 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
+// ── Quién llama ──────────────────────────────────────────────────────────────
+// Hasta el 14/10/2026 las funciones solo miraban que llegara un encabezado apikey,
+// con cualquier valor, y send-push y notify-amira ni eso: cualquiera podía mandarles
+// notificaciones a todas las alumnas o a Amira, o hacer correr la IA a costa de Amira.
+// Ahora cuenta quién es: la clave de servicio (pg_cron y los avisos de la base),
+// la sesión de Amira o la de una alumna (por su email en alumnas). Misma comprobación
+// que update-auth-email; está repetida en cada función porque se despliegan por separado.
+type Quien = { tipo: "servicio" } | { tipo: "amira" } | { tipo: "alumna"; alumnaId: number };
+async function quienLlama(req: Request): Promise<Quien | null> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  if (SB_SVC && token === SB_SVC) return { tipo: "servicio" };
+  const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } }).catch(() => null);
+  if (r?.ok) {
+    const email = String((await r.json().catch(() => ({})))?.email ?? "").toLowerCase();
+    if (!email) return null;
+    if (email === "amiralezcano@gmail.com") return { tipo: "amira" };
+    const filas = await fetch(`${SB_URL}/rest/v1/alumnas?select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
+      { headers: { apikey: SB_SVC, Authorization: `Bearer ${SB_SVC}` } }).then(x => x.ok ? x.json() : []).catch(() => []);
+    return filas?.[0]?.id ? { tipo: "alumna", alumnaId: filas[0].id } : null;
+  }
+  // Otra clave de servicio (la que tiene guardada pg_cron puede no ser idéntica a la del
+  // entorno): solo una clave de servicio puede leer la lista de usuarios.
+  const adm = await fetch(`${SB_URL}/auth/v1/admin/users?page=1&per_page=1`,
+    { headers: { apikey: token, Authorization: `Bearer ${token}` } }).catch(() => null);
+  return adm?.ok ? { tipo: "servicio" } : null;
+}
+const NO_AUTORIZADO = () => new Response("Unauthorized", { status: 401, headers: CORS });
+
 // ── Helpers ────────────────────────────────────────────────────
 
 const TE = new TextEncoder();
@@ -163,12 +192,19 @@ Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
     if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
+    // Los avisos de la base (reportes, inscripciones, notas) llegan con la clave de
+    // servicio; la app, con la sesión de la alumna.
+    const quien = await quienLlama(req);
+    if (!quien) return NO_AUTORIZADO();
+
     let payload: { type?: string; table?: string; record?: Record<string, unknown> };
     try { payload = await req.json(); }
     catch { return new Response("Bad request", { status: 400, headers: CORS }); }
 
     const { type, table, record } = payload;
     if (type !== "INSERT" || !record) return Response.json({ skipped: true }, { headers: CORS });
+    // Una alumna solo puede avisar algo propio: el nombre del aviso sale de su sesión.
+    if (quien.tipo === "alumna") record.alumna_id = quien.alumnaId;
 
     let title = "📬 Nueva actividad";
     let body  = "Revisá el panel.";
@@ -215,6 +251,8 @@ Deno.serve(async (req) => {
     }
 
     if (!subs.length) return Response.json({ sent: 0, reason: "no_subscriptions" }, { headers: CORS });
+    // Para comprobar el acceso sin mandarle nada a Amira.
+    if ((payload as { probar?: boolean }).probar && quien.tipo !== "alumna") return Response.json({ probar: true, quien: quien.tipo, title, body, total: subs.length }, { headers: CORS });
 
     // Etiqueta única por aviso: si todas comparten la misma, Android reemplaza
     // la anterior por la nueva y Amira termina viendo una sola notificación.

@@ -14,6 +14,35 @@ const CORS = {
 
 const TE = new TextEncoder();
 
+// ── Quién llama ──────────────────────────────────────────────────────────────
+// Hasta el 14/10/2026 las funciones solo miraban que llegara un encabezado apikey,
+// con cualquier valor, y send-push y notify-amira ni eso: cualquiera podía mandarles
+// notificaciones a todas las alumnas o a Amira, o hacer correr la IA a costa de Amira.
+// Ahora cuenta quién es: la clave de servicio (pg_cron y los avisos de la base),
+// la sesión de Amira o la de una alumna (por su email en alumnas). Misma comprobación
+// que update-auth-email; está repetida en cada función porque se despliegan por separado.
+type Quien = { tipo: "servicio" } | { tipo: "amira" } | { tipo: "alumna"; alumnaId: number };
+async function quienLlama(req: Request): Promise<Quien | null> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  if (SB_SVC && token === SB_SVC) return { tipo: "servicio" };
+  const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } }).catch(() => null);
+  if (r?.ok) {
+    const email = String((await r.json().catch(() => ({})))?.email ?? "").toLowerCase();
+    if (!email) return null;
+    if (email === "amiralezcano@gmail.com") return { tipo: "amira" };
+    const filas = await fetch(`${SB_URL}/rest/v1/alumnas?select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
+      { headers: { apikey: SB_SVC, Authorization: `Bearer ${SB_SVC}` } }).then(x => x.ok ? x.json() : []).catch(() => []);
+    return filas?.[0]?.id ? { tipo: "alumna", alumnaId: filas[0].id } : null;
+  }
+  // Otra clave de servicio (la que tiene guardada pg_cron puede no ser idéntica a la del
+  // entorno): solo una clave de servicio puede leer la lista de usuarios.
+  const adm = await fetch(`${SB_URL}/auth/v1/admin/users?page=1&per_page=1`,
+    { headers: { apikey: token, Authorization: `Bearer ${token}` } }).catch(() => null);
+  return adm?.ok ? { tipo: "servicio" } : null;
+}
+const NO_AUTORIZADO = () => new Response("Unauthorized", { status: 401, headers: CORS });
+
 function b64u(data: ArrayBuffer | Uint8Array): string {
   const b = data instanceof Uint8Array ? data : new Uint8Array(data);
   let s = "";
@@ -139,21 +168,25 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
-  const apikey = req.headers.get("apikey") ?? req.headers.get("x-api-key") ?? "";
-  if (!apikey) return new Response("Unauthorized", { status: 401, headers: CORS });
+  const quien = await quienLlama(req);
+  if (!quien) return NO_AUTORIZADO();
 
   try {
     let alumnaFilter = "";
     let customTitle = "";
     let customBody = "";
     let filterByDay = false;
+    let probar = false;
     try {
       const b = await req.json();
       if (b?.alumna_id) alumnaFilter = `&alumna_id=eq.${b.alumna_id}`;
       if (b?.title) customTitle = b.title;
       if (b?.body) customBody = b.body;
       if (b?.filter_by_day) filterByDay = true;
+      if (b?.probar) probar = true;
     } catch { /* no body is fine */ }
+    // Una alumna solo puede mandarse a sí misma (el festejo de la semana completa).
+    if (quien.tipo === "alumna") { alumnaFilter = `&alumna_id=eq.${quien.alumnaId}`; filterByDay = false; probar = false; }
 
     const subs = await dbGet(`push_subscriptions?select=endpoint,p256dh,auth,alumna_id${alumnaFilter}`) as Array<{
       endpoint: string; p256dh: string; auth: string; alumna_id: number;
@@ -211,6 +244,8 @@ Deno.serve(async (req) => {
     }
 
     if (!filteredSubs.length) return Response.json({ sent: 0, failed: 0, total: 0, reason: "no_training_today" }, { headers: CORS });
+    // Para comprobar el acceso (pg_cron, el panel) sin mandar nada.
+    if (probar) return Response.json({ probar: true, quien: quien.tipo, total: filteredSubs.length }, { headers: CORS });
 
     const results = await Promise.all(
       filteredSubs.map(async (sub, i) => {

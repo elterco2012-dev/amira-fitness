@@ -1,8 +1,10 @@
 # Lo que no se publica en amirafitness.com.ar: notas técnicas, historial de la base,
-# código de las funciones del servidor y la configuración de Claude.
+# código de las funciones del servidor, la configuración de Claude y la carpeta del
+# sistema de diseño (tiene copias viejas del panel y de la app).
 .claude
 CLAUDE.md
 HANDOFF.md
 MAKE_INSTRUCCIONES.md
 migrations
 supabase
+Amira Fitness Design System
