@@ -30,6 +30,7 @@ const ON_CONFLICT = {
   pagos:                'alumna_id,mes',
   peso_alumna:          'alumna_id,fecha',
   notas_sesion:         'id',
+  alumnas_privado:      'alumna_id',
 };
 
 // Supabase corta cada respuesta en 1000 filas y no avisa: pedir limit=5000

@@ -1366,7 +1366,7 @@ async function loadAll(){
       sbGet('plantillas','order=created_at.asc')
     ]);
     // Tablas opcionales (pueden no existir aún): cargar todas en paralelo
-    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct,_fr,_ig]=await Promise.allSettled([
+    const [_fb,_ps,_pg,_av,_pa,_ns,_prg,_pv,_ct,_fr,_ig,_pr]=await Promise.allSettled([
       cargarFeedbacks(),
       sbGet('push_subscriptions','select=alumna_id'),
       sbGet('pagos','order=fecha_pago.desc&limit=5000'),
@@ -1380,7 +1380,8 @@ async function loadAll(){
       // completo"): la constancia necesita las sesiones cortas, y la revision
       // semanal, las pausas activas y las molestias de la semana.
       sbGet('feedbacks',`select=alumna_id,tipo,ciclo,semana,dia,nota,created_at&created_at=gte.${encodeURIComponent(new Date(Date.now()-70*86400000).toISOString())}&order=created_at.desc&limit=5000`),
-      cargarIngresos()
+      cargarIngresos(),
+      sbGet('alumnas_privado','select=alumna_id,notas_privadas,estado_log&limit=5000')
     ]);
     DB.feedbacks      = _fb.status==='fulfilled'?_fb.value:[];
     DB.pushSubs       = _ps.status==='fulfilled'?_ps.value:[];
@@ -1395,6 +1396,16 @@ async function loadAll(){
     DB.ingresos       = _ig.status==='fulfilled'?_ig.value:null;
     await cargarTplsDeBase();
     DB.alumnas=alumnas;
+    // Las notas privadas y el historial de pausas y bajas viven aparte desde el 14/10/2026:
+    // en alumnas los leía la propia alumna con su sesión. Se pegan a cada alumna para que
+    // el resto del panel los use como siempre (a.notas_privadas, a.estado_log).
+    DB.privadoOk=_pr.status==='fulfilled'&&Array.isArray(_pr.value);
+    const _priv=new Map((DB.privadoOk?_pr.value:[]).map(p=>[p.alumna_id,p]));
+    DB.alumnas.forEach(a=>{
+      const p=_priv.get(a.id);
+      a.notas_privadas=p?.notas_privadas||null;
+      a.estado_log=Array.isArray(p?.estado_log)?p.estado_log:[];
+    });
     DB.rutinas={};
     rutinas.forEach(r=>{
       const aId=r.alumna_id,c=parseInt(r.ciclo)||1,s=parseInt(r.semana),d=parseInt(r.dia);
@@ -2707,7 +2718,7 @@ async function saveEditA(){
   const equipamientoVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-equip"]:checked')].map(cb=>cb.value);
   const diasDispVal=[...document.querySelectorAll('#modal-edit-a input[name="ea-dias-disp"]:checked')].map(cb=>cb.value);
   const tiempoVal=parseInt(document.getElementById('ea-tiempo').value)||null;
-  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',notas_privadas:_ev('ea-np'),precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),split:_ev('ea-split'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal,dias_disponibles:diasDispVal.length?diasDispVal:null,foco_muscular:_ev('ea-foco')||null,estilo_sesion:_ev('ea-estilo')||null,adaptar_ciclo_menstrual:document.getElementById('ea-ciclo-mens').checked};
+  const updates={nombre:_ev('ea-nombre'),email:_ev('ea-email'),tel:_ev('ea-tel')||'',tipo:_ev('ea-tipo'),dias:parseInt(_ev('ea-dias')),notas:_ev('ea-notas')||'',precio:precioVal,fecha_inicio:fechaVal,dia_cobro:diaCobroVal,genero:_ev('ea-genero'),nacimiento:_ev('ea-nacimiento'),ubicacion:_ev('ea-ubicacion'),fuma:_ev('ea-fuma'),peso:_ev('ea-peso'),altura:_ev('ea-altura'),exp:_ev('ea-exp'),objetivo:_ev('ea-objetivo'),nivel:_ev('ea-nivel'),split:_ev('ea-split'),equipamiento:equipamientoVal.length?equipamientoVal:null,tiempo_sesion:tiempoVal,dias_disponibles:diasDispVal.length?diasDispVal:null,foco_muscular:_ev('ea-foco')||null,estilo_sesion:_ev('ea-estilo')||null,adaptar_ciclo_menstrual:document.getElementById('ea-ciclo-mens').checked};
   // El mail es con lo que la alumna entra a la app: sin eso su link no le sirve.
   if(!updates.email&&!confirm(`${updates.nombre||'Esta alumna'} queda sin mail.\n\nSin mail no va a poder entrar a la app desde su link.\n\n¿Guardás igual?`))return;
   document.getElementById('ea-msg').textContent='Guardando...';
@@ -2744,10 +2755,18 @@ async function saveEditA(){
     }
 
     Object.assign(a,updates,{lesiones:lesionesVal});
+    // Las notas privadas van aparte, en alumnas_privado (la alumna lee su fila de
+    // alumnas). Solo si cambiaron, para no pisar nada.
+    const npVal=_ev('ea-np');
+    let avisoNp='';
+    if((npVal||null)!==(a.notas_privadas||null)){
+      try{ await guardarPrivado(S.editAId,{notas_privadas:npVal}); a.notas_privadas=npVal; }
+      catch(e){ avisoNp=' · No se guardaron las notas privadas: '+e.message; }
+    }
     const pin=pinDesdeNacimiento(updates.nacimiento||a.nacimiento);
-    S.msg=emailCambio
+    S.msg=(emailCambio
       ?`Guardado ✓ · Email actualizado correctamente · PIN: ${pin||'(sin PIN)'}`
-      :`Guardado ✓${pin?' · PIN: '+pin:''}`;
+      :`Guardado ✓${pin?' · PIN: '+pin:''}`)+avisoNp;
     closeEditA();render();
     setTimeout(()=>{S.msg='';render();},6000);
   }catch(e){
@@ -6276,6 +6295,13 @@ function rConfig(){
 }
 
 // ── Estado alumna ─────────────────────────────────────────────
+// Lo privado de una alumna (notas de Amira, historial de pausas y bajas) se guarda en
+// alumnas_privado. Si no se pudo leer al abrir el panel, no se escribe: el historial
+// guardado se pisaría con lo que hay en pantalla.
+async function guardarPrivado(aId, cambios){
+  if(!DB.privadoOk) throw new Error('no se pudo leer el historial al abrir el panel; recargalo y probá de nuevo');
+  await sbUpsert('alumnas_privado',{alumna_id:aId,...cambios});
+}
 const MOTIVOS_ESTADO={tiempo:'Tiempo',dinero:'Dinero',salud:'Salud',motivacion:'Motivación',no_responde:'No responde',otro:'Otro'};
 // Último cambio del historial, si es el que dejó a la alumna en su estado actual
 function ultimoCambioEstado(a){
@@ -6319,7 +6345,7 @@ async function anotarMotivo(aId, motivo, nota){
   const n=a.estado_log.length-1;
   const log=a.estado_log.map((e,i)=>i===n?{...e,motivo,...(nota?{nota}:{})}:e);
   try{
-    await sbPatch('alumnas',`id=eq.${aId}`,{estado_log:log});
+    await guardarPrivado(aId,{estado_log:log});
     a.estado_log=log;
     render();
     return true;
@@ -6328,21 +6354,16 @@ async function anotarMotivo(aId, motivo, nota){
 async function cambiarEstado(aId, estado, motivo, nota){
   const a=getA(aId);if(!a)return false;
   try{
-    const log=Array.isArray(a.estado_log)?[...a.estado_log]:[];
-    log.push({estado,fecha:new Date().toISOString(),...(motivo?{motivo}:{}),...(nota?{nota}:{})});
-    try{
-      await sbPatch('alumnas',`id=eq.${aId}`,{estado,estado_log:log});
-      a.estado_log=log;
-    }catch(e2){
-      if(e2.message.includes('PGRST204')||e2.message.includes('estado_log')){
-        // La migración add_alumnas_estado_log.sql aún no fue ejecutada en Supabase
-        await sbPatch('alumnas',`id=eq.${aId}`,{estado});
-      }else{throw e2;}
-    }
+    await sbPatch('alumnas',`id=eq.${aId}`,{estado});
     a.estado=estado;
-    render();
-    return true;
   }catch(e){alert('Error al cambiar estado: '+e.message);return false;}
+  const log=[...(Array.isArray(a.estado_log)?a.estado_log:[]),{estado,fecha:new Date().toISOString(),...(motivo?{motivo}:{}),...(nota?{nota}:{})}];
+  try{
+    await guardarPrivado(aId,{estado_log:log});
+    a.estado_log=log;
+  }catch(e){alert('El estado cambió, pero no se pudo anotar en el historial: '+e.message);}
+  render();
+  return true;
 }
 
 // ── Notas de sesión ───────────────────────────────────────────
