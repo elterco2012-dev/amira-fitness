@@ -92,7 +92,8 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 
 | Tabla | Para qué sirve |
 |-------|---------------|
-| `alumnas` | Perfil completo de cada alumna: nombre, slug, nivel, equipamiento, ciclo actual, nombres de ciclos, fechas de inicio de ciclos, objetivos, lesiones, estado |
+| `alumnas` | Perfil completo de cada alumna: nombre, slug, nivel, equipamiento, ciclo actual, nombres de ciclos, fechas de inicio de ciclos, objetivos, lesiones, estado. La alumna lee su propia fila: lo que no debe ver va en `alumnas_privado` |
+| `alumnas_privado` | Lo que Amira escribe de cada alumna y la alumna no ve: notas privadas (🔒) e historial de pausas y bajas (`estado_log`). Solo Amira (14/10/2026) |
 | `rutinas` | Plan de entrenamiento. Una fila por (alumna_id, ciclo, semana, dia). El campo `ejercicios` es JSONB con el array de ejercicios del día |
 | `progreso` | Un registro por ejercicio completado: (alumna_id, ciclo, semana, dia, ejercicio_idx). Guarda hecho, peso_kg, rpe, nota |
 | `ejercicios_biblioteca` | Biblioteca global de ejercicios con clasificación: patrón de movimiento, nivel, equipamiento, posición, bilateral, impacto |
@@ -213,7 +214,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v72` al 14/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v73` al 14/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -256,7 +257,7 @@ Estrategias:
 
 **Primer ingreso a la app (desde el 13/10/2026):** una introducción de 3 pantallas y después los carteles de instalar, notificaciones y días de entrenamiento **de a uno**: pasan por `pedirCartel()`, que espera a que termine la introducción y a que se cierre el cartel anterior. Un cartel nuevo tiene que pasar por ahí y llamar a `siguienteCartel()` al cerrarse; si no, vuelven a salir encimados. Si tiene notificaciones pero no eligió días, la app se los pide como mucho una vez por semana.
 
-**Bajas y pausas:** al pasar a una alumna a Pausada o Baja, el panel pide el motivo y lo guarda en la última entrada de `alumnas.estado_log` (`{estado, fecha, motivo, nota}`; motivos: `tiempo`, `dinero`, `salud`, `motivacion`, `no_responde`, `otro`). En Alumnas → Bajas se ve cuántas hay por motivo, y "+ Motivo" anota el de una baja vieja.
+**Bajas y pausas:** al pasar a una alumna a Pausada o Baja, el panel pide el motivo y lo guarda en la última entrada de `alumnas_privado.estado_log` (`{estado, fecha, motivo, nota}`; motivos: `tiempo`, `dinero`, `salud`, `motivacion`, `no_responde`, `otro`). En Alumnas → Bajas se ve cuántas hay por motivo, y "+ Motivo" anota el de una baja vieja.
 
 ### Una alumna entrena
 1. Ve `rutinas[ciclo][semana][dia]` renderizado en la app.
@@ -378,6 +379,12 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 - **Cerradas el 12/10/2026:** `rutinas` (Amira todo; cada alumna solo lee las suyas) y `progreso` (Amira todo; cada alumna lee y guarda lo suyo, incluido el upsert sobre `progreso_unique`). Ninguna página previa al ingreso las usa, el generador de rutinas usa la clave de servicio, y el service worker no escribe: le avisa a la app abierta que sincronice. Ver `migrations/rls_rutinas_progreso_permisos.sql` y su marcha atrás.
 - **Cerradas el 13/10/2026:** `peso_alumna` y `push_subscriptions` (Amira todo; cada alumna lo suyo), `feedbacks` (Amira todo; cada alumna lee y crea los suyos, sin editar ni borrar), `avisos` (Amira todo; cada alumna lee los de `para = 'todas'` y los de su slug), `plantillas`, `pesos` y `fichas_salud` (solo Amira; las dos últimas están vacías y sin uso) y la lectura de `page_views` (solo Amira). Hasta ese día cualquier cuenta con sesión, no solo las alumnas, leía todos los reportes y publicaba avisos. Ver `migrations/rls_ultimas_tablas_permisos.sql` y su marcha atrás.
 - **Creada el 13/10/2026, con RLS:** `plantillas_mensajes` (solo Amira). Ver `migrations/plantillas_mensajes.sql`.
+- **Creada el 14/10/2026, con RLS:** `alumnas_privado` (solo Amira), con las notas privadas y el historial de pausas y bajas. Ver `migrations/alumnas_privado.sql` y su marcha atrás.
+  - Hasta ese día estaban en `alumnas`. Como cada alumna lee su fila, 3 podían ver las notas privadas que Amira escribió sobre ellas y 19 su historial, con el motivo.
+  - El panel los pega a cada alumna al cargar (`a.notas_privadas`, `a.estado_log`) y los guarda con `guardarPrivado`. Si no los pudo leer, no escribe, para no pisar el historial.
+  - Las columnas viejas de `alumnas` quedan vacías. El trigger `alumnas_sin_privado` pasa a la tabla nueva lo que escriba ahí un panel abierto desde antes, sumando entradas sin perder ninguna.
+  - Algo que la alumna no deba ver no va en `alumnas`.
+  - `notas` (💬) sí lo ve: la app lo muestra.
 - **Abiertas a propósito:** leer `ejercicios_biblioteca` (sin datos personales; la app la usa), insertar en `page_views` (las visitas de la landing, la bio y el formulario, que mandan `return=minimal`) e insertar inscripciones en `registros`.
 - **Cada alumna solo puede cambiar de su fila de `alumnas` `last_active_at`, `foto` y `dias_disponibles`**: lo frena el trigger `alumnas_limitar_cambios`, que no aplica a Amira, a las Edge Functions ni a las funciones `security definer`. Si la app tiene que cambiar otra columna, agregarla ahí.
 - **`ingresos_alumnas()`** (`security definer`, 13/10/2026): devuelve id de alumna y fecha de su último ingreso solo a Amira; otra cuenta recibe cero filas y sin sesión no se puede llamar. Ver `migrations/ingresos_alumnas.sql`.
