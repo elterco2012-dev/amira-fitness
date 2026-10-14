@@ -577,7 +577,13 @@ function _startAlumnaTokenRefresh(){
     const exp=parseInt(localStorage.getItem(AE_KEY)||'0');
     if(Date.now()>exp-10*60*1000){
       try{await _refreshAlumnaSess();}
-      catch(e){_clearAlumnaSess();showAuthScreen();}
+      catch(e){
+        // Sin señal no se cierra la sesión: se reintenta en 5 minutos. Antes, una
+        // hora con la app abierta y sin conexión la sacaba de la app, y lo que
+        // quedaba guardado para mandar (un aviso de dolor) esperaba a que volviera a entrar.
+        if(e instanceof TypeError) return;
+        _clearAlumnaSess();showAuthScreen();
+      }
     }
   },5*60*1000);
 }
@@ -601,6 +607,7 @@ async function doAlumnaLogin(){
     }
     _saveAlumnaSess(await r.json());
     await init();
+    flushSyncQueue(); // lo que quedó guardado sin sesión (un aviso, progreso) sale ahora
   }catch(e){msg.textContent='Error de conexión. Intentá de nuevo.';}
 }
 
@@ -666,7 +673,13 @@ async function checkAlumnaAuth(){
   const exp=parseInt(localStorage.getItem(AE_KEY))||0;
   if(Date.now()>exp-5*60*1000){
     try{await _refreshAlumnaSess();}
-    catch(e){_clearAlumnaSess();showAuthScreen();return false;}
+    catch(e){
+      // Sin señal (fetch tira TypeError) entra igual con lo guardado en el teléfono:
+      // la sesión dura una hora, y antes en el gimnasio sin conexión la app pedía
+      // el PIN y no la dejaba entrenar ni avisar un dolor. Al volver la señal se renueva.
+      if(e instanceof TypeError) return true;
+      _clearAlumnaSess();showAuthScreen();return false;
+    }
   }
   return true;
 }
@@ -1549,24 +1562,57 @@ function loadFotosCache(){
 // ── Cola de sync offline ─────────────────────────────────────
 // Guarda operaciones que fallaron para reintentarlas cuando haya conexión
 let syncQueue = JSON.parse(localStorage.getItem('af-sync-queue')||'[]');
+let _reintentoSync = null;
+
+// Fila que toca un upsert (las operaciones viejas de la cola no traen tabla: son de progreso).
+function _filaDeOp(op){
+  const tabla = op.table || 'progreso';
+  return tabla + ':' + (ON_CONFLICT[tabla]||'id').split(',').map(c=>op.data?.[c]).join('|');
+}
+// Avisos a Amira (dolor, problema con un ejercicio): se confirman aparte al mandarse.
+function _esAviso(op){
+  return op.table === 'feedbacks' && /^(dolor_|ejercicio_problema|dia_me_dolio)/.test(op.data?.tipo||'');
+}
 
 function queueSync(op){
+  // El mismo ejercicio guardado varias veces sin conexión queda en una sola
+  // operación: el upsert combina las columnas, así que el resultado es el mismo.
+  if(op.kind !== 'insert'){
+    const i = syncQueue.findIndex(o=>o.kind!=='insert' && _filaDeOp(o)===_filaDeOp(op));
+    if(i >= 0){ op = {...op, data:{...syncQueue[i].data, ...op.data}}; syncQueue.splice(i,1); }
+  }
   syncQueue.push({...op, ts: Date.now()});
-  if(syncQueue.length > 50) syncQueue = syncQueue.slice(-50);
+  // Tope para no llenar el teléfono: se descarta el progreso más viejo, nunca un
+  // insert (los avisos a Amira y los días completos). Antes el tope cortaba
+  // parejo y un aviso de dolor podía perderse.
+  while(syncQueue.length > 50){
+    const i = syncQueue.findIndex(o=>o.kind!=='insert');
+    if(i < 0) break;
+    syncQueue.splice(i,1);
+  }
   localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
+  updateOfflineBanner();
   // Registrar background sync para reintento automático
   if(swReg && 'sync' in swReg) swReg.sync.register('sync-progreso').catch(()=>{});
+  // Con señal, el envío pudo fallar por un corte corto o la sesión vencida: se
+  // reintenta en un rato (el iPhone no tiene el reintento del service worker).
+  if(navigator.onLine){ clearTimeout(_reintentoSync); _reintentoSync = setTimeout(flushSyncQueue, 20000); }
 }
 
 async function flushSyncQueue(){
   if(!syncQueue.length) return;
+  // Después de un rato sin señal la sesión venció y todo volvería a fallar:
+  // se renueva antes de mandar.
+  const exp = parseInt(localStorage.getItem(AE_KEY)) || 0;
+  if(localStorage.getItem(AR_KEY) && Date.now() > exp - 60*1000){
+    try{ await _refreshAlumnaSess(); }catch(e){}
+  }
   const pendientes = [...syncQueue];
   syncQueue = [];
   localStorage.setItem('af-sync-queue', JSON.stringify([]));
   let fallidos = [];
   for(const op of pendientes){
     try{
-      // Las operaciones viejas de la cola no traen tabla: son de progreso.
       if(op.kind === 'insert') await sbInsert(op.table, op.data);
       else await sbUpsert(op.table || 'progreso', op.data);
     }catch(e){
@@ -1576,9 +1622,9 @@ async function flushSyncQueue(){
   if(fallidos.length){
     syncQueue = [...fallidos, ...syncQueue];
     localStorage.setItem('af-sync-queue', JSON.stringify(syncQueue));
-  } else if(pendientes.length){
-    mostrarToast('✓ Progreso sincronizado');
   }
+  if(pendientes.some(op=>_esAviso(op) && !fallidos.includes(op))) mostrarToast('✓ Tu aviso le llegó a Amira');
+  else if(pendientes.length && !fallidos.length) mostrarToast('✓ Progreso sincronizado');
   updateOfflineBanner();
 }
 
@@ -2070,7 +2116,9 @@ async function toggleDone(aId,i,nextName){
             const semPushKey=`af-sem-push-${aId}-c${selCiclo}-${selSem}`;
             if(!localStorage.getItem(semPushKey)){
               localStorage.setItem(semPushKey,'1');
-              fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`🏆 ¡Semana ${selSem} completa, ${alm.nombre.split(' ')[0]}!`,body:'Terminaste todos tus días de esta semana. ¡Sos increíble! 🔥'})}).catch(()=>{});
+              // Con su sesión: desde el 14/10/2026 send-push no acepta la clave pública, y a una
+              // alumna solo la deja mandarse a sí misma.
+              fetch(`${SB_URL}/functions/v1/send-push`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-alumna-token')||SB_KEY}`},body:JSON.stringify({alumna_id:aId,title:`🏆 ¡Semana ${selSem} completa, ${alm.nombre.split(' ')[0]}!`,body:'Terminaste todos tus días de esta semana. ¡Sos increíble! 🔥'})}).catch(()=>{});
             }
           }
         }
@@ -2178,10 +2226,15 @@ async function confirmarPausa(){
 async function guardarFeedbackDia(aId,tipo){
   localStorage.setItem(fbKey(aId,selCiclo,selSem,selDia),tipo);
   renderRutina();
+  const fb={alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia};
   try{
     // El aviso a Amira lo dispara el trigger de la base al insertar (evita el duplicado).
-    await sbInsert('feedbacks',{alumna_id:aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia});
-  }catch(e){console.warn('feedback dia:',e);}
+    await sbInsert('feedbacks',fb);
+  }catch(e){
+    // Sin conexión queda en la cola y se manda al volver la señal: antes se
+    // perdía, y entre las respuestas está "Me dolió algo".
+    queueSync({kind:'insert',table:'feedbacks',data:fb});
+  }
 }
 
 // El check-in semanal de Notas se saco el 13/10/2026: se uso 5 veces en 70 dias,
@@ -2199,11 +2252,39 @@ function cerrarReporte(){document.getElementById('modal-reporte').style.display=
 async function enviarReporte(tipo){
   const nota=document.getElementById('rep-nota').value.trim();
   cerrarReporte();
+  const rep={alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null};
   try{
-    await sbInsert('feedbacks',{alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null});
+    await sbInsert('feedbacks',rep);
     const msg=tipo==='dolor_preocupante'?'🚨 Amira recibió una alerta y va a contactarte.':tipo==='dolor_articular'?'⚠️ Amira lo va a revisar. Cuidate.':tipo==='ejercicio_problema'?'🔧 Amira lo vio y va a revisarlo.':'💪 ¡Gracias! Es parte del proceso.';
     mostrarToast(msg);
-  }catch(e){mostrarToast('No se pudo enviar, gracias por avisar.');}
+  }catch(e){
+    // Antes decía "gracias por avisar" y el aviso se perdía. Ahora queda en la
+    // cola, se manda solo al volver la conexión y se le dice la verdad.
+    queueSync({kind:'insert',table:'feedbacks',data:rep});
+    avisoPendiente(rep);
+  }
+}
+
+// Cartel cuando el aviso no salió: dice que quedó guardado y, si es algo que
+// preocupa, ofrece escribirle ya a Amira por WhatsApp.
+function avisoPendiente(rep){
+  const urgente=rep.tipo==='dolor_preocupante';
+  const sinSenal=!navigator.onLine;
+  const ov=document.createElement('div');
+  ov.className='cel-overlay';
+  ov.innerHTML=`<div class="cel-card">
+    <span class="cel-emoji">${sinSenal?'📵':'⏳'}</span>
+    <div class="cel-title">${sinSenal?'Sin conexión':'No se pudo enviar'}</div>
+    <div class="cel-msg">Tu aviso quedó guardado en el teléfono y ${sinSenal?'se manda solo cuando vuelva la conexión, con la app abierta':'se vuelve a mandar solo en un rato'}.${urgente?' Si te duele mucho o te preocupa, no esperes: escribile ya a Amira.':''}</div>
+    ${urgente?`<a class="cel-btn" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">💬 Escribirle a Amira</a>`:''}
+    <button class="${urgente?'cel-btn-sec':'cel-btn'}" style="margin-bottom:0;" onclick="this.closest('.cel-overlay').remove()">Entendido</button>
+  </div>`;
+  if(urgente){
+    const txt=`Hola Amira, entrenando me pasó algo que me preocupa${rep.ejercicio_nombre?` con ${rep.ejercicio_nombre}`:''}.${rep.nota?`\n${rep.nota}`:''}`;
+    ov.querySelector('a').href=`https://wa.me/${AMIRA_WA}?text=${encodeURIComponent(txt)}`;
+  }
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
 }
 
 function initMaxPesos(aId){

@@ -14,6 +14,35 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
+// ── Quién llama ──────────────────────────────────────────────────────────────
+// Hasta el 14/10/2026 las funciones solo miraban que llegara un encabezado apikey,
+// con cualquier valor, y send-push y notify-amira ni eso: cualquiera podía mandarles
+// notificaciones a todas las alumnas o a Amira, o hacer correr la IA a costa de Amira.
+// Ahora cuenta quién es: la clave de servicio (pg_cron y los avisos de la base),
+// la sesión de Amira o la de una alumna (por su email en alumnas). Misma comprobación
+// que update-auth-email; está repetida en cada función porque se despliegan por separado.
+type Quien = { tipo: "servicio" } | { tipo: "amira" } | { tipo: "alumna"; alumnaId: number };
+async function quienLlama(req: Request): Promise<Quien | null> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  if (SB_SVC && token === SB_SVC) return { tipo: "servicio" };
+  const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } }).catch(() => null);
+  if (r?.ok) {
+    const email = String((await r.json().catch(() => ({})))?.email ?? "").toLowerCase();
+    if (!email) return null;
+    if (email === "amiralezcano@gmail.com") return { tipo: "amira" };
+    const filas = await fetch(`${SB_URL}/rest/v1/alumnas?select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
+      { headers: { apikey: SB_SVC, Authorization: `Bearer ${SB_SVC}` } }).then(x => x.ok ? x.json() : []).catch(() => []);
+    return filas?.[0]?.id ? { tipo: "alumna", alumnaId: filas[0].id } : null;
+  }
+  // Otra clave de servicio (la que tiene guardada pg_cron puede no ser idéntica a la del
+  // entorno): solo una clave de servicio puede leer la lista de usuarios.
+  const adm = await fetch(`${SB_URL}/auth/v1/admin/users?page=1&per_page=1`,
+    { headers: { apikey: token, Authorization: `Bearer ${token}` } }).catch(() => null);
+  return adm?.ok ? { tipo: "servicio" } : null;
+}
+const NO_AUTORIZADO = () => new Response("Unauthorized", { status: 401, headers: CORS });
+
 const TE = new TextEncoder();
 
 function b64u(data: ArrayBuffer | Uint8Array): string {
@@ -226,8 +255,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
-  const apikey = req.headers.get("apikey") ?? req.headers.get("x-api-key") ?? "";
-  if (!apikey) return new Response("Unauthorized", { status: 401, headers: CORS });
+  // pg_cron (clave de servicio) o Amira.
+  const quien = await quienLlama(req);
+  if (!quien || quien.tipo === "alumna") return NO_AUTORIZADO();
+  let probar = false;
+  try { probar = !!(await req.json())?.probar; } catch { /* sin cuerpo */ }
 
   try {
     // ── Cómputo de stats ─────────────────────────────────────────
@@ -250,6 +282,8 @@ Deno.serve(async (req) => {
     if (arrancando > 0) partes.push(`${arrancando} en sus primeras dos semanas`);
     const body = partes.join(" · ");
     const stats = { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando, arrancando };
+    // Para comprobar el acceso y la cuenta sin mandarle el resumen a Amira.
+    if (probar) return Response.json({ probar: true, quien: quien.tipo, title, body, stats }, { headers: CORS });
 
     // ── Envío ────────────────────────────────────────────────────
     let subs: Array<{ endpoint: string; p256dh: string; auth: string }> = [];

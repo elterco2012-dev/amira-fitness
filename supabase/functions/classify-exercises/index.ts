@@ -2,6 +2,9 @@
 // Usa claude-haiku (rápido y económico) porque es una tarea de clasificación simple.
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+const SB_URL  = Deno.env.get("SUPABASE_URL") ?? "";
+const SB_SVC  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -9,12 +12,41 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
+// ── Quién llama ──────────────────────────────────────────────────────────────
+// Hasta el 14/10/2026 las funciones solo miraban que llegara un encabezado apikey,
+// con cualquier valor, y send-push y notify-amira ni eso: cualquiera podía mandarles
+// notificaciones a todas las alumnas o a Amira, o hacer correr la IA a costa de Amira.
+// Ahora cuenta quién es: la clave de servicio (pg_cron y los avisos de la base),
+// la sesión de Amira o la de una alumna (por su email en alumnas). Misma comprobación
+// que update-auth-email; está repetida en cada función porque se despliegan por separado.
+type Quien = { tipo: "servicio" } | { tipo: "amira" } | { tipo: "alumna"; alumnaId: number };
+async function quienLlama(req: Request): Promise<Quien | null> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return null;
+  if (SB_SVC && token === SB_SVC) return { tipo: "servicio" };
+  const r = await fetch(`${SB_URL}/auth/v1/user`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } }).catch(() => null);
+  if (r?.ok) {
+    const email = String((await r.json().catch(() => ({})))?.email ?? "").toLowerCase();
+    if (!email) return null;
+    if (email === "amiralezcano@gmail.com") return { tipo: "amira" };
+    const filas = await fetch(`${SB_URL}/rest/v1/alumnas?select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
+      { headers: { apikey: SB_SVC, Authorization: `Bearer ${SB_SVC}` } }).then(x => x.ok ? x.json() : []).catch(() => []);
+    return filas?.[0]?.id ? { tipo: "alumna", alumnaId: filas[0].id } : null;
+  }
+  // Otra clave de servicio (la que tiene guardada pg_cron puede no ser idéntica a la del
+  // entorno): solo una clave de servicio puede leer la lista de usuarios.
+  const adm = await fetch(`${SB_URL}/auth/v1/admin/users?page=1&per_page=1`,
+    { headers: { apikey: token, Authorization: `Bearer ${token}` } }).catch(() => null);
+  return adm?.ok ? { tipo: "servicio" } : null;
+}
+const NO_AUTORIZADO = () => new Response("Unauthorized", { status: 401, headers: CORS });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
-  const apikey = req.headers.get("apikey") ?? req.headers.get("x-api-key") ?? "";
-  if (!apikey) return new Response("Unauthorized", { status: 401, headers: CORS });
+  // Solo Amira: cada llamada usa Claude a su costo.
+  if ((await quienLlama(req))?.tipo !== "amira") return NO_AUTORIZADO();
   if (!ANTHROPIC_API_KEY) return Response.json({ error: "ANTHROPIC_API_KEY no configurada" }, { status: 500, headers: CORS });
 
   type EjRow = { id: number; nombre: string; grupo_muscular?: string; descripcion?: string };

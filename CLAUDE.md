@@ -82,7 +82,7 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 
 **Deployment:** push a `main` → Vercel deploya automáticamente. Las Edge Functions se despliegan con `supabase functions deploy <nombre>`.
 
-**Qué se publica:** Vercel publica en amirafitness.com.ar todo lo que está en el repo, salvo lo que figura en `.vercelignore`: notas técnicas, migraciones, funciones del servidor y `.claude/`. Hasta el 13/10/2026 este archivo se podía leer desde el sitio. Un archivo nuevo que no sea para el sitio va en esa lista.
+**Qué se publica:** Vercel publica en amirafitness.com.ar todo lo que está en el repo, salvo lo que figura en `.vercelignore`: notas técnicas, migraciones, funciones del servidor, `.claude/` y la carpeta del sistema de diseño (desde el 14/10/2026: tenía copias viejas del panel y de la app). Hasta el 13/10/2026 este archivo se podía leer desde el sitio. Un archivo nuevo que no sea para el sitio va en esa lista.
 
 **Permisos de Claude (`.claude/settings.json`, 13/10/2026):** las sesiones de este repo trabajan sin pedir permiso a cada paso, salvo para cambiar la base: el SQL que escribe o borra, `apply_migration` y `deploy_edge_function` pasan por `.claude/hooks/preguntar_si_cambia_la_base.py`, que le pregunta a Aaron y le explica el motivo en el cartel. No sacar ese control. Solo vale en sesiones con un único repositorio.
 
@@ -164,6 +164,19 @@ Regla importante: ciclos **sin** `ciclos_inicio` se activan de inmediato (backwa
 
 ## Edge Functions — cómo funcionan
 
+**Quién puede llamarlas (desde el 14/10/2026):** `send-push`, `notify-amira`, `generate-routine`, `classify-exercises` y `weekly-summary` miran la credencial (`Authorization: Bearer …`) con `quienLlama`: la clave de servicio, la sesión de Amira o la de una alumna. La clave pública y cualquier otra cuenta reciben 401. Hasta ese día `send-push` y `notify-amira` aceptaban cualquier llamada: cualquiera podía mandarles una notificación a todas las alumnas. `update-auth-email` ya aceptaba solo a Amira.
+- `send-push`: clave de servicio y Amira. Una alumna solo se puede mandar a sí misma (el festejo de semana completa).
+- `notify-amira`: clave de servicio y alumnas. El aviso de una alumna sale siempre con su nombre.
+- `generate-routine` y `classify-exercises`: solo Amira, porque usan la IA, que se paga.
+- `weekly-summary`: clave de servicio y Amira.
+- Con `{"probar": true}`, `send-push`, `notify-amira` y `weekly-summary` responden quién llama y a cuántos les mandarían, sin mandar nada. Para una alumna no vale.
+- Las llaman solas, con la clave de servicio:
+  - el cron `push-recordatorios-diarios`, a las 9, con `filter_by_day`;
+  - el cron `amira-resumen-semanal`, el domingo a las 22;
+  - los webhooks de `feedbacks`, `registros` y `notas_sesion`, que llaman a `notify-amira`.
+  Los `comentarios` de la alumna avisan desde la app (`sbNotifyAmira`).
+- `verify_jwt` está apagado en `send-push` y `notify-amira` y prendido en las otras. Hay que mantenerlo así al desplegar.
+
 ### `generate-routine` (Claude Opus 4.7)
 La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
 1. Fetcha perfil de la alumna, biblioteca de ejercicios, rutinas anteriores, historial de progreso, feedbacks.
@@ -180,7 +193,7 @@ Implementa Web Push RFC 8291 (aes128gcm) con VAPID. No usa librerías externas.
 - Auto-limpia endpoints 410/404 (suscripciones vencidas).
 
 ### `notify-amira`
-Se llama con `sbNotifyAmira(table, record)` desde el cliente cuando una alumna hace algo importante (feedback, nota de sesión, comentario). Rutea el evento a un push para Amira.
+La llaman los webhooks de la base cuando entra un reporte, una inscripción o una nota de sesión, y la app con `sbNotifyAmira(table, record)` cuando la alumna deja un comentario. Rutea el evento a un push para Amira.
 
 ### `classify-exercises` (Claude Haiku 4.5)
 Batch classification de ejercicios. Rápida y barata. Devuelve patrón de movimiento, nivel, equipamiento, posición, bilateral, impacto.
@@ -192,13 +205,26 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v70` al 13/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v71` al 14/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
 - **CDN (Google Fonts, etc.):** cache first.
 - **Assets propios:** network first → cache → `offline.html`.
-- **Background sync:** tag `sync-progreso` para sincronizar progreso marcado offline.
+- **Background sync:** tag `sync-progreso`. El service worker no escribe: le avisa a la app abierta que mande la cola.
+
+**Sin conexión en la app de alumna (14/10/2026):** lo que no se pudo guardar queda en la cola (`af-sync-queue`) y sale solo:
+- Sale al volver la señal, a los 20 segundos si falló con señal, al abrir la app y al volver a entrar.
+- Antes de mandar, la app renueva la sesión si venció.
+- Los reportes ("Reportar", y "¿Cómo te fue?") entran a la cola como cualquier otra cosa.
+  - Si un reporte no sale, la alumna ve un cartel que dice que quedó guardado.
+  - Con "🚨 Algo me preocupa", el cartel tiene un botón para escribirle a Amira por WhatsApp.
+  - Cuando el reporte se manda, la app avisa "Tu aviso le llegó a Amira".
+  - Hasta ese día decía "gracias por avisar" y el reporte se perdía.
+- La cola tiene tope de 50, pero nunca descarta un insert (reportes, días completos). El mismo ejercicio guardado varias veces queda como una sola operación.
+- Sin señal, la app no cierra la sesión: ni al abrirla ni con el refresco de cada 5 minutos.
+  - Hasta el 14/10, después de una hora sin señal pedía el PIN, y en el gimnasio la alumna no podía ni entrenar ni avisar.
+  - Solo la saca si el servidor rechaza la sesión.
 
 ---
 
@@ -335,7 +361,7 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 **RLS: hasta el 12/10/2026 casi todas las tablas estaban abiertas.** Las políticas permisivas se suman (OR), así que bastaba una con `USING (true)` para que cualquiera con la anon key (que está en `sb.js`) pudiera leer, modificar y borrar. La app de alumna exige ingresar (email + PIN) antes de cargar datos, así que cada alumna puede operar viendo solo lo suyo.
 
 - **Cerradas el 12/10/2026:** `alumnas` (Amira todo; cada alumna lee y actualiza solo su fila por `lower(email) = lower(auth.email())`) y `comentarios` (Amira todo; cada alumna solo los suyos). Ver `migrations/rls_alumnas_1_funciones.sql` y `rls_alumnas_2_permisos.sql`. Marcha atrás de emergencia: `rls_alumnas_2_marcha_atras.sql`.
-- **Cerrada el 12/10/2026:** `registros` (Amira todo; sin sesión solo se puede insertar una fila de tipo `registro` o `ficha_salud` con estado `pendiente` o `aprobado`, sin leer, modificar ni borrar). El formulario y la ficha insertan con `sbInsertSinRespuesta` (`return=minimal`): pedir la fila de vuelta exige permiso de lectura y el insert fallaría. Ver `migrations/rls_registros_permisos.sql` y su marcha atrás.
+- **Cerrada el 12/10/2026:** `registros` (Amira todo; sin sesión solo se puede insertar una fila de tipo `registro` o `ficha_salud` con estado `pendiente`, sin leer, modificar ni borrar). Hasta el 14/10/2026 también entraba como `aprobado`: cualquiera con el link le cargaba una ficha aprobada a otra alumna. La ficha de una alumna existente la aprueba Amira desde Registros (`migrations/ficha_sin_edad_y_pendiente.sql`). El formulario y la ficha insertan con `sbInsertSinRespuesta` (`return=minimal`): pedir la fila de vuelta exige permiso de lectura y el insert fallaría. Ver `migrations/rls_registros_permisos.sql` y su marcha atrás.
 - **Cerradas el 12/10/2026:** `rutinas` (Amira todo; cada alumna solo lee las suyas) y `progreso` (Amira todo; cada alumna lee y guarda lo suyo, incluido el upsert sobre `progreso_unique`). Ninguna página previa al ingreso las usa, el generador de rutinas usa la clave de servicio, y el service worker no escribe: le avisa a la app abierta que sincronice. Ver `migrations/rls_rutinas_progreso_permisos.sql` y su marcha atrás.
 - **Cerradas el 13/10/2026:** `peso_alumna` y `push_subscriptions` (Amira todo; cada alumna lo suyo), `feedbacks` (Amira todo; cada alumna lee y crea los suyos, sin editar ni borrar), `avisos` (Amira todo; cada alumna lee los de `para = 'todas'` y los de su slug), `plantillas`, `pesos` y `fichas_salud` (solo Amira; las dos últimas están vacías y sin uso) y la lectura de `page_views` (solo Amira). Hasta ese día cualquier cuenta con sesión, no solo las alumnas, leía todos los reportes y publicaba avisos. Ver `migrations/rls_ultimas_tablas_permisos.sql` y su marcha atrás.
 - **Creada el 13/10/2026, con RLS:** `plantillas_mensajes` (solo Amira). Ver `migrations/plantillas_mensajes.sql`.
@@ -344,6 +370,8 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 - **`ingresos_alumnas()`** (`security definer`, 13/10/2026): devuelve id de alumna y fecha de su último ingreso solo a Amira; otra cuenta recibe cero filas y sin sesión no se puede llamar. Ver `migrations/ingresos_alumnas.sql`.
 - **Activar notificaciones pasa por `guardar_suscripcion(alumna_id, endpoint, p256dh, auth)`** (`security definer`, solo con sesión): un celular tiene una sola suscripción, y si ya era de otra alumna se la pasa a quien la activa.
 - **Lo previo al ingreso pasa por funciones `security definer`** que devuelven lo justo: `alumna_registrada(email)` (sí/no, al crear el PIN), `ficha_alumna(slug)` y `ficha_guardar(slug, lesiones, tel)` (ficha de salud). Nunca exponer `nacimiento`: es el PIN de ingreso.
+  - Desde el 14/10/2026 `ficha_alumna` ya no da la edad: la columna sigue y viene vacía. Con la edad, el PIN quedaba en unas 730 combinaciones.
+  - `ficha_guardar` ya no cambia un teléfono cargado; solo completa uno vacío.
 - **Antes de abrir o crear una tabla**, revisar también qué puede hacer cualquier cuenta con sesión: crear una cuenta es libre, así que `to authenticated using (true)` deja pasar a cualquiera, no solo a las alumnas.
 - Cada tabla nueva tiene que nacer con RLS activado y sin políticas `USING (true)`.
 - Los emails de `alumnas` se guardan en minúscula: el de ingreso siempre llega en minúscula.

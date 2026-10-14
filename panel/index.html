@@ -1772,9 +1772,10 @@ async function clasificarConIA() {
   const btn = document.getElementById('bib-clasificar-btn');
   if (btn) { btn.textContent = '⚙️ Clasificando...'; btn.disabled = true; }
   try {
+    // Con la sesión de Amira: desde el 14/10/2026 la función solo la acepta a ella.
     const resp = await fetch(`${SB_URL}/functions/v1/classify-exercises`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json','apikey':SB_KEY},
+      headers: {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${localStorage.getItem('af-access-token')||SB_KEY}`},
       body: JSON.stringify({ejercicios: sinClasificar.map(e=>({id:e.id,nombre:e.nombre,grupo_muscular:e.grupo_muscular,descripcion:e.descripcion}))})
     });
     const data = await resp.json();
