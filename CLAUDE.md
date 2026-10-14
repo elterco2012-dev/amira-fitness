@@ -213,7 +213,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v71` al 14/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v72` al 14/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -224,11 +224,10 @@ Estrategias:
 **Sin conexión en la app de alumna (14/10/2026):** lo que no se pudo guardar queda en la cola (`af-sync-queue`) y sale solo:
 - Sale al volver la señal, a los 20 segundos si falló con señal, al abrir la app y al volver a entrar.
 - Antes de mandar, la app renueva la sesión si venció.
-- Los reportes ("Reportar", y "¿Cómo te fue?") entran a la cola como cualquier otra cosa.
-  - Si un reporte no sale, la alumna ve un cartel que dice que quedó guardado.
-  - Con "🚨 Algo me preocupa", el cartel tiene un botón para escribirle a Amira por WhatsApp.
-  - Cuando el reporte se manda, la app avisa "Tu aviso le llegó a Amira".
-  - Hasta ese día decía "gracias por avisar" y el reporte se perdía.
+- Los reportes ("Reportar", y "¿Cómo te fue?") entran a la cola como cualquier otra cosa. Hasta ese día decía "gracias por avisar" y el reporte se perdía.
+  - Si un reporte no sale, se resuelve en silencio, con el mensaje de siempre (decidido con Aaron: avisar que falló preocupa a la alumna sin que pueda hacer nada).
+  - La excepción es "🚨 Algo me preocupa". La app le promete que Amira la va a contactar, y sin saber que no salió se quedaría esperando.
+  - Por eso ve el cartel "Tu aviso quedó guardado", con un botón para escribirle a Amira por WhatsApp. Cuando sale, la app confirma "Tu aviso le llegó a Amira".
 - La cola tiene tope de 50, pero nunca descarta un insert (reportes, días completos). El mismo ejercicio guardado varias veces queda como una sola operación.
 - Sin señal, la app no cierra la sesión: ni al abrirla ni con el refresco de cada 5 minutos.
   - Hasta el 14/10, después de una hora sin señal pedía el PIN, y en el gimnasio la alumna no podía ni entrenar ni avisar.
@@ -277,6 +276,12 @@ Estrategias:
 - Un ejercicio se marca solo con el círculo o con "Marcar hecho". Tocar el nombre abre la técnica, porque lo marcaba sin querer y guardaba el peso precargado.
 - El festejo del día dice cuándo es el próximo entrenamiento y pregunta "¿Cómo te fue hoy?".
 - El check-in semanal de Notas se sacó: se usó 5 veces en 70 días y duplicaba la revisión de los lunes.
+- **Pantalla prendida mientras entrena (14/10/2026, `mantenerPantalla`):**
+  - El descanso dura 45 segundos y muchos celulares apagan la pantalla a los 30. Ella no veía la cuenta regresiva, no le llegaba la vibración y tenía que desbloquear para marcar el siguiente.
+  - Desde el primer ejercicio que marca hasta que termina el día (o la sesión corta), la pantalla queda prendida (Screen Wake Lock).
+  - Si no la toca en 10 minutos (`PANTALLA_MIN`), vuelve a lo normal.
+  - Al volver a la app se pide de nuevo.
+  - En un iPhone con la app instalada antes de iOS 18.4 no hace nada.
 - El zoom está habilitado: no volver a poner `maximum-scale=1`. En el celular los campos tienen que tener letra de 16 px o más (lo fuerza un `@media (pointer:coarse)`); si no, el iPhone agranda la pantalla al tocarlos.
 
 **Revisión semanal (lunes, decidido con Amira):** en Inicio aparece la lista de alumnas activas con lo que hizo cada una la semana anterior. No entran la cuenta de Amira ni las que todavía no eran alumnas cuando empezó la semana que se revisa (13/10/2026): en su primera semana tienen los mensajes del día 3 y del día 7, y la revisión empieza el lunes siguiente.
