@@ -92,7 +92,7 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 
 | Tabla | Para qué sirve |
 |-------|---------------|
-| `alumnas` | Perfil completo de cada alumna: nombre, slug, nivel, equipamiento, ciclo actual, nombres de ciclos, fechas de inicio de ciclos, objetivos, lesiones, estado. La alumna lee su propia fila: lo que no debe ver va en `alumnas_privado` |
+| `alumnas` | Perfil completo de cada alumna: nombre, slug, nivel, equipamiento, ciclo actual, nombres de ciclos, fechas de inicio de ciclos, objetivos, lesiones, estado, cómo llegó (`origen`). La alumna lee su propia fila: lo que no debe ver va en `alumnas_privado` |
 | `alumnas_privado` | Lo que Amira escribe de cada alumna y la alumna no ve: notas privadas (🔒) e historial de pausas y bajas (`estado_log`). Solo Amira (14/10/2026) |
 | `rutinas` | Plan de entrenamiento. Una fila por (alumna_id, ciclo, semana, dia). El campo `ejercicios` es JSONB con el array de ejercicios del día |
 | `progreso` | Un registro por ejercicio completado: (alumna_id, ciclo, semana, dia, ejercicio_idx). Guarda hecho, peso_kg, rpe, nota |
@@ -108,6 +108,7 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 | `plantillas` | Plantillas de rutina (estructura de días y ejercicios para copiar a una alumna) |
 | `plantillas_mensajes` | Plantillas de WhatsApp del panel, una fila por conjunto (`alumna` y `general`): el celular y la compu de Amira usan los mismos textos |
 | `avisos` | Anuncios que aparecen en la app de alumnas |
+| `page_views` | Visitas a la web y clics a WhatsApp, con su origen: `/`, `/registro`, `/bio/view`, `/bio/<link>`, `/wa` y `/registro/wa`. Cualquiera puede insertar; solo Amira lee |
 
 ---
 
@@ -214,7 +215,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v73` al 14/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v74` al 19/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -301,6 +302,23 @@ Estrategias:
 - **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
 - **Arranque** (punto de partida, 13/10/2026): de 35 alumnas, 6 nunca marcaron un ejercicio (1 sigue activa). De las 29 que arrancaron, la mitad marcó el primero antes de los 2 días del alta, 18 dentro de los 3 días y 7 después de una semana. Entran 4 o 5 alumnas por mes. Se mide con `alumnas.created_at` y la primera fila de `progreso` con `hecho`.
 - **Constancia** (punto de partida, 13/10/2026): con la cuenta de "Constancia" hecha en SQL sobre `progreso`, `rutinas` y las sesiones cortas de `feedbacks`, en septiembre habrían llegado a la meta 9 de las 16 alumnas activas que ya entrenaban.
+
+### Visitas a la web y de dónde vienen las alumnas (19/10/2026)
+- **WhatsApp, no el formulario.** Los botones de la web llevan a WhatsApp, no al formulario: desde agosto nadie se anotó por ahí.
+  - Por eso cada clic a WhatsApp se anota en `page_views`, con el origen con el que la persona entró al sitio: `/wa` en la principal, `/registro/wa` y `/bio/wa`.
+  - Análisis muestra cuántas personas lo tocaron y de dónde venían. Antes solo lo veía Analytics (`click_whatsapp`).
+- **Quién cuenta** (`afCuenta`, repetida en `index.html`, `registro` y `bio`):
+  - una visita cuenta después de 3 segundos a la vista, y una vez por día por navegador;
+  - no cuentan los robots (`navigator.webdriver`, o "bot", "headless", etc. en el navegador), ni un navegador con la sesión de Amira o de una alumna.
+  - En Analytics, más de la mitad de las visitas de septiembre y octubre venían de centros de datos.
+- **Visitas viejas sin origen:** las anotadas antes del 12/10 no lo traen, y el panel lo saca del sitio del que venían (`referrer`).
+- **"¿Cómo llegó?"** (`alumnas.origen`): Instagram, WhatsApp, Recomendación, Google, Web u Otro.
+  - Amira lo anota en el alta o en la ficha. Al aprobar una inscripción se precarga con lo que anotó la web.
+  - Análisis muestra de dónde vinieron las alumnas de los últimos 90 días.
+  - De agosto a octubre llegaron por Instagram y una por WhatsApp; ninguna por Google Ads.
+- **Google Ads:**
+  - Hasta el 28/9 los anuncios también salían en sitios de juegos y horóscopos (red de Display).
+  - El 19/10 Aaron pasó las palabras clave a concordancia de frase, agregó negativas e importó `click_whatsapp` y `registro_completado` de Analytics como conversiones.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".
