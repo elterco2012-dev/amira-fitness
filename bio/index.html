@@ -130,10 +130,25 @@ function origenBio(){
     return 'Instagram';
   }catch(e){ return 'Instagram'; }
 }
+// Quién cuenta, igual que en la página principal (19/10/2026): ni robots, ni un
+// navegador con la sesión de Amira o de una alumna, y cada cosa una vez por día.
+function afCuenta(clave){
+  try{
+    var ua=navigator.userAgent||'';
+    if(navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|python|curl|wget/i.test(ua))return false;
+    if(localStorage.getItem('af-access-token')||localStorage.getItem('af-alumna-token'))return false;
+    var d=new Date(),k='af-cont-'+clave+'-'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    if(localStorage.getItem(k))return false;
+    for(var i=localStorage.length-1;i>=0;i--){var x=localStorage.key(i);if(x&&x.indexOf('af-cont-'+clave+'-')===0)localStorage.removeItem(x);}
+    localStorage.setItem(k,'1');
+  }catch(e){}
+  return true;
+}
 function trackClick(link){
   try{
+    if(!afCuenta('bio-'+link))return;
     fetch(SB_URL+'/rest/v1/page_views',{
-      method:'POST',
+      method:'POST',keepalive:true,
       headers:{'Content-Type':'application/json','apikey':SB_ANON,'Prefer':'return=minimal'},
       body:JSON.stringify({page:'/bio/'+link,referrer:document.referrer||null,origen:origenBio()})
     }).catch(function(){});
@@ -155,8 +170,21 @@ function trackClick(link){
   localStorage.setItem('af-origen-ts',String(Date.now()));
 }catch(e){}})();
 
-// Track página bio visit
-trackClick('view');
+// La apertura de la bio cuenta cuando estuvo 3 segundos a la vista: un robot entra y se va.
+(function(){
+  var t=null,hecho=false;
+  function intentar(){
+    if(hecho||document.visibilityState!=='visible')return;
+    clearTimeout(t);
+    t=setTimeout(function(){
+      if(hecho||document.visibilityState!=='visible')return;
+      hecho=true;
+      trackClick('view');
+    },3000);
+  }
+  intentar();
+  document.addEventListener('visibilitychange',intentar);
+})();
 </script>
 
 </body>

@@ -760,13 +760,54 @@ function afOrigen(){
     return'Otro';
   }catch(e){ return'Directo'; }
 }
-(function(){try{
-  fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},
-    body:JSON.stringify({page:'/',referrer:document.referrer||null,origen:afOrigen()})
-  }).catch(function(){});
-}catch(e){}})();
+// Quién cuenta como visita (19/10/2026). En Analytics más de la mitad de las visitas
+// venían de centros de datos (robots), y Amira y las alumnas que abren la web se
+// contaban como interesadas. No cuentan los robots ni un navegador con la sesión de
+// Amira o de una alumna, y cada persona cuenta una vez por día.
+function afCuenta(clave){
+  try{
+    var ua=navigator.userAgent||'';
+    if(navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|python|curl|wget/i.test(ua))return false;
+    if(localStorage.getItem('af-access-token')||localStorage.getItem('af-alumna-token'))return false;
+    var d=new Date(),k='af-cont-'+clave+'-'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    if(localStorage.getItem(k))return false;
+    for(var i=localStorage.length-1;i>=0;i--){var x=localStorage.key(i);if(x&&x.indexOf('af-cont-'+clave+'-')===0)localStorage.removeItem(x);}
+    localStorage.setItem(k,'1');
+  }catch(e){}
+  return true;
+}
+function afAnotar(page,origen){
+  try{
+    fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{
+      method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},
+      body:JSON.stringify({page:page,referrer:document.referrer||null,origen:origen})
+    }).catch(function(){});
+  }catch(e){}
+}
+// La visita cuenta cuando la página estuvo 3 segundos a la vista: un robot entra y se va.
+(function(){
+  var t=null,hecho=false;
+  function intentar(){
+    if(hecho||document.visibilityState!=='visible')return;
+    clearTimeout(t);
+    t=setTimeout(function(){
+      if(hecho||document.visibilityState!=='visible')return;
+      hecho=true;
+      if(afCuenta('visita'))afAnotar('/',afOrigen());
+    },3000);
+  }
+  intentar();
+  document.addEventListener('visibilitychange',intentar);
+})();
+// De dónde vino la persona al entrar al sitio (se guarda abajo), para anotar el clic a WhatsApp.
+function afOrigenGuardado(){
+  try{
+    var o=localStorage.getItem('af-origen'),ts=parseInt(localStorage.getItem('af-origen-ts')||'0',10);
+    if(o&&(!ts||Date.now()-ts<45*86400000))return o;
+  }catch(e){}
+  return afOrigen();
+}
 </script>
 
 <!-- Detecta de dónde viene la persona (Google Ads / Instagram / etc.) y lo guarda,
@@ -789,6 +830,9 @@ function afOrigen(){
   document.addEventListener('click',function(e){
     var a=e.target.closest && e.target.closest('a[href*="wa.me"]');
     if(!a)return;
+    // Se anota también en la base: el panel cuenta cuántas personas escribieron y de
+    // dónde venían. Hasta el 19/10/2026 solo lo veía Analytics.
+    if(afCuenta('wa'))afAnotar('/wa',afOrigenGuardado());
     try{
       if(typeof gtag==='function'){
         gtag('event','click_whatsapp',{origen:'landing'});

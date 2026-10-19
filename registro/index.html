@@ -297,6 +297,48 @@ document.getElementById('wa-directo').href=
     localStorage.setItem('af-origen-ts',String(Date.now()));
   }
 }catch(e){}})();</script>
-<script>(function(){try{fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},body:JSON.stringify({page:'/registro',referrer:document.referrer||null,origen:(localStorage.getItem('af-origen')||null)})}).catch(function(){});}catch(e){}})();</script>
+<script>
+// Quién cuenta como visita, igual que en la página principal (19/10/2026): ni robots,
+// ni un navegador con la sesión de Amira o de una alumna, una vez por día, y después
+// de 3 segundos a la vista.
+function afCuenta(clave){
+  try{
+    var ua=navigator.userAgent||'';
+    if(navigator.webdriver||/bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|python|curl|wget/i.test(ua))return false;
+    if(localStorage.getItem('af-access-token')||localStorage.getItem('af-alumna-token'))return false;
+    var d=new Date(),k='af-cont-'+clave+'-'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    if(localStorage.getItem(k))return false;
+    for(var i=localStorage.length-1;i>=0;i--){var x=localStorage.key(i);if(x&&x.indexOf('af-cont-'+clave+'-')===0)localStorage.removeItem(x);}
+    localStorage.setItem(k,'1');
+  }catch(e){}
+  return true;
+}
+function afAnotar(page,origen){
+  try{
+    fetch('https://aywkeoxwybzcexaichtv.supabase.co/rest/v1/page_views',{method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json','apikey':'sb_publishable_8j3ihLED6ui6L32T0QQ5EQ_soH0TSQb','Prefer':'return=minimal'},
+      body:JSON.stringify({page:page,referrer:document.referrer||null,origen:origen})}).catch(function(){});
+  }catch(e){}
+}
+(function(){
+  var t=null,hecho=false;
+  function intentar(){
+    if(hecho||document.visibilityState!=='visible')return;
+    clearTimeout(t);
+    t=setTimeout(function(){
+      if(hecho||document.visibilityState!=='visible')return;
+      hecho=true;
+      if(afCuenta('registro'))afAnotar('/registro',leerOrigen());
+    },3000);
+  }
+  intentar();
+  document.addEventListener('visibilitychange',intentar);
+  // Los botones de WhatsApp de esta página (preguntar antes de anotarse y el de después).
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a[href*="wa.me"]');
+    if(a&&afCuenta('wa'))afAnotar('/registro/wa',leerOrigen());
+  },true);
+})();
+</script>
 </body>
 </html>
