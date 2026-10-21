@@ -172,6 +172,9 @@ Regla importante: ciclos **sin** `ciclos_inicio` se activan de inmediato (backwa
 - `generate-routine` y `classify-exercises`: solo Amira, porque usan la IA, que se paga.
 - `weekly-summary`: clave de servicio y Amira.
 - Con `{"probar": true}`, `send-push`, `notify-amira` y `weekly-summary` responden quién llama y a cuántos les mandarían, sin mandar nada. Para una alumna no vale.
+  - `weekly-summary` además arma y firma la notificación de cada dispositivo sin mandarla: `listos` dice cuántas saldrían y `error`, por qué no.
+  - Hasta el 21/10/2026 la prueba no firmaba: daba bien y el envío de verdad fallaba.
+- **Probar con el mismo Deno que Supabase:** el 2.1.4 (`served_by` en los logs de cada función). Uno más nuevo acepta cosas que ahí fallan: el resumen del domingo firmaba bien con el Deno 2.9 y en Supabase no.
 - Las llaman solas, con la clave de servicio:
   - el cron `push-recordatorios-diarios`, a las 9, con `filter_by_day`;
   - el cron `amira-resumen-semanal`, el domingo a las 22;
@@ -210,6 +213,11 @@ Batch classification de ejercicios. Rápida y barata. Devuelve patrón de movimi
 
 ### `weekly-summary`
 Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta semana, las que necesitan atención, reportes de dolor y las que están en sus primeras dos semanas. Envía resumen a Amira vía push. `calcularResumen` usa las mismas reglas que "Hoy hay que atender" del panel: si cambia una, cambiar la otra y volver a desplegar la función.
+- **Hasta el 21/10/2026 el resumen no le llegaba a Amira.**
+  - Hasta el 14/10 el cron no tenía la clave.
+  - El 18/10, la primera vez que corrió con la clave, falló al firmar la notificación. Armaba la clave privada como PKCS8 sin la parte pública, y el Deno de Supabase la importa pero no firma con ella ("InvalidEncoding").
+  - Ahora firma como `send-push` y `notify-amira` (JWK con la parte pública).
+- Cada corrida deja en los logs de la función `[weekly-summary] sent=N/M` con el texto del resumen. La respuesta en `net._http_response` dura unas 6 horas.
 
 ---
 
