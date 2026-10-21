@@ -361,6 +361,10 @@
     .egg-msg{font-size:12px;color:rgba(255,255,255,.85);line-height:1.7;margin-bottom:1.5rem;}
     .egg-btn{background:white;color:#633806;border:none;border-radius:99px;padding:12px 28px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
 
+    /* Reportar: la opción elegida, y Enviar apagado hasta elegir una */
+    .rep-op.sel{box-shadow:0 0 0 2px currentColor;}
+    #rep-enviar:disabled{opacity:.45;cursor:default;}
+
   </style>
 </head>
 <body>
@@ -498,24 +502,25 @@
   <div style="background:var(--s);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;">
     <div style="font-size:16px;font-weight:600;color:var(--t);margin-bottom:1rem;" id="rep-titulo">¿Qué pasó?</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">
-      <button onclick="enviarReporte('ejercicio_problema')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
+      <button class="rep-op" data-tipo="ejercicio_problema" onclick="elegirReporte('ejercicio_problema')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
         <div style="font-size:14px;font-weight:500;">🔧 Problema con el ejercicio</div>
         <div style="font-size:11px;color:var(--tm);margin-top:2px;">Sin equipo, no entiendo el movimiento, otro motivo</div>
       </button>
-      <button onclick="enviarReporte('dolor_normal')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
+      <button class="rep-op" data-tipo="dolor_normal" onclick="elegirReporte('dolor_normal')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--b);background:var(--s2);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t);">
         <div style="font-size:14px;font-weight:500;">💪 Dolor muscular normal</div>
         <div style="font-size:11px;color:var(--tm);margin-top:2px;">Ardor o agujetas — es parte del proceso</div>
       </button>
-      <button onclick="enviarReporte('dolor_articular')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--ad);background:var(--a);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--ad);">
+      <button class="rep-op" data-tipo="dolor_articular" onclick="elegirReporte('dolor_articular')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid var(--ad);background:var(--a);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--ad);">
         <div style="font-size:14px;font-weight:500;">⚠️ Molestia articular</div>
         <div style="font-size:11px;margin-top:2px;opacity:.8;">Rodilla, hombro, codo — Amira va a revisarlo</div>
       </button>
-      <button onclick="enviarReporte('dolor_preocupante')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f0959544;background:var(--rl);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--rd);">
+      <button class="rep-op" data-tipo="dolor_preocupante" onclick="elegirReporte('dolor_preocupante')" style="text-align:left;padding:.75rem 1rem;border-radius:var(--rs);border:1px solid #f0959544;background:var(--rl);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--rd);">
         <div style="font-size:14px;font-weight:500;">🚨 Algo me preocupa</div>
         <div style="font-size:11px;margin-top:2px;opacity:.8;">Dolor intenso, agudo o raro — Amira recibe alerta inmediata</div>
       </button>
     </div>
     <textarea id="rep-nota" rows="2" placeholder="Contale a Amira qué pasó (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--bm);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--t);resize:none;margin-bottom:.75rem;"></textarea>
+    <button id="rep-enviar" onclick="enviarReporte()" disabled style="width:100%;padding:12px;border-radius:var(--rp);border:none;background:var(--v);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;">Elegí qué pasó</button>
     <button onclick="cerrarReporte()" style="width:100%;padding:10px;border-radius:var(--rp);border:1px solid var(--bm);background:var(--s);color:var(--tm);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
   </div>
 </div>
@@ -2285,15 +2290,30 @@ async function guardarFeedbackDia(aId,tipo){
 // preguntaba por la semana de la rutina, decia "¡enviado!" aunque fallara y
 // duplicaba la revision de los lunes, que Amira hace por WhatsApp.
 
-let _repCtx={aId:null,idx:null,nombre:''};
+let _repCtx={aId:null,idx:null,nombre:''}, _repTipo=null;
 function reportarProblema(aId,idx,nombre){
-  _repCtx={aId,idx,nombre};
+  _repCtx={aId,idx,nombre}; _repTipo=null;
   document.getElementById('rep-titulo').textContent='¿Qué pasó con '+nombre+'?';
   document.getElementById('rep-nota').value='';
+  marcarOpcionReporte();
   document.getElementById('modal-reporte').style.display='flex';
 }
+// Elegir una opción no manda el reporte: se elige, se escribe si quiere y se toca Enviar.
+// Hasta el 21/10/2026 cada opción lo mandaba al tocarla, con el comentario abajo y todavía
+// vacío, y la que quería contar algo lo mandaba de nuevo: 18 de 69 reportes de ejercicios
+// fueron repetidos, y cada uno le llegaba a Amira como un aviso más.
+function elegirReporte(tipo){ _repTipo=tipo; marcarOpcionReporte(); }
+function marcarOpcionReporte(){
+  document.querySelectorAll('#modal-reporte .rep-op').forEach(b=>b.classList.toggle('sel',b.dataset.tipo===_repTipo));
+  const env=document.getElementById('rep-enviar');
+  env.disabled=!_repTipo;
+  env.textContent=_repTipo?'Enviar':'Elegí qué pasó';
+}
 function cerrarReporte(){document.getElementById('modal-reporte').style.display='none';}
-async function enviarReporte(tipo){
+async function enviarReporte(){
+  const tipo=_repTipo;
+  if(!tipo) return;
+  _repTipo=null;   // un segundo toque no lo manda dos veces
   const nota=document.getElementById('rep-nota').value.trim();
   cerrarReporte();
   const rep={alumna_id:_repCtx.aId,tipo,ciclo:selCiclo,semana:selSem,dia:selDia,ejercicio_idx:_repCtx.idx,ejercicio_nombre:_repCtx.nombre,nota:nota||null};

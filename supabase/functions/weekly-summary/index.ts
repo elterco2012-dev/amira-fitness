@@ -207,6 +207,9 @@ const DIAS_ESPERA_CONTACTO = 3;
 // semanas" de Inicio, no "Hoy hay que atender" (igual que el panel, 13/10/2026).
 const DIAS_ARRANQUE = 14;
 const AR = -3 * 3600000; // Argentina, sin horario de verano: dias de calendario como en el panel
+// La alumna con la que entrena Amira: no es una alumna, y el Inicio del panel no la cuenta
+// (CUENTA_DE_AMIRA, 21/10/2026). Hasta ese dia el resumen decia "de 18" y eran 17.
+const CUENTA_DE_AMIRA = 3;
 
 function diaAR(t: number): number { return Math.floor((t + AR) / 86400000); }
 function localDayDiff(iso: string | null | undefined, ahora: number): number | null {
@@ -221,7 +224,7 @@ type Dolor = { alumna_id: number; tipo: string; atendido_at?: string | null; cre
 type Contacto = { alumna_id: number; created_at: string };
 
 export function calcularResumen(alumnas: Alumna[], hechos: Hecho[], dolores: Dolor[], contactos: Contacto[], ahora = Date.now()) {
-  const activas = alumnas.filter(a => !a.estado || a.estado === "activa");
+  const activas = alumnas.filter(a => (!a.estado || a.estado === "activa") && a.id !== CUENTA_DE_AMIRA);
   const entrenaron = activas.filter(a => { const d = localDayDiff(a.last_active_at, ahora); return d !== null && d < 7; }).length;
 
   // Un dolor queda hasta que Amira lo marca como atendido, aunque ya le haya escrito.
@@ -229,7 +232,7 @@ export function calcularResumen(alumnas: Alumna[], hechos: Hecho[], dolores: Dol
   const conDolor = new Set<number>();
   for (const f of dolores) {
     if (f.tipo !== "dolor_preocupante" || f.atendido_at || String(f.created_at || "") < SEGUIMIENTO_DOLOR_DESDE) continue;
-    if (!alumnas.some(a => a.id === f.alumna_id)) continue;
+    if (f.alumna_id === CUENTA_DE_AMIRA || !alumnas.some(a => a.id === f.alumna_id)) continue;
     atender.add(f.alumna_id); conDolor.add(f.alumna_id);
   }
 

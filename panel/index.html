@@ -73,6 +73,8 @@
     /* Cards */
     .card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1rem;}
     .ctitle{font-size:11px;font-weight:500;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;}
+    /* Secciones del Inicio: hoy, esta semana, este mes, para mirar */
+    .isec{font-size:10px;font-weight:700;color:var(--th);text-transform:uppercase;letter-spacing:.1em;margin:1.25rem 0 .5rem;}
 
     /* Metrics */
     .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
@@ -3818,12 +3820,39 @@ function fmtWhen(iso){
   return d.getDate()+'/'+(d.getMonth()+1)+' '+hora;
 }
 
+// Inicio: las listas largas muestran las primeras 5 y "Ver N más"; abiertas, "Ver menos"
+// las vuelve a plegar. Todo lo que se despliega se puede volver a plegar (Aaron, 21/10/2026).
+function verLista(clave,abrir,ancla){
+  S[clave]=abrir; render();
+  if(abrir||!ancla) return;
+  // Al plegar una lista larga desde abajo, la tarjeta vuelve a quedar a la vista.
+  const el=document.getElementById(ancla), m=document.getElementById('main');
+  const arriba=el?el.getBoundingClientRect().top:0;
+  if(m&&arriba<0) m.scrollTop+=arriba-60;
+}
+function _corta(items,clave,ancla,max=5){
+  const abierta=!!S[clave], resto=items.length-max;
+  return {
+    items:abierta||resto<=0?items:items.slice(0,max),
+    boton:resto>0?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="verLista('${clave}',${!abierta},'${ancla}')">${abierta?'Ver menos ▲':'Ver '+resto+' más ▼'}</button>`:''
+  };
+}
+
+// El Inicio va ordenado por cuándo hay que hacer cada cosa: hoy, esta semana, este mes,
+// y al final lo que es para mirar (21/10/2026, con Aaron). Hasta ese día eran 12 bloques
+// seguidos, 5 pantallas de scroll, y lo de hoy quedaba mezclado: "Entrenaron hoy" estaba
+// octavo, debajo de la revisión semanal y de los ciclos por renovar. Un bloque nuevo va en
+// la sección de cuándo hay que hacerlo.
 function rInicio(){
   const now=new Date();
-  const pend=DB.registros.filter(r=>r.estado==='pendiente').length;
+  const esLunes=now.getDay()===1;
+  // La cuenta con la que entrena Amira no es una alumna: no se la atiende, no se le cobra
+  // ni se la cuenta. Sigue en Ciclos por renovar y en subir de nivel, porque entrena con ella.
+  const esAmira=a=>!!a&&a.id===CUENTA_DE_AMIRA;
+  const regsPend=DB.registros.filter(r=>r.estado==='pendiente');
   const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const cumples7=DB.alumnas.filter(a=>{
-    if(!a.nacimiento)return false;
+    if(!a.nacimiento||esAmira(a))return false;
     const p=a.nacimiento.split('-');
     const yr=now.getFullYear();
     let bday=new Date(yr,parseInt(p[1])-1,parseInt(p[2]));
@@ -3831,12 +3860,11 @@ function rInicio(){
     const diff=Math.round((bday-today)/86400000);
     a._diasCumple=diff;
     return diff>=0&&diff<=7;
-  });
+  }).sort((x,y)=>x._diasCumple-y._diasCumple);
 
   // Semáforo: solo alumnas activas
-  const _tplDolor=getAlumnaTpls().find(t=>t.key==='u_dolor')||{msg:'Hola [nombre]! Vi que reportaste una molestia. ¿Cómo estás? — Amira'};
   const _tplInact=getAlumnaTpls().find(t=>t.key==='u_inact')||{msg:'Hola [nombre]! ¿Todo bien? Hace unos días que no te veo entrenar. ¿Podemos retomar? 💪 — Amira'};
-  const alumnaActivas=DB.alumnas.filter(a=>alumnaActiva(a));
+  const alumnaActivas=DB.alumnas.filter(a=>alumnaActiva(a)&&!esAmira(a));
   const alWithDays=alumnaActivas.map(a=>{
     const d=a.last_active_at?Math.max(0,localDayDiff(a.last_active_at)):null;
     return {...a,_days:d};
@@ -3855,7 +3883,7 @@ function rInicio(){
   (DB.feedbacks||[]).filter(dolorPendiente).forEach(f=>{
     if(prioMap.has(f.alumna_id))return;
     const al=DB.alumnas.find(a=>a.id===f.alumna_id);
-    if(!al)return;
+    if(!al||esAmira(al))return;
     prioMap.set(f.alumna_id,{a:al,kind:'pain',tag:'🚨 Dolor reportado',fb:f,
       sub:f.ejercicio_nombre?`${f.ejercicio_nombre}${f.nota?' — '+f.nota:''}`:(f.nota||'reportó dolor'),
       msg:_tplDolorR.msg});
@@ -3903,68 +3931,15 @@ function rInicio(){
   // a aparecer en rojo con el boton de WhatsApp.
   const prioIds=new Set([...prioritarias,...esperando].map(p=>p.a.id));
 
-  const semHtml=DB.alumnas.length===0?'<div class="empty">Sin alumnas todavía.</div>':
-    alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a)).map(a=>{
-      const icon=a._days===null||a._days>=7?'🔴':a._days>=4?'🟡':'🟢';
-      const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
-      const _isUrg=a._days===null||a._days>=7;
-      const _ph=(a.tel||'').replace(/\D/g,'');
-      const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:fn(a.nombre)}));
-      const _actionBtn=_isUrg&&_ph
-        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'),${a.id},'inactividad')">💬 WA</button>`
-        :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
-      const _noteOpen=S._quickNoteA===a.id;
-      return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="openDrawer('+a.id+')"'}>
-        <span style="font-size:16px;flex-shrink:0;">${icon}</span>
-        <div class="av av-${a.color}">${avH(a)}</div>
-        <div style="flex:1;min-width:0;">
-          <div class="aname">${a.nombre}</div>
-          <div class="asub">${sub}${textoContacto(a.id)?' · '+textoContacto(a.id):''}</div>
-        </div>
-        ${_actionBtn}
-        <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
-        ${_noteOpen?`<div style="width:100%;padding:.4rem 0 .25rem;" onclick="event.stopPropagation()">
-          <textarea id="qn-${a.id}" placeholder="Nota sobre ${fn(a.nombre)}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
-          <div style="display:flex;gap:6px;margin-top:4px;">
-            <button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveQuickNote(${a.id})">Guardar nota</button>
-            <button class="btn btn-s" style="font-size:11px;" onclick="S._quickNoteA=null;render()">Cancelar</button>
-          </div>
-        </div>`:''}
-      </div>`;
-    }).join('');
+  // Los mismos números que el resumen del domingo (weekly-summary): hasta el 21/10 eran
+  // seis cajas, y "Al día" y "Retención" daban 11 calculados distinto.
+  const entrenaronSemana=alumnaActivas.filter(a=>{const d=localDayDiff(a.last_active_at);return d!==null&&d<7;}).length;
+  const lineaNumeros=alumnaActivas.length?`<div style="font-size:13px;color:var(--tm);margin:-1rem 0 .5rem;">${alumnaActivas.length} activas · ${entrenaronSemana} entrenaron esta semana · ${prioritarias.length?`<span style="color:var(--rd);font-weight:500;">${prioritarias.length} para atender</span>`:'nadie para atender'}</div>`:'';
 
-  // Feedbacks recientes
-  const fbLabels=FB_LABELS;
-
-  const recentFb=(DB.feedbacks||[]).slice(0,8);
-  let fbSec='';
-  if(recentFb.length>0){
-    const fbRows=recentFb.map(f=>{
-      const al=DB.alumnas.find(a=>a.id===f.alumna_id);
-      const cicloNombre=al&&al.ciclos_nombres&&al.ciclos_nombres[f.ciclo]?al.ciclos_nombres[f.ciclo]:'C'+f.ciclo;
-      const diaStr=f.ciclo?cicloNombre+'·S'+f.semana+'·D'+f.dia:'';
-      const exNom=f.ejercicio_nombre?' · '+esc(f.ejercicio_nombre):'';
-      const nota=f.nota?'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+esc(f.nota)+'"</div>':'';
-      const cuando=f.created_at?fmtWhen(f.created_at):'';
-      return'<div style="display:flex;gap:8px;align-items:start;padding:.5rem 0;border-bottom:1px solid var(--b);font-size:12px;">'
-        +'<span style="flex-shrink:0;">'+fbLabels[f.tipo]+'</span>'
-        +'<div style="flex:1;min-width:0;">'
-        +'<span style="font-weight:500;">'+(al?al.nombre:'?')+'</span>'
-        +(diaStr?'<span style="color:var(--tm);"> · '+diaStr+'</span>':'')
-        +(exNom?'<span style="color:var(--tm);">'+exNom+'</span>':'')
-        +(cuando?'<span style="color:var(--th);font-size:10px;"> · '+cuando+'</span>':'')
-        +nota
-        +'</div></div>';
-    }).join('');
-    fbSec='<div class="card" style="margin-bottom:1rem;"><div class="ctitle" style="margin-bottom:.5rem;">Feedbacks recientes</div>'+fbRows+'</div>';
-  }
-
-  return`<div class="ptitle">Bienvenida, Amira</div>
-  ${prioritarias.length>0||esperando.length>0?(()=>{
-    const open=S._prioOpen;
-    const list=open?prioritarias:prioritarias.slice(0,5);
-    const restantes=prioritarias.length-5;
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
+  // ── Hoy ──────────────────────────────────────────────────────
+  const bAtender=prioritarias.length>0||esperando.length>0?(()=>{
+    const {items:list,boton}=_corta(prioritarias,'_prioOpen','ini-atender');
+    return`<div class="card" id="ini-atender" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
         <div class="ctitle" style="margin-bottom:0;">⚡ Hoy hay que atender</div>
         <span style="font-size:10px;color:var(--th);">${prioritarias.length} alumna${prioritarias.length!==1?'s':''}</span>
@@ -3986,25 +3961,43 @@ function rInicio(){
           ${kind==='pain'&&fb&&S._atendOpen===fb.id?htmlAtendido(fb):''}
         </div>`;
       }).join('')}
-      ${restantes>0?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="S._prioOpen=!S._prioOpen;render()">${open?'Ver menos ▲':'Ver '+restantes+' más ▼'}</button>`:''}
+      ${boton}
       ${esperando.length?`<div style="font-size:11px;color:var(--tm);margin-top:8px;line-height:1.6;">💬 Esperando respuesta: ${esperando.map(({a})=>{
         const d=diasDesdeContacto(a.id);
         return`<a href="#" onclick="event.preventDefault();openDrawer(${a.id})" style="color:var(--tm);">${esc(nombreCorto(a))}</a> (${d===0?'hoy':d===1?'ayer':'hace '+d+' días'})`;
       }).join(', ')}</div>`:''}
     </div>`;
-  })():''}
-  ${(()=>{
-    // Las que estan arrancando van en su tarjeta, no en "Resto": tampoco se cuentan aca.
-    const _aten=alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a)&&a._days!==null&&a._days>=4&&a._days<7).length;
-    const _aldia=alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a)&&a._days!==null&&a._days<4).length;
-    return`<div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;">
-      <div class="metric"><div class="mlabel">Activas</div><div class="mval g">${alumnaActivas.length}</div></div>
-      <div class="metric" style="${prioritarias.length>0?'border-bottom:2px solid var(--rd);':''}"><div class="mlabel">Atender hoy</div><div class="mval" style="color:${prioritarias.length>0?'var(--rd)':'var(--tm)'};">${prioritarias.length}</div></div>
-      <div class="metric" style="${_aten>0?'border-bottom:2px solid var(--warn);':''}"><div class="mlabel">A observar</div><div class="mval" style="color:${_aten>0?'var(--warn)':'var(--tm)'};">${_aten}</div></div>
-      <div class="metric"><div class="mlabel">Al día</div><div class="mval" style="color:var(--vd);">${_aldia}</div></div>
-    </div>`;
-  })()}
-  ${(()=>{
+  })():'';
+
+  // Una inscripcion nueva es alguien esperando respuesta; una ficha de salud, algo para revisar.
+  const bRegistros=regsPend.length?(()=>{
+    const ins=regsPend.filter(r=>r.tipo!=='ficha_salud').length, fic=regsPend.length-ins;
+    const que=[ins?`${ins} inscripci${ins!==1?'ones nuevas':'ón nueva'}`:'',fic?`${fic} ficha${fic!==1?'s':''} de salud para revisar`:''].filter(Boolean).join(' · ');
+    return`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${que}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`;
+  })():'';
+
+  // Con un cumpleaños hoy o mañana, el bloque va en Hoy; si no, en Esta semana.
+  const cumpleYa=cumples7.some(a=>a._diasCumple<=1);
+  const bCumples=cumples7.length>0?`<div style="background:var(--a);border:1.5px solid var(--bm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ad);margin-bottom:.65rem;">🎂 Próximos cumpleaños</div>
+    ${cumples7.map(a=>{
+      const d=a._diasCumple;
+      const cuando=d===0?'¡hoy!':d===1?'mañana':'en '+d+' días';
+      const cuandoColor=d===0?'var(--rd)':d===1?'var(--ad)':'var(--tm)';
+      const waMsg=encodeURIComponent('¡Feliz cumpleaños '+fn(a.nombre)+'! 🎂🎉 Te mando un abrazo enorme — Amira');
+      const waLink=a.tel?`https://wa.me/${a.tel.replace(/\D/g,'')}?text=${waMsg}`:'';
+      return`<div style="display:flex;align-items:center;gap:10px;padding:.45rem 0;border-bottom:1px solid var(--bm);">
+        <div class="av av-${a.color}" style="width:34px;height:34px;font-size:13px;flex-shrink:0;">${avH(a)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--t);">${esc(a.nombre)}</div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:${cuandoColor};white-space:nowrap;">${cuando}</span>
+        ${waLink?`<a href="${waLink}" target="_blank" onclick="registrarContacto(${a.id},'cumpleanos')" style="text-decoration:none;"><button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;">🎉 Saludar</button></a>`:''}
+      </div>`;
+    }).join('')}
+  </div>`:'';
+
+  const bArranque=(()=>{
     // Arranque guiado: cada alumna en sus primeros 14 dias, con lo que falta y
     // el mensaje que toca. El paso de las notificaciones y los dias los hace
     // ella; la bienvenida los explica.
@@ -4041,8 +4034,43 @@ function rInicio(){
         </div>`;
       }).join('')}
     </div>`;
-  })()}
-  ${(()=>{
+  })();
+
+  const bHoy=(()=>{
+    const hoy=alWithDays.filter(a=>a._days===0&&(a.tel||'').replace(/\D/g,''));
+    if(!hoy.length)return'';
+    // La opcion con [logro] solo aparece si hoy hay algo concreto que decir:
+    // si no, el mensaje saldria con un hueco en el medio.
+    // La bienvenida y la revision semanal no van para quien entreno hoy.
+    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_')&&!['a_bienv','a_rev','a_rev0'].includes(t.key));
+    const {items,boton}=_corta(hoy,'_hoyOpen','ini-hoy');
+    return`<div class="card" id="ini-hoy" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
+        <div class="ctitle" style="margin-bottom:0;">✅ Entrenaron hoy</div>
+        <span style="font-size:11px;color:var(--th);">${hoy.length} alumna${hoy.length!==1?'s':''}</span>
+      </div>
+      <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Preguntales cómo les fue mientras lo tienen fresco</div>
+      ${items.map(a=>{
+        const abierto=S['wah_'+a.id];
+        return`<div class="arow">
+        <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>
+          <div style="font-size:11px;color:var(--tm);">${(()=>{const l=logroDeHoy(a.id);
+            return l?`${l.emoji} ${l.corto}`:'Entrenó hoy';})()}</div></div>
+        <div style="position:relative;display:inline-block;">
+          <button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;padding:3px 10px;"
+            onclick="S['wah_${a.id}']=!S['wah_${a.id}'];render()">💬 WA</button>
+          ${abierto?`<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:230px;box-shadow:0 4px 20px rgba(0,0,0,.12);">
+            ${tplsHoy.filter(t=>t.key!=='a_dato'||!!logroDeHoy(a.id)).map(t=>`<button onclick="envTplAlu(${a.id},'${t.key}');S['wah_${a.id}']=false;render()" style="display:block;width:100%;text-align:left;padding:6px 10px;font-size:12px;color:var(--t);background:none;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</button>`).join('')}
+          </div>`:''}
+        </div>
+      </div>`;}).join('')}
+      ${boton}
+    </div>`;
+  })();
+
+  // ── Esta semana (la revisión, los lunes, va en Hoy) ───────────
+  const bRevision=(()=>{
     // Revision semanal: los lunes (decidido con Amira el 13/10/2026). La web
     // promete "reviso tus pesos y tus comentarios cada semana" y no habia un
     // momento para hacerlo. Queda revisada al mandarle la devolucion desde aca
@@ -4053,20 +4081,21 @@ function rInicio(){
     // primera semana tienen los mensajes del dia 3 y del dia 7 (el del 7 ya dice
     // cuanto entreno): con la revision eran dos mensajes casi iguales, y una que se
     // anoto el domingo figuraba "No entrenó" por una semana en la que no estaba.
-    const todas=alumnaActivas.filter(a=>a.id!==CUENTA_DE_AMIRA&&a.created_at&&_diaLocalDe(a.created_at)<sem.desde);
+    const todas=alumnaActivas.filter(a=>a.created_at&&_diaLocalDe(a.created_at)<sem.desde);
     if(!todas.length) return'';
     const revisada=a=>(DB.contactos||[]).some(c=>c.alumna_id===a.id&&c.motivo==='revision'&&new Date(c.created_at)>=sem.lunes);
     const salteada=a=>{try{return localStorage.getItem(`af-rev-salteo-${a.id}-${sem.desde}`)==='1';}catch(e){return false;}};
     const pend=todas.filter(a=>!revisada(a)&&!salteada(a));
-    const esLunes=new Date().getDay()===1;
     const dm=f=>{const [,m,d]=f.split('-');return `${+d}/${+m}`;};
     if(!pend.length) return esLunes?`<div style="font-size:12px;color:var(--vd);margin-bottom:1rem;">✓ Revisión semanal hecha (semana del ${dm(sem.desde)} al ${dm(sem.hasta)}).</div>`:'';
-    const abierta=esLunes||S._revOpen;
+    // Abierta los lunes y plegada el resto de la semana, salvo que Amira la abra o la pliegue.
+    const abierta=S._revOpen===undefined?esLunes:!!S._revOpen;
     const hechas=todas.length-pend.length;
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--v);">
+    const plegar=`verLista('_revOpen',false,'ini-revision')`;
+    return`<div class="card" id="ini-revision" style="margin-bottom:1rem;border-left:3px solid var(--v);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.3rem;">
         <div class="ctitle" style="margin-bottom:0;">📋 Revisión semanal</div>
-        <span style="font-size:10px;color:var(--th);white-space:nowrap;">${hechas} de ${todas.length} revisadas</span>
+        <span style="font-size:10px;color:var(--th);white-space:nowrap;">${hechas} de ${todas.length} revisadas${abierta?` · <a href="#" onclick="event.preventDefault();${plegar}" style="color:var(--th);">Plegar ▲</a>`:''}</span>
       </div>
       <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Semana del ${dm(sem.desde)} al ${dm(sem.hasta)}. Mirá sus pesos y comentarios y mandale la devolución: el mensaje sale con lo que hizo y vos sumás lo tuyo.</div>
       ${abierta?pend.map(a=>{
@@ -4082,16 +4111,19 @@ function rInicio(){
           <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
           <button class="btn btn-s" style="font-size:11px;background:none;color:var(--th);" title="Saltear esta semana" onclick="saltearRevision(${a.id})">✕</button>
         </div>`;
-      }).join(''):`<button class="btn btn-s" style="font-size:11px;width:100%;" onclick="S._revOpen=true;render()">Te faltan ${pend.length} · Ver ▼</button>`}
+      }).join('')+`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="${plegar}">Plegar ▲</button>`
+      :`<button class="btn btn-s" style="font-size:11px;width:100%;" onclick="verLista('_revOpen',true)">Te faltan ${pend.length} · Ver ▼</button>`}
     </div>`;
-  })()}
-  ${(()=>{
+  })();
+
+  const bCiclos=(()=>{
     const lista=porRenovar();
     if(!lista.length)return'';
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
+    const {items,boton}=_corta(lista,'_cicOpen','ini-ciclos');
+    return`<div class="card" id="ini-ciclos" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
       <div class="ctitle" style="margin-bottom:.3rem;">🗓 Ciclos por renovar</div>
       <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Están en la última semana o hicieron el 75% del ciclo, y todavía no tienen el siguiente.</div>
-      ${lista.map(({a,e})=>`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" onclick="irARenovar(${a.id},false)">
+      ${items.map(({a,e})=>`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" onclick="irARenovar(${a.id},false)">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
@@ -4099,28 +4131,12 @@ function rInicio(){
         </div>
         <button class="btn btn-s" style="font-size:11px;white-space:nowrap;background:linear-gradient(135deg,var(--vi),var(--vi2));color:#fff;border-color:var(--vi);" onclick="event.stopPropagation();irARenovar(${a.id},true)">✨ Generar con IA</button>
       </div>`).join('')}
+      ${boton}
     </div>`;
-  })()}
-  ${cumples7.length>0?`<div style="background:var(--a);border:1.5px solid var(--bm);border-radius:var(--rs);padding:.85rem 1rem;margin-bottom:1rem;">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ad);margin-bottom:.65rem;">🎂 Próximos cumpleaños</div>
-    ${cumples7.map(a=>{
-      const d=a._diasCumple;
-      const cuando=d===0?'¡hoy!':d===1?'mañana':'en '+d+' días';
-      const cuandoColor=d===0?'var(--rd)':d===1?'var(--ad)':'var(--tm)';
-      const waMsg=encodeURIComponent('¡Feliz cumpleaños '+fn(a.nombre)+'! 🎂🎉 Te mando un abrazo enorme — Amira');
-      const waLink=a.tel?`https://wa.me/${a.tel.replace(/\D/g,'')}?text=${waMsg}`:'';
-      return`<div style="display:flex;align-items:center;gap:10px;padding:.45rem 0;border-bottom:1px solid var(--bm);">
-        <div class="av av-${a.color}" style="width:34px;height:34px;font-size:13px;flex-shrink:0;">${avH(a)}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--t);">${esc(a.nombre)}</div>
-        </div>
-        <span style="font-size:12px;font-weight:600;color:${cuandoColor};white-space:nowrap;">${cuando}</span>
-        ${waLink?`<a href="${waLink}" target="_blank" onclick="registrarContacto(${a.id},'cumpleanos')" style="text-decoration:none;"><button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;">🎉 Saludar</button></a>`:''}
-      </div>`;
-    }).join('')}
-  </div>`:''}
-  ${(()=>{
-    const subir=alumnaActivas.map(a=>({a,s:sugerenciaNivel(a)})).filter(x=>x.s);
+  })();
+
+  const bNivel=(()=>{
+    const subir=DB.alumnas.filter(alumnaActiva).map(a=>({a,s:sugerenciaNivel(a)})).filter(x=>x.s);
     if(!subir.length)return'';
     return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--ad);">
       <div class="ctitle" style="margin-bottom:.3rem;">📈 Listas para subir de nivel</div>
@@ -4139,87 +4155,146 @@ function rInicio(){
           onclick="posponerNivel(${a.id})">Dejarla así</button>
       </div>`).join('')}
     </div>`;
-  })()}
-  ${pend>0?`<div class="card" style="background:var(--vl);border-color:var(--vm);cursor:pointer;margin-bottom:1rem;" onclick="go('registros')"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;color:var(--vd);font-weight:500;">📥 ${pend} registro${pend!==1?'s':''} pendiente${pend!==1?'s':''}</span><span style="font-size:12px;color:var(--vd);">Ver →</span></div></div>`:''}
-  ${(()=>{
-    const hoy=alWithDays.filter(a=>a._days===0&&(a.tel||'').replace(/\D/g,''));
-    if(!hoy.length)return'';
-    // La opcion con [logro] solo aparece si hoy hay algo concreto que decir:
-    // si no, el mensaje saldria con un hueco en el medio.
-    // La bienvenida y la revision semanal no van para quien entreno hoy.
-    const tplsHoy=getAlumnaTpls().filter(t=>t.key.startsWith('a_')&&!['a_bienv','a_rev','a_rev0'].includes(t.key));
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
-        <div class="ctitle" style="margin-bottom:0;">✅ Entrenaron hoy</div>
-        <span style="font-size:11px;color:var(--th);">${hoy.length} alumna${hoy.length!==1?'s':''}</span>
+  })();
+
+  // ── Este mes ─────────────────────────────────────────────────
+  // Lo cobrado y lo que falta del período. Hasta el 21/10 el botón decía "✓ Ya pagó" en
+  // verde y la lista de las que no pagaron parecía la de las que ya pagaron; y "Ingresos"
+  // comparaba lo cobrado en medio mes con el mes anterior entero, así que marcaba baja
+  // todos los meses.
+  const bCobros=(()=>{
+    const periodo=mesCobro(DB.alumnas.find(a=>a.dia_cobro));
+    const nomMes=_MESES_P[parseInt(periodo.slice(5))-1]||periodo;
+    const deben=alumnaActivas.filter(a=>!hasPagado(a.id));
+    const cobrado=DB.pagos.filter(p=>p.mes===periodo&&p.alumna_id!==CUENTA_DE_AMIRA)
+      .reduce((s,p)=>s+(+p.monto||+(getA(p.alumna_id)?.precio)||0),0);
+    if(!deben.length&&!cobrado) return'';
+    const falta=deben.reduce((s,a)=>s+(+a.precio||0),0);
+    const pesos=n=>'$'+Math.round(n).toLocaleString('es-AR');
+    const cuenta=[cobrado?`cobrado ${pesos(cobrado)}`:'',deben.length?`faltan ${deben.length}${falta?` (${pesos(falta)})`:''}`:'todas pagaron'].filter(Boolean).join(' · ');
+    const {items,boton}=_corta(deben,'_cobOpen','ini-cobros');
+    return`<div class="card" id="ini-cobros" style="margin-bottom:1rem;${deben.length?'border-left:3px solid var(--rd);':''}">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;${deben.length?'margin-bottom:.6rem;':''}">
+        <div class="ctitle" style="margin-bottom:0;">💰 Cobros de ${nomMes}</div>
+        <span style="font-size:12px;color:var(--tm);">${cuenta}</span>
       </div>
-      <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Preguntales cómo les fue mientras lo tienen fresco</div>
-      ${hoy.map(a=>{
-        const abierto=S['wah_'+a.id];
-        return`<div class="arow">
+      ${items.map(a=>`<div class="arow">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>
-          <div style="font-size:11px;color:var(--tm);">${(()=>{const l=logroDeHoy(a.id);
-            return l?`${l.emoji} ${l.corto}`:'Entrenó hoy';})()}</div></div>
-        <div style="position:relative;display:inline-block;">
-          <button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;padding:3px 10px;"
-            onclick="S['wah_${a.id}']=!S['wah_${a.id}'];render()">💬 WA</button>
-          ${abierto?`<div style="position:absolute;top:calc(100% + 4px);right:0;background:var(--s);border:1px solid var(--bm);border-radius:var(--rs);padding:4px;z-index:20;min-width:230px;box-shadow:0 4px 20px rgba(0,0,0,.12);">
-            ${tplsHoy.filter(t=>t.key!=='a_dato'||!!logroDeHoy(a.id)).map(t=>`<button onclick="envTplAlu(${a.id},'${t.key}');S['wah_${a.id}']=false;render()" style="display:block;width:100%;text-align:left;padding:6px 10px;font-size:12px;color:var(--t);background:none;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">${t.l}</button>`).join('')}
-          </div>`:''}
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
+        <button class="btn btn-s" style="font-size:11px;white-space:nowrap;" onclick="marcarPago(${a.id})">Marcar pagado</button>
+      </div>`).join('')}
+      ${boton}
+    </div>`;
+  })();
+
+  // ── Para mirar ───────────────────────────────────────────────
+  // Los de los últimos 7 días. Los "Bien" sin comentario no piden nada: van en una línea
+  // (en dos semanas de octubre fueron 16 de 34). Los repetidos se juntan: hasta el 21/10 la
+  // app mandaba el reporte al tocar la opción, y la que quería agregar un comentario lo
+  // mandaba de nuevo.
+  const bFeedbacks=(()=>{
+    const recientes=(DB.feedbacks||[]).filter(f=>{
+      const d=localDayDiff(f.created_at);
+      return d!==null&&d<7&&f.alumna_id!==CUENTA_DE_AMIRA&&DB.alumnas.some(a=>a.id===f.alumna_id);
+    });
+    const esBien=f=>f.tipo==='dia_bien'&&!String(f.nota||'').trim();
+    const bien=recientes.filter(esBien);
+    const grupos=[];
+    for(const f of recientes){
+      if(esBien(f)) continue;
+      const g=grupos.find(x=>x.f.alumna_id===f.alumna_id&&x.f.tipo===f.tipo&&x.f.ciclo===f.ciclo&&x.f.semana===f.semana
+        &&x.f.dia===f.dia&&x.f.ejercicio_idx===f.ejercicio_idx&&Math.abs(new Date(x.ultimo)-new Date(f.created_at))<10*60000);
+      const nota=String(f.nota||'').trim();
+      if(g){ g.n++; g.ultimo=f.created_at; if(nota&&!g.notas.includes(nota)) g.notas.push(nota); }
+      else grupos.push({f,n:1,ultimo:f.created_at,notas:nota?[nota]:[]});
+    }
+    if(!grupos.length&&!bien.length) return'';
+    const fila=({f,n,notas})=>{
+      const al=DB.alumnas.find(a=>a.id===f.alumna_id);
+      const cicloNombre=al&&al.ciclos_nombres&&al.ciclos_nombres[f.ciclo]?al.ciclos_nombres[f.ciclo]:'C'+f.ciclo;
+      const diaStr=f.ciclo?cicloNombre+'·S'+f.semana+'·D'+f.dia:'';
+      const cuando=f.created_at?fmtWhen(f.created_at):'';
+      return'<div style="display:flex;gap:8px;align-items:start;padding:.5rem 0;border-bottom:1px solid var(--b);font-size:12px;">'
+        +'<span style="flex-shrink:0;">'+(FB_LABELS[f.tipo]||'📋 '+esc(f.tipo))+'</span>'
+        +'<div style="flex:1;min-width:0;">'
+        +'<span style="font-weight:500;">'+esc(al?nombreCorto(al):'?')+'</span>'
+        +(diaStr?'<span style="color:var(--tm);"> · '+esc(diaStr)+'</span>':'')
+        +(f.ejercicio_nombre?'<span style="color:var(--tm);"> · '+esc(f.ejercicio_nombre)+'</span>':'')
+        +(cuando?'<span style="color:var(--th);font-size:10px;"> · '+cuando+'</span>':'')
+        +(n>1?'<span style="color:var(--th);font-size:10px;"> · '+n+' veces</span>':'')
+        +notas.map(t=>'<div style="color:var(--tm);font-size:11px;margin-top:2px;">"'+esc(t)+'"</div>').join('')
+        +'</div></div>';
+    };
+    const {items,boton}=_corta(grupos,'_fbOpen','ini-feedbacks');
+    const nombresBien=[...new Set(bien.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return al?nombreCorto(al):'';}).filter(Boolean))];
+    return`<div class="card" id="ini-feedbacks" style="margin-bottom:1rem;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:.5rem;">
+        <div class="ctitle" style="margin-bottom:0;">Feedbacks recientes</div>
+        <span style="font-size:10px;color:var(--th);">últimos 7 días</span>
+      </div>
+      ${items.map(fila).join('')}
+      ${boton}
+      ${bien.length?`<div style="font-size:12px;color:var(--tm);padding-top:.6rem;">💪 Bien${bien.length>1?` (${bien.length})`:''}: ${nombresBien.map(esc).join(', ')}</div>`:''}
+    </div>`;
+  })();
+
+  // Las que están bien no piden nada: plegadas, con las de 4 a 6 días sin entrenar a la
+  // vista, que son el aviso temprano. Hasta el 21/10 eran 11 filas abiertas, casi una
+  // pantalla, y la lista completa está en Alumnas.
+  const bResto=(()=>{
+    const lista=alWithDays.filter(a=>!prioIds.has(a.id)&&!enArranque(a));
+    if(!lista.length) return'';
+    const amarillas=lista.filter(a=>a._days===null||a._days>=4);
+    const verdes=lista.length-amarillas.length;
+    const abierto=!!S._restoOpen;
+    const fila=a=>{
+      const icon=a._days===null||a._days>=7?'🔴':a._days>=4?'🟡':'🟢';
+      const sub=a._days===null?'Sin actividad registrada':a._days===0?'Entrenó hoy':a._days===1?'Entrenó ayer':'Hace '+a._days+' días';
+      const _isUrg=a._days===null||a._days>=7;
+      const _ph=(a.tel||'').replace(/\D/g,'');
+      const _msgInact=encodeURIComponent(interpTpl(_tplInact.msg,{nombre:fn(a.nombre)}));
+      const _actionBtn=_isUrg&&_ph
+        ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'),${a.id},'inactividad')">💬 WA</button>`
+        :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
+      const _noteOpen=S._quickNoteA===a.id;
+      return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="openDrawer('+a.id+')"'}>
+        <span style="font-size:16px;flex-shrink:0;">${icon}</span>
+        <div class="av av-${a.color}">${avH(a)}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="aname">${a.nombre}</div>
+          <div class="asub">${sub}${textoContacto(a.id)?' · '+textoContacto(a.id):''}</div>
         </div>
-      </div>`;}).join('')}
-    </div>`;
-  })()}
-  ${alWithDays.filter(a=>!prioIds.has(a.id)).length>0?`<div class="card" style="margin-bottom:1rem;">
-    <div class="ctitle" style="margin-bottom:.5rem;">Resto de tus alumnas</div>
-    <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">🟡 4–6 días sin entrenar &nbsp;·&nbsp; 🟢 al día</div>
-    ${semHtml}
-  </div>`:''}
-  ${fbSec}
-  ${(()=>{
-    const deben=DB.alumnas.filter(a=>(alumnaActiva(a))&&!hasPagado(a.id));
-    if(!deben.length)return'';
-    const rows=deben.map(a=>`<div class="arow">
-      <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
-      <button class="btn btn-s btn-p" style="font-size:11px;" onclick="marcarPago(${a.id})">✓ Ya pagó</button>
-    </div>`).join('');
-    return`<div class="card" style="margin-bottom:1rem;border-left:3px solid var(--rd);">
-      <div class="ctitle" style="margin-bottom:.6rem;">💰 Cobros pendientes — ${(()=>{const ref=DB.alumnas.find(a=>a.dia_cobro);return mesCobro(ref);})()}</div>
-      ${rows}
-    </div>`;
-  })()}
-  ${(()=>{
-    // Dashboard de ingresos
-    const mesAct=mesActual();
-    const d=new Date();d.setMonth(d.getMonth()-1);
-    const mesAnt=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    const pagosMes=DB.pagos.filter(p=>p.mes===mesAct);
-    const pagosMesAnt=DB.pagos.filter(p=>p.mes===mesAnt);
-    const ingresosMes=pagosMes.reduce((s,p)=>s+(p.monto||(DB.alumnas.find(a=>a.id===p.alumna_id)?.precio)||0),0);
-    const ingresosMesAnt=pagosMesAnt.reduce((s,p)=>s+(p.monto||(DB.alumnas.find(a=>a.id===p.alumna_id)?.precio)||0),0);
-    const diff=ingresosMes-ingresosMesAnt;
-    const pct=ingresosMesAnt>0?Math.round((diff/ingresosMesAnt)*100):null;
-    // Sobre las alumnas activas: hasta el 13/10 dividia tambien por las bajas, y
-    // el porcentaje salia mas o menos la mitad del real.
-    const _activasTot=DB.alumnas.filter(alumnaActiva);
-    const activas=_activasTot.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<7).length;
-    const retencion=_activasTot.length>0?Math.round((activas/_activasTot.length)*100):0;
-    if(!ingresosMes&&!DB.alumnas.filter(a=>a.precio).length)return'';
-    return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
-      <div class="card" style="margin-bottom:0;padding:1rem;">
-        <div class="mlabel">Ingresos ${mesAct.slice(5)}</div>
-        <div class="mval g" style="font-size:1.6rem;">${ingresosMes?'$'+ingresosMes.toLocaleString('es-AR'):DB.alumnas.filter(a=>hasPagado(a.id)&&a.precio).reduce((s,a)=>s+(a.precio||0),0)?'$'+DB.alumnas.filter(a=>hasPagado(a.id)&&a.precio).reduce((s,a)=>s+(a.precio||0),0).toLocaleString('es-AR'):'—'}</div>
-        ${pct!==null?`<div style="font-size:10px;color:${diff>=0?'var(--vd)':'var(--rd)'};margin-top:3px;">${diff>=0?'↑':'↓'} ${Math.abs(pct)}% vs mes anterior</div>`:''}
+        ${_actionBtn}
+        <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
+        ${_noteOpen?`<div style="width:100%;padding:.4rem 0 .25rem;" onclick="event.stopPropagation()">
+          <textarea id="qn-${a.id}" placeholder="Nota sobre ${fn(a.nombre)}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveQuickNote(${a.id})">Guardar nota</button>
+            <button class="btn btn-s" style="font-size:11px;" onclick="S._quickNoteA=null;render()">Cancelar</button>
+          </div>
+        </div>`:''}
+      </div>`;
+    };
+    const plegar=`verLista('_restoOpen',false,'ini-resto')`;
+    return`<div class="card" id="ini-resto" style="margin-bottom:1rem;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:.5rem;">
+        <div class="ctitle" style="margin-bottom:0;">Resto de tus alumnas</div>
+        <span style="font-size:10px;color:var(--th);white-space:nowrap;">${lista.length} alumna${lista.length!==1?'s':''}${abierto?` · <a href="#" onclick="event.preventDefault();${plegar}" style="color:var(--th);">Plegar ▲</a>`:''}</span>
       </div>
-      <div class="card" style="margin-bottom:0;padding:1rem;">
-        <div class="mlabel">Retención 7 días</div>
-        <div class="mval" style="font-size:1.6rem;color:${retencion>=70?'var(--vd)':retencion>=40?'var(--ad)':'var(--rd)'};">${retencion}%</div>
-        <div style="font-size:10px;color:var(--tm);margin-top:3px;">${activas} de ${_activasTot.length} activas entrenaron en 7 días</div>
-      </div>
+      ${abierto?`<div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">🟡 4–6 días sin entrenar &nbsp;·&nbsp; 🟢 al día</div>`:''}
+      ${(abierto?lista:amarillas).map(fila).join('')}
+      ${abierto?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="${plegar}">Plegar ▲</button>`
+        :verdes?`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="verLista('_restoOpen',true)">🟢 ${verdes} al día · Ver ▼</button>`:''}
     </div>`;
-  })()}
+  })();
+
+  const seccion=(titulo,bloques)=>{const h=bloques.filter(Boolean).join('');return h?`<div class="isec">${titulo}</div>${h}`:'';};
+  return`<div class="ptitle">Bienvenida, Amira</div>
+  ${lineaNumeros}
+  ${seccion('Hoy',[bAtender,bRegistros,cumpleYa?bCumples:'',bArranque,bHoy,esLunes?bRevision:''])}
+  ${seccion('Esta semana',[esLunes?'':bRevision,bCiclos,cumpleYa?'':bCumples,bNivel])}
+  ${seccion('Este mes',[bCobros])}
+  ${seccion('Para mirar',[bFeedbacks,bResto])}
   ${S.msg?`<div class="sm">${S.msg}</div>`:''}`;
 }
 
@@ -5944,7 +6019,7 @@ function envResumenGeneral(){
 }
 
 // ── Feedback labels (module scope para rAnalisis y rInicio) ───────────────────
-const FB_LABELS={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió','no_pude':'😔 No pudo entrenar','descanso_activo':'🚶 Descanso activo','ejercicio_problema':'⚑ Reporte','dolor_normal':'💪 Dolor muscular','dolor_articular':'⚠️ Molestia articular','dolor_preocupante':'🚨 Dolor preocupante'};
+const FB_LABELS={'dia_bien':'💪 Bien','dia_muy_facil':'🔥 Muy fácil','dia_muy_dificil':'😤 Muy difícil','dia_me_dolio':'🤕 Me dolió','no_pude':'😔 No pudo entrenar','pausa_activa':'🚶 Pausa activa','descanso_activo':'🚶 Descanso activo','ejercicio_problema':'⚑ Reporte','dolor_normal':'💪 Dolor muscular','dolor_articular':'⚠️ Molestia articular','dolor_preocupante':'🚨 Dolor preocupante'};
 
 // ── Templates por alumna (editable, tokens: [nombre] [link] [ciclo]) ──────────
 const WA_ALUMNA_TPLS_DEFAULTS=[
