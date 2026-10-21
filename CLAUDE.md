@@ -218,12 +218,13 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
   - El 18/10, la primera vez que corrió con la clave, falló al firmar la notificación. Armaba la clave privada como PKCS8 sin la parte pública, y el Deno de Supabase la importa pero no firma con ella ("InvalidEncoding").
   - Ahora firma como `send-push` y `notify-amira` (JWK con la parte pública).
 - Cada corrida deja en los logs de la función `[weekly-summary] sent=N/M` con el texto del resumen. La respuesta en `net._http_response` dura unas 6 horas.
+- No cuenta la cuenta con la que entrena Amira (`CUENTA_DE_AMIRA`), igual que el Inicio (21/10/2026).
 
 ---
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v74` al 19/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v75` al 21/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -286,6 +287,9 @@ Estrategias:
 - Un ejercicio se marca solo con el círculo o con "Marcar hecho". Tocar el nombre abre la técnica, porque lo marcaba sin querer y guardaba el peso precargado.
 - El festejo del día dice cuándo es el próximo entrenamiento y pregunta "¿Cómo te fue hoy?".
 - El check-in semanal de Notas se sacó: se usó 5 veces en 70 días y duplicaba la revisión de los lunes.
+- **Reportar (21/10/2026):** elegir una opción no manda el reporte. Se elige, se escribe si quiere y se toca Enviar.
+  - Hasta ese día cada opción lo mandaba al tocarla, con el comentario abajo y todavía vacío. La que quería contar algo lo mandaba de nuevo.
+  - Desde abril, 18 de 69 reportes de ejercicios habían sido repeticiones así (10 para agregar el comentario, de 5 alumnas), y cada uno le llegaba a Amira como un aviso más.
 - **Pantalla prendida mientras entrena (14/10/2026, `mantenerPantalla`):**
   - El descanso dura 45 segundos y muchos celulares apagan la pantalla a los 30. Ella no veía la cuenta regresiva, no le llegaba la vibración y tenía que desbloquear para marcar el siguiente.
   - Desde el primer ejercicio que marca hasta que termina el día (o la sesión corta), la pantalla queda prendida (Screen Wake Lock).
@@ -305,8 +309,20 @@ Estrategias:
 - Recordatorios trabaja solo con alumnas activas: el check-in por inactividad y el resumen push mandan alumna por alumna, y `send-push` solo saltea a las bajas cuando manda a todas.
 - Los días sin entrenar se cuentan en días de calendario en todo el panel (`localDayDiff`); "en 7 días" es hoy y los 6 anteriores.
 
+**Inicio del panel (21/10/2026, decidido con Aaron):** ordenado por cuándo hay que hacer cada cosa. Eran 12 bloques seguidos, unas 5 pantallas de scroll, y lo de hoy quedaba mezclado con lo semanal y lo mensual.
+- **Hoy:** atender, registros pendientes (inscripciones y fichas por separado), cumpleaños de hoy o mañana, primeras dos semanas, entrenaron hoy y, los lunes, la revisión semanal.
+- **Esta semana:** la revisión (el resto de la semana), ciclos por renovar, cumpleaños de los próximos días y subir de nivel.
+- **Este mes:** cobros.
+- **Para mirar:** feedbacks y el resto de las alumnas.
+- Un bloque nuevo va en la sección de cuándo hay que hacerlo.
+- Arriba, una línea con los números del resumen del domingo ("17 activas · 10 entrenaron esta semana · 5 para atender"). Reemplaza las seis cajas, que repetían números y daban "Al día" y "Retención" calculados distinto.
+- Las listas largas muestran 5 y "Ver N más" (`_corta`). Todo lo que se despliega se vuelve a plegar (`verLista`), y al plegar desde abajo la tarjeta vuelve a quedar a la vista.
+- "Resto de tus alumnas" va plegado, con las de 4 a 6 días sin entrenar a la vista.
+- Feedbacks: los de los últimos 7 días. Los "Bien" sin comentario van en una línea, y los reportes repetidos del mismo ejercicio en 10 minutos, en una fila ("3 veces").
+- Cobros: "Marcar pagado" (hasta ese día decía "✓ Ya pagó" en verde, y la lista de las que no pagaron parecía la de las que sí), con lo cobrado del período y cuánto falta. Ya no compara con el mes anterior: comparaba medio mes con uno entero y marcaba baja todos los meses. Amira anota todos los pagos, aunque a veces se olvida.
+
 ### Mediciones
-- **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa, así que el panel y el resumen la cuentan; para métricas de alumnas, excluirla.
+- **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa; para métricas de alumnas, excluirla. Desde el 21/10/2026 el Inicio y el resumen del domingo no la cuentan (`CUENTA_DE_AMIRA` en el panel y en `weekly-summary`): solo aparece en Ciclos por renovar y en Listas para subir de nivel, porque entrena con ella.
 - **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
 - **Arranque** (punto de partida, 13/10/2026): de 35 alumnas, 6 nunca marcaron un ejercicio (1 sigue activa). De las 29 que arrancaron, la mitad marcó el primero antes de los 2 días del alta, 18 dentro de los 3 días y 7 después de una semana. Entran 4 o 5 alumnas por mes. Se mide con `alumnas.created_at` y la primera fila de `progreso` con `hecho`.
 - **Constancia** (punto de partida, 13/10/2026): con la cuenta de "Constancia" hecha en SQL sobre `progreso`, `rutinas` y las sesiones cortas de `feedbacks`, en septiembre habrían llegado a la meta 9 de las 16 alumnas activas que ya entrenaban.
