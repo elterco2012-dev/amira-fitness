@@ -224,7 +224,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v75` al 21/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v76` al 21/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -290,6 +290,7 @@ Estrategias:
 - **Reportar (21/10/2026):** elegir una opción no manda el reporte. Se elige, se escribe si quiere y se toca Enviar.
   - Hasta ese día cada opción lo mandaba al tocarla, con el comentario abajo y todavía vacío. La que quería contar algo lo mandaba de nuevo.
   - Desde abril, 18 de 69 reportes de ejercicios habían sido repeticiones así (10 para agregar el comentario, de 5 alumnas), y cada uno le llegaba a Amira como un aviso más.
+  - "Dolor muscular normal" dice "Músculos cargados o doloridos, como al día siguiente de entrenar". Decía "Ardor o agujetas": "agujetas" es de España y no se entendía, y "ardor" se confundía con el del momento. Un pinchazo o un dolor agudo va en "Molestia articular" o en "Algo me preocupa".
 - **Pantalla prendida mientras entrena (14/10/2026, `mantenerPantalla`):**
   - El descanso dura 45 segundos y muchos celulares apagan la pantalla a los 30. Ella no veía la cuenta regresiva, no le llegaba la vibración y tenía que desbloquear para marcar el siguiente.
   - Desde el primer ejercicio que marca hasta que termina el día (o la sesión corta), la pantalla queda prendida (Screen Wake Lock).
