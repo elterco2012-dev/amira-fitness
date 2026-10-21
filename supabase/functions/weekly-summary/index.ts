@@ -80,19 +80,23 @@ async function makeVapidJwt(endpoint: string): Promise<string> {
   const h = b64u(TE.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
   const p = b64u(TE.encode(JSON.stringify({ aud: origin, sub: "mailto:hola@amira.fitness", exp: now + 43200 })));
 
-  const d = fromb64u(VAPID_PRIVATE);
-  const pkcs8 = cat(
-    new Uint8Array([
-      0x30, 0x41, 0x02, 0x01, 0x00, 0x30, 0x13,
-      0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
-      0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07,
-      0x04, 0x27, 0x30, 0x25, 0x02, 0x01, 0x01, 0x04, 0x20,
-    ]),
-    d
-  );
-
+  // La clave va como JWK, con la parte pública, igual que en send-push y notify-amira.
+  // Hasta el 21/10/2026 se armaba un PKCS8 sin la parte pública: el Deno de Supabase
+  // (2.1.4) lo importa pero no firma con él ("InvalidEncoding"), y el 18/10, la primera
+  // vez que el cron llegó hasta acá, el resumen no le llegó a Amira. Un Deno más nuevo
+  // sí firma: para probar estas funciones, usar el 2.1.4.
+  const pub = fromb64u(VAPID_PUBLIC.trim());
   const privKey = await crypto.subtle.importKey(
-    "pkcs8", pkcs8, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
+    "jwk",
+    {
+      kty: "EC", crv: "P-256",
+      d: VAPID_PRIVATE.trim().replace(/=/g, ""),
+      x: b64u(pub.slice(1, 33)),
+      y: b64u(pub.slice(33, 65)),
+    },
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"]
   );
   const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, privKey, TE.encode(`${h}.${p}`));
   return `${h}.${p}.${b64u(sig)}`;
@@ -126,11 +130,26 @@ async function buildPushBody(payload: string, p256dhB64u: string, authB64u: stri
   return cat(salt, rs, new Uint8Array([65]), asPub, new Uint8Array(ct));
 }
 
-async function sendPush(endpoint: string, p256dh: string, auth: string, payload: string): Promise<{ ok: boolean; status: number; body: string }> {
+// Firma y cifra sin mandar. Lo usa también el modo de prueba: el 14/10 la prueba daba
+// bien porque no firmaba, y el domingo el envío falló al firmar.
+async function armarPush(endpoint: string, p256dh: string, auth: string, payload: string): Promise<{ jwt: string; pushBody: Uint8Array }> {
   const [jwt, pushBody] = await Promise.all([
     makeVapidJwt(endpoint),
     buildPushBody(payload, p256dh, auth)
   ]);
+  return { jwt, pushBody };
+}
+
+// Una clave privada mal copiada igual firma, y el servicio de push la rechaza (403):
+// la firma tiene que verificar con la clave pública.
+async function firmaVerifica(jwt: string): Promise<boolean> {
+  const [h, p, s] = jwt.split(".");
+  const pub = await crypto.subtle.importKey("raw", fromb64u(VAPID_PUBLIC.trim()), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  return crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, pub, fromb64u(s), TE.encode(`${h}.${p}`));
+}
+
+async function sendPush(endpoint: string, p256dh: string, auth: string, payload: string): Promise<{ ok: boolean; status: number; body: string }> {
+  const { jwt, pushBody } = await armarPush(endpoint, p256dh, auth, payload);
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -283,22 +302,38 @@ Deno.serve(async (req) => {
     if (arrancando > 0) partes.push(`${arrancando} en sus primeras dos semanas`);
     const body = partes.join(" · ");
     const stats = { total, entrenaron, necesitanAtencion, dolorSinAtender, esperando, arrancando };
-    // Para comprobar el acceso y la cuenta sin mandarle el resumen a Amira.
-    if (probar) return Response.json({ probar: true, quien: quien.tipo, title, body, stats }, { headers: CORS });
+    const notifPayload = JSON.stringify({ type: "amira-summary", title, body, url: "/panel/" });
 
     // ── Envío ────────────────────────────────────────────────────
     let subs: Array<{ endpoint: string; p256dh: string; auth: string }> = [];
     try {
       subs = await dbFetch("amira_push_subscriptions?select=endpoint,p256dh,auth") as typeof subs;
     } catch (e) {
+      console.log(`[weekly-summary] error=db_failed ${String(e)}`);
       return Response.json({ error: "db_failed", detail: String(e) }, { headers: CORS });
     }
 
+    // Para comprobar el acceso, la cuenta y la firma sin mandarle el resumen a Amira:
+    // arma la notificación de cada dispositivo y no la manda. listos = los que saldrían.
+    if (probar) {
+      const fallas = (await Promise.all(subs.map(async s => {
+        try {
+          const { jwt } = await armarPush(s.endpoint, s.p256dh, s.auth, notifPayload);
+          return await firmaVerifica(jwt) ? "" : "la firma no verifica con VAPID_PUBLIC_KEY";
+        } catch (e) { return String(e); }
+      }))).filter(Boolean);
+      return Response.json({
+        probar: true, quien: quien.tipo, title, body, stats,
+        total: subs.length, listos: subs.length - fallas.length,
+        ...(fallas.length ? { error: fallas[0] } : {})
+      }, { headers: CORS });
+    }
+
     if (!subs.length) {
+      console.log(`[weekly-summary] sent=0/0 (Amira no tiene notificaciones activadas) body="${body}"`);
       return Response.json({ sent: 0, total: 0, reason: "no_subscriptions", stats }, { headers: CORS });
     }
 
-    const notifPayload = JSON.stringify({ type: "amira-summary", title, body, url: "/panel/" });
     const results = await Promise.all(
       subs.map(async (s, i) => {
         try {
@@ -313,8 +348,15 @@ Deno.serve(async (req) => {
       })
     );
 
+    const sent = results.filter(r => r.ok).length;
+    // La respuesta queda en net._http_response unas 6 horas; el log, más tiempo.
+    console.log(`[weekly-summary] sent=${sent}/${subs.length} body="${body}"`);
+    for (const r of results) {
+      if (!r.ok) console.log(`[weekly-summary] device=${r.device} status=${r.status} body=${r.body.slice(0, 80)}`);
+    }
+
     return Response.json({
-      sent: results.filter(r => r.ok).length,
+      sent,
       total: subs.length,
       stats,
       title,
@@ -323,6 +365,7 @@ Deno.serve(async (req) => {
     }, { headers: CORS });
 
   } catch (e) {
+    console.log(`[weekly-summary] error=${String(e)}`);
     return Response.json({ error: String(e), stack: e instanceof Error ? e.stack : undefined }, { headers: CORS });
   }
 });
