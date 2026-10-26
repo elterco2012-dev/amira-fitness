@@ -108,7 +108,7 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 | `plantillas` | Plantillas de rutina (estructura de días y ejercicios para copiar a una alumna) |
 | `plantillas_mensajes` | Plantillas de WhatsApp del panel, una fila por conjunto (`alumna` y `general`): el celular y la compu de Amira usan los mismos textos |
 | `avisos` | Anuncios que aparecen en la app de alumnas |
-| `page_views` | Visitas a la web y clics a WhatsApp, con su origen: `/`, `/registro`, `/bio/view`, `/bio/<link>`, `/wa` y `/registro/wa`. Cualquiera puede insertar; solo Amira lee |
+| `page_views` | Visitas a la web y clics a WhatsApp, con su origen: `/`, `/registro`, `/notas/…`, `/bio/view`, `/bio/<link>`, `/wa`, `/registro/wa` y `/notas/wa`. Cualquiera puede insertar; solo Amira lee |
 
 ---
 
@@ -224,7 +224,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v77` al 26/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v78` al 26/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -347,6 +347,13 @@ Estrategias:
   - Datos estructurados: `ProfessionalService`, `WebSite` (el nombre del sitio que Google muestra) y `FAQPage`. Las preguntas del `FAQPage` tienen que ser las mismas que las de la página.
   - La foto de arriba va en WebP (`foto-amira.webp`, 80 KB contra 166 KB), con el JPG para navegadores viejos y para compartir.
   - El dominio propio es del 6/10. Lo que más pesa ahora está fuera de la web: Search Console, enlaces desde otros sitios y tiempo.
+  - Search Console está configurado (propiedad `https://amirafitness.com.ar/`, sitemap enviado). Su "Rendimiento" dice con qué búsquedas aparece la web y en qué posición.
+- **Notas (`/notas/`, 26/10/2026):** artículos que responden lo que se busca en Google y llevan a WhatsApp.
+  - Primeras tres: "Rutina para empezar en el gimnasio", "Ejercicios en casa con mancuernas" y "¿Cuántos días por semana hay que entrenar?". Están escritas en la voz de Amira, así que ella tiene que leerlas y aprobarlas.
+  - Cada nota es una carpeta con su `index.html`, y comparten `notas/notas.css` y `notas/notas.js`.
+  - `notas.js` cuenta la visita (`/notas/<nota>`) y el clic a WhatsApp (`/notas/wa`) en `page_views`, como la página principal. Usa la misma clave diaria `visita`, así cada persona cuenta una vez por día, en la página por la que entró. Carga Analytics, Clarity y el Pixel.
+  - Análisis muestra "Entraron por las notas" y cuántas escribieron desde ahí.
+  - Una nota nueva se suma a `sitemap.xml`, a `notas/index.html`, al "Seguí leyendo" de las otras, al pie de la página principal y a `notaNombre` en el panel.
 - **Google Ads:**
   - Hasta el 28/9 los anuncios también salían en sitios de juegos y horóscopos (red de Display).
   - Del 13/10 al 26/10 no se mostraron. No hubo cambios en la cuenta: estaban todos "Apto" y Google decía "No sabemos la razón". El 26/10 se habilitaron las palabras clave de quien busca una entrenadora ("entrenadora personal para mujeres", "plan de entrenamiento personalizado", etc.) y se sumó un anuncio nuevo.

@@ -1,0 +1,66 @@
+/* Notas de Amira Fitness (26/10/2026): artículos que responden lo que se busca en Google
+   y llevan a WhatsApp. Mismos colores y letras que la página principal. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --verde:#1D9E75;--verde-l:#E1F5EE;--verde-d:#0F6E56;
+  --txt:#1a1a1a;--txt-m:#5b6270;--surf:#f8f8f6;--border:rgba(0,0,0,0.08);--r:16px;
+}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;color:var(--txt);background:#fff;font-size:17px;line-height:1.7;}
+a{color:var(--verde-d);text-underline-offset:3px;}
+
+.n-head{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.6rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.n-brand{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:500;font-size:15px;color:var(--txt);text-decoration:none;}
+.n-logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
+.n-head .btn{padding:10px 16px;font-size:13px;}
+
+main{max-width:720px;margin:0 auto;padding:1.25rem 1.25rem 3rem;}
+.n-migas{font-size:13px;color:var(--txt-m);margin-bottom:1rem;}
+.n-migas a{color:var(--txt-m);}
+h1{font-family:'DM Serif Display',serif;font-weight:400;font-size:2.2rem;line-height:1.15;margin-bottom:.75rem;}
+.n-meta{font-size:13px;color:var(--txt-m);margin-bottom:1.75rem;}
+.n-bajada{font-size:1.1rem;color:#333;}
+h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.55rem;line-height:1.2;margin:2.25rem 0 .75rem;}
+h3{font-size:1.05rem;font-weight:600;margin:1.25rem 0 .4rem;}
+p{margin-bottom:1rem;}
+ul,ol{margin:0 0 1rem 1.25rem;}
+li{margin-bottom:.45rem;}
+
+/* Ejercicios: tarjetas en vez de tabla, para que se lean bien en el celular */
+.n-ej{list-style:none;margin:0 0 1.25rem;padding:0;}
+.n-ej li{border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;margin-bottom:.6rem;background:var(--surf);}
+.n-ej .nombre{display:block;font-weight:600;font-size:16px;line-height:1.4;}
+.n-ej .dosis{display:inline-block;font-size:13px;font-weight:500;color:var(--verde-d);background:var(--verde-l);border-radius:20px;padding:1px 10px;margin:.35rem 0 .4rem;}
+.n-ej p{margin:0;font-size:15px;line-height:1.6;color:#333;}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:30px;font-size:15px;font-weight:500;text-decoration:none;cursor:pointer;border:none;}
+.btn-wa{background:#15805E;color:#fff;}
+.btn-wa:hover{background:#0F6E56;}
+
+.n-caja{background:var(--verde-l);border-radius:var(--r);padding:1.4rem 1.25rem;margin:2.25rem 0;}
+.n-caja h2{margin:0 0 .5rem;font-size:1.35rem;}
+.n-caja p{font-size:16px;}
+.n-caja .btn{margin-top:.25rem;}
+.n-aviso{font-size:13px;color:var(--txt-m);border-top:1px solid var(--border);padding-top:1rem;margin-top:2rem;}
+
+.n-autora{display:flex;gap:14px;align-items:center;margin:2rem 0;}
+.n-autora img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:center 30%;flex-shrink:0;}
+.n-autora p{margin:0;font-size:14px;line-height:1.55;color:#333;}
+
+.n-mas h2{font-size:1.3rem;}
+.n-lista{list-style:none;margin:0;padding:0;}
+.n-lista li{margin-bottom:.75rem;}
+.n-lista a{display:block;border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;text-decoration:none;color:var(--txt);}
+.n-lista a:hover{border-color:var(--verde);}
+.n-lista strong{display:block;font-size:16px;color:var(--verde-d);}
+.n-lista span{font-size:14px;color:var(--txt-m);}
+
+footer{text-align:center;font-size:13px;color:var(--txt-m);padding:2rem 1.25rem 3rem;border-top:1px solid var(--border);}
+footer a{color:var(--txt-m);}
+
+@media(max-width:480px){
+  body{font-size:16px;}
+  h1{font-size:1.8rem;}
+  h2{font-size:1.35rem;}
+  .n-caja .btn{width:100%;justify-content:center;}
+}
