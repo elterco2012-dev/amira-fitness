@@ -5631,7 +5631,8 @@ function rAnalisis(){
     // desde el 19/10/2026; antes solo los veía Analytics). Los de la bio van en su bloque.
     // Lo que importa es cuántas escribieron: los botones de la web llevan a WhatsApp, no al
     // formulario, y desde agosto nadie se anotó por ahí.
-    const esWa=p=>p==='/wa'||p==='/registro/wa';
+    // Las notas (26/10/2026) anotan su clic a WhatsApp como /notas/wa.
+    const esWa=p=>p==='/wa'||p==='/registro/wa'||p==='/notas/wa';
     const siteRows=rows.filter(r=>!r.page.startsWith('/bio/')&&!esWa(r.page));
     const waRows=rows.filter(r=>esWa(r.page));
     const vis30=siteRows.length, vis7=siteRows.filter(en7).length;
@@ -5662,6 +5663,15 @@ function rAnalisis(){
     const fila=html=>`<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--t);">${html}</div>`;
     const visChips=chips(siteRows,srcEmoji,origenDe);
     const waChips=chips(waRows,srcEmoji,origenDe);
+    // Las notas (26/10/2026) son para que la encuentren en Google: cuántas personas entraron
+    // por cada una y cuántas escribieron desde ahí. Cada persona cuenta una vez por día, en la
+    // página por la que entró.
+    const notaNombre={'/notas/':'Lista de notas','/notas/rutina-para-empezar-en-el-gimnasio':'Empezar en el gimnasio',
+      '/notas/ejercicios-en-casa-con-mancuernas':'En casa con mancuernas','/notas/cuantos-dias-por-semana-entrenar':'Cuántos días entrenar'};
+    const notaRows=siteRows.filter(r=>r.page.startsWith('/notas/'));
+    const waNotas=waRows.filter(r=>r.page==='/notas/wa').length;
+    const notaChips=chips(notaRows,{},r=>notaNombre[r.page]||r.page.replace('/notas/','')).replace(/🌐 /g,'📝 ')
+      +(waNotas?`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">💬 Tocaron WhatsApp: <strong>${waNotas}</strong></span>`:'');
     // De dónde vienen las alumnas: lo que Amira anota en "¿Cómo llegó?" (19/10/2026).
     // Es el dato que dice dónde conviene poner plata: en agosto-octubre casi todas
     // llegaron por Instagram, ninguna por los anuncios de Google.
@@ -5688,6 +5698,7 @@ function rAnalisis(){
 </div>
 <div style="font-size:11px;color:var(--tm);margin-bottom:.7rem;">En 30 días entraron <strong>${vis30}</strong> personas y <strong>${wa30}</strong> tocaron WhatsApp${reg30?` · <strong>${reg30}</strong> se ${reg30===1?'anotó':'anotaron'} con el formulario`:''}. Desde el 19/10 no cuentan los robots, ni Amira, ni las alumnas, y cada persona cuenta una vez por día.</div>
 ${visChips?`<div style="margin-bottom:.7rem;">${titulo('📍 De dónde vienen las visitas (30 días)')}${fila(visChips)}</div>`:''}
+${notaChips?`<div style="margin-bottom:.7rem;">${titulo('📝 Entraron por las notas (30 días)')}${fila(notaChips)}</div>`:''}
 <div style="margin-bottom:.2rem;">${titulo('💬 De dónde vienen las que tocaron WhatsApp (30 días)')}${waChips?fila(waChips):`<div style="font-size:12px;color:var(--th);">Todavía nadie tocó WhatsApp desde que se cuenta (19/10).</div>`}</div>
 <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
 ${titulo('🎯 De dónde vienen tus alumnas (últimos 90 días)')}
