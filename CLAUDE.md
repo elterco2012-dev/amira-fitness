@@ -224,7 +224,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v76` al 21/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v77` al 26/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -341,8 +341,16 @@ Estrategias:
   - Amira lo anota en el alta o en la ficha. Al aprobar una inscripción se precarga con lo que anotó la web.
   - Análisis muestra de dónde vinieron las alumnas de los últimos 90 días.
   - De agosto a octubre llegaron por Instagram y una por WhatsApp; ninguna por Google Ads.
+- **Resultados comunes de Google (SEO, 26/10/2026):** la búsqueda a la que apunta la landing es "entrenadora personal online para mujeres".
+  - Está en el título, la descripción y el `h1`. La línea verde de arriba del título grande es parte del `h1` (`.hero-badge`).
+  - El precio sigue en el título, porque es lo que hace elegir un resultado entre otros.
+  - Datos estructurados: `ProfessionalService`, `WebSite` (el nombre del sitio que Google muestra) y `FAQPage`. Las preguntas del `FAQPage` tienen que ser las mismas que las de la página.
+  - La foto de arriba va en WebP (`foto-amira.webp`, 80 KB contra 166 KB), con el JPG para navegadores viejos y para compartir.
+  - El dominio propio es del 6/10. Lo que más pesa ahora está fuera de la web: Search Console, enlaces desde otros sitios y tiempo.
 - **Google Ads:**
   - Hasta el 28/9 los anuncios también salían en sitios de juegos y horóscopos (red de Display).
+  - Del 13/10 al 26/10 no se mostraron. No hubo cambios en la cuenta: estaban todos "Apto" y Google decía "No sabemos la razón". El 26/10 se habilitaron las palabras clave de quien busca una entrenadora ("entrenadora personal para mujeres", "plan de entrenamiento personalizado", etc.) y se sumó un anuncio nuevo.
+  - En una compu con bloqueador de publicidad (o en la red de una empresa), la lista de anuncios y las vistas previas de Google Ads aparecen en blanco: mirarlas en incógnito o en el celular.
   - El 19/10 Aaron pasó las palabras clave a concordancia de frase, agregó negativas e importó `click_whatsapp` y `registro_completado` de Analytics como conversiones.
 
 ### Amira crea un nuevo ciclo
