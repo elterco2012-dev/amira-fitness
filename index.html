@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-AR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="canonical" href="https://amirafitness.com.ar/">
   <meta name="theme-color" content="#1D9E75">
-  <meta name="description" content="Entrenadora personal online. Tu rutina para casa o gimnasio, ajustada cada semana, con respuesta por WhatsApp. Desde $20.000/mes y la primera charla sin costo.">
-  <title>Entrenadora personal online | Rutinas desde $20.000 — Amira</title>
+  <!-- Lo que se busca en Google: "entrenadora personal online para mujeres". Va en el
+       título, la descripción y el h1 (26/10/2026); el precio sigue en el título porque es
+       lo que hace elegir un resultado entre otros. -->
+  <meta name="description" content="Entrenadora personal online para mujeres. Tu rutina para casa o gimnasio, ajustada cada semana y con respuesta por WhatsApp. La primera charla es sin costo.">
+  <title>Entrenadora personal online para mujeres | Desde $20.000/mes</title>
 
   <!-- Open Graph — cómo se ve cuando alguien comparte el link en WA, IG, etc. -->
   <meta property="og:type" content="website">
@@ -50,6 +53,10 @@
       "availability":"https://schema.org/InStock"
     }
   }
+  </script>
+  <!-- El nombre del sitio que Google muestra arriba del título del resultado. -->
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebSite","name":"Amira Fitness","url":"https://amirafitness.com.ar/"}
   </script>
 
   <!-- Google Analytics — reemplazá G-XXXXXXXXXX con tu Measurement ID -->
@@ -135,7 +142,8 @@
 
     /* Hero */
     .hero-wrap{max-width:1100px;margin:0 auto;padding:5.5rem 2rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
-    .hero-badge{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;display:block;}
+    /* Va dentro del h1 (lo que se busca en Google tiene que estar ahí), con la letra de siempre. */
+    .hero-badge{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;line-height:1.6;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;display:block;}
     .hero-quote{font-family:'DM Serif Display',serif;font-size:2.6rem;line-height:1.15;color:var(--txt);margin-bottom:1.5rem;}
     .hero-quote em{font-style:italic;color:var(--verde);}
     .hero-desc{font-size:.975rem;color:var(--txt-m);margin-bottom:2rem;max-width:440px;line-height:1.85;}
@@ -366,6 +374,14 @@
           "@type": "Answer",
           "text": "Una rutina de internet no sabe cómo te fue ayer. La tuya sí. Reviso tus pesos y tus comentarios cada semana y ajusto lo que haga falta: si un ejercicio te molesta, te lo cambio al otro día; si te quedó corto, subimos la carga. Eso es entrenamiento personalizado — no un PDF que se repite hasta que te aburrís."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Es lo mismo que un personal trainer online?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí: soy tu entrenadora personal, solo que a distancia. Detrás de tu rutina estoy yo, no un programa automático: te armo el plan, reviso cómo te fue cada semana y te respondo por WhatsApp. Trabajo con alumnas de toda la Argentina."
+        }
       }
     ]
   }
@@ -397,8 +413,8 @@
 <section style="padding:0;">
   <div class="hero-wrap">
     <div>
-      <div class="hero-badge">Entrenadora personal online · Toda la Argentina</div>
       <h1 class="hero-quote">
+        <span class="hero-badge">Entrenadora personal online para mujeres · Toda la Argentina</span>
         No quiero darte <em>otra rutina de internet</em>.<br>Quiero conocerte y armarte la tuya.
       </h1>
       <p class="hero-desc">Soy Amira. Trabajo con pocas alumnas a la vez para poder responderte yo misma. Te armo tu rutina con lo que tengas: dos mancuernas en casa o el gimnasio completo. Te la ajusto cada semana y te contesto las dudas por WhatsApp el mismo día.</p>
@@ -423,7 +439,11 @@
       </div>
     </div>
     <div class="hero-photo">
-      <img src="foto-amira.jpg" alt="Amira Lezcano, entrenadora personal" width="1000" height="1250" fetchpriority="high" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+      <!-- La foto es lo primero que carga: en WebP pesa la mitad (80 KB contra 166 KB). -->
+      <picture style="display:contents;">
+        <source srcset="foto-amira.webp" type="image/webp">
+        <img src="foto-amira.jpg" alt="Amira Lezcano, entrenadora personal online para mujeres" width="1000" height="1250" fetchpriority="high" decoding="async" onerror="this.parentNode.style.display='none';this.parentNode.nextElementSibling.style.display='flex';" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+      </picture>
       <div class="hero-photo-placeholder" style="display:none;">🏋️‍♀️</div>
     </div>
   </div>
@@ -458,7 +478,7 @@
 <section class="section" id="como-funciona">
   <div class="container">
     <div class="stag">El proceso</div>
-    <h2 class="stitle">Cómo funciona el entrenamiento online</h2>
+    <h2 class="stitle">Cómo funciona el entrenamiento personalizado online</h2>
     <p class="ssub">Desde que me escribís hasta que empezás a entrenar, todo está pensado para que sea simple y sin vueltas.</p>
     <div class="steps-grid">
       <div class="step-card">
@@ -702,6 +722,10 @@
       <details class="faq-item">
         <summary>¿En qué se diferencia de una rutina que bajo de internet?</summary>
         <p>Una rutina de internet no sabe cómo te fue ayer. La tuya sí. Reviso tus pesos y tus comentarios cada semana y ajusto lo que haga falta: si un ejercicio te molesta, te lo cambio al otro día; si te quedó corto, subimos la carga. Eso es entrenamiento personalizado — no un PDF que se repite hasta que te aburrís.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Es lo mismo que un personal trainer online?</summary>
+        <p>Sí: soy tu entrenadora personal, solo que a distancia. Detrás de tu rutina estoy yo, no un programa automático: te armo el plan, reviso cómo te fue cada semana y te respondo por WhatsApp. Trabajo con alumnas de toda la Argentina.</p>
       </details>
     </div>
 
