@@ -354,6 +354,12 @@ Estrategias:
   - `notas.js` cuenta la visita (`/notas/<nota>`) y el clic a WhatsApp (`/notas/wa`) en `page_views`, como la página principal. Usa la misma clave diaria `visita`, así cada persona cuenta una vez por día, en la página por la que entró. Carga Analytics, Clarity y el Pixel.
   - Análisis muestra "Entraron por las notas" y cuántas escribieron desde ahí.
   - Una nota nueva se suma a `sitemap.xml`, a `notas/index.html`, al "Seguí leyendo" de las otras, al pie de la página principal y a `notaNombre` en el panel.
+- **Perfil de Empresa en Google (26/10/2026):** existe y está verificado. Es la ficha que aparece a la derecha cuando se busca "Amira Fitness" y en Maps. Categoría "Entrenador personal", sin dirección, con toda la Argentina como zona ("servicios en el hogar").
+  - El teléfono estaba cargado como fijo ("02226 50-0790", sin el 15) y el botón "Llamar" no llegaba al celular de Amira. Ahora es el celular: `+54 9 2226 50-0790`, que Google muestra "02226 15-50-0790". En Google, un celular argentino va con el 15 o con +54 9.
+  - Tiene el WhatsApp, el Instagram, el logo (la "A" de la app) y una descripción con "entrenamiento personalizado online para mujeres".
+  - También tiene servicios con precio desde $20.000, "clases en línea", "mujer empresaria" y una publicación por nota. Una nota nueva lleva también su publicación ahí.
+  - Si cambia el precio, cambiarlo en la web y en los servicios del perfil.
+  - Google pide atender en persona para tener perfil. Si Amira trabaja solo online, se lo pueden suspender, con las opiniones. Definirlo con Aaron antes de pedirles opiniones a las alumnas.
 - **Google Ads:**
   - Hasta el 28/9 los anuncios también salían en sitios de juegos y horóscopos (red de Display).
   - Del 13/10 al 26/10 no se mostraron. No hubo cambios en la cuenta: estaban todos "Apto" y Google decía "No sabemos la razón". El 26/10 se habilitaron las palabras clave de quien busca una entrenadora ("entrenadora personal para mujeres", "plan de entrenamiento personalizado", etc.) y se sumó un anuncio nuevo.
