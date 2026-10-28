@@ -360,7 +360,8 @@ Estrategias:
 - **Web nueva en prueba (`/prototipo/`, 28/10/2026):** la página principal rearmada, para revisarla con Aaron y Amira antes de cambiar la de verdad. No se indexa y no tiene analítica.
   - Orden:
     - el comienzo, con la foto, un celular con la app en movimiento, los números y una cinta de frases;
-    - el video del celular está en cuatro tamaños (`prototipo/videos/inicio-180/226/270/360.mp4`). `ajustarInicio` elige el de la pantalla y lo deja en el píxel, sin inclinar: achicado o inclinado por el navegador, la letra se veía pixelada;
+    - los videos de la app (el del comienzo y los de los bloques) están grabados en alta resolución: un celular de 360 px a 3 puntos por píxel. Cada uno está en cuatro tamaños (`prototipo/videos/<clip>-<ancho>.mp4`, con `data-tamanos`);
+    - `ajustarVideo` elige el tamaño de la pantalla y lo deja en el píxel, sin inclinar. Achicado, estirado o inclinado por el navegador, la letra se veía pixelada (28/10/2026);
     - "Así funciona", con el mismo h2 para Google y 4 bloques con videos de la app;
     - la historia, más corta, y "Una app pensada para tu vida real";
     - "Esto es para vos si…" (4 de las 6), los testimonios para deslizar y "¿Cómo sería tu rutina?";

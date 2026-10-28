@@ -169,16 +169,16 @@
     .hero-trust{display:grid;grid-template-columns:auto auto;justify-content:start;gap:.45rem 1.5rem;margin-top:.6rem;}
     .trust-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt-m);}
     .trust-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);}
-    .hero-media{position:relative;width:80%;margin:.5rem 0 0 auto;}
+    .hero-media{position:relative;width:75%;margin:.5rem 0 0 auto;}
     .hero-photo{border-radius:24px;aspect-ratio:4/5;overflow:hidden;position:relative;background:var(--surf);border:1px solid var(--border);}
     .hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
     .hero-photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5rem;}
     /* La app de verdad, en un celular sobre la esquina de la foto. Va de la mitad para abajo y sale
        por el costado: más grande, sin tapar la cara ni la mancuerna. Derecho y no inclinado: inclinado,
        el navegador redibuja el video torcido y la letra chica de la app se veía pixelada. */
-    .hero-tel{position:absolute;left:-30%;top:38%;width:48%;max-width:236px;background:#151515;border-radius:26px;padding:6px;
+    .hero-tel{position:absolute;left:-44%;top:44%;width:64%;max-width:260px;background:#151515;border-radius:28px;padding:6px;
       box-shadow:0 22px 44px rgba(15,110,86,.22),0 6px 16px rgba(0,0,0,.18);}
-    .hero-tel video{display:block;width:100%;aspect-ratio:360/780;border-radius:20px;background:var(--surf-2);object-fit:cover;}
+    .hero-tel video{display:block;width:100%;aspect-ratio:288/624;border-radius:22px;background:var(--surf-2);object-fit:cover;}
 
     /* Números reales de la app (de la base, sin la cuenta de Amira) */
     .numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:1.6rem;container-type:inline-size;}
@@ -210,7 +210,7 @@
     .ticks li::before{content:'✓';width:24px;height:24px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
     .b-media{display:flex;justify-content:center;}
     .mini-tel{width:min(280px,80vw);background:#151515;border-radius:34px;padding:8px;box-shadow:0 18px 40px rgba(15,110,86,.14),0 5px 14px rgba(0,0,0,.1);}
-    .mini-tel video,.mini-tel .chat{display:block;width:100%;aspect-ratio:540/1168;border-radius:27px;background:var(--surf-2);object-fit:cover;}
+    .mini-tel video,.mini-tel .chat{display:block;width:100%;aspect-ratio:540/1170;border-radius:27px;background:var(--surf-2);object-fit:cover;}
     .chat{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
     .chat-top{background:var(--s);border-bottom:1px solid var(--b);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;}
     .chat-top b{display:block;font-size:13.5px;font-weight:500;}
@@ -513,9 +513,9 @@
       .section{padding:3.5rem 1.25rem;}
       .stitle{font-size:1.85rem;}
       /* El celular cuelga abajo de la foto: el espacio de abajo es para que no pise el título. */
-      .hero-wrap{grid-template-columns:1fr;padding:2.25rem 1.5rem 2.75rem;gap:5rem;}
+      .hero-wrap{grid-template-columns:1fr;padding:2.25rem 1.5rem 2.75rem;gap:6rem;}
       .hero-media{order:-1;width:100%;max-width:340px;margin:0 auto;}
-      .hero-tel{width:40%;left:-10px;top:auto;bottom:-62px;border-radius:18px;padding:4px;}
+      .hero-tel{width:44%;left:-10px;top:auto;bottom:-80px;border-radius:20px;padding:4px;}
       .hero-tel video{border-radius:14px;}
       .hero-quote{font-size:2rem;}
       .hero-ctas{max-width:100%;}
@@ -613,7 +613,8 @@
       </div>
       <!-- Lo mismo que muestran los bloques de "Así funciona", así que no hace falta leerlo. -->
       <div class="hero-tel" aria-hidden="true">
-        <video class="ini-video" muted loop playsinline preload="none" poster="/prototipo/videos/inicio-360.webp" data-src="/prototipo/videos/inicio-360.mp4"></video>
+        <video class="ini-video" muted loop playsinline preload="none" poster="/prototipo/videos/inicio-288.webp" data-src="/prototipo/videos/inicio-288.mp4"
+          data-base="/prototipo/videos/inicio-" data-tamanos="230x498 288x624 346x750 460x996"></video>
       </div>
     </div>
   </div>
@@ -644,7 +645,8 @@
         <ul class="ticks"><li>Videos con la técnica de los ejercicios</li><li>Tu mejor marca, siempre a la vista</li><li>Te llega por link y se instala como una app más</li></ul>
       </div>
       <div class="b-media"><div class="mini-tel">
-        <video muted loop playsinline preload="none" poster="/prototipo/videos/rutina.webp" data-src="/prototipo/videos/rutina.mp4"
+        <video muted loop playsinline preload="none" poster="/prototipo/videos/rutina-540.webp" data-src="/prototipo/videos/rutina-540.mp4"
+          data-base="/prototipo/videos/rutina-" data-tamanos="270x584 400x866 540x1170 800x1734"
           aria-label="La rutina del día en la app: semanas, días y ejercicios con series y peso"></video>
       </div></div>
     </div>
@@ -659,7 +661,8 @@
         <p class="semana-cap">Cada entrenamiento queda marcado en tu semana.</p>
       </div>
       <div class="b-media"><div class="mini-tel">
-        <video muted loop playsinline preload="none" poster="/prototipo/videos/marcar.webp" data-src="/prototipo/videos/marcar.mp4"
+        <video muted loop playsinline preload="none" poster="/prototipo/videos/marcar-540.webp" data-src="/prototipo/videos/marcar-540.mp4"
+          data-base="/prototipo/videos/marcar-" data-tamanos="270x584 400x866 540x1170 800x1734"
           aria-label="Marcar un ejercicio en la app: sube el peso, queda hecho y empieza el descanso"></video>
       </div></div>
     </div>
@@ -672,7 +675,8 @@
         <ul class="ticks"><li>Tu constancia del mes</li><li>Tus logros</li></ul>
       </div>
       <div class="b-media"><div class="mini-tel">
-        <video muted loop playsinline preload="none" poster="/prototipo/videos/progreso.webp" data-src="/prototipo/videos/progreso.mp4"
+        <video muted loop playsinline preload="none" poster="/prototipo/videos/progreso-540.webp" data-src="/prototipo/videos/progreso-540.mp4"
+          data-base="/prototipo/videos/progreso-" data-tamanos="270x584 400x866 540x1170 800x1734"
           aria-label="El progreso en la app: constancia del mes, con cuánto empezaste cada ejercicio y cuánto levantás hoy"></video>
       </div></div>
     </div>
@@ -1357,11 +1361,12 @@ render();
 // ── Testimonios: las flechas pasan de a una tarjeta, y solas avanzan despacio ──
 // Avanzan de a una cada 6 segundos mientras se ven, y al final vuelven a la primera. Se frenan con
 // el mouse encima y dejan de moverse cuando la persona las toca: no se mueven de corrido porque un
-// texto en movimiento no se puede leer.
+// texto en movimiento no se puede leer. Los 6 segundos cuentan desde que aparecen en pantalla (o desde
+// que se saca el mouse): si no, a veces se movían justo cuando la persona llegaba.
 (function(){
   const fila=$('#testis-fila'),ant=$('#testi-ant'),sig=$('#testi-sig');
   if(!fila)return;
-  let tocada=false,visible=false,encima=false;
+  let tocada=false,visible=false,encima=false,desde=0;
   const parar=()=>{tocada=true;};
   const paso=()=>{const c=fila.querySelector('.testi');return c?c.getBoundingClientRect().width+12:300;};
   const mover=d=>fila.scrollBy({left:d*paso(),behavior:reducido?'auto':'smooth'});
@@ -1379,49 +1384,54 @@ render();
   // Solo con mouse: en el celular, después de tocar cerca de la fila quedaba "encima" y no avanzaba más.
   if(matchMedia('(hover: hover)').matches){
     fila.addEventListener('mouseenter',()=>{encima=true;});
-    fila.addEventListener('mouseleave',()=>{encima=false;});
+    fila.addEventListener('mouseleave',()=>{encima=false;desde=Date.now();});
   }
-  if('IntersectionObserver' in window)new IntersectionObserver(es=>es.forEach(e=>{visible=e.isIntersecting;}),{threshold:.5}).observe(fila);
-  else visible=true;
+  if('IntersectionObserver' in window)new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting&&!visible)desde=Date.now();
+    visible=e.isIntersecting;
+  }),{threshold:.5}).observe(fila);
+  else{visible=true;desde=Date.now();}
   setInterval(()=>{
-    if(!visible||encima||tocada||document.hidden)return;
+    if(!visible||encima||tocada||document.hidden||Date.now()-desde<6000)return;
+    desde=Date.now();
     if(fila.scrollLeft+fila.clientWidth>=fila.scrollWidth-4)fila.scrollTo({left:0,behavior:'smooth'});
     else mover(1);
-  },6000);
+  },500);
 })();
 
-// ── El celular del comienzo: el video del tamaño justo para esta pantalla ──
-// Se ve chiquito, y si el navegador lo achica o lo agranda la letra de la app se ve pixelada
-// (28/10/2026). Hay cuatro tamaños (226 es para las notebooks con la letra al 125%): se elige el que,
-// con un punto del video por punto de la pantalla, queda más parecido a lo que ocupa en la página, y se
-// lo corre lo justo para que caiga en el píxel. Con más de 2,5 puntos por píxel (muchos celulares) no
-// hace falta: no se nota, y queda del tamaño de la página.
-const INICIO={base:'/prototipo/videos/inicio-',tamanos:[[180,390],[226,490],[270,584],[360,780]]};
-function ajustarInicio(){
-  const tel=$('.hero-tel'),v=tel&&tel.querySelector('video');
-  if(!v)return;
-  tel.style.width='';tel.style.transform='';
-  const d=devicePixelRatio||1,pad=parseFloat(getComputedStyle(tel).paddingLeft)||0;
-  const ideal=tel.getBoundingClientRect().width-2*pad;
-  const masChico=()=>INICIO.tamanos.find(x=>x[0]>=ideal*d)||INICIO.tamanos[INICIO.tamanos.length-1];
-  let t=masChico(),css=ideal;
+// ── Videos de la app: cada uno en el tamaño justo para esta pantalla ──
+// Se ven chicos, y si el navegador los achica o los agranda la letra de la app se ve pixelada
+// (28/10/2026). Están grabados en alta resolución (un celular de 360 px a 3 puntos por píxel) y cada
+// uno en cuatro tamaños (data-tamanos): se elige el que, con un punto del video por punto de la pantalla,
+// queda más parecido a lo que ocupa en la página, y se lo corre lo justo para que caiga en el píxel. Con
+// 2,5 puntos por píxel o más (muchos celulares) se usa el que alcanza, del tamaño de la página: ahí ya no
+// se nota.
+function ajustarVideo(v){
+  const caja=v.parentElement,d=devicePixelRatio||1;
+  const tamanos=v.dataset.tamanos.split(' ').map(t=>t.split('x').map(Number));
+  caja.style.width='';caja.style.transform='';
+  const pad=parseFloat(getComputedStyle(caja).paddingLeft)||0;
+  const ideal=caja.getBoundingClientRect().width-2*pad;
+  if(!(ideal>0))return;
+  let t=tamanos.find(x=>x[0]>=ideal*d)||tamanos[tamanos.length-1],css=ideal;
   if(d<2.5){
-    const justos=INICIO.tamanos.filter(x=>x[0]/d>=ideal*.85&&x[0]/d<=ideal*1.15);
+    const justos=tamanos.filter(x=>x[0]/d>=ideal*.85&&x[0]/d<=ideal*1.15);
     if(justos.length){t=justos.reduce((m,x)=>Math.abs(x[0]/d-ideal)<Math.abs(m[0]/d-ideal)?x:m);css=t[0]/d;}
   }
-  tel.style.width=(css+2*pad)+'px';
+  caja.style.width=(css+2*pad)+'px';
   v.style.aspectRatio=t[0]+'/'+t[1];
   if(v.dataset.w!==String(t[0])){
-    v.dataset.w=String(t[0]);v.dataset.src=INICIO.base+t[0]+'.mp4';v.poster=INICIO.base+t[0]+'.webp';
-    if(v.getAttribute('src')){v.src=v.dataset.src;v.play().catch(()=>{});}
+    v.dataset.w=String(t[0]);v.dataset.src=v.dataset.base+t[0]+'.mp4';v.poster=v.dataset.base+t[0]+'.webp';
+    if(v.getAttribute('src')){const andaba=!v.paused;v.src=v.dataset.src;if(andaba)v.play().catch(()=>{});}
   }
   const r=v.getBoundingClientRect();
-  tel.style.transform=`translate(${Math.round(r.left*d)/d-r.left}px,${Math.round(r.top*d)/d-r.top}px)`;
+  caja.style.transform=`translate(${Math.round(r.left*d)/d-r.left}px,${Math.round(r.top*d)/d-r.top}px)`;
 }
-ajustarInicio();
-addEventListener('load',ajustarInicio);
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(ajustarInicio);
-{let pend=0;addEventListener('resize',()=>{cancelAnimationFrame(pend);pend=requestAnimationFrame(ajustarInicio);});}
+const ajustarVideos=()=>document.querySelectorAll('video[data-tamanos]').forEach(ajustarVideo);
+ajustarVideos();
+addEventListener('load',ajustarVideos);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(ajustarVideos);
+{let pend=0;addEventListener('resize',()=>{cancelAnimationFrame(pend);pend=requestAnimationFrame(ajustarVideos);});}
 
 // ── Videos: el del comienzo y los de "Así funciona" se cargan recién cuando se ven, y se pausan
 // fuera de pantalla. Arrancan cuando terminó de cargar la página: así no le sacan velocidad a la foto.
