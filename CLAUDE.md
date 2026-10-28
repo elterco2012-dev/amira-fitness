@@ -455,6 +455,11 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 - **Abiertas a propósito:** leer `ejercicios_biblioteca` (sin datos personales; la app la usa), insertar en `page_views` (las visitas de la landing, la bio y el formulario, que mandan `return=minimal`) e insertar inscripciones en `registros`.
 - **Cada alumna solo puede cambiar de su fila de `alumnas` `last_active_at`, `foto` y `dias_disponibles`**: lo frena el trigger `alumnas_limitar_cambios`, que no aplica a Amira, a las Edge Functions ni a las funciones `security definer`. Si la app tiene que cambiar otra columna, agregarla ahí.
 - **`ingresos_alumnas()`** (`security definer`, 13/10/2026): devuelve id de alumna y fecha de su último ingreso solo a Amira; otra cuenta recibe cero filas y sin sesión no se puede llamar. Ver `migrations/ingresos_alumnas.sql`.
+- **`numeros_publicos()`** (`security definer`, 28/10/2026): la puede llamar cualquiera, también sin sesión, porque son los números de la web.
+  - Devuelve solo tres totales: ejercicios marcados, entrenamientos (días con al menos un ejercicio hecho) y alumnas que entrenaron.
+  - No cuenta la cuenta de Amira. Una alumna que entrenó sigue contando aunque se dé de baja.
+  - Por ahora la usa el prototipo (`/prototipo/`). Si el prototipo no se usa, se borra con `migrations/numeros_publicos_marcha_atras.sql`.
+  - Ver `migrations/numeros_publicos.sql`.
 - **Activar notificaciones pasa por `guardar_suscripcion(alumna_id, endpoint, p256dh, auth)`** (`security definer`, solo con sesión): un celular tiene una sola suscripción, y si ya era de otra alumna se la pasa a quien la activa.
 - **Lo previo al ingreso pasa por funciones `security definer`** que devuelven lo justo: `alumna_registrada(email)` (sí/no, al crear el PIN), `ficha_alumna(slug)` y `ficha_guardar(slug, lesiones, tel)` (ficha de salud). Nunca exponer `nacimiento`: es el PIN de ingreso.
   - Desde el 14/10/2026 `ficha_alumna` ya no da la edad: la columna sigue y viene vacía. Con la edad, el PIN quedaba en unas 730 combinaciones.
