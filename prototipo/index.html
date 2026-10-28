@@ -257,6 +257,55 @@
     .asi-fin{text-align:center;margin-top:1.25rem;}
     .btn-verde{background:var(--verde-d);color:white;}
     .btn-verde:hover{background:#0b5a46;transform:translateY(-1px);}
+
+    /* Números reales de la app (de la base, sin la cuenta de Amira) */
+    .numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:1.5rem 0 .4rem;}
+    .num{background:var(--verde-l);border-radius:var(--r);padding:1rem .6rem;text-align:center;}
+    .num b{display:block;font-family:'DM Serif Display',serif;font-weight:400;font-size:2rem;line-height:1.1;color:var(--verde-d);}
+    .num span{display:block;font-size:12px;color:var(--verde-d);line-height:1.4;margin-top:.3rem;}
+    .num-nota{font-size:11.5px;color:var(--txt-m);text-align:center;margin-bottom:.5rem;}
+    @media (min-width:900px){.num b{font-size:2.6rem;}.num span{font-size:13.5px;}}
+
+    /* La semana que se llena de ✓ (como en la app) */
+    .semana-anim{display:flex;gap:6px;margin-top:1.1rem;}
+    .semana-anim span{position:relative;width:36px;height:36px;border-radius:50%;background:var(--surf-2);color:var(--txt-m);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+    .semana-anim span.t{color:var(--verde-d);box-shadow:inset 0 0 0 1.5px var(--verde-m);}
+    .semana-anim span.t::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--verde);color:white;border-radius:50%;font-size:15px;opacity:0;transform:scale(.6);animation:dia 6s infinite;}
+    .semana-anim span:nth-child(3)::after{animation-delay:.9s;}
+    .semana-anim span:nth-child(5)::after{animation-delay:1.8s;}
+    @keyframes dia{0%{opacity:0;transform:scale(.6);}6%{opacity:1;transform:scale(1.15);}10%,80%{opacity:1;transform:scale(1);}88%,100%{opacity:0;transform:scale(.6);}}
+    .semana-cap{font-size:12.5px!important;margin-top:.45rem;}
+    @media (prefers-reduced-motion:reduce){.semana-anim span.t::after{animation:none;opacity:1;transform:none;}}
+
+    /* Una app pensada para tu vida real */
+    .vida{margin-top:1rem;padding-top:2.25rem;border-top:1px solid var(--border);}
+    .vida-t{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.75rem;line-height:1.2;margin-bottom:1.1rem;}
+    .vida-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+    .vida-item{background:var(--surf);border-radius:var(--r);padding:1rem;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:start;}
+    .vida-ic{grid-row:span 2;width:42px;height:42px;border-radius:12px;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;}
+    .vida-item b{font-size:15px;font-weight:500;}
+    .vida-item p{font-size:13.5px;color:var(--txt-m);line-height:1.6;margin-top:.15rem;}
+    @media (min-width:700px){.vida-grid{grid-template-columns:1fr 1fr;}}
+
+    /* Testimonios para deslizar (los mismos de la web, sin estrellas: no son puntajes) */
+    .testis{background:var(--surf);padding:3rem 0 3.25rem;}
+    .testis-in{max-width:1060px;margin:0 auto;padding:0 1.25rem;}
+    /* scroll-padding igual al padding: si no, el navegador corre la fila al cargar para alinear la primera tarjeta. */
+    .testis-fila{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 1.25rem;padding:1.25rem 1.25rem .5rem;margin:0 -1.25rem;scrollbar-width:none;}
+    .testis-fila::-webkit-scrollbar{display:none;}
+    .testi{flex:0 0 min(300px,82%);scroll-snap-align:start;background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem;display:flex;flex-direction:column;}
+    .testi-lead{font-family:'DM Serif Display',serif;font-size:1.15rem;line-height:1.3;margin-bottom:.5rem;}
+    .testi-txt{font-size:13.5px;color:var(--txt-m);line-height:1.65;flex:1;}
+    .testi-quien{display:flex;align-items:center;gap:10px;margin-top:.9rem;}
+    .testi-av{width:38px;height:38px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);font-weight:600;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;flex-shrink:0;}
+    .testi-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+    .testi-quien b{display:block;font-size:13.5px;font-weight:500;}
+    .testi-quien small{font-size:12px;color:var(--txt-m);}
+    .testis-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:.6rem;}
+    .testis-pista{font-size:12px;color:var(--txt-m);}
+    .testis-flechas{display:flex;gap:8px;}
+    .testis-flechas button{width:40px;height:40px;border-radius:50%;border:1px solid var(--border-m);background:var(--white);font-size:18px;cursor:pointer;color:var(--txt);}
+    .testis-flechas button:disabled{opacity:.35;cursor:default;}
     @media (min-width:900px){
       .asi{padding:4.5rem 2rem 4rem;}
       .bloque{grid-template-columns:1fr 1fr;gap:4rem;padding:2.75rem 0;}
@@ -286,6 +335,14 @@
     <h1 class="stitle" id="asi-t">Todo tu entrenamiento, en el celular</h1>
     <p class="ssub">Así se ve la app que usan mis alumnas. Lo grabé con la cuenta con la que entreno yo.</p>
 
+    <!-- Números de la base al 28/10/2026, sin la cuenta de Amira (id 3). Se actualizan a mano. -->
+    <div class="numeros">
+      <div class="num"><b data-n="30">30</b><span>alumnas ya entrenaron con la app</span></div>
+      <div class="num"><b data-n="4900" data-mas>+4.900</b><span>ejercicios marcados</span></div>
+      <div class="num"><b data-n="470" data-mas>+470</b><span>entrenamientos registrados</span></div>
+    </div>
+    <p class="num-nota">Datos de la app, de abril a octubre de 2026.</p>
+
     <div class="bloque">
       <div class="b-txt">
         <div class="b-num">01</div>
@@ -305,6 +362,8 @@
         <h3>Marcás lo que hacés</h3>
         <p>Anotás el peso, marcás el ejercicio y la app te cuenta el descanso.</p>
         <ul class="ticks"><li>El descanso, con cuenta regresiva</li><li>Me contás cómo se sintió cada ejercicio</li></ul>
+        <div class="semana-anim" aria-hidden="true"><span class="t">L</span><span>M</span><span class="t">M</span><span>J</span><span class="t">V</span><span>S</span><span>D</span></div>
+        <p class="semana-cap">Cada entrenamiento queda marcado en tu semana.</p>
       </div>
       <div class="b-media"><div class="mini-tel">
         <video muted loop playsinline preload="none" poster="/prototipo/videos/marcar.webp" data-src="/prototipo/videos/marcar.mp4"
@@ -346,7 +405,67 @@
       </div></div>
     </div>
 
+    <!-- Lo que la alumna vive con la app (funciones que ya existen, no cómo están hechas). -->
+    <div class="vida">
+      <h3 class="vida-t">Una app pensada para tu vida real</h3>
+      <div class="vida-grid">
+        <div class="vida-item">
+          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg></span>
+          <b>Funciona sin señal</b>
+          <p>Si en el gimnasio no hay señal, lo que marcás se guarda y se manda solo después.</p>
+        </div>
+        <div class="vida-item">
+          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <b>15 minutos también cuentan</b>
+          <p>Elegís 15 o 30 minutos y la app te deja los ejercicios que más rinden.</p>
+        </div>
+        <div class="vida-item">
+          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>
+          <b>La pantalla no se apaga</b>
+          <p>Mientras entrenás, el celular no se bloquea entre serie y serie.</p>
+        </div>
+        <div class="vida-item">
+          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span>
+          <b>Te recuerda cuándo te toca</b>
+          <p>Si activás los avisos, te llega uno a la mañana los días que entrenás.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="asi-fin"><a class="btn btn-verde" href="#probar-t">Probá cómo sería tu rutina 👇</a></div>
+  </div>
+</section>
+
+<!-- Testimonios: los mismos de la página principal, para deslizar. Sin estrellas: no son puntajes. -->
+<section class="testis" aria-labelledby="testis-t">
+  <div class="testis-in">
+    <div class="stag">Lo que cuentan</div>
+    <h2 class="stitle" id="testis-t">Resultados reales, de personas reales</h2>
+    <p class="ssub">Esto me escribieron algunas de las chicas que entrenan conmigo. Sin filtros.</p>
+    <div class="testis-fila" id="testis-fila" tabindex="0" aria-label="Testimonios, deslizá para ver más">
+      <article class="testi"><p class="testi-lead">“A los dos meses el dolor de rodillas mejoró un montón”</p>
+        <p class="testi-txt">Empecé porque me dolían las dos rodillas y los médicos me mandaron a fortalecer. Nunca me había gustado el gimnasio porque me parecía aburrido — y era porque nunca había seguido una rutina.</p>
+        <div class="testi-quien"><div class="testi-av">M<img src="/testi/maria.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><b>María</b><small>Empezó por indicación médica</small></div></div></article>
+      <article class="testi"><p class="testi-lead">“El hábito de entrenar sin excusas”</p>
+        <p class="testi-txt">Iba al gimnasio todos los días con una rutina en la que no entendía dónde estaba el foco, y terminaba abandonando y volviendo a empezar. Llevo 3 meses entrenando en casa: siento las piernas con más definición y la resistencia me mejoró un montón.</p>
+        <div class="testi-quien"><div class="testi-av">M<img src="/testi/maca.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><b>Macarena</b><small>Entrena desde casa</small></div></div></article>
+      <article class="testi"><p class="testi-lead">“Antes levantaba 3 kilos, ahora levanto&nbsp;8”</p>
+        <p class="testi-txt">Venía haciendo pilates, zumba y ciclismo, pero sin una rutina que se adaptara a mí. En un mes y medio me siento menos cansada e hinchada, y pasé de 55 kilos a 50. Ahora me animo con la fuerza: antes pensaba que no era para mí.</p>
+        <div class="testi-quien"><div class="testi-av">N</div><div><b>Naimid</b><small>Un mes y medio entrenando</small></div></div></article>
+      <article class="testi"><p class="testi-lead">“Cumplir conmigo misma y tomarme ese ratito”</p>
+        <p class="testi-txt">Venía con cero ganas y la energía por el piso: entre el trabajo, la casa y maternar se me complicaba. Las rutinas son muy llevaderas y la energía que sentís al terminar no tiene comparación. Si yo pude, vos también vas a poder.</p>
+        <div class="testi-quien"><div class="testi-av">E<img src="/testi/eva.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><b>Eva</b><small>Entrena 2 días por semana</small></div></div></article>
+      <article class="testi"><p class="testi-lead">“Más energía, más fuerte y mucho más conectada con mi cuerpo”</p>
+        <p class="testi-txt">Llevo 5 meses y los cambios no son solo corporales, también anímicos. Lo que más me sirvió fue el seguimiento: sentir que hay alguien que acompaña tu proceso y está atenta a tus avances hace toda la diferencia.</p>
+        <div class="testi-quien"><div class="testi-av">D<img src="/testi/dai.jpeg" alt="" loading="lazy" decoding="async" onerror="this.remove()"></div><div><b>Daiana</b><small>5 meses entrenando desde casa</small></div></div></article>
+      <article class="testi"><p class="testi-lead">“Voy ganando fuerza, y me motiva ir marcando en la app”</p>
+        <p class="testi-txt">Antes entrenaba muy desordenado. A alguien que piensa que no va a poder sostenerlo le diría que pruebe, porque es muy fácil.</p>
+        <div class="testi-quien"><div class="testi-av">M</div><div><b>Mel</b><small>Entrena en el gimnasio</small></div></div></article>
+    </div>
+    <div class="testis-nav">
+      <span class="testis-pista">Deslizá para ver más →</span>
+      <div class="testis-flechas"><button type="button" id="testi-ant" aria-label="Testimonio anterior">‹</button><button type="button" id="testi-sig" aria-label="Testimonio siguiente">›</button></div>
+    </div>
   </div>
 </section>
 
@@ -767,6 +886,31 @@ function actualizarWa(){
 }
 
 render();
+
+// ── Números: cuentan hasta el valor real la primera vez que se ven ──
+(function(){
+  const nums=[...document.querySelectorAll('.num b[data-n]')];
+  const texto=(b,v)=>{b.textContent=(b.hasAttribute('data-mas')?'+':'')+v.toLocaleString('es-AR');};
+  if(reducido||!('IntersectionObserver' in window)){nums.forEach(b=>texto(b,+b.dataset.n));return;}
+  const contar=b=>{const fin=+b.dataset.n,t0=performance.now(),ms=1100;
+    const paso=t=>{const k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,3);texto(b,Math.round(fin*e));if(k<1)requestAnimationFrame(paso);};
+    requestAnimationFrame(paso);};
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){contar(e.target);io.unobserve(e.target);}}),{threshold:.6});
+  nums.forEach(b=>io.observe(b));
+})();
+
+// ── Testimonios: las flechas pasan de a una tarjeta ──
+(function(){
+  const fila=$('#testis-fila'),ant=$('#testi-ant'),sig=$('#testi-sig');
+  if(!fila)return;
+  const paso=()=>{const c=fila.querySelector('.testi');return c?c.getBoundingClientRect().width+12:300;};
+  const estado=()=>{ant.disabled=fila.scrollLeft<=4;sig.disabled=fila.scrollLeft+fila.clientWidth>=fila.scrollWidth-4;};
+  ant.addEventListener('click',()=>fila.scrollBy({left:-paso(),behavior:reducido?'auto':'smooth'}));
+  sig.addEventListener('click',()=>fila.scrollBy({left:paso(),behavior:reducido?'auto':'smooth'}));
+  fila.addEventListener('scroll',estado,{passive:true});
+  addEventListener('resize',estado);
+  estado();
+})();
 
 // ── Videos de "Así funciona": se cargan recién cuando se ven y se pausan fuera de pantalla ──
 (function(){
