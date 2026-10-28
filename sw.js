@@ -1,4 +1,4 @@
-const CACHE = 'amira-v79';
+const CACHE = 'amira-v80';
 const STATIC = [
   '/',
   '/alumna/',
@@ -40,6 +40,11 @@ self.addEventListener('fetch', e => {
 
   // Solo interceptar GET
   if (e.request.method !== 'GET') return;
+
+  // Videos (los de la página principal, 28/10/2026): los maneja el navegador. Se piden de a
+  // pedazos (Range) y el caché no guarda respuestas parciales: pasando por acá, cada pedazo
+  // daba error, y en el iPhone un video servido por el service worker puede no arrancar.
+  if (e.request.headers.has('range') || e.request.destination === 'video' || e.request.destination === 'audio') return;
 
   // Supabase: siempre por red, fallback vacío en offline
   if (url.hostname.includes('supabase.co')) {

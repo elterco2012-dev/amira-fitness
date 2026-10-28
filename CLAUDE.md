@@ -27,6 +27,7 @@ El proyecto es una **PWA monolítica sin framework**. No hay React, Vue, ni buil
 ├── bio/index.html          # Link-in-bio de Amira (para Instagram)
 ├── instalar/index.html     # Guía de instalación de la PWA
 ├── index.html              # Landing page pública
+├── videos/                 # Videos de la app para la landing, cada uno en 4 tamaños
 ├── sb.js                   # Cliente REST de Supabase (compartido)
 ├── sw.js                   # Service Worker (caché offline + push)
 ├── manifest.json           # PWA manifest (alumna)
@@ -224,9 +225,10 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v79` al 28/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v80` al 28/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
+- **Videos:** no pasan por el service worker (28/10/2026). Se piden de a pedazos y el caché no guarda respuestas parciales: cada pedazo daba error, y en el iPhone un video servido por el service worker puede no arrancar.
 - **Supabase API:** siempre network, fallback `[]` si offline.
 - **CDN (Google Fonts, etc.):** cache first.
 - **Assets propios:** network first → cache → `offline.html`.
@@ -357,20 +359,22 @@ Estrategias:
   - `notas.js` cuenta la visita (`/notas/<nota>`) y el clic a WhatsApp (`/notas/wa`) en `page_views`, como la página principal. Usa la misma clave diaria `visita`, así cada persona cuenta una vez por día, en la página por la que entró. Carga Analytics, Clarity y el Pixel.
   - Análisis muestra "Entraron por las notas" y cuántas escribieron desde ahí.
   - Una nota nueva se suma a `sitemap.xml`, a `notas/index.html`, al "Seguí leyendo" de las otras, al pie de la página principal y a `notaNombre` en el panel.
-- **Web nueva en prueba (`/prototipo/`, 28/10/2026):** la página principal rearmada, para revisarla con Aaron y Amira antes de cambiar la de verdad. No se indexa y no tiene analítica.
+- **Página principal rearmada (28/10/2026, decidido con Aaron):** menos texto y la app de verdad en movimiento.
   - Orden:
-    - el comienzo, con la foto, un celular con la app en movimiento, los números y una cinta de frases;
-    - los videos de la app (el del comienzo y los de los bloques) están grabados en alta resolución: un celular de 360 px a 3 puntos por píxel. Cada uno está en cuatro tamaños (`prototipo/videos/<clip>-<ancho>.mp4`, con `data-tamanos`);
-    - `ajustarVideo` elige el tamaño de la pantalla y lo deja en el píxel, sin inclinar. Achicado, estirado o inclinado por el navegador, la letra se veía pixelada (28/10/2026);
-    - "Así funciona", con el mismo h2 para Google y 4 bloques con videos de la app;
-    - la historia, más corta, y "Una app pensada para tu vida real";
-    - "Esto es para vos si…" (4 de las 6), los testimonios para deslizar y "¿Cómo sería tu rutina?";
-    - las preguntas, que suman las de "Por qué esta vez sí", y el cierre con los 3 pasos.
-  - Al pasarla a `index.html`:
-    - quedan el `<head>` de la web actual (título, descripción, Open Graph, datos para Google y analítica) y sus scripts del final (visitas y clics a WhatsApp);
-    - el `FAQPage` del prototipo reemplaza al viejo;
-    - los videos se mudan de `/prototipo/videos/` y después se borra `/prototipo/`.
-  - Los textos en la voz de Amira y los videos con su cuenta los tiene que aprobar ella.
+    - el comienzo: la foto con un celular que muestra la app, los números en vivo (`numeros_publicos()`) y una cinta de frases;
+    - "Así funciona", con el h2 para Google y 4 bloques (3 con video de la app y el chat de ejemplo de los lunes);
+    - la historia, "Una app pensada para tu vida real" y "Esto es para vos si…";
+    - los testimonios para deslizar y "¿Cómo sería tu rutina?" (3 preguntas y un día de ejemplo en un celular dibujado);
+    - las preguntas y el cierre con los 3 pasos.
+  - "Por qué esta vez sí" pasó a las preguntas. El `FAQPage` tiene las mismas 9.
+  - Los videos están en `videos/`:
+    - grabados con la cuenta con la que entrena Amira, sin su nombre ni su peso corporal, en un celular de 360 px a 3 puntos por píxel;
+    - cada uno en cuatro tamaños (`<clip>-<ancho>.mp4`, con `data-tamanos`);
+    - `ajustarVideo` elige el de la pantalla y lo deja en el píxel, sin inclinar. Achicado, estirado o inclinado por el navegador, la letra de la app se veía pixelada.
+  - En el celular, la barra de WhatsApp se esconde mientras se prueba la rutina: si no, tapa el descanso del teléfono dibujado.
+  - Analytics:
+    - cada botón de WhatsApp tiene `data-boton`, que va en el evento `click_whatsapp`: `menu`, `inicio`, `inicio-pregunta`, `para-vos`, `probalo`, `probalo-app`, `cierre`, `cierre-pregunta` y `barra`;
+    - "¿Cómo sería tu rutina?" manda `probar_rutina` (respondió las 3 preguntas) y `probar_dia_completo`.
 - **Perfil de Empresa en Google (26/10/2026):** existe y está verificado. Es la ficha que aparece a la derecha cuando se busca "Amira Fitness" y en Maps. Categoría "Entrenador personal", sin dirección, con toda la Argentina como zona ("servicios en el hogar").
   - El teléfono estaba cargado como fijo ("02226 50-0790", sin el 15) y el botón "Llamar" no llegaba al celular de Amira. Ahora es el celular: `+54 9 2226 50-0790`, que Google muestra "02226 15-50-0790". En Google, un celular argentino va con el 15 o con +54 9.
   - Tiene el WhatsApp, el Instagram, el logo (la "A" de la app) y una descripción con "entrenamiento personalizado online para mujeres".
@@ -472,7 +476,7 @@ Para correrla: Supabase Dashboard → SQL Editor → ejecutar.
 - **`numeros_publicos()`** (`security definer`, 28/10/2026): la puede llamar cualquiera, también sin sesión, porque son los números de la web.
   - Devuelve solo tres totales: ejercicios marcados, entrenamientos (días con al menos un ejercicio hecho) y alumnas que entrenaron.
   - No cuenta la cuenta de Amira. Una alumna que entrenó sigue contando aunque se dé de baja.
-  - Por ahora la usa el prototipo (`/prototipo/`). Si el prototipo no se usa, se borra con `migrations/numeros_publicos_marcha_atras.sql`.
+  - La usan los números de arriba de la página principal. Si la base no responde, quedan los escritos en la página.
   - Ver `migrations/numeros_publicos.sql`.
 - **Activar notificaciones pasa por `guardar_suscripcion(alumna_id, endpoint, p256dh, auth)`** (`security definer`, solo con sesión): un celular tiene una sola suscripción, y si ya era de otra alumna se la pasa a quien la activa.
 - **Lo previo al ingreso pasa por funciones `security definer`** que devuelven lo justo: `alumna_registrada(email)` (sí/no, al crear el PIN), `ficha_alumna(slug)` y `ficha_guardar(slug, lesiones, tel)` (ficha de salud). Nunca exponer `nacimiento`: es el PIN de ingreso.
