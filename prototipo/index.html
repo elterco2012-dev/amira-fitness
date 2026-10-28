@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Prototipo para revisar con Aaron y Amira (28/10/2026): no se indexa ni se enlaza
+       desde la web. Si se aprueba, la seccion pasa a la pagina principal y esta carpeta se borra. -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Prototipo · ¿Cómo sería tu rutina? | Amira Fitness</title>
+  <meta name="theme-color" content="#1D9E75">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      /* Los de la web */
+      --verde:#1D9E75;--verde-l:#E1F5EE;--verde-m:#5DCAA5;--verde-d:#0F6E56;
+      --txt:#1a1a1a;--txt-m:#6b7280;--surf:#f8f8f6;--surf-2:#f0f0ec;--white:#fff;
+      --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.12);
+      /* Los de la app de alumnas */
+      --v:#1D9E75;--vl:#E1F5EE;--vm:#5DCAA5;--vd:#0F6E56;
+      --p:#EEEDFE;--pd:#3C3289;--a:#FAEEDA;--ad:#633806;--rl:#FCEBEB;--rd:#A32D2D;
+      --bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;--t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
+      --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);
+      --r:16px;--rs:10px;--rp:30px;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--txt);line-height:1.6;}
+    button{font-family:inherit;}
+    :focus-visible{outline:2px solid var(--verde);outline-offset:2px;}
+
+    .aviso-proto{background:var(--a);color:var(--ad);font-size:12.5px;text-align:center;padding:.55rem 1rem;line-height:1.5;}
+    .aviso-proto b{font-weight:600;}
+    nav{border-bottom:1px solid var(--border);padding:.8rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .nav-brand{display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;text-decoration:none;color:var(--txt);}
+    .nav-logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
+    nav a.volver{font-size:13px;color:var(--txt-m);text-decoration:none;}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--rp);font-size:15px;font-weight:500;text-decoration:none;cursor:pointer;border:none;transition:background .2s,transform .2s;}
+    .btn-wa{background:#15805E;color:white;}
+    .btn-wa:hover{background:#0F6E56;transform:translateY(-1px);}
+
+    /* ── La sección ── */
+    .probar{background:var(--surf);padding:3rem 1.25rem 4rem;}
+    .probar-grid{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:1.5rem;
+      grid-template-areas:"intro" "preg" "resumen" "tel" "cta";}
+    .p-intro{grid-area:intro;}
+    .p-preg{grid-area:preg;}
+    .p-resumen{grid-area:resumen;}
+    .p-tel{grid-area:tel;min-width:0;}
+    .p-cta{grid-area:cta;}
+    @media (min-width:900px){
+      .probar{padding:4.5rem 2rem 5rem;}
+      .probar-grid{grid-template-columns:minmax(0,1fr) 380px;column-gap:4rem;
+        grid-template-areas:"intro tel" "preg tel" "resumen tel" "cta tel";grid-template-rows:auto auto auto 1fr;}
+      .p-tel{position:sticky;top:20px;align-self:start;}
+    }
+    .stag{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem;}
+    .stitle{font-family:'DM Serif Display',serif;font-weight:400;font-size:2.1rem;line-height:1.15;color:var(--txt);margin-bottom:.8rem;}
+    .ssub{font-size:.975rem;color:var(--txt-m);line-height:1.75;max-width:520px;}
+    @media (min-width:900px){.stitle{font-size:2.5rem;}}
+
+    .preg-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem 1.15rem 1.25rem;}
+    .preg + .preg{margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border);}
+    .preg-t{font-size:14px;font-weight:500;margin-bottom:.6rem;display:flex;align-items:center;gap:8px;}
+    .preg-n{width:22px;height:22px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .preg.ok .preg-n{background:var(--verde);color:white;}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;}
+    .chip{padding:10px 16px;border-radius:var(--rp);border:1px solid var(--border-m);background:var(--white);color:var(--txt);font-size:14px;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .1s;min-height:44px;}
+    .chip:active{transform:scale(.97);}
+    .chip[aria-pressed="true"]{background:var(--verde-d);border-color:var(--verde-d);color:white;}
+    .chips.dias .chip{min-width:58px;}
+
+    .resumen{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem;animation:aparece .35s ease;}
+    .res-t{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.7rem;}
+    .semana{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:.9rem;}
+    .sd{text-align:center;font-size:11px;color:var(--txt-m);}
+    .sd span{display:flex;align-items:center;justify-content:center;height:38px;border-radius:10px;background:var(--surf-2);margin-top:4px;font-size:14px;}
+    .sd.on{color:var(--verde-d);font-weight:500;}
+    .sd.on span{background:var(--verde);color:white;}
+    .res-linea{font-size:15px;font-weight:500;line-height:1.5;margin-bottom:.4rem;}
+    .res-txt{font-size:14px;color:var(--txt-m);line-height:1.7;}
+    .res-txt + .res-txt{margin-top:.35rem;}
+
+    .cta-card{background:var(--verde-d);color:white;border-radius:var(--r);padding:1.4rem 1.25rem;}
+    .cta-card h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.5rem;line-height:1.2;margin-bottom:.6rem;}
+    .cta-card p{font-size:14px;color:rgba(255,255,255,.8);line-height:1.75;margin-bottom:1.1rem;}
+    .cta-card .btn{width:100%;background:white;color:var(--verde-d);}
+    .cta-card .btn:hover{background:var(--verde-l);}
+    .cta-nota{font-size:12px;color:rgba(255,255,255,.65);margin-top:.7rem;text-align:center;line-height:1.5;}
+
+    /* ── El teléfono ── */
+    .tel-guia{font-size:13.5px;color:var(--txt-m);text-align:center;margin-bottom:.7rem;line-height:1.5;}
+    .telefono{background:#151515;border-radius:38px;padding:9px;box-shadow:0 22px 50px rgba(15,110,86,.16),0 6px 16px rgba(0,0,0,.12);max-width:380px;margin:0 auto;}
+    /* clip y no hidden: hidden lo convierte en contenedor de scroll y el descanso dejaria de quedar pegado abajo de la pantalla. */
+    .pantalla{background:var(--bg);border-radius:30px;overflow:clip;position:relative;}
+    .app-header{background:var(--s);border-bottom:1px solid var(--b);padding:.85rem 1rem;display:flex;align-items:center;gap:10px;}
+    .hlogo{width:32px;height:32px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--vd);flex-shrink:0;}
+    .htxt{flex:1;}
+    .htxt b{display:block;font-size:13.5px;font-weight:500;color:var(--t);}
+    .htxt small{font-size:11px;color:var(--tm);}
+    .ejemplo{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--ad);background:var(--a);border-radius:var(--rp);padding:3px 9px;}
+    .app-cuerpo{position:relative;}
+    @media (min-width:900px){
+      .app-cuerpo{max-height:calc(100vh - 250px);min-height:380px;overflow-y:auto;overscroll-behavior:contain;}
+    }
+    .screen{padding:.9rem 1rem 1rem;}
+    .esperando{position:relative;}
+    .esperando .screen{filter:blur(2.5px);opacity:.45;pointer-events:none;user-select:none;}
+    .velo{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding-top:5.5rem;z-index:3;}
+    .velo div{background:var(--s);border:1px solid var(--bm);border-radius:var(--r);padding:.9rem 1.1rem;font-size:13.5px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08);max-width:240px;line-height:1.5;}
+
+    /* Copia de las piezas de la app de alumnas (alumna/index.html), en chico */
+    .hero{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;margin-bottom:.75rem;}
+    .av{width:40px;height:40px;border-radius:50%;background:var(--vl);color:var(--vd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+    .hero b{display:block;font-size:14px;font-weight:500;}
+    .hero small{font-size:11px;color:var(--tm);}
+    .sel-label{font-size:10px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+    .stab{display:inline-block;padding:5px 13px;border-radius:var(--rp);font-size:11px;background:var(--p);color:var(--pd);font-weight:500;margin-bottom:.6rem;}
+    .dtabs{display:flex;gap:6px;margin-bottom:.75rem;}
+    .dtab{flex:1;padding:8px 4px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--tm);cursor:pointer;text-align:center;}
+    .dtab.active{background:var(--vd);color:white;border-color:var(--vd);}
+    .prog-top{display:flex;justify-content:space-between;font-size:11px;color:var(--tm);margin-bottom:5px;}
+    .prog-bar{height:6px;background:var(--b);border-radius:99px;overflow:hidden;margin-bottom:.8rem;}
+    .prog-fill{height:100%;background:var(--v);border-radius:99px;transition:width .4s cubic-bezier(.4,0,.2,1);}
+    .warmup{background:var(--a);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.75rem;}
+    .wt{font-size:10px;font-weight:500;color:var(--ad);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;}
+    .warmup li{font-size:12px;color:var(--ad);list-style:none;margin-top:3px;}
+    .tiempo{background:var(--s2);border-radius:var(--rs);padding:.65rem .8rem;margin-bottom:.6rem;}
+    .tiempo-t{font-size:11px;color:var(--tm);margin-bottom:.45rem;}
+    .tiempo-ops{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+    .tiempo-op{padding:8px 4px;border-radius:9px;cursor:pointer;font-size:12px;border:1px solid var(--bm);background:var(--s);color:var(--t);}
+    .tiempo-op[aria-pressed="true"]{border-color:var(--v);background:var(--vl);color:var(--vd);}
+    .tiempo-nota{font-size:11px;color:var(--tm);margin-top:.45rem;line-height:1.5;}
+    .ex-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.75rem .85rem;margin-bottom:.5rem;transition:background .25s,border-color .25s;}
+    .ex-card.done{background:var(--vl);border-color:var(--vm);}
+    .ex-top{display:flex;align-items:center;gap:10px;}
+    .ex-num{width:36px;height:36px;border-radius:50%;cursor:pointer;background:var(--s2);border:1px solid var(--bm);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--tm);flex-shrink:0;transition:background .2s,border-color .2s,color .2s;}
+    .ex-card.done .ex-num{background:var(--v);color:white;border-color:var(--v);}
+    .ex-card:not(.done) .ex-num.invita{animation:latido 1.6s ease-in-out infinite;}
+    @keyframes latido{0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,.5);}60%{box-shadow:0 0 0 9px rgba(29,158,117,0);}}
+    @keyframes popCheck{0%{transform:scale(1);}40%{transform:scale(1.45);}65%{transform:scale(.88);}85%{transform:scale(1.12);}100%{transform:scale(1);}}
+    .ex-num.anim-check{animation:popCheck .42s cubic-bezier(.4,0,.2,1) forwards;}
+    .ex-name{font-size:14.5px;font-weight:500;color:var(--t);line-height:1.35;}
+    .ex-det{font-size:11px;color:var(--tm);margin-top:2px;}
+    .ex-btns{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--b);flex-wrap:wrap;}
+    .btip{background:var(--p);border:none;border-radius:var(--rs);padding:8px 12px;min-height:36px;font-size:12px;color:var(--pd);cursor:pointer;font-weight:500;}
+    .brep{background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;color:var(--tm);cursor:pointer;padding:8px 12px;min-height:36px;}
+    .peso-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+    .peso-lbl{font-size:11px;color:var(--tm);}
+    .peso-in{flex:1;padding:6px 8px;border:1px solid var(--bm);border-radius:var(--rs);font-size:12px;font-family:inherit;background:var(--s2);color:var(--t);max-width:70px;text-align:center;}
+    .peso-in.sugerido{color:var(--th);}
+    .peso-in:focus{outline:none;border-color:var(--v);}
+    .peso-aj{width:34px;height:34px;min-width:34px;border:1px solid var(--bm);background:var(--s);color:var(--t);border-radius:9px;font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .peso-aj:active{background:var(--vl);border-color:var(--v);}
+    .peso-sug{font-size:10px;color:var(--th);}
+    .bchk{width:100%;margin-top:8px;background:var(--s2);border:1px solid var(--bm);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--tm);cursor:pointer;font-weight:500;}
+    .ex-card.done .bchk{background:var(--vl);color:var(--vd);border-color:var(--vm);}
+    .tip-txt,.rep-txt{font-size:12px;border-radius:var(--rs);padding:8px 10px;margin-top:8px;line-height:1.55;}
+    .tip-txt{color:var(--vd);background:var(--vl);}
+    .ex-card.done .tip-txt{background:var(--s);}
+    .rep-txt{color:var(--rd);background:var(--rl);}
+    .rpe{margin-top:8px;padding:6px 8px;background:var(--s);border-radius:var(--rs);}
+    .rpe span.t{font-size:10px;color:var(--tm);display:block;margin-bottom:4px;}
+    .rpe-ops{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+    .rpe-op{padding:4px 2px;border-radius:8px;border:1px solid var(--bm);background:var(--s);color:var(--t);font-size:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;}
+    .rpe-op i{font-style:normal;font-size:16px;}
+    .rpe-op[aria-pressed="true"]{border-color:var(--v);background:var(--vl);color:var(--vd);}
+    .done-banner{text-align:center;padding:1.2rem 0 .4rem;font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--vd);line-height:1.35;}
+    .done-banner small{display:block;font-family:'DM Sans',sans-serif;font-size:13px;opacity:.85;margin-top:4px;}
+    .fb-picker{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.9rem;margin-top:.5rem;text-align:center;}
+    .fb-title{font-size:13px;font-weight:500;margin-bottom:.65rem;}
+    .fb-opts{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+    .fb-opt{padding:8px 12px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s2);color:var(--t);cursor:pointer;}
+    .fb-gracias{font-size:12.5px;color:var(--vd);line-height:1.55;}
+    .en-app-cta{display:block;width:100%;margin-top:.75rem;background:#15805E;color:white;text-align:center;text-decoration:none;font-size:13.5px;font-weight:500;padding:12px;border-radius:var(--rp);}
+    .toast{font-size:12px;color:var(--pd);background:var(--p);border-radius:var(--rs);padding:8px 10px;margin-bottom:.6rem;line-height:1.5;}
+
+    /* Descanso: pegado abajo de la pantalla mientras se ve el teléfono */
+    .timer-anc{position:sticky;bottom:10px;height:0;z-index:6;}
+    /* Mientras corre, lugar abajo: si no, tapa el "Marcar hecho" del último ejercicio. */
+    .app-cuerpo.con-timer #contenido{padding-bottom:84px;}
+    .timer{position:absolute;left:10px;right:10px;bottom:0;background:var(--s);border:1px solid var(--b);border-radius:18px;padding:.7rem .9rem;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.14);transform:translateY(16px);opacity:0;visibility:hidden;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s,visibility .3s;}
+    .timer.show{transform:none;opacity:1;visibility:visible;}
+    .tcircle{width:50px;height:50px;border-radius:50%;background:var(--v);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+    .tnum{font-family:'DM Serif Display',serif;font-size:20px;color:white;position:relative;z-index:1;}
+    .tring{position:absolute;inset:0;transform:rotate(-90deg);}
+    .tinfo{flex:1;min-width:0;}
+    .ttitle{font-size:13px;font-weight:500;}
+    .tsub{font-size:11px;color:var(--tm);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .tskip{background:none;border:1px solid var(--bm);border-radius:var(--rs);padding:6px 12px;font-size:12px;color:var(--tm);cursor:pointer;}
+
+    .bnav{background:var(--s);border-top:1px solid var(--b);display:flex;}
+    .bitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 11px;cursor:pointer;border:none;background:none;}
+    .bitem span:first-child{font-size:17px;}
+    .bitem span:last-child{font-size:10px;color:var(--tm);}
+    .bitem[aria-current="page"] span:last-child{color:var(--v);font-weight:500;}
+
+    /* Progreso y Notas */
+    .card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.9rem;margin-bottom:.7rem;}
+    .card-t{font-size:10px;font-weight:500;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem;}
+    .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+    .cal .dn{font-size:9.5px;color:var(--th);}
+    .cal .d{font-size:11px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--tm);}
+    .cal .d.plan{background:var(--s2);color:var(--t);}
+    .cal .d.hoy{box-shadow:inset 0 0 0 1.5px var(--v);}
+    .cal .d.hecho{background:var(--v);color:white;font-weight:600;}
+    .cal-txt{font-size:12px;color:var(--tm);margin-top:.6rem;line-height:1.55;}
+    .evo{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:.4rem 0;border-top:1px solid var(--b);}
+    .evo:first-of-type{border-top:none;}
+    .evo b{font-weight:500;color:var(--vd);white-space:nowrap;}
+    .burbuja{background:var(--vl);color:var(--vd);border-radius:14px 14px 14px 4px;padding:.7rem .85rem;font-size:13px;line-height:1.55;margin-bottom:.5rem;}
+    .burbuja small{display:block;font-size:10.5px;opacity:.75;margin-top:4px;}
+    .burbuja.yo{background:var(--s);color:var(--t);border:1px solid var(--b);border-radius:14px 14px 4px 14px;margin-left:18%;}
+
+    .tel-nota{font-size:12px;color:var(--txt-m);text-align:center;margin-top:.8rem;line-height:1.55;max-width:380px;margin-left:auto;margin-right:auto;}
+
+    #confeti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden;}
+    #confeti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:cae 2.4s cubic-bezier(.2,.6,.4,1) forwards;}
+    @keyframes cae{to{transform:translateY(105vh) rotate(540deg);opacity:.9;}}
+    @keyframes aparece{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+    @media (pointer:coarse){.peso-in{font-size:16px;}}
+    @media (prefers-reduced-motion:reduce){
+      *{animation:none!important;transition:none!important;}
+      #confeti{display:none;}
+    }
+    footer{padding:1.5rem 1.25rem;text-align:center;font-size:12px;color:var(--txt-m);}
+    footer a{color:inherit;}
+  </style>
+</head>
+<body>
+
+<div class="aviso-proto"><b>Prototipo para revisar.</b> Todavía no está en la web y no guarda ni manda nada (salvo el botón de WhatsApp, que abre el chat).</div>
+
+<nav>
+  <a href="/" class="nav-brand"><span class="nav-logo">A</span>Amira Fitness</a>
+  <a href="/" class="volver">Ver la web →</a>
+</nav>
+
+<main>
+<section class="probar" aria-labelledby="probar-t">
+  <div class="probar-grid">
+
+    <div class="p-intro">
+      <div class="stag">Probalo</div>
+      <h1 class="stitle" id="probar-t">¿Cómo sería tu rutina?</h1>
+      <p class="ssub">Respondé tres preguntas y probá un día de entrenamiento en la app, como si ya fueras mi alumna.</p>
+    </div>
+
+    <div class="p-preg">
+      <div class="preg-card">
+        <div class="preg" id="preg-donde">
+          <div class="preg-t" id="pt-donde"><span class="preg-n">1</span>¿Dónde entrenás?</div>
+          <div class="chips" role="group" aria-labelledby="pt-donde">
+            <button class="chip" data-p="donde" data-v="casa" aria-pressed="false">🏠 En casa</button>
+            <button class="chip" data-p="donde" data-v="gym" aria-pressed="false">🏋️ En el gimnasio</button>
+          </div>
+        </div>
+        <div class="preg" id="preg-dias">
+          <div class="preg-t" id="pt-dias"><span class="preg-n">2</span>¿Cuántos días por semana podés?</div>
+          <div class="chips dias" role="group" aria-labelledby="pt-dias">
+            <button class="chip" data-p="dias" data-v="2" aria-pressed="false">2</button>
+            <button class="chip" data-p="dias" data-v="3" aria-pressed="false">3</button>
+            <button class="chip" data-p="dias" data-v="4" aria-pressed="false">4</button>
+          </div>
+        </div>
+        <div class="preg" id="preg-obj">
+          <div class="preg-t" id="pt-obj"><span class="preg-n">3</span>¿Qué buscás?</div>
+          <div class="chips" role="group" aria-labelledby="pt-obj">
+            <button class="chip" data-p="obj" data-v="fuerza" aria-pressed="false">💪 Ganar fuerza</button>
+            <button class="chip" data-p="obj" data-v="tonificar" aria-pressed="false">✨ Tonificar</button>
+            <button class="chip" data-p="obj" data-v="energia" aria-pressed="false">⚡ Más energía</button>
+            <button class="chip" data-p="obj" data-v="empezar" aria-pressed="false">🌱 Empezar o volver</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-resumen" id="resumen" aria-live="polite"></div>
+
+    <div class="p-tel">
+      <p class="tel-guia" id="tel-guia">👇 Así se ve tu día en la app</p>
+      <div class="telefono">
+        <div class="pantalla" id="pantalla">
+          <div class="app-header">
+            <div class="hlogo">A</div>
+            <div class="htxt"><b>Amira Fitness</b><small>Tu entrenamiento</small></div>
+            <span class="ejemplo">EJEMPLO</span>
+          </div>
+          <div class="app-cuerpo" id="app-cuerpo">
+            <div id="contenido"></div>
+            <div class="timer-anc">
+              <div class="timer" id="timer" role="timer" aria-live="off">
+                <div class="tcircle">
+                  <svg class="tring" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="3"/><circle id="tarc" cx="27" cy="27" r="24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="0"/></svg>
+                  <span class="tnum" id="tnum">45</span>
+                </div>
+                <div class="tinfo">
+                  <div class="ttitle">Descanso</div>
+                  <div class="tsub" id="tsub">Próximo: —</div>
+                </div>
+                <button class="tskip" id="tskip">Saltar</button>
+              </div>
+            </div>
+          </div>
+          <div class="bnav" role="tablist" aria-label="Secciones de la app">
+            <button class="bitem" data-tab="r" aria-current="page"><span>💪</span><span>Rutina</span></button>
+            <button class="bitem" data-tab="p"><span>📈</span><span>Progreso</span></button>
+            <button class="bitem" data-tab="n"><span>💬</span><span>Notas</span></button>
+          </div>
+        </div>
+      </div>
+      <p class="tel-nota">Es un ejemplo para mostrar cómo funciona la app. Los ejercicios, las series y los pesos de tu plan los defino con vos.</p>
+    </div>
+
+    <div class="p-cta">
+      <div class="cta-card">
+        <h2>Tu rutina de verdad la armamos juntas</h2>
+        <p>Miramos tu nivel, si tenés alguna lesión o molestia, tus horarios y lo que tenés para entrenar. Cada semana veo cómo te fue y la ajusto.</p>
+        <a class="btn" id="cta-wa" href="https://wa.me/5492226500790" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-1 1.2-.4.2-.7.1a8.1 8.1 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2.1c-.2-.3 0-.5.1-.6l.5-.5.3-.5a.6.6 0 0 0 0-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1.1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.5c.7.3 1.3.5 1.7.6a4.1 4.1 0 0 0 1.9.1 3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.1-.3-.2-.6-.3zM12 21.8a9.9 9.9 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4a9.8 9.8 0 1 1 8.3 4.6zm8.4-18.2A11.8 11.8 0 0 0 1.8 17.8L.1 24l6.4-1.7a11.8 11.8 0 0 0 5.6 1.4A11.8 11.8 0 0 0 20.4 3.6z"/></svg>
+          Quiero mi rutina
+        </a>
+        <div class="cta-nota" id="cta-nota">La primera charla es sin costo.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</main>
+
+<footer><a href="/">amirafitness.com.ar</a></footer>
+<div id="confeti" aria-hidden="true"></div>
+
+<script>
+// ── Datos del ejemplo (los tiene que aprobar Amira) ──────────────────────────
+const TECNICA={
+  sentadilla:'Pies al ancho de los hombros. Bajá como si te sentaras en una silla, con las rodillas hacia el mismo lado que los pies, y subí empujando con todo el pie.',
+  remo:'Una mano y una rodilla en la silla, la espalda recta. Llevá la mancuerna hacia la cadera, con el codo pegado al cuerpo.',
+  pmr:'Con las rodillas apenas flexionadas, llevá la cadera hacia atrás con la espalda recta, hasta sentir que se estira la parte de atrás de las piernas. Volvé apretando los glúteos.',
+  puente:'Con la mancuerna sobre la cadera, subí y apretá los glúteos un segundo arriba.',
+  plancha:'Codos debajo de los hombros y el cuerpo en línea recta. Si te molesta la espalda baja, apoyá las rodillas.',
+  estocada:'Da un paso largo hacia atrás y bajá la rodilla de atrás hacia el piso, con el torso derecho. Si te cuesta el equilibrio, apoyá una mano en una silla.',
+  prensa:'Bajá hasta donde tu espalda baja siga apoyada en el respaldo y empujá con todo el pie.',
+  jalon:'Llevá la barra hacia el pecho bajando los codos, sin tirar el cuerpo para atrás.',
+  hip:'Con la espalda apoyada en un banco y la barra sobre la cadera, subí hasta que el cuerpo quede recto y apretá los glúteos un segundo arriba.'
+};
+// kg: peso sugerido para 12 repeticiones. lado: se hace con cada brazo o pierna.
+const DIAS_EJ={
+  casa:{
+    completo:[
+      {n:'Sentadilla con una mancuerna al pecho',kg:4,t:'sentadilla'},
+      {n:'Remo con mancuerna apoyada en una silla',kg:4,lado:'brazo',t:'remo'},
+      {n:'Peso muerto rumano',kg:4,t:'pmr'},
+      {n:'Puente de glúteos con mancuerna',kg:6,t:'puente'},
+      {n:'Plancha',seg:true,t:'plancha'}],
+    piernas:[
+      {n:'Sentadilla con una mancuerna al pecho',kg:4,t:'sentadilla'},
+      {n:'Peso muerto rumano',kg:4,t:'pmr'},
+      {n:'Estocada hacia atrás',lado:'pierna',t:'estocada'},
+      {n:'Puente de glúteos con mancuerna',kg:6,t:'puente'},
+      {n:'Plancha',seg:true,t:'plancha'}]},
+  gym:{
+    completo:[
+      {n:'Prensa de piernas',kg:40,t:'prensa'},
+      {n:'Jalón al pecho en polea alta',kg:20,t:'jalon'},
+      {n:'Peso muerto rumano con mancuernas',kg:6,t:'pmr'},
+      {n:'Hip thrust',kg:20,t:'hip'},
+      {n:'Plancha',seg:true,t:'plancha'}],
+    piernas:[
+      {n:'Prensa de piernas',kg:40,t:'prensa'},
+      {n:'Peso muerto rumano con mancuernas',kg:6,t:'pmr'},
+      {n:'Hip thrust',kg:20,t:'hip'},
+      {n:'Estocada hacia atrás con mancuernas',kg:4,lado:'pierna',t:'estocada'},
+      {n:'Plancha',seg:true,t:'plancha'}]}
+};
+// Series, repeticiones y pesos según lo que busca.
+const DOSIS={
+  fuerza:{series:3,reps:'8',seg:'30 seg',kg:1.25},
+  tonificar:{series:3,reps:'12',seg:'30 seg',kg:1},
+  energia:{series:3,reps:'12',seg:'30 seg',kg:1},
+  empezar:{series:2,reps:'10',seg:'20 seg',kg:.5}
+};
+const FRASE={
+  fuerza:'Pocas repeticiones con más peso. Cada semana miro cómo te fue y subimos de a poco.',
+  tonificar:'Todo el cuerpo trabajando en cada entrenamiento, con series de 12.',
+  energia:'Entrenamientos de unos 30 minutos. Los días que no entrenás, una caminata también suma.',
+  empezar:'La primera semana hacés 2 series de cada ejercicio, para aprender bien los movimientos.'
+};
+const OBJ_TXT={fuerza:'quiero ganar fuerza',tonificar:'quiero tonificar',energia:'quiero tener más energía',empezar:'quiero empezar a entrenar (o volver)'};
+const SEMANA={2:[0,3],3:[0,2,4],4:[0,1,3,4]};
+const DIAS_CORTOS=['L','M','M','J','V','S','D'];
+const DIAS_LARGOS=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+const ENTRADA={
+  casa:['1 minuto de marcha en el lugar','10 sentadillas sin peso','10 círculos de brazos para cada lado'],
+  gym:['5 minutos de bici o cinta, suave','Círculos de cadera y de hombros','Una serie con poco peso del primer ejercicio']
+};
+const DESCANSO=45;
+const WA='5492226500790';
+
+// ── Estado ───────────────────────────────────────────────────────────────────
+const S={donde:null,dias:null,obj:null,tope:0,hechos:new Set(),pesos:{},tocados:new Set(),rpe:{},tip:new Set(),rep:new Set(),fb:null,tab:'r',aviso:''};
+let timerInt=null,timerFin=0;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const listo=()=>S.donde&&S.dias&&S.obj;
+const reducido=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function ejercicios(){
+  const tipo=S.dias===4?'piernas':'completo';
+  const d=DOSIS[S.obj||'tonificar'];
+  return DIAS_EJ[S.donde||'casa'][tipo].map((e,i)=>{
+    const reps=e.seg?d.seg:d.reps+(e.lado?` con cada ${e.lado}`:'');
+    const kg=e.kg?Math.max(1,Math.round(e.kg*d.kg)):null;
+    return {...e,i,series:d.series,reps,kg};
+  });
+}
+const visibles=exs=>S.tope===15?exs.slice(0,2):S.tope===30?exs.slice(0,4):exs;
+function diaCompleto(){
+  if(!listo())return false;
+  const v=visibles(ejercicios());
+  return v.length>0&&v.every(e=>S.hechos.has(e.i));
+}
+function pesoDe(e){return S.pesos[e.i]!=null?S.pesos[e.i]:e.kg;}
+
+// ── Preguntas y resumen ──────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
+  const p=b.dataset.p,v=p==='dias'?Number(b.dataset.v):b.dataset.v;
+  if(S[p]===v)return;
+  const antes=listo();
+  S[p]=v;
+  document.querySelectorAll(`.chip[data-p="${p}"]`).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  b.closest('.preg').classList.add('ok');
+  // Cambiar una respuesta arma otro día: lo marcado del anterior ya no vale.
+  if(antes){S.hechos.clear();S.pesos={};S.tocados.clear();S.rpe={};S.fb=null;S.tope=0;S.aviso='Cambiaste una respuesta: el día se armó de nuevo.';pararTimer();}
+  S.tab='r';
+  render();
+  if(!antes&&listo()){
+    const r=$('#resumen');
+    if(r&&r.getBoundingClientRect().top>innerHeight*.75)r.scrollIntoView({behavior:reducido?'auto':'smooth',block:'start'});
+  }
+}));
+
+function renderResumen(){
+  const r=$('#resumen');
+  if(!listo()){r.innerHTML='';return;}
+  const dias=SEMANA[S.dias];
+  const que=S.dias===4?'dos rutinas que se alternan':'cuerpo completo';
+  const donde=S.donde==='casa'?'en casa con mancuernas':'en el gimnasio';
+  r.innerHTML=`<div class="resumen">
+    <div class="res-t">Tu semana sería así</div>
+    <div class="semana">${DIAS_CORTOS.map((d,i)=>`<div class="sd${dias.includes(i)?' on':''}">${d}<span>${dias.includes(i)?'💪':''}</span></div>`).join('')}</div>
+    <div class="res-linea">${S.dias} días por semana · ${que} · ${donde}</div>
+    ${S.dias===4?'<p class="res-txt">Una rutina para piernas y glúteos y otra para el tren superior: cada parte del cuerpo trabaja dos veces por semana.</p>':''}
+    <p class="res-txt">${FRASE[S.obj]}</p>
+    <p class="res-txt">Si un día tenés poco tiempo, elegís 15 o 30 minutos y la app te deja lo que más rinde.</p>
+  </div>`;
+}
+
+// ── La pantalla de la app ────────────────────────────────────────────────────
+function render(){
+  renderResumen();
+  document.querySelectorAll('.bitem').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===S.tab));
+  document.querySelectorAll('.bitem[aria-current]').forEach(b=>b.setAttribute('aria-current','page'));
+  const c=$('#contenido'),cuerpo=$('#app-cuerpo'),top=cuerpo.scrollTop;
+  c.innerHTML=S.tab==='p'?htmlProgreso():S.tab==='n'?htmlNotas():htmlRutina();
+  cuerpo.scrollTop=top;
+  $('#tel-guia').textContent=!listo()?'👇 Así se ve tu día en la app'
+    :diaCompleto()?'🎉 ¡Día completo!':'👇 Probá el Día 1: tocá el círculo de cada ejercicio cuando lo termines';
+  actualizarWa();
+}
+
+function htmlRutina(){
+  const exs=ejercicios(),vis=visibles(exs),hechos=vis.filter(e=>S.hechos.has(e.i)).length;
+  const completo=listo()&&diaCompleto(),corta=completo&&S.tope>0;
+  const tituloDia=S.dias===4?'Piernas y glúteos':'Cuerpo completo';
+  const primeroPendiente=vis.find(e=>!S.hechos.has(e.i));
+  let h='';
+  if(S.aviso){h+=`<div class="toast">${esc(S.aviso)}</div>`;S.aviso='';}
+  h+=`<div class="hero"><div class="av">🙋‍♀️</div><div><b>¡Hola! Hoy toca entrenar</b><small>Semana 1 · ${tituloDia}</small></div></div>
+    <div class="sel-label">Semana</div><span class="stab">Semana 1</span>
+    <div class="dtabs">${Array.from({length:S.dias||3},(_,i)=>`<button class="dtab${i===0?' active':''}" data-dia="${i}">Día ${i+1}</button>`).join('')}</div>
+    <div class="prog-top"><span>${hechos} de ${vis.length} ejercicios</span><span>${Math.round(hechos/vis.length*100)}%</span></div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${hechos/vis.length*100}%"></div></div>
+    <div class="warmup"><div class="wt">Entrada en calor · 5 minutos</div><ul>${ENTRADA[S.donde||'casa'].map(x=>`<li>• ${x}</li>`).join('')}</ul></div>
+    <div class="tiempo"><div class="tiempo-t">¿Cuánto tiempo tenés hoy?</div>
+      <div class="tiempo-ops">${[[15,'15 min'],[30,'30 min'],[0,'Todo']].map(([m,l])=>`<button class="tiempo-op" data-tope="${m}" aria-pressed="${S.tope===m}">${l}</button>`).join('')}</div>
+      ${corta?'<div class="tiempo-nota">✓ Sesión corta completa: cuenta como entrenamiento.</div>'
+        :S.tope?`<div class="tiempo-nota">Te dejo los ${vis.length} que más rinden. Si los hacés, cuenta como entrenamiento del día.</div>`:''}
+    </div>`;
+  vis.forEach(e=>{
+    const hecho=S.hechos.has(e.i),peso=pesoDe(e);
+    h+=`<div class="ex-card${hecho?' done':''}" id="ex-${e.i}">
+      <div class="ex-top">
+        <button class="ex-num${e===primeroPendiente&&hechos===0?' invita':''}" data-hecho="${e.i}" aria-label="${hecho?'Desmarcar':'Marcar hecho'}: ${esc(e.n)}">${hecho?'✓':e.i+1}</button>
+        <div style="flex:1"><div class="ex-name">${esc(e.n)}</div><div class="ex-det">${e.series} series × ${e.reps}</div></div>
+      </div>
+      <div class="ex-btns">
+        <button class="btip" data-tip="${e.i}">${S.tip.has(e.i)?'Ocultar':'Ver técnica'}</button>
+        <button class="brep" data-rep="${e.i}">⚑ Reportar</button>
+      </div>
+      ${e.kg?`<div class="peso-row"><span class="peso-lbl">Peso:</span>
+        <button class="peso-aj" data-aj="-1" data-i="${e.i}" aria-label="Bajar un kilo">−</button>
+        <input class="peso-in${S.tocados.has(e.i)?'':' sugerido'}" data-peso="${e.i}" type="text" inputmode="decimal" value="${peso}" aria-label="Peso en kilos">
+        <button class="peso-aj" data-aj="1" data-i="${e.i}" aria-label="Subir un kilo">+</button>
+        <span class="peso-lbl">kg</span>${S.tocados.has(e.i)?'':'<span class="peso-sug">sugerido</span>'}</div>`:''}
+      <button class="bchk" data-hecho="${e.i}">${hecho?'✓ Hecho':'Marcar hecho'}</button>
+      ${hecho?`<div class="rpe"><span class="t">¿Cómo se sintió?</span><div class="rpe-ops">${[[7,'😌','Fácil'],[8,'💪','Bien'],[9,'😤','Duro'],[10,'🥵','Límite']].map(([v,em,l])=>`<button class="rpe-op" data-rpe="${e.i}" data-v="${v}" aria-pressed="${S.rpe[e.i]===v}"><i>${em}</i>${l}</button>`).join('')}</div></div>`:''}
+      ${S.tip.has(e.i)?`<div class="tip-txt">${TECNICA[e.t]}</div>`:''}
+      ${S.rep.has(e.i)?'<div class="rep-txt">Si algo te molesta, me avisás desde acá y te respondo. En el ejemplo no se manda nada.</div>':''}
+    </div>`;
+  });
+  if(completo){
+    h+=`<div class="done-banner" id="festejo">${corta?'¡Bien! Sesión corta completa ⚡':'¡Excelente! Completaste el día 🎉'}
+      <small>${corta?'Cuenta como entrenamiento. Recordá estirar 🤸':'Recordá estirar para no sentirte adolorida 🤸'}</small></div>
+      <div class="fb-picker">${S.fb?`<div class="fb-gracias">Respondiste: ${esc(S.fb)} ✓<br>Con esto ajusto tu rutina de la semana que viene.</div>`
+        :`<div class="fb-title">¿Cómo te fue hoy?</div><div class="fb-opts">${['💪 Bien','🔥 Muy fácil','😤 Muy difícil','🤕 Me dolió algo'].map(o=>`<button class="fb-opt" data-fb="${o}">${o}</button>`).join('')}</div>`}
+        <a class="en-app-cta wa-link" href="#" target="_blank" rel="noopener">Quiero mi rutina de verdad</a>
+      </div>`;
+  }
+  if(!listo())return `<div class="esperando"><div class="velo"><div>Respondé las 3 preguntas y tu día aparece acá 👆</div></div><div class="screen">${h}</div></div>`;
+  return `<div class="screen">${h}</div>`;
+}
+
+function htmlProgreso(){
+  const hoy=new Date(),y=hoy.getFullYear(),m=hoy.getMonth();
+  const mes=hoy.toLocaleDateString('es-AR',{month:'long'});
+  const plan=SEMANA[S.dias||3];
+  const primero=(new Date(y,m,1).getDay()+6)%7,ultimo=new Date(y,m+1,0).getDate();
+  const hecho=listo()&&diaCompleto();
+  let cal=DIAS_CORTOS.map(d=>`<div class="dn">${d}</div>`).join('')+'<div></div>'.repeat(primero);
+  for(let d=1;d<=ultimo;d++){
+    const dow=(new Date(y,m,d).getDay()+6)%7,esHoy=d===hoy.getDate();
+    const cls=['d',esHoy&&hecho?'hecho':plan.includes(dow)&&d>=hoy.getDate()?'plan':'',esHoy?'hoy':''].filter(Boolean).join(' ');
+    cal+=`<div class="${cls}">${esHoy&&hecho?'✓':d}</div>`;
+  }
+  const conPeso=ejercicios().filter(e=>e.kg&&S.hechos.has(e.i));
+  return `<div class="screen">
+    <div class="card"><div class="card-t">Constancia de ${mes}</div><div class="cal">${cal}</div>
+      <div class="cal-txt">${hecho?'¡Primer día entrenado del mes! La meta es entrenar 3 de cada 4 días que planificaste.'
+        :'Los días grises son los que vas a entrenar. Cuando completes el de hoy, lo ves marcado acá.'}</div></div>
+    <div class="card"><div class="card-t">Desde que empezaste</div>
+      ${conPeso.length?conPeso.map(e=>`<div class="evo"><span>${esc(e.n)}</span><b>${esc(pesoDe(e))} kg</b></div>`).join('')
+        +'<div class="cal-txt">Con cada entrenamiento vas a ver cómo suben tus pesos.</div>'
+        :'<div class="cal-txt">Acá vas a ver con cuánto peso empezaste cada ejercicio y cuánto levantás hoy. Marcá ejercicios en la rutina y aparecen.</div>'}
+    </div></div>`;
+}
+
+function htmlNotas(){
+  return `<div class="screen">
+    <div class="card-t" style="margin:.2rem 0 .6rem;">Mensajes sobre tu entrenamiento</div>
+    <div class="burbuja">¡Hola! Acá te dejo comentarios sobre tus entrenamientos. Contame cómo te sentiste y cualquier duda me escribís 💚<small>Amira</small></div>
+    ${S.fb?`<div class="burbuja yo">${esc(S.fb)}<small>Vos · hoy</small></div>
+      <div class="burbuja">¡Gracias por contarme! Con eso ajusto la semana que viene.<small>Amira · ejemplo</small></div>`:''}
+    <div class="cal-txt" style="text-align:center;">En la app real, Amira te responde ella. Acá es un ejemplo.</div>
+  </div>`;
+}
+
+// ── Acciones dentro del teléfono ─────────────────────────────────────────────
+$('#pantalla').addEventListener('click',ev=>{
+  const b=ev.target.closest('button,a');if(!b)return;
+  const d=b.dataset;
+  if(d.tab){S.tab=d.tab;render();$('#app-cuerpo').scrollTop=0;return;}
+  if(!listo())return;
+  if(d.hecho!=null){marcar(Number(d.hecho));return;}
+  if(d.tip!=null){const i=Number(d.tip);S.tip.has(i)?S.tip.delete(i):S.tip.add(i);render();return;}
+  if(d.rep!=null){const i=Number(d.rep);S.rep.has(i)?S.rep.delete(i):S.rep.add(i);render();return;}
+  if(d.aj!=null){ajustar(Number(d.i),Number(d.aj));return;}
+  if(d.rpe!=null){S.rpe[Number(d.rpe)]=Number(d.v);render();return;}
+  if(d.fb){S.fb=d.fb;render();return;}
+  if(d.tope!=null){const antes=diaCompleto();S.tope=Number(d.tope);render();if(diaCompleto()&&!antes)festejar();return;}
+  if(d.dia!=null&&d.dia!=='0'){S.aviso='En este ejemplo probás el Día 1. En la app tenés armados todos los días de la semana.';render();return;}
+});
+$('#pantalla').addEventListener('input',ev=>{
+  const inp=ev.target.closest('[data-peso]');if(!inp)return;
+  const i=Number(inp.dataset.peso),v=inp.value.replace(',','.').replace(/[^\d.]/g,'');
+  S.pesos[i]=v===''?'':Number(v);S.tocados.add(i);
+  inp.classList.remove('sugerido');inp.parentElement.querySelector('.peso-sug')?.remove();
+});
+
+function ajustar(i,delta){
+  const e=ejercicios()[i];
+  S.pesos[i]=Math.max(0,(Number(pesoDe(e))||0)+delta);S.tocados.add(i);
+  render();
+}
+
+function marcar(i){
+  const exs=visibles(ejercicios());
+  if(S.hechos.has(i)){S.hechos.delete(i);pararTimer();render();return;}
+  S.hechos.add(i);
+  if(navigator.vibrate)navigator.vibrate(25);
+  const completo=diaCompleto();
+  render();
+  const n=document.querySelector(`#ex-${i} .ex-num`);
+  if(n&&!reducido){n.classList.add('anim-check');}
+  if(completo){pararTimer();festejar();return;}
+  const prox=exs.find(e=>!S.hechos.has(e.i)&&e.i>i)||exs.find(e=>!S.hechos.has(e.i));
+  arrancarTimer(prox?prox.n:'—');
+}
+
+function festejar(){
+  if(navigator.vibrate)navigator.vibrate([60,40,120]);
+  const f=$('#festejo');
+  if(f)f.scrollIntoView({behavior:reducido?'auto':'smooth',block:'center'});
+  if(reducido)return;
+  const box=$('#confeti'),colores=['#1D9E75','#5DCAA5','#0F6E56','#FAEEDA','#EEEDFE','#F4B860'];
+  box.innerHTML='';
+  for(let k=0;k<44;k++){
+    const c=document.createElement('i');
+    c.style.left=Math.random()*100+'vw';
+    c.style.background=colores[k%colores.length];
+    c.style.animationDelay=(Math.random()*.5)+'s';
+    c.style.transform=`rotate(${Math.random()*180}deg)`;
+    box.appendChild(c);
+  }
+  setTimeout(()=>{box.innerHTML='';},3200);
+}
+
+// ── Descanso ─────────────────────────────────────────────────────────────────
+function arrancarTimer(prox){
+  pararTimer();
+  timerFin=Date.now()+DESCANSO*1000;
+  $('#tsub').textContent='Próximo: '+prox;
+  $('#timer').classList.add('show');
+  $('#app-cuerpo').classList.add('con-timer');
+  pintarTimer();
+  timerInt=setInterval(pintarTimer,250);
+}
+function pintarTimer(){
+  const resta=Math.max(0,Math.ceil((timerFin-Date.now())/1000));
+  $('#tnum').textContent=resta;
+  $('#tarc').style.strokeDashoffset=String(150.8*(1-resta/DESCANSO));
+  if(resta===0){if(navigator.vibrate)navigator.vibrate([200,100,200]);pararTimer();}
+}
+function pararTimer(){clearInterval(timerInt);timerInt=null;$('#timer').classList.remove('show');$('#app-cuerpo').classList.remove('con-timer');}
+$('#tskip').addEventListener('click',pararTimer);
+
+// ── WhatsApp con lo que eligió ───────────────────────────────────────────────
+function mensaje(){
+  let partes=[];
+  if(S.donde)partes.push(S.donde==='casa'?'entreno en casa':'entreno en el gimnasio');
+  if(S.dias)partes.push(`puedo ${S.dias} días por semana`);
+  if(S.obj)partes.push(OBJ_TXT[S.obj]);
+  let t='¡Hola Amira! Probé la rutina de ejemplo en tu web';
+  if(partes.length){
+    const lista=partes.length>1?partes.slice(0,-1).join(', ')+' y '+partes[partes.length-1]:partes[0];
+    t+='. '+lista.charAt(0).toUpperCase()+lista.slice(1)+'.';
+  }else t+='.';
+  return t+' ¿Cómo sería mi plan?';
+}
+function actualizarWa(){
+  const url=`https://wa.me/${WA}?text=${encodeURIComponent(mensaje())}`;
+  document.querySelectorAll('#cta-wa,.wa-link').forEach(a=>a.href=url);
+  $('#cta-nota').textContent=listo()?'La primera charla es sin costo. El mensaje ya va escrito con lo que elegiste.':'La primera charla es sin costo.';
+}
+
+render();
+</script>
+</body>
+</html>
