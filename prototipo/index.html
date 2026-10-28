@@ -224,6 +224,46 @@
       *{animation:none!important;transition:none!important;}
       #confeti{display:none;}
     }
+    /* ── Así funciona: bloques numerados, cada uno con un video de la app real ── */
+    .asi{padding:3rem 1.25rem 3.5rem;background:var(--white);}
+    .asi-in{max-width:1060px;margin:0 auto;}
+    .asi .ssub{margin-bottom:1rem;}
+    .bloque{display:grid;grid-template-columns:1fr;gap:1.4rem;align-items:center;padding:2rem 0;}
+    .bloque + .bloque{border-top:1px solid var(--border);}
+    .b-num{font-size:12px;font-weight:600;color:var(--verde);letter-spacing:.08em;margin-bottom:.3rem;}
+    .bloque h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.75rem;line-height:1.15;margin-bottom:.5rem;}
+    .bloque p{font-size:15px;color:var(--txt-m);line-height:1.7;max-width:440px;}
+    .ticks{list-style:none;margin-top:.9rem;display:grid;gap:.55rem;}
+    .ticks li{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.4;}
+    .ticks li::before{content:'✓';width:24px;height:24px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+    .b-media{display:flex;justify-content:center;}
+    .mini-tel{width:min(280px,80vw);background:#151515;border-radius:34px;padding:8px;box-shadow:0 18px 40px rgba(15,110,86,.14),0 5px 14px rgba(0,0,0,.1);}
+    .mini-tel video,.mini-tel .chat{display:block;width:100%;aspect-ratio:540/1168;border-radius:27px;background:var(--surf-2);object-fit:cover;}
+    .chat{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
+    .chat-top{background:var(--s);border-bottom:1px solid var(--b);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;}
+    .chat-top b{display:block;font-size:13.5px;font-weight:500;}
+    .chat-top small{font-size:11px;color:var(--tm);}
+    .chat-cuerpo{flex:1;padding:.9rem .75rem;display:flex;flex-direction:column;gap:.55rem;}
+    .msg{max-width:84%;padding:.6rem .75rem;font-size:12.5px;line-height:1.5;border-radius:14px;}
+    .msg small{display:block;font-size:10px;opacity:.6;margin-top:3px;text-align:right;}
+    .msg.ella{background:var(--s);border:1px solid var(--b);border-radius:14px 14px 14px 4px;align-self:flex-start;}
+    .msg.vos{background:var(--vl);color:var(--vd);border-radius:14px 14px 4px 14px;align-self:flex-end;}
+    .chat.anima .msg{opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s;}
+    .chat.anima.ver .msg{opacity:1;transform:none;}
+    .chat.anima.ver .msg:nth-child(2){transition-delay:1.1s;}
+    .chat.anima.ver .msg:nth-child(3){transition-delay:2.3s;}
+    .chat.anima.ver .msg:nth-child(4){transition-delay:3.2s;}
+    .chat-pie{font-size:10.5px;color:var(--tm);text-align:center;padding:.6rem;}
+    .asi-fin{text-align:center;margin-top:1.25rem;}
+    .btn-verde{background:var(--verde-d);color:white;}
+    .btn-verde:hover{background:#0b5a46;transform:translateY(-1px);}
+    @media (min-width:900px){
+      .asi{padding:4.5rem 2rem 4rem;}
+      .bloque{grid-template-columns:1fr 1fr;gap:4rem;padding:2.75rem 0;}
+      .bloque.inv .b-txt{order:2;}
+      .bloque h3{font-size:2rem;}
+    }
+
     footer{padding:1.5rem 1.25rem;text-align:center;font-size:12px;color:var(--txt-m);}
     footer a{color:inherit;}
   </style>
@@ -238,12 +278,84 @@
 </nav>
 
 <main>
+<!-- Así funciona (28/10/2026): los videos son de la app real, con la cuenta con la que entrena Amira,
+     sin su nombre ni su peso corporal. Se cargan recién cuando se ven. -->
+<section class="asi" aria-labelledby="asi-t">
+  <div class="asi-in">
+    <div class="stag">Así funciona</div>
+    <h1 class="stitle" id="asi-t">Todo tu entrenamiento, en el celular</h1>
+    <p class="ssub">Así se ve la app que usan mis alumnas. Lo grabé con la cuenta con la que entreno yo.</p>
+
+    <div class="bloque">
+      <div class="b-txt">
+        <div class="b-num">01</div>
+        <h3>Tu rutina, armada para vos</h3>
+        <p>Cada semana y cada día, con los ejercicios, las series y el peso que te toca.</p>
+        <ul class="ticks"><li>Videos con la técnica de los ejercicios</li><li>Tu mejor marca, siempre a la vista</li></ul>
+      </div>
+      <div class="b-media"><div class="mini-tel">
+        <video muted loop playsinline preload="none" poster="/prototipo/videos/rutina.webp" data-src="/prototipo/videos/rutina.mp4"
+          aria-label="La rutina del día en la app: semanas, días y ejercicios con series y peso"></video>
+      </div></div>
+    </div>
+
+    <div class="bloque inv">
+      <div class="b-txt">
+        <div class="b-num">02</div>
+        <h3>Marcás lo que hacés</h3>
+        <p>Anotás el peso, marcás el ejercicio y la app te cuenta el descanso.</p>
+        <ul class="ticks"><li>El descanso, con cuenta regresiva</li><li>Me contás cómo se sintió cada ejercicio</li></ul>
+      </div>
+      <div class="b-media"><div class="mini-tel">
+        <video muted loop playsinline preload="none" poster="/prototipo/videos/marcar.webp" data-src="/prototipo/videos/marcar.mp4"
+          aria-label="Marcar un ejercicio en la app: sube el peso, queda hecho y empieza el descanso"></video>
+      </div></div>
+    </div>
+
+    <div class="bloque">
+      <div class="b-txt">
+        <div class="b-num">03</div>
+        <h3>Ves cómo avanzás</h3>
+        <p>Con cuánto empezaste cada ejercicio y cuánto levantás hoy.</p>
+        <ul class="ticks"><li>Tu constancia del mes</li><li>Tus logros</li></ul>
+      </div>
+      <div class="b-media"><div class="mini-tel">
+        <video muted loop playsinline preload="none" poster="/prototipo/videos/progreso.webp" data-src="/prototipo/videos/progreso.mp4"
+          aria-label="El progreso en la app: constancia del mes, con cuánto empezaste cada ejercicio y cuánto levantás hoy"></video>
+      </div></div>
+    </div>
+
+    <div class="bloque inv">
+      <div class="b-txt">
+        <div class="b-num">04</div>
+        <h3>Te acompaño cada semana</h3>
+        <p>Los lunes reviso cómo te fue y te escribo con los ajustes. Si algo te molesta, me avisás desde la app.</p>
+        <ul class="ticks"><li>Respuesta por WhatsApp</li><li>La rutina se ajusta según cómo te fue</li></ul>
+      </div>
+      <div class="b-media"><div class="mini-tel">
+        <div class="chat anima" role="img" aria-label="Ejemplo de la devolución de los lunes por WhatsApp">
+          <div class="chat-top"><span class="hlogo">A</span><div><b>Amira</b><small>Tu entrenadora</small></div></div>
+          <div class="chat-cuerpo">
+            <div class="msg ella">¡Hola! Revisé tu semana 💪 Entrenaste los 3 días y subiste el peso en el remo. Esta semana sumamos una serie en la sentadilla.<small>lun 9:12</small></div>
+            <div class="msg vos">¡Genial! El jueves me costó el peso muerto 😅<small>lun 9:40</small></div>
+            <div class="msg ella">Lo bajamos un poco y te dejo el video de la técnica para que lo mires antes 👍<small>lun 9:45</small></div>
+            <div class="msg vos">¡Dale, gracias! 💚<small>lun 9:47</small></div>
+          </div>
+          <div class="chat-pie">Ejemplo de la devolución de los lunes</div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="asi-fin"><a class="btn btn-verde" href="#probar-t">Probá cómo sería tu rutina 👇</a></div>
+  </div>
+</section>
+
 <section class="probar" aria-labelledby="probar-t">
   <div class="probar-grid">
 
     <div class="p-intro">
       <div class="stag">Probalo</div>
-      <h1 class="stitle" id="probar-t">¿Cómo sería tu rutina?</h1>
+      <h2 class="stitle" id="probar-t">¿Cómo sería tu rutina?</h2>
       <p class="ssub">Respondé tres preguntas y probá un día de entrenamiento en la app, como si ya fueras mi alumna.</p>
     </div>
 
@@ -655,6 +767,22 @@ function actualizarWa(){
 }
 
 render();
+
+// ── Videos de "Así funciona": se cargan recién cuando se ven y se pausan fuera de pantalla ──
+(function(){
+  const vids=[...document.querySelectorAll('video[data-src]')],chat=document.querySelector('.chat.anima');
+  const cargar=v=>{if(!v.getAttribute('src')){v.muted=true;v.src=v.dataset.src;}};
+  // Con movimiento reducido no arrancan solos: queda la imagen y los controles para darle play.
+  if(reducido){vids.forEach(v=>{v.controls=true;v.preload='none';v.src=v.dataset.src;});if(chat)chat.classList.add('ver');return;}
+  if(!('IntersectionObserver' in window)){vids.forEach(v=>{cargar(v);v.play().catch(()=>{});});if(chat)chat.classList.add('ver');return;}
+  const io=new IntersectionObserver(es=>es.forEach(e=>{
+    const el=e.target;
+    if(el===chat){if(e.isIntersecting){chat.classList.add('ver');io.unobserve(chat);}return;}
+    if(e.isIntersecting){cargar(el);el.play().catch(()=>{});}else if(!el.paused)el.pause();
+  }),{threshold:.35});
+  vids.forEach(v=>io.observe(v));
+  if(chat)io.observe(chat);
+})();
 </script>
 </body>
 </html>
