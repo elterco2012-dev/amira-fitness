@@ -174,10 +174,11 @@
     .hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
     .hero-photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5rem;}
     /* La app de verdad, en un celular sobre la esquina de la foto. Va de la mitad para abajo y sale
-       por el costado: más grande, sin tapar la cara ni la mancuerna. */
+       por el costado: más grande, sin tapar la cara ni la mancuerna. Derecho y no inclinado: inclinado,
+       el navegador redibuja el video torcido y la letra chica de la app se veía pixelada. */
     .hero-tel{position:absolute;left:-30%;top:38%;width:48%;max-width:236px;background:#151515;border-radius:26px;padding:6px;
-      box-shadow:0 22px 44px rgba(15,110,86,.22),0 6px 16px rgba(0,0,0,.18);transform:rotate(-3deg);}
-    .hero-tel video{display:block;width:100%;aspect-ratio:480/1038;border-radius:20px;background:var(--surf-2);object-fit:cover;}
+      box-shadow:0 22px 44px rgba(15,110,86,.22),0 6px 16px rgba(0,0,0,.18);}
+    .hero-tel video{display:block;width:100%;aspect-ratio:360/780;border-radius:20px;background:var(--surf-2);object-fit:cover;}
 
     /* Números reales de la app (de la base, sin la cuenta de Amira) */
     .numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:1.6rem;container-type:inline-size;}
@@ -512,9 +513,9 @@
       .section{padding:3.5rem 1.25rem;}
       .stitle{font-size:1.85rem;}
       /* El celular cuelga abajo de la foto: el espacio de abajo es para que no pise el título. */
-      .hero-wrap{grid-template-columns:1fr;padding:2.25rem 1.5rem 2.75rem;gap:4.5rem;}
+      .hero-wrap{grid-template-columns:1fr;padding:2.25rem 1.5rem 2.75rem;gap:5rem;}
       .hero-media{order:-1;width:100%;max-width:340px;margin:0 auto;}
-      .hero-tel{width:40%;left:-10px;top:auto;bottom:-56px;border-radius:18px;padding:4px;}
+      .hero-tel{width:40%;left:-10px;top:auto;bottom:-62px;border-radius:18px;padding:4px;}
       .hero-tel video{border-radius:14px;}
       .hero-quote{font-size:2rem;}
       .hero-ctas{max-width:100%;}
@@ -612,7 +613,7 @@
       </div>
       <!-- Lo mismo que muestran los bloques de "Así funciona", así que no hace falta leerlo. -->
       <div class="hero-tel" aria-hidden="true">
-        <video class="ini-video" muted loop playsinline preload="none" poster="/prototipo/videos/inicio.webp" data-src="/prototipo/videos/inicio.mp4"></video>
+        <video class="ini-video" muted loop playsinline preload="none" poster="/prototipo/videos/inicio-360.webp" data-src="/prototipo/videos/inicio-360.mp4"></video>
       </div>
     </div>
   </div>
@@ -1388,6 +1389,39 @@ render();
     else mover(1);
   },6000);
 })();
+
+// ── El celular del comienzo: el video del tamaño justo para esta pantalla ──
+// Se ve chiquito, y si el navegador lo achica o lo agranda la letra de la app se ve pixelada
+// (28/10/2026). Hay cuatro tamaños (226 es para las notebooks con la letra al 125%): se elige el que,
+// con un punto del video por punto de la pantalla, queda más parecido a lo que ocupa en la página, y se
+// lo corre lo justo para que caiga en el píxel. Con más de 2,5 puntos por píxel (muchos celulares) no
+// hace falta: no se nota, y queda del tamaño de la página.
+const INICIO={base:'/prototipo/videos/inicio-',tamanos:[[180,390],[226,490],[270,584],[360,780]]};
+function ajustarInicio(){
+  const tel=$('.hero-tel'),v=tel&&tel.querySelector('video');
+  if(!v)return;
+  tel.style.width='';tel.style.transform='';
+  const d=devicePixelRatio||1,pad=parseFloat(getComputedStyle(tel).paddingLeft)||0;
+  const ideal=tel.getBoundingClientRect().width-2*pad;
+  const masChico=()=>INICIO.tamanos.find(x=>x[0]>=ideal*d)||INICIO.tamanos[INICIO.tamanos.length-1];
+  let t=masChico(),css=ideal;
+  if(d<2.5){
+    const justos=INICIO.tamanos.filter(x=>x[0]/d>=ideal*.85&&x[0]/d<=ideal*1.15);
+    if(justos.length){t=justos.reduce((m,x)=>Math.abs(x[0]/d-ideal)<Math.abs(m[0]/d-ideal)?x:m);css=t[0]/d;}
+  }
+  tel.style.width=(css+2*pad)+'px';
+  v.style.aspectRatio=t[0]+'/'+t[1];
+  if(v.dataset.w!==String(t[0])){
+    v.dataset.w=String(t[0]);v.dataset.src=INICIO.base+t[0]+'.mp4';v.poster=INICIO.base+t[0]+'.webp';
+    if(v.getAttribute('src')){v.src=v.dataset.src;v.play().catch(()=>{});}
+  }
+  const r=v.getBoundingClientRect();
+  tel.style.transform=`translate(${Math.round(r.left*d)/d-r.left}px,${Math.round(r.top*d)/d-r.top}px)`;
+}
+ajustarInicio();
+addEventListener('load',ajustarInicio);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(ajustarInicio);
+{let pend=0;addEventListener('resize',()=>{cancelAnimationFrame(pend);pend=requestAnimationFrame(ajustarInicio);});}
 
 // ── Videos: el del comienzo y los de "Así funciona" se cargan recién cuando se ven, y se pausan
 // fuera de pantalla. Arrancan cuando terminó de cargar la página: así no le sacan velocidad a la foto.
