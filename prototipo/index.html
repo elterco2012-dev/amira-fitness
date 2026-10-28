@@ -3,64 +3,306 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Prototipo para revisar con Aaron y Amira (28/10/2026): no se indexa ni se enlaza
-       desde la web. Si se aprueba, la seccion pasa a la pagina principal y esta carpeta se borra. -->
+  <!-- Prototipo de la web nueva para revisar con Aaron y Amira (28/10/2026). No se indexa, no se
+       enlaza desde la web y no tiene analítica ni cuenta visitas. Al pasarlo a la página principal
+       quedan el <head> de index.html (título, descripción, Open Graph, datos para Google y la
+       analítica) y sus scripts del final (visitas y clics a WhatsApp), y el FAQPage de abajo
+       reemplaza al de index.html. Después esta carpeta se borra. -->
   <meta name="robots" content="noindex, nofollow">
-  <title>Prototipo · ¿Cómo sería tu rutina? | Amira Fitness</title>
+  <title>Prototipo · Web nueva | Amira Fitness</title>
   <meta name="theme-color" content="#1D9E75">
+  <!-- Las preguntas tienen que ser las mismas que las de la página: incluye las de "Por qué esta vez sí". -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Necesito equipamiento o puedo entrenar en casa?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Podés entrenar en casa con lo que tengas, y no hace falta mucho espacio: varias de mis alumnas entrenan en el comedor con dos mancuernas y una colchoneta, y otras en el gimnasio. Armo tu rutina con el equipamiento que tengas — nunca te voy a pedir que compres nada para empezar."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cuánto sale y cómo se paga?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Los planes arrancan en $20.000 por mes y el valor depende de cuántos días por semana entrenes. Se paga mes a mes, sin contrato ni permanencia mínima. La primera charla es sin costo: me contás tu caso y vemos si te sirve."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Y si pago y después abandono?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Es lo que más me escriben, y es la duda correcta. Por eso no hay contrato ni permanencia: pagás el mes que entrenás. Y si dejás de marcar tus días, te escribo — no para retarte, para preguntarte qué pasó y acomodar la semana."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "No tengo tiempo, ¿me sirve igual?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Entrenás los días que puedas, aunque sean dos por semana. Tengo alumnas que van por el tercer ciclo entrenando dos días, entre el trabajo, la casa y los hijos. Y si un día tenés poco tiempo, elegís 15 o 30 minutos y la app te deja los ejercicios que más rinden. La rutina se arma alrededor de tu semana, no al revés."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Me da pereza empezar sola, ¿cómo es el primer día?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No vas a empezar sola. El primer día ya tenés tu rutina armada, con los videos y el peso sugerido. No tenés que decidir nada: abrís la app y la seguís."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Tengo una lesión o salí de un embarazo, ¿puedo entrenar?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "En muchos casos sí, y de hecho entreno a alumnas con molestias de rodilla, cervicales o diástasis abdominal. Antes de armarte nada te hago una ficha donde me contás tu historial. No soy médica: si tu caso necesita el visto bueno de un profesional, te lo voy a decir."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Nunca entrené en mi vida, ¿es para mí?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sobre todo si nunca entrenaste. Varias de mis alumnas empezaron de cero y hoy levantan peso — una me contó que pasó de 3 a 8 kilos en un mes y medio. Tu rutina personalizada arranca desde donde estés hoy, no desde donde debería estar alguien que entrena hace años. Cada ejercicio viene con video y notas de técnica, y si algo no te sale, me preguntás por WhatsApp y te lo cambio."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿En qué se diferencia de una rutina que bajo de internet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Una rutina de internet no sabe cómo te fue ayer. La tuya sí. Reviso tus pesos y tus comentarios cada semana y ajusto lo que haga falta: si un ejercicio te molesta, te lo cambio al otro día; si te quedó corto, subimos la carga. Eso es entrenamiento personalizado — no un PDF que se repite hasta que te aburrís."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Es lo mismo que un personal trainer online?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí: soy tu entrenadora personal, solo que a distancia. Detrás de tu rutina estoy yo, no un programa automático: te armo el plan, reviso cómo te fue cada semana y te respondo por WhatsApp. Trabajo con alumnas de toda la Argentina."
+        }
+      }
+    ]
+  }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{
       /* Los de la web */
       --verde:#1D9E75;--verde-l:#E1F5EE;--verde-m:#5DCAA5;--verde-d:#0F6E56;
+      /* Verde para letra chica sobre blanco: el de la marca da 3,2:1 y este 4,9:1. */
+      --verde-t:#15805E;
       --txt:#1a1a1a;--txt-m:#6b7280;--surf:#f8f8f6;--surf-2:#f0f0ec;--white:#fff;
       --border:rgba(0,0,0,0.07);--border-m:rgba(0,0,0,0.12);
-      /* Los de la app de alumnas */
+      /* Los de la app de alumnas (el teléfono de "¿Cómo sería tu rutina?") */
       --v:#1D9E75;--vl:#E1F5EE;--vm:#5DCAA5;--vd:#0F6E56;
       --p:#EEEDFE;--pd:#3C3289;--a:#FAEEDA;--ad:#633806;--rl:#FCEBEB;--rd:#A32D2D;
       --bg:#f8f8f6;--s:#fff;--s2:#f3f4f2;--t:#1a1a1a;--tm:#6b7280;--th:#9ca3af;
       --b:rgba(0,0,0,0.07);--bm:rgba(0,0,0,0.12);
       --r:16px;--rs:10px;--rp:30px;
     }
+    html{scroll-behavior:smooth;}
     body{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--txt);line-height:1.6;}
     button{font-family:inherit;}
-    :focus-visible{outline:2px solid var(--verde);outline-offset:2px;}
+    :focus-visible{outline:2px solid var(--verde-d);outline-offset:2px;}
+    /* La barra de arriba queda fija: sin esto, los títulos a los que lleva un enlace quedan tapados. */
+    section[id]{scroll-margin-top:72px;}
 
     .aviso-proto{background:var(--a);color:var(--ad);font-size:12.5px;text-align:center;padding:.55rem 1rem;line-height:1.5;}
     .aviso-proto b{font-weight:600;}
-    nav{border-bottom:1px solid var(--border);padding:.8rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-    .nav-brand{display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;text-decoration:none;color:var(--txt);}
-    .nav-logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
-    nav a.volver{font-size:13px;color:var(--txt-m);text-decoration:none;}
+    .aviso-proto a{color:inherit;}
 
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--rp);font-size:15px;font-weight:500;text-decoration:none;cursor:pointer;border:none;transition:background .2s,transform .2s;}
+    /* Nav */
+    nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;}
+    .nav-brand{display:flex;align-items:center;min-height:44px;gap:10px;font-weight:500;font-size:15px;text-decoration:none;color:var(--txt);}
+    .nav-logo{width:34px;height:34px;border-radius:50%;background:var(--verde-l);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--verde-d);}
+    .nav-links{display:flex;align-items:center;gap:1.5rem;}
+    .nav-links a{font-size:13px;color:var(--txt-m);text-decoration:none;transition:color .15s;}
+    .nav-links a:hover{color:var(--txt);}
+    .nav-cta{background:var(--verde);color:white!important;padding:8px 18px;border-radius:var(--rp);font-size:13px;font-weight:500;text-decoration:none;transition:background .15s;}
+    .nav-cta:hover{background:var(--verde-d)!important;}
+
+    /* Botones */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 26px;border-radius:var(--rp);font-size:14px;font-weight:500;text-decoration:none;transition:background .2s,transform .2s;cursor:pointer;border:none;}
+    /* El botón principal va en el verde de la marca, un paso más profundo para que el texto
+       blanco se lea (4,91:1). El ícono de WhatsApp al lado ya dice cuál es el canal. */
     .btn-wa{background:#15805E;color:white;}
     .btn-wa:hover{background:#0F6E56;transform:translateY(-1px);}
+    .sticky-wa .btn-wa{background:#128C4A;}
+    .sticky-wa .btn-wa:hover{background:#0E7A3F;}
+    .btn-verde{background:var(--verde-d);color:white;}
+    .btn-verde:hover{background:#0b5a46;transform:translateY(-1px);}
+    .btn-white{background:white;color:var(--verde-d);}
+    .btn-white:hover{background:var(--verde-l);transform:translateY(-1px);}
 
-    /* ── La sección ── */
-    .probar{background:var(--surf);padding:3rem 1.25rem 4rem;}
-    .probar-grid{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:1.5rem;
+    /* Secciones */
+    .section{padding:5rem 2rem;}
+    .container{max-width:1100px;margin:0 auto;}
+    .stag{font-size:11px;font-weight:500;color:var(--verde-t);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;}
+    .stitle{font-family:'DM Serif Display',serif;font-weight:400;font-size:2.3rem;margin-bottom:1rem;color:var(--txt);line-height:1.2;}
+    .ssub{font-size:.975rem;color:var(--txt-m);max-width:540px;line-height:1.8;}
+
+    /* ── Comienzo: la foto con la app en movimiento, los números y la cinta ── */
+    .ini{overflow-x:clip;}
+    .hero-wrap{max-width:1100px;margin:0 auto;padding:4.5rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 1fr;gap:4.5rem;align-items:center;}
+    /* Va dentro del h1 (lo que se busca en Google tiene que estar ahí), con la letra de siempre. */
+    .hero-badge{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;line-height:1.6;color:var(--verde-t);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;display:block;}
+    .hero-quote{font-family:'DM Serif Display',serif;font-weight:400;font-size:2.6rem;line-height:1.15;color:var(--txt);margin-bottom:1.4rem;}
+    .hero-quote em{font-style:italic;color:var(--verde);}
+    .hero-desc{font-size:.975rem;color:var(--txt-m);margin-bottom:1.75rem;max-width:450px;line-height:1.85;}
+    .hero-ctas{max-width:380px;}
+    .hero-ctas .btn{padding:15px 24px;font-size:15px;width:100%;}
+    .hero-nota{margin:.7rem 0 0;font-size:12.5px;color:var(--txt-m);text-align:center;line-height:1.5;text-wrap:balance;}
+    .hero-otra{display:block;margin-top:.25rem;padding:12px 4px;font-size:13px;color:var(--txt-m);text-decoration:underline;text-underline-offset:3px;text-align:center;}
+    .hero-trust{display:grid;grid-template-columns:auto auto;justify-content:start;gap:.45rem 1.5rem;margin-top:.6rem;}
+    .trust-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt-m);}
+    .trust-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);}
+    .hero-media{position:relative;}
+    .hero-photo{border-radius:24px;aspect-ratio:4/5;overflow:hidden;position:relative;background:var(--surf);border:1px solid var(--border);}
+    .hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
+    .hero-photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5rem;}
+    /* La app de verdad, en un celular sobre la esquina de la foto. */
+    .hero-tel{position:absolute;left:-34px;bottom:-30px;width:31%;max-width:172px;background:#151515;border-radius:24px;padding:6px;
+      box-shadow:0 22px 44px rgba(15,110,86,.22),0 6px 16px rgba(0,0,0,.18);transform:rotate(-3deg);}
+    .hero-tel video{display:block;width:100%;aspect-ratio:400/866;border-radius:18px;background:var(--surf-2);object-fit:cover;}
+
+    /* Números reales de la app (de la base, sin la cuenta de Amira) */
+    .numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:1.6rem;container-type:inline-size;}
+    .num{background:var(--verde-l);border-radius:var(--r);padding:.9rem .35rem;text-align:center;}
+    .num b{display:block;font-family:'DM Serif Display',serif;font-weight:400;font-size:1.6rem;font-size:clamp(1.25rem,8cqi,2rem);line-height:1.1;color:var(--verde-d);}
+    .num span{display:block;font-size:12px;color:var(--verde-d);line-height:1.35;margin-top:.3rem;}
+    .num-nota{font-size:11.5px;color:var(--txt-m);text-align:center;margin-top:.5rem;}
+
+    /* La cinta de frases: se mueve despacio, se frena con el mouse encima o tocándola. */
+    .cinta{background:var(--verde-l);color:var(--verde-d);overflow:hidden;padding:.85rem 0;cursor:default;}
+    .cinta-pista{display:flex;width:max-content;animation:cinta 50s linear infinite;}
+    .cinta ul{display:flex;list-style:none;flex-shrink:0;}
+    .cinta li{display:flex;align-items:center;gap:1rem;padding-right:1rem;font-size:14px;font-weight:500;white-space:nowrap;}
+    .cinta li::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--verde-m);}
+    .cinta.quieta .cinta-pista{animation-play-state:paused;}
+    /* Solo con mouse: en el celular el "encima" queda pegado después de tocar y la cinta no volvía a andar. */
+    @media (hover:hover){.cinta:hover .cinta-pista{animation-play-state:paused;}}
+    @keyframes cinta{to{transform:translateX(-50%);}}
+
+    /* ── Así funciona: bloques numerados, cada uno con un video de la app real ── */
+    .asi .ssub{margin-bottom:.5rem;}
+    .bloque{display:grid;grid-template-columns:1fr;gap:1.4rem;align-items:center;padding:2rem 0;}
+    .bloque + .bloque{border-top:1px solid var(--border);}
+    .b-num{font-size:12px;font-weight:600;color:var(--verde-t);letter-spacing:.08em;margin-bottom:.3rem;}
+    .bloque h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.75rem;line-height:1.15;margin-bottom:.5rem;}
+    .bloque p{font-size:15px;color:var(--txt-m);line-height:1.7;max-width:440px;}
+    .ticks{list-style:none;margin-top:.9rem;display:grid;gap:.55rem;}
+    .ticks li{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.4;}
+    .ticks li::before{content:'✓';width:24px;height:24px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+    .b-media{display:flex;justify-content:center;}
+    .mini-tel{width:min(280px,80vw);background:#151515;border-radius:34px;padding:8px;box-shadow:0 18px 40px rgba(15,110,86,.14),0 5px 14px rgba(0,0,0,.1);}
+    .mini-tel video,.mini-tel .chat{display:block;width:100%;aspect-ratio:540/1168;border-radius:27px;background:var(--surf-2);object-fit:cover;}
+    .chat{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
+    .chat-top{background:var(--s);border-bottom:1px solid var(--b);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;}
+    .chat-top b{display:block;font-size:13.5px;font-weight:500;}
+    .chat-top small{font-size:11px;color:var(--tm);}
+    .chat-cuerpo{flex:1;padding:.9rem .75rem;display:flex;flex-direction:column;gap:.55rem;}
+    .msg{max-width:84%;padding:.6rem .75rem;font-size:12.5px;line-height:1.5;border-radius:14px;}
+    .msg small{display:block;font-size:10px;opacity:.6;margin-top:3px;text-align:right;}
+    .msg.ella{background:var(--s);border:1px solid var(--b);border-radius:14px 14px 14px 4px;align-self:flex-start;}
+    .msg.vos{background:var(--vl);color:var(--vd);border-radius:14px 14px 4px 14px;align-self:flex-end;}
+    .chat.anima .msg{opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s;}
+    .chat.anima.ver .msg{opacity:1;transform:none;}
+    .chat.anima.ver .msg:nth-child(2){transition-delay:1.1s;}
+    .chat.anima.ver .msg:nth-child(3){transition-delay:2.3s;}
+    .chat.anima.ver .msg:nth-child(4){transition-delay:3.2s;}
+    .chat-pie{font-size:10.5px;color:var(--tm);text-align:center;padding:.6rem;}
+    .asi-fin{text-align:center;margin-top:1.25rem;}
+
+    /* La semana que se llena de ✓ (como en la app) */
+    .semana-anim{display:flex;gap:6px;margin-top:1.1rem;}
+    .semana-anim span{position:relative;width:36px;height:36px;border-radius:50%;background:var(--surf-2);color:var(--txt-m);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+    .semana-anim span.t{color:var(--verde-d);box-shadow:inset 0 0 0 1.5px var(--verde-m);}
+    /* Se llena una sola vez, al aparecer en pantalla, y queda completa. */
+    .semana-anim span.t::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--verde);color:white;border-radius:50%;font-size:15px;opacity:0;transform:scale(.6);transition:opacity .25s ease,transform .45s cubic-bezier(.3,1.6,.5,1);}
+    .semana-anim.ver span.t::after{opacity:1;transform:none;}
+    .semana-anim.ver span:nth-child(1)::after{transition-delay:.3s;}
+    .semana-anim.ver span:nth-child(3)::after{transition-delay:.9s;}
+    .semana-anim.ver span:nth-child(5)::after{transition-delay:1.5s;}
+    .bloque p.semana-cap{font-size:12.5px;margin-top:.45rem;}
+
+    /* ── Sobre Amira ── */
+    .filosofia-bg{background:var(--verde-d);}
+    .filosofia-inner{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
+    .filosofia-text .stag{color:var(--verde-m);}
+    .filosofia-text .stitle{color:white;font-size:2rem;}
+    .filosofia-text p{color:rgba(255,255,255,.8);font-size:.975rem;line-height:1.85;margin-bottom:1.2rem;}
+    .filosofia-text p:last-of-type{margin-bottom:0;}
+    .filosofia-callout{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);padding:1.75rem;color:white;}
+    .filosofia-callout .big{font-size:2.8rem;line-height:1;font-family:'DM Serif Display',serif;font-style:italic;margin-bottom:.75rem;}
+    .filosofia-callout p{font-size:13px;color:rgba(255,255,255,.7);line-height:1.7;}
+    .filosofia-pillars{display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem;}
+    .pillar{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.88);font-size:14px;}
+    .pillar-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(255,255,255,.9);}
+
+    /* ── Una app pensada para tu vida real ── */
+    .gris{background:var(--surf);}
+    .vida-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:2rem;}
+    .vida-item{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1rem;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:start;}
+    .vida-ic{grid-row:span 2;width:42px;height:42px;border-radius:12px;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;}
+    .vida-item b{font-size:15px;font-weight:500;}
+    .vida-item p{font-size:13.5px;color:var(--txt-m);line-height:1.6;margin-top:.15rem;}
+    @media (min-width:700px){.vida-grid{grid-template-columns:1fr 1fr;}}
+
+    /* ── Esto es para vos si… ── */
+    .ideal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem 2.5rem;margin-top:2.25rem;max-width:900px;}
+    .ideal-item{display:flex;align-items:flex-start;gap:12px;font-size:14.5px;color:var(--txt);line-height:1.55;}
+    .ideal-check{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:1px;}
+    .ideal-cta{margin-top:2.25rem;}
+
+    /* ── Testimonios para deslizar, con sus 5 estrellas ── */
+    /* scroll-padding igual al padding: si no, el navegador corre la fila al cargar para alinear la primera tarjeta. */
+    .testis-fila{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 2rem;padding:1.5rem 2rem .5rem;margin:0 -2rem;scrollbar-width:none;}
+    .testis-fila::-webkit-scrollbar{display:none;}
+    /* En la compu la fila termina antes del borde de la pantalla: se esfuma en vez de cortar la tarjeta. */
+    @media (min-width:769px){
+      .testis-fila{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 64px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 64px),transparent);}
+      .testis-fila.al-final{-webkit-mask-image:none;mask-image:none;}
+    }
+    .testi{flex:0 0 min(300px,82%);scroll-snap-align:start;background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem;display:flex;flex-direction:column;}
+    .testi-stars{color:#A8740A;font-size:15px;letter-spacing:2px;margin-bottom:.45rem;}
+    .testi-lead{font-family:'DM Serif Display',serif;font-size:1.15rem;line-height:1.3;margin-bottom:.5rem;}
+    .testi-txt{font-size:13.5px;color:var(--txt-m);line-height:1.65;flex:1;}
+    .testi-quien{display:flex;align-items:center;gap:10px;margin-top:.9rem;}
+    .testi-av{width:38px;height:38px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);font-weight:600;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;flex-shrink:0;}
+    .testi-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+    .testi-quien b{display:block;font-size:13.5px;font-weight:500;}
+    .testi-quien small{font-size:12px;color:var(--txt-m);}
+    .testis-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:.6rem;}
+    .testis-pista{font-size:12px;color:var(--txt-m);}
+    .testis-flechas{display:flex;gap:8px;}
+    .testis-flechas button{width:40px;height:40px;border-radius:50%;border:1px solid var(--border-m);background:var(--white);font-size:18px;cursor:pointer;color:var(--txt);}
+    .testis-flechas button:disabled{opacity:.35;cursor:default;}
+
+    /* ── ¿Cómo sería tu rutina? ── */
+    .probar-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:1.5rem;
       grid-template-areas:"intro" "preg" "resumen" "tel" "cta";}
     .p-intro{grid-area:intro;}
     .p-preg{grid-area:preg;}
-    .p-resumen{grid-area:resumen;}
+    .p-resumen{grid-area:resumen;scroll-margin-top:84px;}
     .p-tel{grid-area:tel;min-width:0;}
     .p-cta{grid-area:cta;}
     @media (min-width:900px){
-      .probar{padding:4.5rem 2rem 5rem;}
       .probar-grid{grid-template-columns:minmax(0,1fr) 380px;column-gap:4rem;
         grid-template-areas:"intro tel" "preg tel" "resumen tel" "cta tel";grid-template-rows:auto auto auto 1fr;}
-      .p-tel{position:sticky;top:20px;align-self:start;}
+      .p-tel{position:sticky;top:88px;align-self:start;}
     }
-    .stag{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem;}
-    .stitle{font-family:'DM Serif Display',serif;font-weight:400;font-size:2.1rem;line-height:1.15;color:var(--txt);margin-bottom:.8rem;}
-    .ssub{font-size:.975rem;color:var(--txt-m);line-height:1.75;max-width:520px;}
-    @media (min-width:900px){.stitle{font-size:2.5rem;}}
-
-    .preg-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem 1.15rem 1.25rem;}
+    .preg-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem 1.15rem 1.25rem;}
     .preg + .preg{margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--border);}
     .preg-t{font-size:14px;font-weight:500;margin-bottom:.6rem;display:flex;align-items:center;gap:8px;}
     .preg-n{width:22px;height:22px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -71,8 +313,8 @@
     .chip[aria-pressed="true"]{background:var(--verde-d);border-color:var(--verde-d);color:white;}
     .chips.dias .chip{min-width:58px;}
 
-    .resumen{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem;animation:aparece .35s ease;}
-    .res-t{font-size:11px;font-weight:500;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.7rem;}
+    .resumen{background:var(--white);border:1px solid var(--border-m);border-radius:var(--r);padding:1.15rem;animation:aparece .35s ease;}
+    .res-t{font-size:11px;font-weight:500;color:var(--verde-t);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.7rem;}
     .semana{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:.9rem;}
     .sd{text-align:center;font-size:11px;color:var(--txt-m);}
     .sd span{display:flex;align-items:center;justify-content:center;height:38px;border-radius:10px;background:var(--surf-2);margin-top:4px;font-size:14px;}
@@ -83,16 +325,16 @@
     .res-txt + .res-txt{margin-top:.35rem;}
 
     .cta-card{background:var(--verde-d);color:white;border-radius:var(--r);padding:1.4rem 1.25rem;}
-    .cta-card h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.5rem;line-height:1.2;margin-bottom:.6rem;}
-    .cta-card p{font-size:14px;color:rgba(255,255,255,.8);line-height:1.75;margin-bottom:1.1rem;}
-    .cta-card .btn{width:100%;background:white;color:var(--verde-d);}
+    .cta-card h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.5rem;line-height:1.2;margin-bottom:.6rem;}
+    .cta-card p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.75;margin-bottom:1.1rem;}
+    .cta-card .btn{width:100%;background:white;color:var(--verde-d);padding:14px 24px;font-size:15px;}
     .cta-card .btn:hover{background:var(--verde-l);}
-    .cta-nota{font-size:12px;color:rgba(255,255,255,.65);margin-top:.7rem;text-align:center;line-height:1.5;}
+    .cta-nota{font-size:12px;color:rgba(255,255,255,.7);margin-top:.7rem;text-align:center;line-height:1.5;}
 
-    /* ── El teléfono ── */
+    /* El teléfono */
     .tel-guia{font-size:13.5px;color:var(--txt-m);text-align:center;margin-bottom:.7rem;line-height:1.5;}
     .telefono{background:#151515;border-radius:38px;padding:9px;box-shadow:0 22px 50px rgba(15,110,86,.16),0 6px 16px rgba(0,0,0,.12);max-width:380px;margin:0 auto;}
-    /* clip y no hidden: hidden lo convierte en contenedor de scroll y el descanso dejaria de quedar pegado abajo de la pantalla. */
+    /* clip y no hidden: hidden lo convierte en contenedor de scroll y el descanso dejaría de quedar pegado abajo de la pantalla. */
     .pantalla{background:var(--bg);border-radius:30px;overflow:clip;position:relative;}
     .app-header{background:var(--s);border-bottom:1px solid var(--b);padding:.85rem 1rem;display:flex;align-items:center;gap:10px;}
     .hlogo{width:32px;height:32px;border-radius:50%;background:var(--vl);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--vd);flex-shrink:0;}
@@ -102,7 +344,7 @@
     .ejemplo{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--ad);background:var(--a);border-radius:var(--rp);padding:3px 9px;}
     .app-cuerpo{position:relative;}
     @media (min-width:900px){
-      .app-cuerpo{max-height:calc(100vh - 250px);min-height:380px;overflow-y:auto;overscroll-behavior:contain;}
+      .app-cuerpo{max-height:calc(100vh - 300px);min-height:380px;overflow-y:auto;overscroll-behavior:contain;}
     }
     .screen{padding:.9rem 1rem 1rem;}
     .esperando{position:relative;}
@@ -111,10 +353,10 @@
     .velo div{background:var(--s);border:1px solid var(--bm);border-radius:var(--r);padding:.9rem 1.1rem;font-size:13.5px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08);max-width:240px;line-height:1.5;}
 
     /* Copia de las piezas de la app de alumnas (alumna/index.html), en chico */
-    .hero{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;margin-bottom:.75rem;}
+    .app-hola{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;margin-bottom:.75rem;}
     .av{width:40px;height:40px;border-radius:50%;background:var(--vl);color:var(--vd);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-    .hero b{display:block;font-size:14px;font-weight:500;}
-    .hero small{font-size:11px;color:var(--tm);}
+    .app-hola b{display:block;font-size:14px;font-weight:500;}
+    .app-hola small{font-size:11px;color:var(--tm);}
     .sel-label{font-size:10px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
     .stab{display:inline-block;padding:5px 13px;border-radius:var(--rp);font-size:11px;background:var(--p);color:var(--pd);font-weight:500;margin-bottom:.6rem;}
     .dtabs{display:flex;gap:6px;margin-bottom:.75rem;}
@@ -179,7 +421,7 @@
     /* Descanso: pegado abajo de la pantalla mientras se ve el teléfono */
     .timer-anc{position:sticky;bottom:10px;height:0;z-index:6;}
     /* Mientras corre, lugar abajo: si no, tapa el "Marcar hecho" del último ejercicio. */
-    .app-cuerpo.con-timer #contenido{padding-bottom:84px;}
+    .app-cuerpo.con-timer #app-contenido{padding-bottom:84px;}
     .timer{position:absolute;left:10px;right:10px;bottom:0;background:var(--s);border:1px solid var(--b);border-radius:18px;padding:.7rem .9rem;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.14);transform:translateY(16px);opacity:0;visibility:hidden;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s,visibility .3s;}
     .timer.show{transform:none;opacity:1;visibility:visible;}
     .tcircle{width:50px;height:50px;border-radius:50%;background:var(--v);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
@@ -212,148 +454,189 @@
     .burbuja{background:var(--vl);color:var(--vd);border-radius:14px 14px 14px 4px;padding:.7rem .85rem;font-size:13px;line-height:1.55;margin-bottom:.5rem;}
     .burbuja small{display:block;font-size:10.5px;opacity:.75;margin-top:4px;}
     .burbuja.yo{background:var(--s);color:var(--t);border:1px solid var(--b);border-radius:14px 14px 4px 14px;margin-left:18%;}
-
     .tel-nota{font-size:12px;color:var(--txt-m);text-align:center;margin-top:.8rem;line-height:1.55;max-width:380px;margin-left:auto;margin-right:auto;}
+
+    /* ── Preguntas frecuentes ── */
+    .faq{max-width:720px;margin:2.25rem 0 0;}
+    .faq-item{border-bottom:1px solid var(--border-m);}
+    .faq-item summary{list-style:none;cursor:pointer;padding:1.1rem 2.25rem 1.1rem 0;position:relative;font-size:15.5px;font-weight:500;color:var(--txt);line-height:1.5;}
+    .faq-item summary::-webkit-details-marker{display:none;}
+    .faq-item summary::after{content:'+';position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--verde-d);line-height:1;}
+    .faq-item[open] summary::after{content:'−';}
+    .faq-item summary:focus-visible{outline:2px solid var(--verde-d);outline-offset:3px;border-radius:4px;}
+    .faq-item p{font-size:14px;color:var(--txt-m);line-height:1.8;padding:0 2.25rem 1.2rem 0;margin:0;}
+    .faq-aviso{max-width:720px;margin:1.75rem 0 0;padding:1rem 1.15rem;background:var(--white);border:1px solid var(--border);border-radius:var(--rs);font-size:12.5px;color:var(--txt-m);line-height:1.7;}
+
+    /* ── Cierre ── */
+    .cta-bg{background:linear-gradient(135deg,var(--verde-d) 0%,var(--verde) 100%);text-align:center;color:white;padding:5.5rem 2rem;}
+    .cta-title{font-family:'DM Serif Display',serif;font-weight:400;font-size:2.6rem;color:white;margin-bottom:.8rem;line-height:1.15;}
+    .cta-sub{font-size:1rem;color:rgba(255,255,255,.85);max-width:480px;margin:0 auto 1.75rem;line-height:1.8;text-wrap:balance;}
+    .pasos{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem 1.75rem;max-width:1000px;margin:0 auto 1.75rem;}
+    .pasos li{display:flex;align-items:center;gap:9px;font-size:14px;color:white;text-align:left;line-height:1.45;}
+    .pasos b{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;flex-shrink:0;}
+    .cta-precio{font-size:14px;color:rgba(255,255,255,.75);max-width:480px;margin:0 auto 1.75rem;line-height:1.75;text-wrap:balance;}
+    .cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .cta-btns .btn{padding:15px 28px;font-size:15px;}
+    .cta-otra{display:inline-block;margin-top:.75rem;padding:12px 8px;font-size:13px;color:rgba(255,255,255,.7);text-decoration:underline;text-underline-offset:3px;}
+
+    /* Footer */
+    footer{background:#111;color:rgba(255,255,255,.55);padding:2rem;text-align:center;font-size:12px;line-height:1.9;}
+    footer strong{color:rgba(255,255,255,.8);}
+    footer a{color:rgba(255,255,255,.65);text-decoration:none;display:inline-block;padding:14px 8px;margin:-14px 0;}
+    footer a:hover{color:#fff;}
+
+    /* Barra fija de WhatsApp en el celular */
+    .sticky-wa{display:none;}
 
     #confeti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden;}
     #confeti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:cae 2.4s cubic-bezier(.2,.6,.4,1) forwards;}
     @keyframes cae{to{transform:translateY(105vh) rotate(540deg);opacity:.9;}}
     @keyframes aparece{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
-    @media (pointer:coarse){.peso-in{font-size:16px;}}
-    @media (prefers-reduced-motion:reduce){
-      *{animation:none!important;transition:none!important;}
-      #confeti{display:none;}
-    }
-    /* ── Así funciona: bloques numerados, cada uno con un video de la app real ── */
-    .asi{padding:3rem 1.25rem 3.5rem;background:var(--white);}
-    .asi-in{max-width:1060px;margin:0 auto;}
-    .asi .ssub{margin-bottom:1rem;}
-    .bloque{display:grid;grid-template-columns:1fr;gap:1.4rem;align-items:center;padding:2rem 0;}
-    .bloque + .bloque{border-top:1px solid var(--border);}
-    .b-num{font-size:12px;font-weight:600;color:var(--verde);letter-spacing:.08em;margin-bottom:.3rem;}
-    .bloque h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.75rem;line-height:1.15;margin-bottom:.5rem;}
-    .bloque p{font-size:15px;color:var(--txt-m);line-height:1.7;max-width:440px;}
-    .ticks{list-style:none;margin-top:.9rem;display:grid;gap:.55rem;}
-    .ticks li{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.4;}
-    .ticks li::before{content:'✓';width:24px;height:24px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
-    .b-media{display:flex;justify-content:center;}
-    .mini-tel{width:min(280px,80vw);background:#151515;border-radius:34px;padding:8px;box-shadow:0 18px 40px rgba(15,110,86,.14),0 5px 14px rgba(0,0,0,.1);}
-    .mini-tel video,.mini-tel .chat{display:block;width:100%;aspect-ratio:540/1168;border-radius:27px;background:var(--surf-2);object-fit:cover;}
-    .chat{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
-    .chat-top{background:var(--s);border-bottom:1px solid var(--b);padding:.8rem .9rem;display:flex;align-items:center;gap:10px;}
-    .chat-top b{display:block;font-size:13.5px;font-weight:500;}
-    .chat-top small{font-size:11px;color:var(--tm);}
-    .chat-cuerpo{flex:1;padding:.9rem .75rem;display:flex;flex-direction:column;gap:.55rem;}
-    .msg{max-width:84%;padding:.6rem .75rem;font-size:12.5px;line-height:1.5;border-radius:14px;}
-    .msg small{display:block;font-size:10px;opacity:.6;margin-top:3px;text-align:right;}
-    .msg.ella{background:var(--s);border:1px solid var(--b);border-radius:14px 14px 14px 4px;align-self:flex-start;}
-    .msg.vos{background:var(--vl);color:var(--vd);border-radius:14px 14px 4px 14px;align-self:flex-end;}
-    .chat.anima .msg{opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s;}
-    .chat.anima.ver .msg{opacity:1;transform:none;}
-    .chat.anima.ver .msg:nth-child(2){transition-delay:1.1s;}
-    .chat.anima.ver .msg:nth-child(3){transition-delay:2.3s;}
-    .chat.anima.ver .msg:nth-child(4){transition-delay:3.2s;}
-    .chat-pie{font-size:10.5px;color:var(--tm);text-align:center;padding:.6rem;}
-    .asi-fin{text-align:center;margin-top:1.25rem;}
-    .btn-verde{background:var(--verde-d);color:white;}
-    .btn-verde:hover{background:#0b5a46;transform:translateY(-1px);}
 
-    /* Números reales de la app (de la base, sin la cuenta de Amira) */
-    .numeros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:1.5rem 0 .4rem;}
-    .num{background:var(--verde-l);border-radius:var(--r);padding:1rem .6rem;text-align:center;}
-    .num b{display:block;font-family:'DM Serif Display',serif;font-weight:400;font-size:2rem;line-height:1.1;color:var(--verde-d);}
-    .num span{display:block;font-size:12px;color:var(--verde-d);line-height:1.4;margin-top:.3rem;}
-    .num-nota{font-size:11.5px;color:var(--txt-m);text-align:center;margin-bottom:.5rem;}
-    @media (min-width:900px){.num b{font-size:2.6rem;}.num span{font-size:13.5px;}}
-
-    /* La semana que se llena de ✓ (como en la app) */
-    .semana-anim{display:flex;gap:6px;margin-top:1.1rem;}
-    .semana-anim span{position:relative;width:36px;height:36px;border-radius:50%;background:var(--surf-2);color:var(--txt-m);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;}
-    .semana-anim span.t{color:var(--verde-d);box-shadow:inset 0 0 0 1.5px var(--verde-m);}
-    /* Se llena una sola vez, al aparecer en pantalla, y queda completa. En loop, cada día se
-       desmarcaba a su ritmo y por momentos quedaba el lunes sin marcar y el viernes marcado. */
-    .semana-anim span.t::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--verde);color:white;border-radius:50%;font-size:15px;opacity:0;transform:scale(.6);transition:opacity .25s ease,transform .45s cubic-bezier(.3,1.6,.5,1);}
-    .semana-anim.ver span.t::after{opacity:1;transform:none;}
-    .semana-anim.ver span:nth-child(1)::after{transition-delay:.3s;}
-    .semana-anim.ver span:nth-child(3)::after{transition-delay:.9s;}
-    .semana-anim.ver span:nth-child(5)::after{transition-delay:1.5s;}
-    .semana-cap{font-size:12.5px!important;margin-top:.45rem;}
-    @media (prefers-reduced-motion:reduce){.semana-anim span.t::after{transition:none!important;}}
-
-    /* Una app pensada para tu vida real */
-    .vida{margin-top:1rem;padding-top:2.25rem;border-top:1px solid var(--border);}
-    .vida-t{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.75rem;line-height:1.2;margin-bottom:1.1rem;}
-    .vida-grid{display:grid;grid-template-columns:1fr;gap:10px;}
-    .vida-item{background:var(--surf);border-radius:var(--r);padding:1rem;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:start;}
-    .vida-ic{grid-row:span 2;width:42px;height:42px;border-radius:12px;background:var(--verde-l);color:var(--verde-d);display:flex;align-items:center;justify-content:center;}
-    .vida-item b{font-size:15px;font-weight:500;}
-    .vida-item p{font-size:13.5px;color:var(--txt-m);line-height:1.6;margin-top:.15rem;}
-    @media (min-width:700px){.vida-grid{grid-template-columns:1fr 1fr;}}
-
-    /* Testimonios para deslizar (los mismos de la web) */
-    .testis{background:var(--surf);padding:3rem 0 3.25rem;}
-    .testis-in{max-width:1060px;margin:0 auto;padding:0 1.25rem;}
-    /* scroll-padding igual al padding: si no, el navegador corre la fila al cargar para alinear la primera tarjeta. */
-    .testis-fila{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 1.25rem;padding:1.25rem 1.25rem .5rem;margin:0 -1.25rem;scrollbar-width:none;}
-    .testis-fila::-webkit-scrollbar{display:none;}
-    .testi{flex:0 0 min(300px,82%);scroll-snap-align:start;background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.15rem;display:flex;flex-direction:column;}
-    .testi-stars{color:#A8740A;font-size:15px;letter-spacing:2px;margin-bottom:.45rem;}
-    .testi-lead{font-family:'DM Serif Display',serif;font-size:1.15rem;line-height:1.3;margin-bottom:.5rem;}
-    .testi-txt{font-size:13.5px;color:var(--txt-m);line-height:1.65;flex:1;}
-    .testi-quien{display:flex;align-items:center;gap:10px;margin-top:.9rem;}
-    .testi-av{width:38px;height:38px;border-radius:50%;background:var(--verde-l);color:var(--verde-d);font-weight:600;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;flex-shrink:0;}
-    .testi-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-    .testi-quien b{display:block;font-size:13.5px;font-weight:500;}
-    .testi-quien small{font-size:12px;color:var(--txt-m);}
-    .testis-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:.6rem;}
-    .testis-pista{font-size:12px;color:var(--txt-m);}
-    .testis-flechas{display:flex;gap:8px;}
-    .testis-flechas button{width:40px;height:40px;border-radius:50%;border:1px solid var(--border-m);background:var(--white);font-size:18px;cursor:pointer;color:var(--txt);}
-    .testis-flechas button:disabled{opacity:.35;cursor:default;}
     @media (min-width:900px){
-      .asi{padding:4.5rem 2rem 4rem;}
       .bloque{grid-template-columns:1fr 1fr;gap:4rem;padding:2.75rem 0;}
       .bloque.inv .b-txt{order:2;}
       .bloque h3{font-size:2rem;}
     }
-
-    footer{padding:1.5rem 1.25rem;text-align:center;font-size:12px;color:var(--txt-m);}
-    footer a{color:inherit;}
+    @media(max-width:768px){
+      .sticky-wa{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -4px 20px rgba(0,0,0,.06);transition:transform .3s ease;}
+      .sticky-wa a{flex:1;padding:14px;font-size:15px;}
+      /* Mientras prueba la rutina se esconde: taparía el descanso del teléfono, y ahí ya está el botón. */
+      .sticky-wa.oculta{transform:translateY(110%);}
+      body{padding-bottom:74px;}
+      nav{padding:.75rem 1.25rem;}
+      .nav-links{display:none;}
+      .section{padding:3.5rem 1.25rem;}
+      .stitle{font-size:1.85rem;}
+      .hero-wrap{grid-template-columns:1fr;padding:2.25rem 1.5rem 2.75rem;gap:2.5rem;}
+      .hero-media{order:-1;width:100%;max-width:340px;margin:0 auto;}
+      .hero-tel{width:35%;left:-10px;bottom:-22px;border-radius:18px;padding:4px;}
+      .hero-tel video{border-radius:14px;}
+      .hero-quote{font-size:2rem;}
+      .hero-ctas{max-width:100%;}
+      .filosofia-inner{grid-template-columns:1fr;}
+      .filosofia-callout{display:none;}
+      .ideal-grid{grid-template-columns:1fr;gap:1rem;}
+      .testis-fila{margin:0 -1.25rem;padding:1.5rem 1.25rem .5rem;scroll-padding:0 1.25rem;}
+      .cta-bg{padding:4rem 1.25rem;}
+      .cta-title{font-size:2rem;}
+      .pasos{flex-direction:column;align-items:flex-start;max-width:330px;}
+    }
+    @media(max-width:480px){
+      .hero-quote{font-size:1.55rem;}
+    }
+    @media (pointer:coarse){.peso-in{font-size:16px;}}
+    @media (prefers-reduced-motion:reduce){
+      html{scroll-behavior:auto;}
+      *{animation:none!important;transition:none!important;}
+      #confeti{display:none;}
+      /* El * no llega a los ::after: sin esto la semana se seguía llenando de a uno. */
+      .semana-anim span.t::after{transition:none!important;}
+      /* La cinta queda quieta, con las frases una vez. */
+      .cinta-pista{display:block;width:auto;}
+      .cinta ul{flex-wrap:wrap;justify-content:center;row-gap:.35rem;padding:0 1rem;}
+      .cinta ul + ul{display:none;}
+    }
   </style>
 </head>
 <body>
 
-<div class="aviso-proto"><b>Prototipo para revisar.</b> Todavía no está en la web y no guarda ni manda nada (salvo el botón de WhatsApp, que abre el chat).</div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="ic-wa" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.544 5.875L0 24l6.336-1.52A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.366l-.36-.214-3.732.896.942-3.623-.235-.373A9.815 9.815 0 012.182 12C2.182 6.59 6.59 2.182 12 2.182S21.818 6.59 21.818 12 17.41 21.818 12 21.818z"/></symbol>
+</svg>
 
-<nav>
-  <a href="/" class="nav-brand"><span class="nav-logo">A</span>Amira Fitness</a>
-  <a href="/" class="volver">Ver la web →</a>
+<div class="aviso-proto"><b>Prototipo para revisar:</b> así quedaría la web completa. Todavía no está publicada y no guarda nada. Los botones de WhatsApp sí abren el chat. <a href="/">Ver la web actual</a></div>
+
+<header>
+<nav aria-label="Principal">
+  <a href="/" class="nav-brand">
+    <div class="nav-logo">A</div>
+    Amira Fitness
+  </a>
+  <div class="nav-links">
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#testimonios">Opiniones</a>
+    <a href="#probar">Probalo</a>
+    <a href="#faq">Preguntas</a>
+    <a href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener" class="nav-cta">Escribime</a>
+  </div>
 </nav>
+</header>
 
-<main>
-<!-- Así funciona (28/10/2026): los videos son de la app real, con la cuenta con la que entrena Amira,
-     sin su nombre ni su peso corporal. Se cargan recién cuando se ven. -->
-<section class="asi" aria-labelledby="asi-t">
-  <div class="asi-in">
-    <div class="stag">Así funciona</div>
-    <h1 class="stitle" id="asi-t">Todo tu entrenamiento, en el celular</h1>
-    <p class="ssub">Así se ve la app que usan mis alumnas. Yo también entreno con ella: lo que ves son mis propios entrenamientos.</p>
+<main id="contenido">
 
-    <!-- Números de la base, sin la cuenta de Amira (id 3): se actualizan solos con numeros_publicos().
-         Los escritos acá son del 28/10/2026 y quedan si la base no responde. -->
-    <div class="numeros">
-      <div class="num"><b data-k="ejercicios" data-n="4900" data-mas>+4.900</b><span>ejercicios marcados</span></div>
-      <div class="num"><b data-k="entrenamientos" data-n="470" data-mas>+470</b><span>entrenamientos registrados</span></div>
-      <div class="num"><b data-k="alumnas" data-n="30">30</b><span>alumnas ya entrenaron con la app</span></div>
+<!-- Comienzo: lo que se busca en Google sigue en el h1. El celular muestra la app de verdad
+     (la rutina, marcar un ejercicio y el progreso) y arranca cuando la foto ya cargó. -->
+<section class="ini" aria-label="Inicio">
+  <div class="hero-wrap">
+    <div>
+      <h1 class="hero-quote">
+        <span class="hero-badge">Entrenadora personal online para mujeres · Toda la Argentina</span>
+        No quiero darte <em>otra rutina de internet</em>.<br>Quiero conocerte y armarte la tuya.
+      </h1>
+      <p class="hero-desc">Soy Amira. Trabajo con pocas alumnas a la vez para poder responderte yo misma. Te armo la rutina con lo que tengas, dos mancuernas en casa o el gimnasio completo, y te la ajusto cada semana.</p>
+      <div class="hero-ctas">
+        <a href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener" class="btn btn-wa">
+          <svg width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#ic-wa"/></svg>
+          Contame tu caso
+        </a>
+        <p class="hero-nota">La primera charla es sin costo — me contás y vemos si te sirve.<br>Desde $20.000 por mes: menos de $700 por día.</p>
+        <a class="hero-otra" href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira%21%20Antes%20de%20decidirme%20me%20gustar%C3%ADa%20que%20me%20cuentes%20c%C3%B3mo%20funciona%20%F0%9F%98%8A" target="_blank" rel="noopener">o preguntame sin compromiso →</a>
+      </div>
+      <div class="hero-trust">
+        <div class="trust-item"><div class="trust-dot"></div>Entrenadora certificada</div>
+        <div class="trust-item"><div class="trust-dot"></div>Sin contrato</div>
+        <div class="trust-item"><div class="trust-dot"></div>Respuesta en el día</div>
+        <div class="trust-item"><div class="trust-dot"></div>Cupos limitados</div>
+      </div>
+      <!-- Números de la base, sin la cuenta de Amira (id 3): se actualizan solos con numeros_publicos().
+           Los escritos acá son del 28/10/2026 y quedan si la base no responde. -->
+      <div class="numeros">
+        <div class="num"><b data-k="ejercicios" data-n="4900" data-mas>+4.900</b><span>ejercicios marcados</span></div>
+        <div class="num"><b data-k="entrenamientos" data-n="470" data-mas>+470</b><span>entrenamientos registrados</span></div>
+        <div class="num"><b data-k="alumnas" data-n="30">30</b><span>alumnas ya entrenaron con la app</span></div>
+      </div>
+      <p class="num-nota">Datos reales de la app, desde abril de 2026.</p>
     </div>
-    <p class="num-nota">Datos reales de la app, desde abril de 2026.</p>
+    <div class="hero-media">
+      <div class="hero-photo">
+        <picture style="display:contents;">
+          <source srcset="/foto-amira.webp" type="image/webp">
+          <img src="/foto-amira.jpg" alt="Amira Lezcano, entrenadora personal online para mujeres" width="1000" height="1250" fetchpriority="high" decoding="async" onerror="this.parentNode.style.display='none';this.parentNode.nextElementSibling.style.display='flex';">
+        </picture>
+        <div class="hero-photo-placeholder" style="display:none;">🏋️‍♀️</div>
+      </div>
+      <!-- Lo mismo que muestran los bloques de "Así funciona", así que no hace falta leerlo. -->
+      <div class="hero-tel" aria-hidden="true">
+        <video class="ini-video" muted loop playsinline preload="none" poster="/prototipo/videos/inicio.webp" data-src="/prototipo/videos/inicio.mp4"></video>
+      </div>
+    </div>
+  </div>
+
+  <!-- Las frases están todas en la página, por eso la cinta no se lee en voz alta. -->
+  <div class="cinta" aria-hidden="true">
+    <div class="cinta-pista">
+      <ul><li>Tu rutina, armada para vos</li><li>En casa o en el gimnasio</li><li>Ajustes cada semana</li><li>Te respondo yo</li><li>Videos de cada ejercicio</li><li>15 minutos también cuentan</li><li>Funciona sin señal</li><li>Sin contrato</li></ul>
+      <ul><li>Tu rutina, armada para vos</li><li>En casa o en el gimnasio</li><li>Ajustes cada semana</li><li>Te respondo yo</li><li>Videos de cada ejercicio</li><li>15 minutos también cuentan</li><li>Funciona sin señal</li><li>Sin contrato</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- Así funciona: reemplaza "Cómo funciona", "¿Qué incluye tu plan?" y "La app". El h2 queda
+     igual por Google. Los videos son de la app real, con la cuenta con la que entrena Amira, sin su
+     nombre ni su peso corporal, y se cargan recién cuando se ven. -->
+<section class="section asi" id="como-funciona" aria-labelledby="como-t">
+  <div class="container">
+    <div class="stag">Así funciona</div>
+    <h2 class="stitle" id="como-t">Cómo funciona el entrenamiento personalizado online</h2>
+    <p class="ssub">Tu rutina la seguís en la app, desde el celular. Así se ve la app que usan mis alumnas. Yo también la uso para entrenar: lo que ves son mis propios entrenamientos.</p>
 
     <div class="bloque">
       <div class="b-txt">
         <div class="b-num">01</div>
         <h3>Tu rutina, armada para vos</h3>
-        <p>Cada semana y cada día, con los ejercicios, las series y el peso que te toca.</p>
-        <ul class="ticks"><li>Videos con la técnica de los ejercicios</li><li>Tu mejor marca, siempre a la vista</li></ul>
+        <p>Con tus objetivos, tu nivel y lo que tenés para entrenar. Cada día ves los ejercicios, las series y el peso que te toca.</p>
+        <ul class="ticks"><li>Videos con la técnica de los ejercicios</li><li>Tu mejor marca, siempre a la vista</li><li>Te llega por link y se instala como una app más</li></ul>
       </div>
       <div class="b-media"><div class="mini-tel">
         <video muted loop playsinline preload="none" poster="/prototipo/videos/rutina.webp" data-src="/prototipo/videos/rutina.mp4"
@@ -394,7 +677,7 @@
         <div class="b-num">04</div>
         <h3>Te acompaño cada semana</h3>
         <p>Los lunes reviso cómo te fue y te escribo con los ajustes. Si algo te molesta, me avisás desde la app.</p>
-        <ul class="ticks"><li>Respuesta por WhatsApp</li><li>La rutina se ajusta según cómo te fue</li></ul>
+        <ul class="ticks"><li>Te respondo yo, por WhatsApp</li><li>La rutina se ajusta según cómo te fue</li></ul>
       </div>
       <div class="b-media"><div class="mini-tel">
         <div class="chat anima" role="img" aria-label="Ejemplo de la devolución de los lunes por WhatsApp">
@@ -410,41 +693,88 @@
       </div></div>
     </div>
 
-    <!-- Lo que la alumna vive con la app (funciones que ya existen, no cómo están hechas). -->
-    <div class="vida">
-      <h3 class="vida-t">Una app pensada para tu vida real</h3>
-      <div class="vida-grid">
-        <div class="vida-item">
-          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg></span>
-          <b>Funciona sin señal</b>
-          <p>Si en el gimnasio no hay señal, lo que marcás se guarda y se manda solo después.</p>
-        </div>
-        <div class="vida-item">
-          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-          <b>15 minutos también cuentan</b>
-          <p>Elegís 15 o 30 minutos y la app te deja los ejercicios que más rinden.</p>
-        </div>
-        <div class="vida-item">
-          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>
-          <b>La pantalla no se apaga</b>
-          <p>Mientras entrenás, el celular no se bloquea entre serie y serie.</p>
-        </div>
-        <div class="vida-item">
-          <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span>
-          <b>Te recuerda cuándo te toca</b>
-          <p>Si activás los avisos, te llega uno a la mañana los días que entrenás.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="asi-fin"><a class="btn btn-verde" href="#probar-t">Probá cómo sería tu rutina 👇</a></div>
+    <div class="asi-fin"><a class="btn btn-verde" href="#probar">Probá cómo sería tu rutina 👇</a></div>
   </div>
 </section>
 
-<!-- Testimonios: los mismos de la página principal, para deslizar, con sus 5 estrellas (decidido con Aaron, 28/10/2026). -->
-<section class="testis" aria-labelledby="testis-t">
-  <div class="testis-in">
-    <div class="stag">Lo que cuentan</div>
+<!-- Sobre Amira (más corto que en la web actual: Amira tiene que aprobar los recortes). -->
+<section class="section filosofia-bg" id="sobre-amira">
+  <div class="container">
+    <div class="filosofia-inner">
+      <div class="filosofia-text">
+        <div class="stag">Sobre Amira</div>
+        <h2 class="stitle">Yo tampoco sabía por dónde empezar.</h2>
+        <p>Cuando arranqué a entrenar no sabía demasiado. Fui aprendiendo de a poco, probando y equivocándome, hasta entender qué me servía y qué no. Con el tiempo se volvió parte de mi vida: me siento mejor, más activa y más segura.</p>
+        <p>Empecé a ayudar a otras casi sin darme cuenta. Y descubrí que lo que más disfrutaba era pensar qué le servía a cada una en particular.</p>
+        <p>Lo que me molesta del fitness de hoy es que trata a todos igual: te dan una rutina, una lista de ejercicios, y después arreglate. Nadie te preguntó cuánto tiempo tenés, dónde entrenás, qué experiencia tenés ni qué te cuesta.</p>
+        <div class="filosofia-pillars">
+          <div class="pillar"><div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></svg></div>Objetivos reales, no ideales de revista</div>
+          <div class="pillar"><div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-7.5-4"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 7.5 4"/><path d="M19.5 3v4h-4"/><path d="M4.5 21v-4h4"/></svg></div>Rutinas que evolucionan con vos</div>
+          <div class="pillar"><div class="pillar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8 8 0 0 1-8 8 8 8 0 0 1-3.6-.85L3 21l1.35-4.4A8 8 0 0 1 13 3.5a8 8 0 0 1 8 8z"/></svg></div>Contacto directo — siempre con Amira</div>
+        </div>
+      </div>
+      <div class="filosofia-callout">
+        <div class="big">"</div>
+        <p>Mi trabajo no termina cuando te doy la rutina. Ahí recién empieza: quiero saber cómo te fue, qué pudiste hacer, qué no, y ajustar lo que haga falta.</p>
+        <p style="margin-top:1rem;font-size:12.5px;color:rgba(255,255,255,.5);">— Amira Lezcano</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Lo que la alumna vive con la app (funciones que ya existen, no cómo están hechas). -->
+<section class="section gris" id="vida-real" aria-labelledby="vida-t">
+  <div class="container">
+    <div class="stag">La app</div>
+    <h2 class="stitle" id="vida-t">Una app pensada para tu vida real</h2>
+    <p class="ssub">Porque no todas las semanas salen como las planeaste.</p>
+    <div class="vida-grid">
+      <div class="vida-item">
+        <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg></span>
+        <b>Funciona sin señal</b>
+        <p>Si en el gimnasio no hay señal, lo que marcás se guarda y se manda solo después.</p>
+      </div>
+      <div class="vida-item">
+        <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <b>15 minutos también cuentan</b>
+        <p>Elegís 15 o 30 minutos y la app te deja los ejercicios que más rinden.</p>
+      </div>
+      <div class="vida-item">
+        <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>
+        <b>La pantalla no se apaga</b>
+        <p>Mientras entrenás, el celular no se bloquea entre serie y serie.</p>
+      </div>
+      <div class="vida-item">
+        <span class="vida-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span>
+        <b>Te recuerda cuándo te toca</b>
+        <p>Si activás los avisos, te llega uno a la mañana los días que entrenás.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Para quién es: 4 de las 6 de la web actual. -->
+<section class="section" id="ideal">
+  <div class="container">
+    <div class="stag">Para quién es</div>
+    <h2 class="stitle">Esto es para vos si…</h2>
+    <p class="ssub">No importa desde dónde arranques. Lo armamos juntas, a tu ritmo.</p>
+    <div class="ideal-grid">
+      <div class="ideal-item"><div class="ideal-check">✓</div>Arrancás un lunes y para el jueves ya lo dejaste. Otra vez.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Entrenás hace meses y seguís levantando el mismo peso.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Entre el trabajo, la casa y todo lo demás, entrenar siempre queda último.</div>
+      <div class="ideal-item"><div class="ideal-check">✓</div>Querés sentirte mejor, no destruirte.</div>
+    </div>
+    <div class="ideal-cta">
+      <a href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira%21%20Me%20identifiqu%C3%A9%20con%20lo%20que%20le%C3%AD%20en%20tu%20web%2C%20contame%20c%C3%B3mo%20arrancamos" target="_blank" rel="noopener" class="btn btn-verde">Me identifico — escribime</a>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonios: los mismos de la web actual, para deslizar, con sus 5 estrellas (decidido con Aaron, 28/10/2026). -->
+<section class="section gris" id="testimonios" aria-labelledby="testis-t">
+  <div class="container">
+    <div class="stag">Lo que dicen mis alumnas</div>
     <h2 class="stitle" id="testis-t">Resultados reales, de personas reales</h2>
     <p class="ssub">Esto me escribieron algunas de las chicas que entrenan conmigo. Sin filtros.</p>
     <div class="testis-fila" id="testis-fila" tabindex="0" aria-label="Testimonios, deslizá para ver más">
@@ -474,7 +804,7 @@
   </div>
 </section>
 
-<section class="probar" aria-labelledby="probar-t">
+<section class="section probar" id="probar" aria-labelledby="probar-t">
   <div class="probar-grid">
 
     <div class="p-intro">
@@ -524,7 +854,7 @@
             <span class="ejemplo">EJEMPLO</span>
           </div>
           <div class="app-cuerpo" id="app-cuerpo">
-            <div id="contenido"></div>
+            <div id="app-contenido"></div>
             <div class="timer-anc">
               <div class="timer" id="timer" role="timer" aria-live="off">
                 <div class="tcircle">
@@ -551,10 +881,10 @@
 
     <div class="p-cta">
       <div class="cta-card">
-        <h2>Tu rutina de verdad la armamos juntas</h2>
+        <h3>Tu rutina de verdad la armamos juntas</h3>
         <p>En la primera charla vemos juntas tu nivel, si tenés alguna lesión o molestia, tus horarios y con qué contás para entrenar. Después, cada semana miro cómo te fue y la ajusto.</p>
         <a class="btn" id="cta-wa" href="https://wa.me/5492226500790" target="_blank" rel="noopener">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-1 1.2-.4.2-.7.1a8.1 8.1 0 0 1-2.4-1.5 9 9 0 0 1-1.6-2.1c-.2-.3 0-.5.1-.6l.5-.5.3-.5a.6.6 0 0 0 0-.5l-1-2.3c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1.1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.5c.7.3 1.3.5 1.7.6a4.1 4.1 0 0 0 1.9.1 3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.1-.3-.2-.6-.3zM12 21.8a9.9 9.9 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4a9.8 9.8 0 1 1 8.3 4.6zm8.4-18.2A11.8 11.8 0 0 0 1.8 17.8L.1 24l6.4-1.7a11.8 11.8 0 0 0 5.6 1.4A11.8 11.8 0 0 0 20.4 3.6z"/></svg>
+          <svg width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#ic-wa"/></svg>
           Quiero mi rutina
         </a>
         <div class="cta-nota" id="cta-nota">La primera charla es sin costo.</div>
@@ -563,12 +893,106 @@
 
   </div>
 </section>
+
+<!-- Preguntas frecuentes: suma las de "Por qué esta vez sí" (la de los materiales quedó en la primera).
+     Tienen que ser las mismas que las del FAQPage de arriba. -->
+<section class="section gris" id="faq">
+  <div class="container">
+    <div class="stag">Preguntas frecuentes</div>
+    <h2 class="stitle">Preguntas frecuentes sobre el entrenamiento personalizado</h2>
+
+    <div class="faq">
+      <details class="faq-item">
+        <summary>¿Necesito equipamiento o puedo entrenar en casa?</summary>
+        <p>Podés entrenar en casa con lo que tengas, y no hace falta mucho espacio: varias de mis alumnas entrenan en el comedor con dos mancuernas y una colchoneta, y otras en el gimnasio. Armo tu rutina con el equipamiento que tengas — nunca te voy a pedir que compres nada para empezar.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cuánto sale y cómo se paga?</summary>
+        <p>Los planes arrancan en $20.000 por mes y el valor depende de cuántos días por semana entrenes. Se paga mes a mes, sin contrato ni permanencia mínima. La primera charla es sin costo: me contás tu caso y vemos si te sirve.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Y si pago y después abandono?</summary>
+        <p>Es lo que más me escriben, y es la duda correcta. Por eso no hay contrato ni permanencia: pagás el mes que entrenás. Y si dejás de marcar tus días, te escribo — no para retarte, para preguntarte qué pasó y acomodar la semana.</p>
+      </details>
+      <details class="faq-item">
+        <summary>No tengo tiempo, ¿me sirve igual?</summary>
+        <p>Entrenás los días que puedas, aunque sean dos por semana. Tengo alumnas que van por el tercer ciclo entrenando dos días, entre el trabajo, la casa y los hijos. Y si un día tenés poco tiempo, elegís 15 o 30 minutos y la app te deja los ejercicios que más rinden. La rutina se arma alrededor de tu semana, no al revés.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Me da pereza empezar sola, ¿cómo es el primer día?</summary>
+        <p>No vas a empezar sola. El primer día ya tenés tu rutina armada, con los videos y el peso sugerido. No tenés que decidir nada: abrís la app y la seguís.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Tengo una lesión o salí de un embarazo, ¿puedo entrenar?</summary>
+        <p>En muchos casos sí, y de hecho entreno a alumnas con molestias de rodilla, cervicales o diástasis abdominal. Antes de armarte nada te hago una ficha donde me contás tu historial. No soy médica: si tu caso necesita el visto bueno de un profesional, te lo voy a decir.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Nunca entrené en mi vida, ¿es para mí?</summary>
+        <p>Sobre todo si nunca entrenaste. Varias de mis alumnas empezaron de cero y hoy levantan peso — una me contó que pasó de 3 a 8 kilos en un mes y medio. Tu rutina personalizada arranca desde donde estés hoy, no desde donde debería estar alguien que entrena hace años. Cada ejercicio viene con video y notas de técnica, y si algo no te sale, me preguntás por WhatsApp y te lo cambio.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿En qué se diferencia de una rutina que bajo de internet?</summary>
+        <p>Una rutina de internet no sabe cómo te fue ayer. La tuya sí. Reviso tus pesos y tus comentarios cada semana y ajusto lo que haga falta: si un ejercicio te molesta, te lo cambio al otro día; si te quedó corto, subimos la carga. Eso es entrenamiento personalizado — no un PDF que se repite hasta que te aburrís.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Es lo mismo que un personal trainer online?</summary>
+        <p>Sí: soy tu entrenadora personal, solo que a distancia. Detrás de tu rutina estoy yo, no un programa automático: te armo el plan, reviso cómo te fue cada semana y te respondo por WhatsApp. Trabajo con alumnas de toda la Argentina.</p>
+      </details>
+    </div>
+
+    <p class="faq-aviso">Amira es entrenadora personal, no profesional médica. Si tenés una lesión, una condición diagnosticada o estás en posparto, consultá con tu médico antes de empezar. En la ficha inicial te pregunto por todo eso para adaptar tu plan — y si algo requiere derivación, te lo digo.</p>
+  </div>
+</section>
+
+<!-- Cierre: los pasos de "Cómo funciona" de la web actual van acá, donde se decide escribir. -->
+<section class="cta-bg" aria-labelledby="cierre-t">
+  <h2 class="cta-title" id="cierre-t">Si llegaste hasta acá, charlemos.</h2>
+  <p class="cta-sub">Sin compromiso. Me escribís, te respondo yo.</p>
+  <ol class="pasos">
+    <li><b>1</b>Me escribís por WhatsApp</li>
+    <li><b>2</b>Te respondo en menos de 24 horas y charlamos, sin costo</li>
+    <li><b>3</b>Te llega el link con tu rutina</li>
+  </ol>
+  <p class="cta-precio">Desde $20.000 por mes — menos de $700 por día.<br>Tu rutina, el ajuste semanal, la app y mis respuestas por WhatsApp.</p>
+  <div class="cta-btns">
+    <a href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira%21%20Llegu%C3%A9%20hasta%20el%20final%20de%20tu%20web%2C%20me%20interesa%20empezar" target="_blank" rel="noopener" class="btn btn-white">
+      <svg width="17" height="17" fill="currentColor" aria-hidden="true"><use href="#ic-wa"/></svg>
+      Empecemos por una charla
+    </a>
+  </div>
+  <a class="cta-otra" href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira%21%20Antes%20de%20decidirme%20me%20gustar%C3%ADa%20que%20me%20cuentes%20c%C3%B3mo%20funciona%20%F0%9F%98%8A" target="_blank" rel="noopener">o preguntame sin compromiso →</a>
+</section>
+
 </main>
 
-<footer><a href="/">amirafitness.com.ar</a></footer>
+<footer>
+  <strong>Amira Fitness</strong> · Entrenamiento personalizado · Buenos Aires, Argentina<br>
+  <span style="margin-top:6px;display:block;">
+    Notas: <a href="/notas/rutina-para-empezar-en-el-gimnasio">Empezar en el gimnasio</a>
+    · <a href="/notas/ejercicios-en-casa-con-mancuernas">Ejercicios en casa con mancuernas</a>
+    · <a href="/notas/cuantos-dias-por-semana-entrenar">Cuántos días entrenar</a>
+  </span>
+  <span style="margin-top:6px;display:block;">
+    <a href="https://instagram.com/amirafitnessok" target="_blank" rel="noopener">Instagram</a>
+    · © <span id="yr">2026</span>
+  </span>
+</footer>
+
+<!-- Barra fija de WhatsApp (solo en el celular). -->
+<div class="sticky-wa">
+  <a href="https://wa.me/5492226500790?text=%C2%A1Hola%20Amira!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20entrenamiento%20personalizado" target="_blank" rel="noopener" class="btn btn-wa">
+    <svg width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#ic-wa"/></svg>
+    Escribime por WhatsApp
+  </a>
+</div>
 <div id="confeti" aria-hidden="true"></div>
 
 <script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const reducido=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ══ ¿Cómo sería tu rutina? ═══════════════════════════════════════════════════
 // ── Datos del ejemplo (los tiene que aprobar Amira) ──────────────────────────
 const TECNICA={
   sentadilla:'Pies al ancho de los hombros. Bajá como si te sentaras en una silla, con las rodillas hacia el mismo lado que los pies, y subí empujando con todo el pie.',
@@ -626,7 +1050,6 @@ const FRASE={
 const OBJ_TXT={fuerza:'quiero ganar fuerza',tonificar:'quiero tonificar',energia:'quiero tener más energía',empezar:'quiero empezar a entrenar (o volver)'};
 const SEMANA={2:[0,3],3:[0,2,4],4:[0,1,3,4]};
 const DIAS_CORTOS=['L','M','M','J','V','S','D'];
-const DIAS_LARGOS=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
 const ENTRADA={
   casa:['1 minuto de marcha en el lugar','10 sentadillas sin peso','10 círculos de brazos para cada lado'],
   gym:['5 minutos de bici o cinta, suave','Círculos de cadera y de hombros','Una serie con poco peso del primer ejercicio']
@@ -637,10 +1060,7 @@ const WA='5492226500790';
 // ── Estado ───────────────────────────────────────────────────────────────────
 const S={donde:null,dias:null,obj:null,tope:0,hechos:new Set(),pesos:{},tocados:new Set(),rpe:{},tip:new Set(),rep:new Set(),fb:null,tab:'r',aviso:''};
 let timerInt=null,timerFin=0;
-const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const listo=()=>S.donde&&S.dias&&S.obj;
-const reducido=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function ejercicios(){
   const tipo=S.dias===4?'piernas':'completo';
@@ -698,7 +1118,7 @@ function render(){
   renderResumen();
   document.querySelectorAll('.bitem').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===S.tab));
   document.querySelectorAll('.bitem[aria-current]').forEach(b=>b.setAttribute('aria-current','page'));
-  const c=$('#contenido'),cuerpo=$('#app-cuerpo'),top=cuerpo.scrollTop;
+  const c=$('#app-contenido'),cuerpo=$('#app-cuerpo'),top=cuerpo.scrollTop;
   c.innerHTML=S.tab==='p'?htmlProgreso():S.tab==='n'?htmlNotas():htmlRutina();
   cuerpo.scrollTop=top;
   $('#tel-guia').textContent=!listo()?'👇 Así se ve tu día en la app'
@@ -713,7 +1133,7 @@ function htmlRutina(){
   const primeroPendiente=vis.find(e=>!S.hechos.has(e.i));
   let h='';
   if(S.aviso){h+=`<div class="toast">${esc(S.aviso)}</div>`;S.aviso='';}
-  h+=`<div class="hero"><div class="av">🙋‍♀️</div><div><b>¡Hola! Hoy toca entrenar</b><small>Semana 1 · ${tituloDia}</small></div></div>
+  h+=`<div class="app-hola"><div class="av">🙋‍♀️</div><div><b>¡Hola! Hoy toca entrenar</b><small>Semana 1 · ${tituloDia}</small></div></div>
     <div class="sel-label">Semana</div><span class="stab">Semana 1</span>
     <div class="dtabs">${Array.from({length:S.dias||3},(_,i)=>`<button class="dtab${i===0?' active':''}" data-dia="${i}">Día ${i+1}</button>`).join('')}</div>
     <div class="prog-top"><span>${hechos} de ${vis.length} ejercicios</span><span>${Math.round(hechos/vis.length*100)}%</span></div>
@@ -892,6 +1312,7 @@ function actualizarWa(){
 
 render();
 
+// ══ El resto de la página ════════════════════════════════════════════════════
 // ── Números: los trae de la base y cuentan hasta el valor la primera vez que se ven ──
 // numeros_publicos() devuelve solo totales, sin la cuenta de Amira. Si no responde, quedan los
 // escritos en la página (del 28/10/2026).
@@ -939,7 +1360,10 @@ render();
   const parar=()=>{tocada=true;};
   const paso=()=>{const c=fila.querySelector('.testi');return c?c.getBoundingClientRect().width+12:300;};
   const mover=d=>fila.scrollBy({left:d*paso(),behavior:reducido?'auto':'smooth'});
-  const estado=()=>{ant.disabled=fila.scrollLeft<=4;sig.disabled=fila.scrollLeft+fila.clientWidth>=fila.scrollWidth-4;};
+  const estado=()=>{
+    const fin=fila.scrollLeft+fila.clientWidth>=fila.scrollWidth-4;
+    ant.disabled=fila.scrollLeft<=4;sig.disabled=fin;fila.classList.toggle('al-final',fin);
+  };
   ant.addEventListener('click',()=>{parar();mover(-1);});
   sig.addEventListener('click',()=>{parar();mover(1);});
   fila.addEventListener('scroll',estado,{passive:true});
@@ -947,8 +1371,11 @@ render();
   estado();
   if(reducido)return;
   ['pointerdown','touchstart','wheel','keydown'].forEach(ev=>fila.addEventListener(ev,parar,{passive:true}));
-  fila.addEventListener('mouseenter',()=>{encima=true;});
-  fila.addEventListener('mouseleave',()=>{encima=false;});
+  // Solo con mouse: en el celular, después de tocar cerca de la fila quedaba "encima" y no avanzaba más.
+  if(matchMedia('(hover: hover)').matches){
+    fila.addEventListener('mouseenter',()=>{encima=true;});
+    fila.addEventListener('mouseleave',()=>{encima=false;});
+  }
   if('IntersectionObserver' in window)new IntersectionObserver(es=>es.forEach(e=>{visible=e.isIntersecting;}),{threshold:.5}).observe(fila);
   else visible=true;
   setInterval(()=>{
@@ -958,21 +1385,43 @@ render();
   },6000);
 })();
 
-// ── Videos de "Así funciona": se cargan recién cuando se ven y se pausan fuera de pantalla ──
+// ── Videos: el del comienzo y los de "Así funciona" se cargan recién cuando se ven, y se pausan
+// fuera de pantalla. Arrancan cuando terminó de cargar la página: así no le sacan velocidad a la foto.
 (function(){
   const vids=[...document.querySelectorAll('video[data-src]')],chat=document.querySelector('.chat.anima');
   const cargar=v=>{if(!v.getAttribute('src')){v.muted=true;v.src=v.dataset.src;}};
-  // Con movimiento reducido no arrancan solos: queda la imagen y los controles para darle play.
-  if(reducido){vids.forEach(v=>{v.controls=true;v.preload='none';v.src=v.dataset.src;});if(chat)chat.classList.add('ver');return;}
-  if(!('IntersectionObserver' in window)){vids.forEach(v=>{cargar(v);v.play().catch(()=>{});});if(chat)chat.classList.add('ver');return;}
-  const io=new IntersectionObserver(es=>es.forEach(e=>{
-    const el=e.target;
-    if(el===chat){if(e.isIntersecting){chat.classList.add('ver');io.unobserve(chat);}return;}
-    if(e.isIntersecting){cargar(el);el.play().catch(()=>{});}else if(!el.paused)el.pause();
-  }),{threshold:.35});
-  vids.forEach(v=>io.observe(v));
-  if(chat)io.observe(chat);
+  // Con movimiento reducido no arrancan solos: en los bloques queda la imagen y los controles para
+  // darle play; en el comienzo, la imagen sola.
+  if(reducido){
+    vids.forEach(v=>{if(v.classList.contains('ini-video'))return;v.controls=true;v.preload='none';v.src=v.dataset.src;});
+    if(chat)chat.classList.add('ver');
+    return;
+  }
+  const arrancar=()=>{
+    if(!('IntersectionObserver' in window)){vids.forEach(v=>{cargar(v);v.play().catch(()=>{});});if(chat)chat.classList.add('ver');return;}
+    const io=new IntersectionObserver(es=>es.forEach(e=>{
+      const el=e.target;
+      if(el===chat){if(e.isIntersecting){chat.classList.add('ver');io.unobserve(chat);}return;}
+      if(e.isIntersecting){cargar(el);el.play().catch(()=>{});}else if(!el.paused)el.pause();
+    }),{threshold:.35});
+    vids.forEach(v=>io.observe(v));
+    if(chat)io.observe(chat);
+  };
+  if(document.readyState==='complete')arrancar();else addEventListener('load',arrancar);
 })();
+
+// ── La cinta se frena tocándola (con el mouse, al pasar por encima) ──
+(function(){const c=$('.cinta');if(c)c.addEventListener('click',()=>c.classList.toggle('quieta'));})();
+
+// ── La barra de WhatsApp del celular se esconde mientras se prueba la rutina ──
+(function(){
+  const barra=$('.sticky-wa'),probar=$('#probar');
+  if(!barra||!probar||!('IntersectionObserver' in window))return;
+  new IntersectionObserver(es=>es.forEach(e=>barra.classList.toggle('oculta',e.isIntersecting))).observe(probar);
+})();
+
+// ── Año actual en el pie de página ──
+try{$('#yr').textContent=new Date().getFullYear();}catch(_){}
 </script>
 </body>
 </html>

@@ -357,6 +357,18 @@ Estrategias:
   - `notas.js` cuenta la visita (`/notas/<nota>`) y el clic a WhatsApp (`/notas/wa`) en `page_views`, como la página principal. Usa la misma clave diaria `visita`, así cada persona cuenta una vez por día, en la página por la que entró. Carga Analytics, Clarity y el Pixel.
   - Análisis muestra "Entraron por las notas" y cuántas escribieron desde ahí.
   - Una nota nueva se suma a `sitemap.xml`, a `notas/index.html`, al "Seguí leyendo" de las otras, al pie de la página principal y a `notaNombre` en el panel.
+- **Web nueva en prueba (`/prototipo/`, 28/10/2026):** la página principal rearmada, para revisarla con Aaron y Amira antes de cambiar la de verdad. No se indexa y no tiene analítica.
+  - Orden:
+    - el comienzo, con la foto, un celular con la app en movimiento (`prototipo/videos/inicio.mp4`), los números y una cinta de frases;
+    - "Así funciona", con el mismo h2 para Google y 4 bloques con videos de la app;
+    - la historia, más corta, y "Una app pensada para tu vida real";
+    - "Esto es para vos si…" (4 de las 6), los testimonios para deslizar y "¿Cómo sería tu rutina?";
+    - las preguntas, que suman las de "Por qué esta vez sí", y el cierre con los 3 pasos.
+  - Al pasarla a `index.html`:
+    - quedan el `<head>` de la web actual (título, descripción, Open Graph, datos para Google y analítica) y sus scripts del final (visitas y clics a WhatsApp);
+    - el `FAQPage` del prototipo reemplaza al viejo;
+    - los videos se mudan de `/prototipo/videos/` y después se borra `/prototipo/`.
+  - Los textos en la voz de Amira y los videos con su cuenta los tiene que aprobar ella.
 - **Perfil de Empresa en Google (26/10/2026):** existe y está verificado. Es la ficha que aparece a la derecha cuando se busca "Amira Fitness" y en Maps. Categoría "Entrenador personal", sin dirección, con toda la Argentina como zona ("servicios en el hogar").
   - El teléfono estaba cargado como fijo ("02226 50-0790", sin el 15) y el botón "Llamar" no llegaba al celular de Amira. Ahora es el celular: `+54 9 2226 50-0790`, que Google muestra "02226 15-50-0790". En Google, un celular argentino va con el 15 o con +54 9.
   - Tiene el WhatsApp, el Instagram, el logo (la "A" de la app) y una descripción con "entrenamiento personalizado online para mujeres".
