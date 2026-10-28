@@ -224,7 +224,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v78` al 26/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v79` al 28/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Supabase API:** siempre network, fallback `[]` si offline.
@@ -285,6 +285,9 @@ Estrategias:
 **Pantalla del día (13/10/2026):**
 - Al abrir la app, o al volver después de una hora, si el día elegido ya está hecho salta al siguiente pendiente (`proximoPendiente`). Las pestañas marcan con ✓ los días y las semanas hechos.
 - Un ejercicio se marca solo con el círculo o con "Marcar hecho". Tocar el nombre abre la técnica, porque lo marcaba sin querer y guardaba el peso precargado.
+- **Descanso (28/10/2026):** "Próximo:" nombra el siguiente ejercicio sin hacer (`proximoSinHacer`), no el que sigue en la lista.
+  - Si después no queda ninguno, sigue desde arriba. Con la sesión corta, solo cuentan los que entran. Si no falta ninguno, dice "¡Último ejercicio!".
+  - Hasta ese día nombraba el siguiente de la lista aunque ya estuviera hecho.
 - El festejo del día dice cuándo es el próximo entrenamiento y pregunta "¿Cómo te fue hoy?".
 - El check-in semanal de Notas se sacó: se usó 5 veces en 70 días y duplicaba la revisión de los lunes.
 - **Reportar (21/10/2026):** elegir una opción no manda el reporte. Se elige, se escribe si quiere y se toca Enviar.

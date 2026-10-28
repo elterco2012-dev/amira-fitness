@@ -2020,7 +2020,20 @@ function launchConfetti(){
 }
 
 // ── Actions ───────────────────────────────────────────────────
-async function toggleDone(aId,i,nextName){
+// El "Próximo:" del descanso es el siguiente ejercicio que falta hacer, no el que sigue en
+// la lista: hasta el 28/10/2026 nombraba uno ya hecho. Si después no queda ninguno, sigue
+// desde arriba; con la sesión corta cuentan solo los que entran. Sin ninguno: "¡Último ejercicio!".
+function proximoSinHacer(aId,i){
+  const exs=getExs(aId,selCiclo,selSem,selDia);
+  const entran=cuantosEntran(aId,exs,topeDelDia(aId));
+  for(let k=1;k<exs.length;k++){
+    const j=(i+k)%exs.length;
+    if(j<entran&&!done[dKey(aId,selSem,selDia,j)]) return exs[j].nombre;
+  }
+  return '';
+}
+
+async function toggleDone(aId,i){
   const k=dKey(aId,selSem,selDia,i);
   const wasDone=!!done[k];
 
@@ -2087,7 +2100,7 @@ async function toggleDone(aId,i,nextName){
   setTimeout(()=>{
     skipTimer();
     if(done[k] && !wasDone){
-      startTimer(nextName);
+      startTimer(proximoSinHacer(aId,i));
       mantenerPantalla();
       localStorage.setItem('af-did-train-'+aId+'-'+fechaLocal(new Date()),'1');
     }
@@ -3118,13 +3131,11 @@ function renderRutina(){
     const pvDisplay=pv||(_ult?String(_ult):(ex.peso_base?String(ex.peso_base):''));
     const isSuggested=!pv&&!_ult&&!!ex.peso_base;
     const esAnterior=!pv&&!!_ult;
-    const nextEx=exs[i+1];
-    const nextName=nextEx?encodeURIComponent(nextEx.nombre):'';
     // Marcan solo el circulo y el boton: tocar el nombre lo marcaba sin querer y,
     // desde el 13/10, guardaba el peso precargado. El nombre abre la tecnica.
     html+=`<div class="ex-card${isDone?' done':''}" data-idx="${i}" id="exc-${a.id}-${i}">
       <div class="ex-top"${ex.tip?` onclick="toggleExp(${a.id},${i})"`:' style="cursor:default;"'}>
-        <div class="ex-num" id="exn-${a.id}-${i}" role="button" aria-label="${isDone?'Desmarcar':'Marcar hecho'}" onclick="event.stopPropagation();toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓':i+1}</div>
+        <div class="ex-num" id="exn-${a.id}-${i}" role="button" aria-label="${isDone?'Desmarcar':'Marcar hecho'}" onclick="event.stopPropagation();toggleDone(${a.id},${i})">${isDone?'✓':i+1}</div>
         <div style="flex:1">
           <div class="ex-name">${ex.nombre}</div>
           <div class="ex-det">${ex.series} series × ${ex.reps}${(()=>{
@@ -3148,7 +3159,7 @@ function renderRutina(){
           :isSuggested?`<span style="font-size:10px;color:var(--th);margin-left:4px;white-space:nowrap;">sugerido</span>`
           :(()=>{const pr=maxPesos[`${a.id}-${ex.nombre}`];return pr?`<span style="font-size:10px;color:var(--vd);margin-left:4px;white-space:nowrap;">🏆 mejor: ${pr} kg</span>`:''})()}
       </div>`:''}
-      <button class="bchk" onclick="toggleDone(${a.id},${i},decodeURIComponent('${nextName}'))">${isDone?'✓ Hecho':'Marcar hecho'}</button>
+      <button class="bchk" onclick="toggleDone(${a.id},${i})">${isDone?'✓ Hecho':'Marcar hecho'}</button>
       ${isDone?(()=>{
         const rv=rpe[dKey(a.id,selSem,selDia,i)];
         const opts=[{v:7,e:'😌',l:'Fácil'},{v:8,e:'💪',l:'Bien'},{v:9,e:'😤',l:'Duro'},{v:10,e:'🥵',l:'Límite'}];
