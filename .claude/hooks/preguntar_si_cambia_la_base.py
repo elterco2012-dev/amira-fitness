@@ -4,6 +4,11 @@
 - SQL que cambia o borra datos, cambios de estructura o de permisos y publicar
   funciones del servidor: sale el cartel de permiso con la explicación, para que decida Aaron.
 - Ante la duda, pregunta.
+- Leer las tablas de cron y net (cron.job, cron.job_run_details, net._http_response: las tareas
+  programadas y las respuestas de los pedidos) no pregunta. Llamar a sus funciones sí:
+  cron.schedule y cron.alter_job programan tareas, y net.http_post manda un pedido (por ejemplo,
+  una notificación a las alumnas). Hasta el 1/11/2026 preguntaba también al leer: en una sesión,
+  38 de los 83 carteles de SQL fueron lecturas de esas tablas.
 """
 import json
 import re
@@ -39,7 +44,9 @@ CAMBIA = re.compile(
     r'\b(insert|update|delete|merge|upsert|drop|alter|truncate|create|grant|revoke|comment|copy|call|do'
     r'|set|reset|into|refresh|vacuum|reindex|cluster|lock|notify|execute|import)\b'
     # Funciones que hacen algo además de leer: tareas programadas, pedidos a internet, claves guardadas
-    r'|\b(cron|net|pg_net|vault|dblink|supabase_functions)\s*\.'
+    r'|\b(pg_net|vault|dblink|supabase_functions)\s*\.'
+    # De cron y net, solo las funciones: leer sus tablas no cambia nada
+    r'|\b(cron|net)\s*\.\s*"?\w+"?\s*\('
     r'|\b(pg_terminate_backend|pg_cancel_backend|pg_reload_conf|set_config|setval|nextval'
     r'|lo_\w+|pg_read\w*|pg_ls\w*|pg_stat_reset\w*)\b'
     # Funciones de la app que guardan o borran (guardar_suscripcion, ficha_guardar...)
