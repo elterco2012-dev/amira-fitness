@@ -346,7 +346,11 @@
           <option value="trx">TRX</option>
           <option value="fitball">Esfera</option>
           <option value="step">Step / cajón</option>
+          <option value="ruedita">Ruedita abdominal</option>
+          <option value="tobillera">Tobillera</option>
+          <option value="soga">Soga</option>
         </select>
+        <label style="display:flex;align-items:center;gap:6px;margin:6px 0 0;font-weight:400;font-size:12px;cursor:pointer;"><input type="checkbox" id="m-banco" style="width:auto;margin:0;"> Necesita banco o cajón</label>
       </div>
       <div><label>Tipo</label>
         <select id="m-tipo" style="margin-bottom:0;">
@@ -720,6 +724,7 @@
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="banco"> Banco o cajón</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="tobillera"> Tobillera</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="ruedita"> Ruedita abdominal</label>
+      <label class="equip-chip"><input type="checkbox" name="ea-equip" value="soga"> Soga</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="barra"> Barra</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="polea"> Polea / cables</label>
       <label class="equip-chip"><input type="checkbox" name="ea-equip" value="maquina"> Máquinas de gym</label>
@@ -2105,7 +2110,7 @@ function logroDeHoy(aId){
 // a ojo, ejercicio por ejercicio. Esto lo revisa de una y señala dónde mirar.
 const EQUIP_NOMBRE={sin_equipamiento:'sin equipamiento',mancuernas:'mancuernas',barra:'barra',
   maquina:'máquina',banda_elastica:'banda elástica',kettlebell:'pesa rusa',polea:'polea',
-  trx:'TRX',fitball:'esfera',step:'step'};
+  trx:'TRX',fitball:'esfera',step:'step',ruedita:'ruedita abdominal',tobillera:'tobillera',soga:'soga'};
 const TOPE_ALTO_IMPACTO={principiante:0,intermedio:1,avanzado:2};
 const PATRON_EMPUJE=['empuje_horizontal','empuje_vertical'];
 const PATRON_JALE=['jale_horizontal','jale_vertical'];
@@ -2734,7 +2739,7 @@ function renderBib(){
   });
   const list=document.getElementById('bib-list');
   if(!list)return;
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',banco:'🪑 Banco o cajón',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',banco:'🪑 Banco o cajón',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita',soga:'➰ Soga'};
   const POS_LABEL={de_pie:'🧍 De pie',sentada:'🪑 Sentada',acostada_boca_arriba:'⬆️ B. arriba',acostada_boca_abajo:'⬇️ B. abajo',inclinada:'📐 Inclinada',en_cuadrupedia:'🐾 Cuadrup.',arrodillada:'🙏 Arrodillada',de_lateral:'↔️ De lateral'};
   const IMP_LABEL={bajo:'🟢 Bajo',medio:'🟡 Medio',alto:'🔴 Alto'};
   list.innerHTML=filtered.map(e=>`
@@ -2801,7 +2806,7 @@ async function addFromBib(){
 
 // ── Manual nuevo ejercicio ────────────────────────────────────
 let _manualBibOnly=false;
-function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-equip').value='sin_equipamiento';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('m-posicion').value='';document.getElementById('m-bilateral').value='true';document.getElementById('m-impacto').value='';document.getElementById('modal-manual').style.display='flex';}
+function openManual(){_manualBibOnly=false;document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-equip').value='sin_equipamiento';document.getElementById('m-banco').checked=false;document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';document.getElementById('m-posicion').value='';document.getElementById('m-bilateral').value='true';document.getElementById('m-impacto').value='';document.getElementById('modal-manual').style.display='flex';}
 function closeManual(){document.getElementById('modal-manual').style.display='none';}
 
 async function saveManual(){
@@ -2819,6 +2824,7 @@ async function saveManual(){
     video: document.getElementById('m-video').value.trim(),
     grupo_muscular: document.getElementById('m-grupo').value,
     equipamiento_requerido: document.getElementById('m-equip').value,
+    requiere_banco: document.getElementById('m-banco').checked,
     tipo: document.getElementById('m-tipo').value,
     patron_movimiento: document.getElementById('m-patron').value||null,
     nivel_dificultad: parseInt(document.getElementById('m-nivel').value)||null,
@@ -3163,7 +3169,16 @@ function openEditBib(id){
   document.getElementById('eb-tip').value=e.descripcion||'';
   document.getElementById('eb-video').value=e.video||'';
   document.getElementById('eb-grupo').value=e.grupo_muscular||'Core';
-  document.getElementById('eb-equip').value=e.equipamiento_requerido||'sin_equipamiento';
+  // Un equipamiento que no está en la lista dejaba el desplegable vacío, y al guardar se
+  // borraba. Hasta el 1/11/2026 faltaban la ruedita, la tobillera y la soga, que la alumna
+  // sí podía marcar como propias; ahora, si aparece otro, se muestra igual.
+  const selEquip=document.getElementById('eb-equip'),equip=e.equipamiento_requerido||'sin_equipamiento';
+  [...selEquip.options].filter(o=>o.dataset.ajena).forEach(o=>o.remove());
+  if(![...selEquip.options].some(o=>o.value===equip)){
+    const o=new Option(`${equip} (no está en la lista)`,equip);o.dataset.ajena='1';selEquip.add(o);
+  }
+  selEquip.value=equip;
+  document.getElementById('eb-banco').checked=!!e.requiere_banco;
   document.getElementById('eb-tipo').value=e.tipo||'fuerza';
   document.getElementById('eb-patron').value=e.patron_movimiento||'';
   document.getElementById('eb-nivel').value=e.nivel_dificultad||'';
@@ -3184,6 +3199,7 @@ async function saveEditBib(){
     video:document.getElementById('eb-video').value.trim(),
     grupo_muscular:document.getElementById('eb-grupo').value,
     equipamiento_requerido:document.getElementById('eb-equip').value,
+    requiere_banco:document.getElementById('eb-banco').checked,
     tipo:document.getElementById('eb-tipo').value,
     patron_movimiento:document.getElementById('eb-patron').value||null,
     nivel_dificultad:parseInt(document.getElementById('eb-nivel').value)||null,
@@ -4750,6 +4766,7 @@ function rAlumnas(){
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="banco"> Banco o cajón</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="tobillera"> Tobillera</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="ruedita"> Ruedita abdominal</label>
+      <label class="equip-chip"><input type="checkbox" name="na-equip" value="soga"> Soga</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="barra"> Barra</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="polea"> Polea / cables</label>
       <label class="equip-chip"><input type="checkbox" name="na-equip" value="maquina"> Máquinas de gym</label>
@@ -5441,7 +5458,7 @@ function rBiblioteca(){
 
   // ── Stats de cobertura ──
   const GYM=['maquina','barra','polea'];
-  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step','banco','tobillera','ruedita'];
+  const PORTABLE=['mancuernas','banda_elastica','kettlebell','trx','fitball','step','banco','tobillera','ruedita','soga'];
   const total=DB.biblioteca.length;
   const cSinEquip=DB.biblioteca.filter(e=>!e.equipamiento_requerido||e.equipamiento_requerido==='sin_equipamiento').length;
   const cPortable=DB.biblioteca.filter(e=>PORTABLE.includes(e.equipamiento_requerido)).length;
@@ -5454,7 +5471,7 @@ function rBiblioteca(){
     return{gr,total:exs.length,casa:casaCount};
   });
 
-  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita'};
+  const EQUIP_LABEL={sin_equipamiento:'💪 Peso corporal',mancuernas:'🏋️ Mancuernas',barra:'🔩 Barra',maquina:'⚙️ Máquina',banda_elastica:'🔗 Banda',kettlebell:'🫙 Pesa rusa',polea:'🔄 Polea',trx:'🪢 TRX',fitball:'🔵 Esfera',step:'📦 Step',tobillera:'🦵 Tobillera',ruedita:'⭕ Ruedita',soga:'➰ Soga'};
 
   const statsHtml=`<div class="card" style="margin-bottom:1rem;padding:.85rem 1rem;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
@@ -5534,6 +5551,7 @@ function rBiblioteca(){
 function openManualBib(){
   _manualBibOnly=true;
   document.getElementById('m-nombre').value='';document.getElementById('m-tip').value='';document.getElementById('m-video').value='';document.getElementById('m-series').value='3';document.getElementById('m-reps').value='10';document.getElementById('manual-msg').textContent='';
+  document.getElementById('m-banco').checked=false;
   document.getElementById('modal-manual').style.display='flex';
 }
 
@@ -6975,7 +6993,11 @@ initAuth();
           <option value="trx">TRX</option>
           <option value="fitball">Esfera</option>
           <option value="step">Step / cajón</option>
+          <option value="ruedita">Ruedita abdominal</option>
+          <option value="tobillera">Tobillera</option>
+          <option value="soga">Soga</option>
         </select>
+        <label style="display:flex;align-items:center;gap:6px;margin:6px 0 0;font-weight:400;font-size:12px;cursor:pointer;"><input type="checkbox" id="eb-banco" style="width:auto;margin:0;"> Necesita banco o cajón</label>
       </div>
       <div><label>Tipo</label>
         <select id="eb-tipo" style="margin-bottom:0;">
