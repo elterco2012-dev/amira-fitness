@@ -200,6 +200,18 @@ La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
 5. Valida que estén todas las semanas/días.
 6. Devuelve `{routine, usage, alumna}`.
 
+**Tiempo (1/11/2026):** en el plan gratuito, Supabase corta una función a los 150 s.
+- Hasta ese día una rutina de 3 días tardaba entre 122 y 133 s y una de 4 días, 143 s.
+- La de una alumna de 4 días pasó el límite: se cortó con la IA trabajando y no se generó nada.
+- Por eso la IA responde en una sola línea, sin `grupo` (lo completa el panel con la biblioteca) y sin `peso_sugerido` si no hay historial.
+- El `tip` va solo la primera vez que aparece cada ejercicio, y la función lo copia al resto.
+- Medido con una rutina real de 4 días: 13.660 caracteres, contra 22.417 en una línea y 63.975 con sangrías en el formato anterior.
+- `pedirAClaude` corta a los 145 s y devuelve un error claro.
+- Cada corrida deja `tokens: … ms=…` en los logs de la función. Si vuelven a acercarse a 145.000 ms, las salidas son generar de a una semana o pasar a un plan pago (400 s).
+- En el panel, la ventana avisa que tarda 1 a 2 minutos y muestra cuánto lleva.
+  - Un toque afuera no la cierra, y la cruz pregunta antes de cerrar.
+  - Si se cierra o se genera otra, la respuesta vieja se descarta.
+
 **Corregir (1/11/2026):** con `{alumna_id, corregir: {dias, grupos}}` no genera nada: cambia solo los ejercicios que marcó la revisión de la vista previa ("🚨 Hay que corregir").
 - Es el botón "🛠 Corregir con IA" de ese bloque. La rutina con IA de una alumna que entrena en casa con mancuernas salió con 13 errores en 4 ejercicios (banco, barra y step que no tiene), y la única salida era regenerar todo.
 - `verificarRutina` devuelve además `cambios`: lo que no está en la biblioteca, lo que pide equipamiento o banco que no tiene, lo repetido en el día y el alto impacto que pasa su tope. Faltar series o repeticiones no se corrige así.

@@ -497,7 +497,7 @@
 </div>
 
 <!-- Modal IA: generación de rutina con IA -->
-<div class="modal-bg" id="modal-ia" style="display:none;" onclick="if(event.target===this)closeIAModal()">
+<div class="modal-bg" id="modal-ia" style="display:none;" onclick="if(event.target===this)closeIAModal(true)">
   <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
       <h3 style="margin:0;">✨ Generar rutina con IA</h3>
@@ -548,7 +548,8 @@
     <div id="ia-loading" style="display:none;text-align:center;padding:2rem 0;">
       <div style="font-size:2rem;margin-bottom:.75rem;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
       <div style="font-size:14px;color:var(--tm);">Claude está generando la rutina…</div>
-      <div style="font-size:11px;color:var(--th);margin-top:.5rem;">Esto puede tardar 15–30 segundos</div>
+      <div style="font-size:11px;color:var(--th);margin-top:.5rem;">Tarda entre 1 y 2 minutos. No cierres esta ventana: si la cerrás, se pierde.</div>
+      <div id="ia-reloj" style="font-size:11px;color:var(--th);margin-top:.35rem;"></div>
     </div>
 
     <!-- Paso 3: error + preview -->
@@ -1722,6 +1723,7 @@ function avisarCicloNuevo(a,nombre){
 // ── Generación de rutina con IA ───────────────────────────────
 let _iaRoutineData = null;
 let _iaWeekSel = 0;
+let _iaGenId = 0;
 
 // Chips de instrucción rápida
 function toggleIAChip(btn, texto) {
@@ -1821,7 +1823,12 @@ async function clasificarConIA() {
   }
 }
 
-function closeIAModal(){
+// Mientras genera, la IA ya está trabajando (y se paga): un toque fuera de la ventana no la
+// cierra, y la cruz o Cancelar preguntan. El 31/10/2026 se cerró una a mitad de camino.
+function iaGenerando(){return document.getElementById('ia-loading')?.style.display==='block';}
+function closeIAModal(desdeFondo){
+  if(iaGenerando()&&(desdeFondo||!confirm('Claude todavía está generando la rutina. Si cerrás la ventana, se pierde. ¿Cerrar igual?')))return;
+  _iaGenId++;
   document.getElementById('modal-ia').style.display='none';
   ['ia-input','ia-loading','ia-preview','ia-error'].forEach(id=>document.getElementById(id).style.display='none');
 }
@@ -1868,6 +1875,12 @@ async function confirmarGenerarIA(){
   document.getElementById('ia-error').style.display='none';
   document.getElementById('ia-preview').style.display='none';
   _iaRoutineData=null;_iaWeekSel=0;_iaCorreccion=null;
+  // Si cierra la ventana o genera otra mientras espera, esta respuesta ya no va: si no,
+  // podía quedar la rutina de una alumna en la vista previa de otra.
+  const gen=++_iaGenId;
+  const t0=Date.now(),relojEl=document.getElementById('ia-reloj');
+  const pintarReloj=()=>{if(relojEl){const s=Math.round((Date.now()-t0)/1000);relojEl.textContent=`Lleva ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}};
+  pintarReloj();const reloj=setInterval(pintarReloj,1000);
   try{
     const semanasEl=document.querySelector('input[name="ia-semanas"]:checked');
     const semanas=parseInt(semanasEl?.value||'4');
@@ -1879,6 +1892,7 @@ async function confirmarGenerarIA(){
       body:JSON.stringify(body)
     });
     const rawText=await resp.text();
+    if(gen!==_iaGenId)return;
     let data={};
     try{data=JSON.parse(rawText);}catch(_){data={_raw:rawText.slice(0,400)};}
     if(!resp.ok||data.error){
@@ -1896,6 +1910,7 @@ async function confirmarGenerarIA(){
     iaBotonesGuardar(true);
     refreshIAPreview();
   }catch(e){
+    if(gen!==_iaGenId)return;
     document.getElementById('ia-loading').style.display='none';
     const errEl=document.getElementById('ia-error');
     errEl.style.display='block';
@@ -1903,7 +1918,7 @@ async function confirmarGenerarIA(){
     document.getElementById('ia-preview').style.display='block';
     document.getElementById('ia-preview-content').innerHTML='';
     iaBotonesGuardar(false);
-  }
+  }finally{clearInterval(reloj);}
 }
 
 // Sin rutina no hay nada que guardar. Hasta el 1/11/2026 esto buscaba el primer botón
