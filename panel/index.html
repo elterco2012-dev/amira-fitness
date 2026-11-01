@@ -1874,7 +1874,7 @@ async function confirmarGenerarIA(){
   document.getElementById('ia-loading').style.display='block';
   document.getElementById('ia-error').style.display='none';
   document.getElementById('ia-preview').style.display='none';
-  _iaRoutineData=null;_iaWeekSel=0;_iaCorreccion=null;
+  _iaRoutineData=null;_iaWeekSel=0;_iaCorreccion=null;_iaOrdenados=0;
   // Si cierra la ventana o genera otra mientras espera, esta respuesta ya no va: si no,
   // podía quedar la rutina de una alumna en la vista previa de otra.
   const gen=++_iaGenId;
@@ -2118,11 +2118,21 @@ function equipoDeAlumna(a){
     tiene:new Set([...(a.equipamiento||[]),'sin_equipamiento']),nivel,topeAlto:TOPE_ALTO_IMPACTO[nivel]??0};
 }
 
+// Zona de cada grupo, para el aviso de orden (1/11/2026). Hasta ese día avisaba por
+// cualquier multiarticular después de cualquier aislamiento: en un día de cuerpo completo
+// que empieza por piernas, un aislamiento de gemelos marcaba todo el tren superior (la
+// rutina de una alumna de 4 días salió con 17 avisos así). Cansar los gemelos no le quita
+// nada a un press de pecho; cansar los hombros con vuelos antes del press de hombros, sí.
+const ZONA_DE_GRUPO={pecho:'superior',espalda:'superior',hombros:'superior',biceps:'superior',triceps:'superior',
+  cuadriceps:'inferior',gluteos:'inferior',isquiotibiales:'inferior',isquios:'inferior',aductores:'inferior',gemelos:'inferior',piernas:'inferior'};
+function zonaDe(m){return ZONA_DE_GRUPO[String(m?.grupo_muscular||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim()]||null;}
+
 // Además de los textos, devuelve en `cambios` cada ejercicio que hay que reemplazar
-// ({s,d,e} son los índices en la rutina), para "Corregir con IA".
+// ({s,d,e} son los índices en la rutina), para "Corregir con IA", y en `ordenar` los días
+// con un multiarticular después de un aislamiento de su zona ({s,d,pares}), para "Ordenar".
 function verificarRutina(routine,a){
-  const errores=[],avisos=[],cambios=[];
-  if(!routine?.semanas)return{errores,avisos,cambios};
+  const errores=[],avisos=[],cambios=[],ordenar=[];
+  if(!routine?.semanas)return{errores,avisos,cambios,ordenar};
   const bib=DB.biblioteca||[];
   const porNombre={};for(const e of bib)porNombre[e.nombre]=e;
 
@@ -2134,7 +2144,7 @@ function verificarRutina(routine,a){
       const ref=`Sem ${sem.semana} · Día ${dia.dia}`;
       const ejs=dia.ejercicios||[];
       const metas=ejs.map(e=>porNombre[e.nombre]||null);
-      let altos=0;const vistos=new Set();let primerAislamiento=-1;
+      let altos=0;const vistos=new Set();const aisZona={};let desordenado=false;
       const patrones=new Set();const idxAltos=[];
       const porCambiar={};
       const cambiar=(i,motivo)=>{
@@ -2170,9 +2180,12 @@ function verificarRutina(routine,a){
         if(!String(ex.series||'').trim()||!String(ex.reps||'').trim())
           errores.push(`${ref}: “${ex.nombre}” sin series o repeticiones`);
         if(m.patron_movimiento)patrones.add(m.patron_movimiento);
-        if(m.patron_movimiento==='aislamiento'&&primerAislamiento<0)primerAislamiento=i;
-        else if(primerAislamiento>=0&&m.patron_movimiento&&!['aislamiento','core'].includes(m.patron_movimiento))
-          avisos.push(`${ref}: “${ex.nombre}” (compuesto) va después de un aislamiento`);
+        const zona=zonaDe(m);
+        if(m.patron_movimiento==='aislamiento'){if(zona&&!aisZona[zona])aisZona[zona]=ex.nombre;}
+        else if(PATRON_COMPUESTO.includes(m.patron_movimiento)&&zona&&aisZona[zona]){
+          avisos.push(`${ref}: “${ex.nombre}” (compuesto) va después de “${aisZona[zona]}”, un aislamiento del tren ${zona}`);
+          desordenado=true;
+        }
       });
 
       if(altos>topeAlto){
@@ -2184,6 +2197,7 @@ function verificarRutina(routine,a){
       }
       if(a.lesiones&&String(a.lesiones).trim()&&altos>0)
         avisos.push(`${ref}: hay alto impacto y la alumna tiene lesiones anotadas — revisá si corresponde`);
+      if(desordenado)ordenar.push({s,d,pares:ejs.some(e=>e.superset_id)});
       if(esFullBody&&ejs.length){
         if(!patrones.has('core'))avisos.push(`${ref}: ningún ejercicio de core`);
         if(!PATRON_EMPUJE.some(p=>patrones.has(p)))avisos.push(`${ref}: sin ningún empuje`);
@@ -2200,7 +2214,36 @@ function verificarRutina(routine,a){
       if(rep.length)avisos.push(`Sem ${sem.semana}: el día A y el día B repiten ${rep.length} ejercicio(s): ${rep.join(', ')}`);
     }
   });
-  return{errores,avisos,cambios};
+  return{errores,avisos,cambios,ordenar};
+}
+
+// ── Ordenar los días marcados (1/11/2026) ──
+// Es la regla de orden que ya tiene la IA: primero los multiarticulares, después los
+// aislamientos, el core y al final el cardio. Dentro de cada tanda queda el orden que
+// venía, y uno que no está en la biblioteca viaja con el de antes. Los días con
+// superseries o circuito no se tocan: ahí el orden va de a pares.
+let _iaOrdenados=0;
+function ordenarDiasIA(){
+  const a=getA(S.selA);const routine=_iaRoutineData;
+  if(!a||!routine)return;
+  const porNombre={};for(const e of DB.biblioteca||[])if(!porNombre[e.nombre])porNombre[e.nombre]=e;
+  const tanda=p=>PATRON_COMPUESTO.includes(p)?0:p==='aislamiento'?1:p==='core'?2:p==='cardio'?3:null;
+  let n=0;
+  for(const{s,d,pares}of verificarRutina(routine,a).ordenar){
+    const dia=routine.semanas[s]?.dias?.[d];
+    if(pares||!dia?.ejercicios?.length)continue;
+    let antes=0;
+    const conTanda=dia.ejercicios.map((e,i)=>{
+      const t=tanda(porNombre[e.nombre]?.patron_movimiento);
+      antes=t??antes;
+      return{e,t:antes,i};
+    });
+    conTanda.sort((x,y)=>x.t-y.t||x.i-y.i);
+    dia.ejercicios=conTanda.map(x=>x.e);
+    n++;
+  }
+  _iaOrdenados+=n;
+  refreshIAPreview();
 }
 
 // ── Corregir con IA solo lo que marcó la revisión (1/11/2026) ──
@@ -2371,8 +2414,12 @@ function renderVerificacion(v){
   const corregir=v.cambios?.length?`<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.65rem;">
       <button class="btn" id="ia-corregir-btn" onclick="corregirConIA()" ${_iaCorrigiendo?'disabled':''} style="background:linear-gradient(135deg,var(--vi),var(--vi2));border-color:var(--vi);color:#fff;white-space:nowrap;">${_iaCorrigiendo?'⏳ Corrigiendo…':'🛠 Corregir con IA'}</button>
       <span style="flex:1;min-width:180px;font-size:11px;color:var(--tm);line-height:1.45;">${_iaCorrigiendo?'Claude está eligiendo los reemplazos. Tarda unos segundos.':'Cambia solo los ejercicios marcados por otros de la biblioteca que pueda hacer y que trabajen lo mismo. El resto de la rutina queda igual.'}</span></div>`:'';
+  const ordenables=(v.ordenar||[]).filter(o=>!o.pares).length,conPares=(v.ordenar||[]).length-ordenables;
+  const ordenar=ordenables||conPares?`<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.65rem;">
+      ${ordenables?`<button class="btn" id="ia-ordenar-btn" onclick="ordenarDiasIA()" style="white-space:nowrap;">↕ Ordenar ${ordenables===1?'ese día':`esos ${ordenables} días`}</button>`:''}
+      <span style="flex:1;min-width:180px;font-size:11px;color:var(--tm);line-height:1.45;">${ordenables?'En los días con un compuesto después de un aislamiento de su zona, pone primero los ejercicios de varios músculos, después los de uno solo, el core y el cardio. No cambia nada más.':''}${conPares?`${ordenables?' ':''}${conPares===1?'Un día tiene':`${conPares} días tienen`} superseries o circuito: esos se ordenan a mano, porque van de a pares.`:''}</span></div>`:'';
   return bloque('🚨 Hay que corregir',v.errores,'#dc2626','rgba(220,38,38,.28)','rgba(220,38,38,.07)',corregir)
-       + bloque('⚠️ Revisá',v.avisos,'#b45309','rgba(180,83,9,.28)','rgba(180,83,9,.07)');
+       + bloque('⚠️ Revisá',v.avisos,'#b45309','rgba(180,83,9,.28)','rgba(180,83,9,.07)',ordenar);
 }
 
 // ── Preview editable ──────────────────────────────────────────
@@ -2389,6 +2436,7 @@ function renderIAPreview(routine,a){
   // ── Razonamiento (si Claude lo incluyó) ──
   // Todo lo que escribió la IA va escapado: lee notas y reportes que escribieron otras personas.
   let html=renderCorreccion();
+  if(_iaOrdenados)html+=`<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.28);border-radius:var(--rs);padding:.6rem .9rem;margin-bottom:.85rem;font-size:12px;color:var(--t);">↕ <b>Ordené ${_iaOrdenados===1?'1 día':`${_iaOrdenados} días`}:</b> primero los ejercicios de varios músculos, después los de uno solo, el core y el cardio.</div>`;
   try{ html+=renderVerificacion(verificarRutina(routine,a)); }catch(_){}
   if(routine.razonamiento){
     html+=`<div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;">

@@ -223,6 +223,12 @@ La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
   - Marca los que ya hace otro día de esa semana, para no repetir.
 - Lo cambiado queda en violeta, con el ejercicio que había y el motivo. El peso sugerido no pasa al reemplazo. Nada se guarda hasta que Amira toca Guardar.
 
+**Orden del día (1/11/2026):** la revisión avisa "(compuesto) va después de…" solo si el aislamiento de antes es de la misma zona (tren superior o inferior, `zonaDe`), y lo nombra.
+- Hasta ese día avisaba por cualquier aislamiento previo. La rutina de una alumna de 4 días salió con 17 avisos: los días empezaban por piernas y un aislamiento de piernas marcaba todo el tren superior.
+- "↕ Ordenar" (`ordenarDiasIA`) pone, en los días marcados, primero los multiarticulares, después los aislamientos, el core y el cardio, sin cambiar nada más. Es la misma regla que ya tiene la IA.
+- No toca los días con superseries o circuito: ahí el orden va de a pares.
+- Algunos ejercicios tienen el patrón mal cargado (las aperturas figuran como multiarticulares). La corrección está en la planilla de errores de la biblioteca, esperando a Amira.
+
 ### `send-push` (Web Push nativo)
 Implementa Web Push RFC 8291 (aes128gcm) con VAPID. No usa librerías externas.
 - `alumna_id` opcional: si se omite, envía a todas.
