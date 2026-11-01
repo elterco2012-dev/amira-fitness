@@ -91,6 +91,10 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
     - En una sesión de casi un mes, Supabase preguntó 389 veces (302 consultas) y Vercel 90. GitHub, 0. Las herramientas propias (Bash, editar, leer), casi nunca.
     - Eso se cambia en claude.ai/customize/connectors, en los permisos de cada herramienta del conector. Desde el repositorio no se puede.
   - En modo Auto las llamadas pasan sin preguntar (`reasonType: mode`), también las que escriben en la base: el 29/10 un `insert` de 12 ejercicios pasó sin cartel. En ese modo, el control de este repositorio no frena nada.
+  - Prueba del 1/11/2026, con las herramientas de Supabase en "Permitir siempre" en claude.ai:
+    - Las de solo lectura pasan solas (`list_migrations`: `ruleSource: cliArg`).
+    - `execute_sql` pregunta igual cada vez (`reasonCode: other`), también en modo Auto. El conector la pone entre las de escritura y eliminación, porque cualquier consulta puede escribir.
+    - Por eso conviene juntar varias lecturas en una sola consulta, y usar las herramientas de solo lectura cuando alcancen (tablas, migraciones, logs).
   - El 1/11 se dio por hecho que la lista de permitidas funcionaba y se contaron solo los carteles del control (83 de 351 consultas). Era un error: casi todos venían del conector.
 - Leer las tablas de `cron` y `net` no pasa por el control (1/11/2026). Llamar a sus funciones sí: `cron.schedule`/`cron.alter_job` programan tareas y `net.http_post` manda un pedido, por ejemplo una notificación a las alumnas.
 - Una herramienta nueva que solo lee va en `permissions.allow`. Una que cambia algo (publicar, borrar, comentar en GitHub, dominios) sigue preguntando.
