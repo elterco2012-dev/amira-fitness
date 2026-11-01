@@ -560,8 +560,8 @@
       <div style="margin-top:1rem;"><label for="ia-inicio">Fecha de inicio del ciclo</label><input type="date" id="ia-inicio"><div style="font-size:11px;color:var(--tm);margin-top:3px;line-height:1.5;">Dejá la fecha de hoy para activarlo ya y avisarle a la alumna. Poné una fecha futura (por ejemplo, el lunes después de que termine el ciclo actual) para programarlo: lo va a ver desde ese día.</div></div>
       <div><label for="ia-mensaje">Mensaje para la alumna al iniciar este ciclo (opcional)</label><textarea id="ia-mensaje" rows="2" placeholder="Ej: Este mes trabajamos fuerza de piernas. ¡Vamos!" style="resize:vertical;"></textarea></div>
       <div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;">
-        <button class="btn btn-p" onclick="saveGeneratedRoutine()">💾 Guardar como nuevo ciclo</button>
-        <button class="btn" style="background:var(--vl);color:var(--vd);border-color:var(--vm);" onclick="saveGeneratedRoutineEnSemana()">📌 Guardar en semana actual</button>
+        <button class="btn btn-p" id="ia-guardar-btn" onclick="saveGeneratedRoutine()">💾 Guardar como nuevo ciclo</button>
+        <button class="btn" id="ia-guardar-sem-btn" style="background:var(--vl);color:var(--vd);border-color:var(--vm);" onclick="saveGeneratedRoutineEnSemana()">📌 Guardar en semana actual</button>
         <button class="btn" onclick="mostrarInputIA()">🔄 Regenerar</button>
         <button class="btn" onclick="closeIAModal()">Cancelar</button>
       </div>
@@ -1867,7 +1867,7 @@ async function confirmarGenerarIA(){
   document.getElementById('ia-loading').style.display='block';
   document.getElementById('ia-error').style.display='none';
   document.getElementById('ia-preview').style.display='none';
-  _iaRoutineData=null;_iaWeekSel=0;
+  _iaRoutineData=null;_iaWeekSel=0;_iaCorreccion=null;
   try{
     const semanasEl=document.querySelector('input[name="ia-semanas"]:checked');
     const semanas=parseInt(semanasEl?.value||'4');
@@ -1893,7 +1893,7 @@ async function confirmarGenerarIA(){
     const _hoyIA=new Date();
     document.getElementById('ia-inicio').value=`${_hoyIA.getFullYear()}-${String(_hoyIA.getMonth()+1).padStart(2,'0')}-${String(_hoyIA.getDate()).padStart(2,'0')}`;
     document.getElementById('ia-mensaje').value='';
-    document.querySelector('#modal-ia .btn-p').style.display='';
+    iaBotonesGuardar(true);
     refreshIAPreview();
   }catch(e){
     document.getElementById('ia-loading').style.display='none';
@@ -1902,8 +1902,15 @@ async function confirmarGenerarIA(){
     errEl.textContent='Error: '+e.message;
     document.getElementById('ia-preview').style.display='block';
     document.getElementById('ia-preview-content').innerHTML='';
-    document.querySelector('#modal-ia .btn-p').style.display='none';
+    iaBotonesGuardar(false);
   }
+}
+
+// Sin rutina no hay nada que guardar. Hasta el 1/11/2026 esto buscaba el primer botón
+// violeta del cartel, que es "Generar rutina": después de un error ese quedaba
+// escondido y "Regenerar" llevaba a un formulario sin botón para generar.
+function iaBotonesGuardar(visibles){
+  ['ia-guardar-btn','ia-guardar-sem-btn'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=visibles?'':'none';});
 }
 
 // ── Fuzzy matching contra la biblioteca ───────────────────────
@@ -2088,38 +2095,62 @@ const TOPE_ALTO_IMPACTO={principiante:0,intermedio:1,avanzado:2};
 const PATRON_EMPUJE=['empuje_horizontal','empuje_vertical'];
 const PATRON_JALE=['jale_horizontal','jale_vertical'];
 
+// En gimnasio se asume todo disponible; en casa, solo lo que declaró tener.
+function equipoDeAlumna(a){
+  const tipo=(a.tipo||'').toLowerCase();
+  const nivel=(a.nivel||'principiante').toLowerCase();
+  return{enGym:['gym','gimnasio','musculacion','musculación'].includes(tipo),
+    tiene:new Set([...(a.equipamiento||[]),'sin_equipamiento']),nivel,topeAlto:TOPE_ALTO_IMPACTO[nivel]??0};
+}
+
+// Además de los textos, devuelve en `cambios` cada ejercicio que hay que reemplazar
+// ({s,d,e} son los índices en la rutina), para "Corregir con IA".
 function verificarRutina(routine,a){
-  const errores=[],avisos=[];
-  if(!routine?.semanas)return{errores,avisos};
+  const errores=[],avisos=[],cambios=[];
+  if(!routine?.semanas)return{errores,avisos,cambios};
   const bib=DB.biblioteca||[];
   const porNombre={};for(const e of bib)porNombre[e.nombre]=e;
 
-  // En gimnasio se asume todo disponible; en casa, solo lo que declaró tener.
-  const tipo=(a.tipo||'').toLowerCase();
-  const enGym=['gym','gimnasio','musculacion','musculación'].includes(tipo);
-  const tiene=new Set([...(a.equipamiento||[]),'sin_equipamiento']);
-  const nivel=(a.nivel||'principiante').toLowerCase();
-  const topeAlto=TOPE_ALTO_IMPACTO[nivel]??0;
+  const{enGym,tiene,nivel,topeAlto}=equipoDeAlumna(a);
   const esFullBody=(a.dias||3)<=3;
 
-  for(const sem of routine.semanas){
-    for(const dia of sem.dias||[]){
+  routine.semanas.forEach((sem,s)=>{
+    (sem.dias||[]).forEach((dia,d)=>{
       const ref=`Sem ${sem.semana} · Día ${dia.dia}`;
       const ejs=dia.ejercicios||[];
       const metas=ejs.map(e=>porNombre[e.nombre]||null);
       let altos=0;const vistos=new Set();let primerAislamiento=-1;
-      const patrones=new Set();
+      const patrones=new Set();const idxAltos=[];
+      const porCambiar={};
+      const cambiar=(i,motivo)=>{
+        if(!porCambiar[i]){porCambiar[i]={s,d,e:i,nombre:ejs[i].nombre,motivos:[]};cambios.push(porCambiar[i]);}
+        porCambiar[i].motivos.push(motivo);
+      };
 
       ejs.forEach((ex,i)=>{
         const m=metas[i];
-        if(!m){errores.push(`${ref}: “${ex.nombre}” no está en la biblioteca — la alumna no vería video ni técnica`);return;}
-        if(!enGym&&m.equipamiento_requerido&&!tiene.has(m.equipamiento_requerido))
-          errores.push(`${ref}: “${ex.nombre}” necesita ${EQUIP_NOMBRE[m.equipamiento_requerido]||m.equipamiento_requerido}, que no tiene`);
+        if(!m){
+          errores.push(`${ref}: “${ex.nombre}” no está en la biblioteca — la alumna no vería video ni técnica`);
+          cambiar(i,'no está en la biblioteca');
+          if(vistos.has(ex.nombre))cambiar(i,'está repetido en el mismo día');
+          vistos.add(ex.nombre);
+          return;
+        }
+        if(!enGym&&m.equipamiento_requerido&&!tiene.has(m.equipamiento_requerido)){
+          const eq=EQUIP_NOMBRE[m.equipamiento_requerido]||m.equipamiento_requerido;
+          errores.push(`${ref}: “${ex.nombre}” necesita ${eq}, que no tiene`);
+          cambiar(i,`necesita ${eq}, que no tiene`);
+        }
         // Un ejercicio puede pedir dos cosas: mancuernas Y banco. El banco va aparte.
-        if(!enGym&&m.requiere_banco&&!tiene.has('banco'))
+        if(!enGym&&m.requiere_banco&&!tiene.has('banco')){
           errores.push(`${ref}: “${ex.nombre}” necesita un banco o cajón, que no tiene`);
-        if(m.impacto==='alto')altos++;
-        if(vistos.has(ex.nombre))errores.push(`${ref}: “${ex.nombre}” está repetido en el mismo día`);
+          cambiar(i,'necesita un banco o cajón, que no tiene');
+        }
+        if(m.impacto==='alto'){altos++;idxAltos.push(i);}
+        if(vistos.has(ex.nombre)){
+          errores.push(`${ref}: “${ex.nombre}” está repetido en el mismo día`);
+          cambiar(i,'está repetido en el mismo día');
+        }
         vistos.add(ex.nombre);
         if(!String(ex.series||'').trim()||!String(ex.reps||'').trim())
           errores.push(`${ref}: “${ex.nombre}” sin series o repeticiones`);
@@ -2129,8 +2160,13 @@ function verificarRutina(routine,a){
           avisos.push(`${ref}: “${ex.nombre}” (compuesto) va después de un aislamiento`);
       });
 
-      if(altos>topeAlto)
+      if(altos>topeAlto){
         errores.push(`${ref}: ${altos} ejercicio(s) de alto impacto para nivel ${nivel} (máximo ${topeAlto})`);
+        // Quedan los primeros que entran en su tope; los que sobran se cambian.
+        idxAltos.slice(topeAlto).forEach(i=>cambiar(i,topeAlto
+          ?`es de alto impacto y para nivel ${nivel} van como mucho ${topeAlto} por día`
+          :`es de alto impacto, que no va para nivel ${nivel}`));
+      }
       if(a.lesiones&&String(a.lesiones).trim()&&altos>0)
         avisos.push(`${ref}: hay alto impacto y la alumna tiene lesiones anotadas — revisá si corresponde`);
       if(esFullBody&&ejs.length){
@@ -2140,7 +2176,7 @@ function verificarRutina(routine,a){
         if(!patrones.has('sentadilla')&&!patrones.has('bisagra'))
           avisos.push(`${ref}: sin sentadilla ni bisagra`);
       }
-    }
+    });
     // Con 2 días el esquema es A/B: los ejercicios no deberían repetirse entre ambos.
     if((a.dias||3)===2&&(sem.dias||[]).length===2){
       const [d1,d2]=sem.dias;
@@ -2148,8 +2184,162 @@ function verificarRutina(routine,a){
       const rep=(d2.ejercicios||[]).map(e=>e.nombre).filter(n=>n1.has(n));
       if(rep.length)avisos.push(`Sem ${sem.semana}: el día A y el día B repiten ${rep.length} ejercicio(s): ${rep.join(', ')}`);
     }
+  });
+  return{errores,avisos,cambios};
+}
+
+// ── Corregir con IA solo lo que marcó la revisión (1/11/2026) ──
+// La rutina con IA de una alumna que entrena en casa con mancuernas salió con 13
+// errores en 4 ejercicios (press y remo en banco, hip thrust con barra, flexiones con
+// los pies en un step). La única salida era regenerar todo, que rehace también lo que
+// estaba bien. Esto cambia solo los marcados: el panel arma para cada uno los
+// reemplazos que la biblioteca permite y la IA (generate-routine, modo corregir) elige
+// uno mirando sus lesiones y lo que ya tiene ese día. El mismo ejercicio se cambia por
+// el mismo en todas las semanas, para no romper la progresión.
+const MAX_GRUPOS_CORREGIR=20,MAX_CANDIDATOS_CORREGIR=15,MAX_DIAS_CORREGIR=40;
+let _iaCorrigiendo=false,_iaCorreccion=null;
+
+// Lo que puede hacer: con técnica cargada (sin técnica la IA no lo receta), de trabajo
+// (sin calentamientos, estiramientos ni los que no tienen patrón, como "Descanso"), con su
+// equipamiento y su banco, de su nivel y nunca de alto impacto: un reemplazo no tiene que
+// sumar saltos. La función vuelve a filtrar.
+function bibParaAlumna(a){
+  const{enGym,tiene,nivel}=equipoDeAlumna(a);
+  return(DB.biblioteca||[]).filter(e=>String(e.descripcion||'').trim()!==''&&e.patron_movimiento
+    &&!['calentamiento','estiramiento'].includes(String(e.grupo_muscular||'').toLowerCase())
+    &&(enGym||!e.equipamiento_requerido||tiene.has(e.equipamiento_requerido))
+    &&(enGym||!e.requiere_banco||tiene.has('banco'))
+    &&!(nivel==='principiante'&&Number(e.nivel_dificultad)===3)
+    &&e.impacto!=='alto');
+}
+
+// Primero los del mismo músculo y el mismo movimiento, después los del mismo músculo
+// (el patrón está mal cargado en algunos: el press inclinado figura como empuje
+// vertical) y, si hay pocos, en los multiarticulares el mismo movimiento con otro
+// músculo: el puente de glúteos con pausa figura en isquiotibiales y es el reemplazo
+// natural del hip thrust. Dentro de cada tanda, los que ya están otro día de esa semana
+// van al final.
+const PATRON_COMPUESTO=['sentadilla','bisagra','empuje_horizontal','empuje_vertical','jale_horizontal','jale_vertical'];
+const MIN_MISMO_MUSCULO=5;
+function candidatosPara(ref,grupoRef,excluir,usables,enSemana=new Set()){
+  const g=String(grupoRef||'').toLowerCase(),p=ref?.patron_movimiento||null;
+  const mismoG=e=>!!g&&String(e.grupo_muscular||'').toLowerCase()===g;
+  const nRef=Number(ref?.nivel_dificultad)||0;
+  const dist=e=>nRef?Math.abs((Number(e.nivel_dificultad)||nRef)-nRef):0;
+  const orden=(x,y)=>(enSemana.has(x.nombre)-enSemana.has(y.nombre))||dist(x)-dist(y)||x.nombre.localeCompare(y.nombre,'es');
+  const libres=usables.filter(e=>!excluir.has(e.nombre));
+  const t1=libres.filter(e=>mismoG(e)&&p&&e.patron_movimiento===p).sort(orden);
+  const t2=libres.filter(e=>mismoG(e)&&!(p&&e.patron_movimiento===p)).sort(orden);
+  const t3=PATRON_COMPUESTO.includes(p)&&t1.length+t2.length<MIN_MISMO_MUSCULO
+    ?libres.filter(e=>!mismoG(e)&&e.patron_movimiento===p).sort(orden):[];
+  const out=[];
+  for(const e of[...t1,...t2,...t3]){
+    if(!out.includes(e.nombre))out.push(e.nombre);
+    if(out.length>=MAX_CANDIDATOS_CORREGIR)break;
   }
-  return{errores,avisos};
+  return out;
+}
+
+// Agrupa los cambios por ejercicio: el mismo en todas las semanas va en un solo grupo.
+// La segunda vez que un ejercicio aparece en el mismo día es otro grupo; si no, las dos
+// se cambiarían por el mismo y quedaría repetido de nuevo.
+function armarCorreccion(routine,a,cambios){
+  const porNombre={};for(const e of DB.biblioteca||[])if(!porNombre[e.nombre])porNombre[e.nombre]=e;
+  const usables=bibParaAlumna(a);
+  // Todos los días: los de cada ejercicio para no repetir ahí, y los demás de la semana
+  // para preferir uno que la alumna no haga ya otro día.
+  const dias={},grupos=new Map();
+  for(const sem of routine.semanas||[])for(const dia of sem.dias||[]){
+    const id=`S${sem.semana}D${dia.dia}`;
+    if(!dias[id])dias[id]={id,semana:sem.semana,dia:dia.dia,enfoque:dia.enfoque||'',ejercicios:(dia.ejercicios||[]).map(x=>x.nombre)};
+  }
+  for(const c of cambios){
+    const sem=routine.semanas?.[c.s],dia=sem?.dias?.[c.d],ex=dia?.ejercicios?.[c.e];
+    if(!ex)continue;
+    const diaId=`S${sem.semana}D${dia.dia}`;
+    const vez=dia.ejercicios.slice(0,c.e).filter(x=>x.nombre===ex.nombre).length;
+    const clave=ex.nombre+'\u0001'+vez;
+    let g=grupos.get(clave);
+    if(!g){g={actual:ex.nombre,motivos:[],lugares:[],dias:[],grupoEj:ex.grupo||'',sugerido:ex._suggestedNombre||''};grupos.set(clave,g);}
+    c.motivos.forEach(m=>{if(!g.motivos.includes(m))g.motivos.push(m);});
+    g.lugares.push({s:c.s,d:c.d,e:c.e});
+    if(!g.dias.includes(diaId))g.dias.push(diaId);
+  }
+  const lista=[];
+  for(const g of grupos.values()){
+    const ref=porNombre[g.actual]||porNombre[g.sugerido]||null;
+    const excluir=new Set([g.actual]);
+    for(const id of g.dias)for(const n of dias[id].ejercicios)excluir.add(n);
+    const semanas=new Set(g.dias.map(id=>dias[id].semana));
+    const enSemana=new Set(Object.values(dias).filter(d=>semanas.has(d.semana)&&!g.dias.includes(d.id)).flatMap(d=>d.ejercicios));
+    let candidatos=candidatosPara(ref,ref?.grupo_muscular||g.grupoEj,excluir,usables,enSemana);
+    // Si no está en la biblioteca pero se parece a uno que sí, ese va primero.
+    if(!porNombre[g.actual]&&g.sugerido&&!excluir.has(g.sugerido)&&usables.some(e=>e.nombre===g.sugerido))
+      candidatos=[g.sugerido,...candidatos.filter(n=>n!==g.sugerido)].slice(0,MAX_CANDIDATOS_CORREGIR);
+    lista.push({id:'g'+lista.length,actual:g.actual,motivo:g.motivos.join(' y '),dias:g.dias,candidatos,lugares:g.lugares});
+  }
+  return{dias:Object.values(dias),grupos:lista};
+}
+
+async function corregirConIA(){
+  const a=getA(S.selA);const routine=_iaRoutineData;
+  if(!a||!routine||_iaCorrigiendo)return;
+  const{cambios}=verificarRutina(routine,a);
+  if(!cambios.length)return;
+  const{dias,grupos}=armarCorreccion(routine,a,cambios);
+  const conCand=grupos.filter(g=>g.candidatos.length);
+  const enviar=conCand.slice(0,MAX_GRUPOS_CORREGIR);
+  const res={cambiados:0,lugares:0,quedan:conCand.length-enviar.length,error:'',
+    sinCambio:grupos.filter(g=>!g.candidatos.length).map(g=>({actual:g.actual,por_que:'No hay en la biblioteca otro ejercicio parecido que pueda hacer con lo que tiene.'}))};
+  if(enviar.length){
+    _iaCorrigiendo=true;_iaCorreccion=null;refreshIAPreview();
+    try{
+      const resp=await fetch(`${SB_URL}/functions/v1/generate-routine`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+localStorage.getItem('af-access-token')},
+        body:JSON.stringify({alumna_id:a.id,corregir:{dias:dias.slice(0,MAX_DIAS_CORREGIR),
+          grupos:enviar.map(g=>({id:g.id,actual:g.actual,motivo:g.motivo,dias:g.dias,candidatos:g.candidatos}))}})
+      });
+      const raw=await resp.text();
+      let data={};try{data=JSON.parse(raw);}catch(_){data={error:`[${resp.status}] ${raw.slice(0,200)}`};}
+      if(!resp.ok||data.error)throw new Error(data.error||`HTTP ${resp.status}`);
+      const porNombre={};for(const e of DB.biblioteca||[])if(!porNombre[e.nombre])porNombre[e.nombre]=e;
+      if(routine===_iaRoutineData)for(const g of enviar){
+        const r=(data.reemplazos||[]).find(x=>x.id===g.id);
+        const nuevo=r?.nombre&&g.candidatos.includes(r.nombre)?porNombre[r.nombre]:null;
+        if(!nuevo){res.sinCambio.push({actual:g.actual,por_que:r?.por_que||'La IA no eligió ninguno.'});continue;}
+        let puestos=0;
+        for(const l of g.lugares){
+          const dia=routine.semanas[l.s]?.dias?.[l.d];const ex=dia?.ejercicios?.[l.e];
+          if(!ex||ex.nombre!==g.actual)continue;           // lo editó mientras esperaba
+          if(dia.ejercicios.some((o,k)=>k!==l.e&&o.nombre===nuevo.nombre))continue; // quedaría repetido
+          ex._antes=ex.nombre;ex._motivo=g.motivo;ex._porQue=r.por_que||'';
+          ex.nombre=nuevo.nombre;ex.tip=r.tip||'';ex.video=nuevo.video||'';ex.grupo=nuevo.grupo_muscular||'';
+          // El peso sugerido era del ejercicio que sale.
+          ex.peso_sugerido=null;ex._matchType='ia-fix';delete ex._originalNombre;delete ex._suggestedNombre;
+          puestos++;
+        }
+        if(puestos){res.cambiados++;res.lugares+=puestos;}
+        else res.sinCambio.push({actual:g.actual,por_que:`Eligió «${nuevo.nombre}», pero ya estaba ese día.`});
+      }
+    }catch(e){res.error=e.message||String(e);}
+    finally{_iaCorrigiendo=false;}
+    // Mientras esperaba generó otra rutina: esa no se toca, solo se libera el botón.
+    if(routine!==_iaRoutineData){refreshIAPreview();return;}
+  }
+  _iaCorreccion=res;refreshIAPreview();
+}
+
+function renderCorreccion(){
+  const c=_iaCorreccion;if(!c)return'';
+  const caja=(fondo,borde,html)=>`<div style="background:${fondo};border:1px solid ${borde};border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.85rem;font-size:12px;color:var(--t);line-height:1.55;">${html}</div>`;
+  if(c.error)return caja('var(--rl)','rgba(220,38,38,.28)',`<b>No se pudo corregir:</b> ${esc(c.error)}. Probá de nuevo o cambiá esos ejercicios a mano.`);
+  let h=c.cambiados
+    ?`<b>🛠 Cambié ${c.cambiados} ejercicio${c.cambiados>1?'s':''} en ${c.lugares} lugar${c.lugares>1?'es':''} de la rutina.</b> Están en violeta, con el que había antes. Revisalos antes de guardar.`
+    :'<b>No cambié ningún ejercicio.</b>';
+  if(c.sinCambio.length)h+=`<div style="margin-top:.35rem;">Sin cambiar:</div><ul style="margin:.2rem 0 0;padding-left:1.1rem;">${c.sinCambio.map(x=>`<li>“${esc(x.actual)}”: ${esc(x.por_que)}</li>`).join('')}</ul>`;
+  if(c.quedan)h+=`<div style="margin-top:.35rem;">Quedan ${c.quedan} para otra vuelta: tocá de nuevo “Corregir con IA”.</div>`;
+  return caja('var(--vil)','rgba(124,58,237,.3)',h);
 }
 
 function renderVerificacion(v){
@@ -2157,12 +2347,16 @@ function renderVerificacion(v){
     return`<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.28);border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.85rem;font-size:12px;color:var(--t);">
       ✅ <b>Revisión automática sin hallazgos.</b> Equipamiento, impacto según nivel, balance y orden: todo correcto.</div>`;
   }
-  const bloque=(tit,items,color,borde,fondo)=>!items.length?'':
+  // Los nombres los escribió la IA: van escapados.
+  const bloque=(tit,items,color,borde,fondo,pie='')=>!items.length?'':
     `<div style="background:${fondo};border:1px solid ${borde};border-radius:var(--rs);padding:.7rem .9rem;margin-bottom:.6rem;">
       <div style="font-size:10px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;">${tit} (${items.length})</div>
       <ul style="margin:0;padding-left:1.1rem;font-size:12px;color:var(--t);line-height:1.6;">
-        ${items.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
-  return bloque('🚨 Hay que corregir',v.errores,'#dc2626','rgba(220,38,38,.28)','rgba(220,38,38,.07)')
+        ${items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>${pie}</div>`;
+  const corregir=v.cambios?.length?`<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.65rem;">
+      <button class="btn" id="ia-corregir-btn" onclick="corregirConIA()" ${_iaCorrigiendo?'disabled':''} style="background:linear-gradient(135deg,var(--vi),var(--vi2));border-color:var(--vi);color:#fff;white-space:nowrap;">${_iaCorrigiendo?'⏳ Corrigiendo…':'🛠 Corregir con IA'}</button>
+      <span style="flex:1;min-width:180px;font-size:11px;color:var(--tm);line-height:1.45;">${_iaCorrigiendo?'Claude está eligiendo los reemplazos. Tarda unos segundos.':'Cambia solo los ejercicios marcados por otros de la biblioteca que pueda hacer y que trabajen lo mismo. El resto de la rutina queda igual.'}</span></div>`:'';
+  return bloque('🚨 Hay que corregir',v.errores,'#dc2626','rgba(220,38,38,.28)','rgba(220,38,38,.07)',corregir)
        + bloque('⚠️ Revisá',v.avisos,'#b45309','rgba(180,83,9,.28)','rgba(180,83,9,.07)');
 }
 
@@ -2178,12 +2372,13 @@ function renderIAPreview(routine,a){
   if(_iaWeekSel>=routine.semanas.length)_iaWeekSel=0;
 
   // ── Razonamiento (si Claude lo incluyó) ──
-  let html='';
-  try{ html=renderVerificacion(verificarRutina(routine,a)); }catch(_){ html=''; }
+  // Todo lo que escribió la IA va escapado: lee notas y reportes que escribieron otras personas.
+  let html=renderCorreccion();
+  try{ html+=renderVerificacion(verificarRutina(routine,a)); }catch(_){}
   if(routine.razonamiento){
     html+=`<div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.2);border-radius:var(--rs);padding:.75rem 1rem;margin-bottom:.85rem;">
       <div style="font-size:10px;font-weight:600;color:var(--vi);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">💡 Por qué generé esta rutina</div>
-      <div style="font-size:12px;color:var(--t);line-height:1.55;">${routine.razonamiento}</div>
+      <div style="font-size:12px;color:var(--t);line-height:1.55;">${esc(routine.razonamiento)}</div>
     </div>`;
   }
 
@@ -2204,7 +2399,7 @@ function renderIAPreview(routine,a){
   const tabs=routine.semanas.map((sem,i)=>`<button
     onclick="_iaWeekSel=${i};refreshIAPreview()"
     style="padding:4px 14px;border:1px solid ${_iaWeekSel===i?'var(--pd)':'var(--bm)'};border-radius:20px;background:${_iaWeekSel===i?'var(--pd)':'var(--s)'};color:${_iaWeekSel===i?'#fff':'var(--t)'};font-size:11px;cursor:pointer;font-weight:${_iaWeekSel===i?'600':'400'};">
-    Sem ${sem.semana}
+    Sem ${esc(sem.semana)}${sem.dias?.some(d=>d.ejercicios?.some(e=>e._matchType==='ia-fix'))?' 🛠':''}
   </button>`).join('');
 
   const sem=routine.semanas[_iaWeekSel];
@@ -2212,12 +2407,12 @@ function renderIAPreview(routine,a){
 
   html+=`<div style="font-size:13px;font-weight:600;color:var(--pd);margin-bottom:.6rem;">📅 ${nombreDeCiclo(document.getElementById('ia-inicio')?.value||_hoyLocal(),nombreCicloPrevio(a))} · ${esc(a.nombre)}</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem;">${tabs}</div>
-  <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Semana ${sem.semana}${sem.descripcion?' — '+sem.descripcion:''}</div>`;
+  <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Semana ${esc(sem.semana)}${sem.descripcion?' — '+esc(sem.descripcion):''}</div>`;
 
   for(let dIdx=0;dIdx<(sem.dias||[]).length;dIdx++){
     const dia=sem.dias[dIdx];
     html+=`<div style="background:var(--s2);border-radius:var(--rs);padding:.6rem .8rem;margin-bottom:.5rem;">
-      <div style="font-size:11px;font-weight:600;color:var(--t);margin-bottom:.4rem;">Día ${dia.dia}${dia.enfoque?' · <span style="font-weight:400;color:var(--tm);">'+dia.enfoque+'</span>':''}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--t);margin-bottom:.4rem;">Día ${esc(dia.dia)}${dia.enfoque?' · <span style="font-weight:400;color:var(--tm);">'+esc(dia.enfoque)+'</span>':''}</div>
       <table style="width:100%;border-collapse:collapse;font-size:11px;">
         <tr style="color:var(--th);">
           <th style="text-align:left;padding:2px 4px;font-weight:500;min-width:120px;">Ejercicio</th>
@@ -2228,30 +2423,33 @@ function renderIAPreview(routine,a){
         </tr>`;
     for(let eIdx=0;eIdx<(dia.ejercicios||[]).length;eIdx++){
       const ex=dia.ejercicios[eIdx];
-      const tipEsc=(ex.tip||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      const tipEsc=esc(ex.tip||'');
       const mt=ex._matchType||'exact';
       let rowStyle='border-top:1px solid var(--b);';
       if(mt==='none')rowStyle+='background:var(--rl);';
       else if(mt==='uncertain')rowStyle+='background:var(--a);';
+      else if(mt==='ia-fix')rowStyle+='background:var(--vil);';
       const pesoSug=ex.peso_sugerido!=null?parseFloat(ex.peso_sugerido):null;
       const pesoInput=pesoSug!=null
         ?`<div style="display:flex;align-items:center;gap:3px;margin-top:2px;"><input type="number" value="${pesoSug}" min="0" step="0.5" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'peso_sugerido',parseFloat(this.value)||null)" style="width:52px;border:1px solid var(--bm);border-radius:4px;padding:1px 4px;font-size:10px;background:var(--s);color:var(--t);text-align:center;"><span style="font-size:9px;color:var(--tm);">kg base</span></div>`
         :'';
       let nameCell=`<td style="padding:3px 4px;font-size:11px;">`;
       if(mt==='corrected'&&ex._originalNombre){
-        nameCell+=`<div style="font-weight:500;color:var(--t);">${ex.nombre}</div><div style="font-size:9px;color:var(--th);">was: ${ex._originalNombre}</div>`;
+        nameCell+=`<div style="font-weight:500;color:var(--t);">${esc(ex.nombre)}</div><div style="font-size:9px;color:var(--th);">antes: ${esc(ex._originalNombre)}</div>`;
       }else if(mt==='uncertain'){
-        nameCell+=`<div style="font-weight:500;color:#92400e;">⚠️ ${ex.nombre}</div>${ex._suggestedNombre?`<div style="font-size:9px;color:var(--th);">¿quisiste decir: ${ex._suggestedNombre}?</div>`:''}`;
+        nameCell+=`<div style="font-weight:500;color:#92400e;">⚠️ ${esc(ex.nombre)}</div>${ex._suggestedNombre?`<div style="font-size:9px;color:var(--th);">¿quisiste decir: ${esc(ex._suggestedNombre)}?</div>`:''}`;
       }else if(mt==='none'){
-        nameCell+=`<div style="font-weight:500;color:var(--rd);">❌ ${ex.nombre}</div><div style="font-size:9px;color:var(--rd);">No encontrado en biblioteca</div>`;
+        nameCell+=`<div style="font-weight:500;color:var(--rd);">❌ ${esc(ex.nombre)}</div><div style="font-size:9px;color:var(--rd);">No encontrado en biblioteca</div>`;
+      }else if(mt==='ia-fix'){
+        nameCell+=`<div style="font-weight:500;color:var(--vi);">🛠 ${esc(ex.nombre)}</div><div style="font-size:9px;color:var(--tm);line-height:1.4;">antes: ${esc(ex._antes)} (${esc(ex._motivo)})</div>${ex._porQue?`<div style="font-size:9px;color:var(--vi);line-height:1.4;">${esc(ex._porQue)}</div>`:''}`;
       }else{
-        nameCell+=`<span style="font-weight:500;color:var(--t);">${ex.nombre}</span>`;
+        nameCell+=`<span style="font-weight:500;color:var(--t);">${esc(ex.nombre)}</span>`;
       }
       nameCell+=pesoInput+'</td>';
       html+=`<tr style="${rowStyle}">
         ${nameCell}
-        <td style="padding:2px 3px;"><input value="${ex.series||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'series',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
-        <td style="padding:2px 3px;"><input value="${ex.reps||''}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'reps',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
+        <td style="padding:2px 3px;"><input value="${esc(ex.series||'')}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'series',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
+        <td style="padding:2px 3px;"><input value="${esc(ex.reps||'')}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'reps',this.value)" style="width:100%;text-align:center;border:1px solid var(--bm);border-radius:4px;padding:2px 3px;font-size:11px;background:var(--s);color:var(--t);"></td>
         <td style="padding:2px 3px;"><input value="${tipEsc}" onchange="iaUpdateEx(${semIdx},${dIdx},${eIdx},'tip',this.value)" style="width:100%;border:1px solid var(--bm);border-radius:4px;padding:2px 4px;font-size:11px;background:var(--s);color:var(--t);"></td>
         <td style="padding:2px 4px;text-align:center;"><button onclick="iaRemoveEx(${semIdx},${dIdx},${eIdx})" title="Eliminar" style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:15px;line-height:1;padding:0;">×</button></td>
       </tr>`;

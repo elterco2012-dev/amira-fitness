@@ -55,6 +55,225 @@ async function dbFetch(path: string): Promise<unknown> {
   throw new Error("No DB key available");
 }
 
+// ── Corregir solo los ejercicios que marcó la revisión (1/11/2026) ───────────
+// La revisión del panel marca los ejercicios que no le sirven a la alumna: le falta el
+// equipamiento o el banco, están repetidos en el día, son de alto impacto para su nivel
+// o no están en la biblioteca. Hasta ese día la única salida era regenerar todo: la
+// rutina de una alumna que entrena en casa con mancuernas salió con 13 errores en 4
+// ejercicios (press y remo en banco, hip thrust con barra, flexiones con los pies en un
+// step), y regenerar rehacía también los otros 120 lugares, con el riesgo de errores
+// nuevos. Ahora el panel manda solo esos ejercicios, cada uno con los reemplazos que
+// permite la biblioteca, y la IA elige uno por ejercicio mirando sus lesiones y lo que ya
+// tiene ese día. Lo demás queda igual.
+// La lista de candidatos la vuelve a filtrar esta función: la IA solo puede elegir uno con
+// técnica cargada, que la alumna pueda hacer con lo que tiene y de bajo o medio impacto.
+const MODELO_CORREGIR = "claude-opus-5-5";
+const MAX_GRUPOS = 20, MAX_CANDIDATOS = 15, MAX_DIAS = 40, MAX_EJ_DIA = 20;
+const SIN_CANDIDATOS = "No hay en la biblioteca otro ejercicio parecido que pueda hacer con lo que tiene.";
+
+type BibCorr = {
+  nombre: string; grupo_muscular?: string | null; descripcion?: string | null; observaciones?: string | null;
+  equipamiento_requerido?: string | null; patron_movimiento?: string | null; nivel_dificultad?: number | null;
+  posicion_ejercicio?: string | null; bilateral?: boolean | null; impacto?: string | null; requiere_banco?: boolean | null;
+};
+type GrupoCorr = { id: string; actual: string; motivo: string; dias: string[]; candidatos: string[] };
+type DiaCorr = { id: string; semana: number; dia: number; enfoque: string; ejercicios: string[] };
+type Reemplazo = { id: string; nombre: string; tip: string; por_que: string };
+type PerfilCorr = {
+  nombre?: string; tipo?: string | null; nivel?: string | null; objetivo?: string | null; equipamiento?: string[] | null;
+  lesiones?: string | null; notas?: string | null; foco_muscular?: string | null;
+};
+
+const texto = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+// Los nombres de ejercicio van tal cual: se comparan con los de la biblioteca.
+const nombreEj = (v: unknown) => String(v ?? "").slice(0, 120);
+
+// Lo que manda el panel, recortado a lo esperado: lo demás se descarta.
+function leerPedidoCorregir(entrada: unknown): { dias: DiaCorr[]; grupos: GrupoCorr[] } {
+  const e = (entrada ?? {}) as { dias?: unknown; grupos?: unknown };
+  const dias: DiaCorr[] = (Array.isArray(e.dias) ? e.dias : []).slice(0, MAX_DIAS).map((d) => {
+    const x = (d ?? {}) as Record<string, unknown>;
+    return {
+      id: texto(x.id, 12), semana: Number(x.semana) || 0, dia: Number(x.dia) || 0, enfoque: texto(x.enfoque, 120),
+      ejercicios: (Array.isArray(x.ejercicios) ? x.ejercicios : []).slice(0, MAX_EJ_DIA).map(nombreEj),
+    };
+  }).filter((d) => /^S\d{1,2}D\d{1,2}$/.test(d.id));
+  const idsDias = new Set(dias.map((d) => d.id));
+  const grupos: GrupoCorr[] = (Array.isArray(e.grupos) ? e.grupos : []).slice(0, MAX_GRUPOS).map((g) => {
+    const x = (g ?? {}) as Record<string, unknown>;
+    return {
+      id: texto(x.id, 8), actual: nombreEj(x.actual), motivo: texto(x.motivo, 300),
+      dias: (Array.isArray(x.dias) ? x.dias : []).map((d) => texto(d, 12)).filter((d) => idsDias.has(d)),
+      candidatos: [...new Set((Array.isArray(x.candidatos) ? x.candidatos : []).map(nombreEj).filter(Boolean))].slice(0, MAX_CANDIDATOS),
+    };
+  }).filter((g) => /^g\d{1,3}$/.test(g.id) && g.actual);
+  return { dias, grupos };
+}
+
+// Los mismos límites que la generación: equipamiento y banco que tiene (en el gimnasio,
+// todo), nada N3 para una principiante, y además nunca alto impacto: un reemplazo no
+// tiene que sumar saltos. Sin técnica cargada no se receta (la alumna vería "Ver técnica"
+// vacío), y los calentamientos, estiramientos y los que no tienen patrón ("Descanso",
+// "Movilidad articular") no son ejercicios de trabajo.
+function puedeHacerlo(ex: BibCorr | undefined, alumna: PerfilCorr): ex is BibCorr {
+  if (!ex || !(ex.descripcion ?? "").trim() || !ex.patron_movimiento) return false;
+  if (["calentamiento", "estiramiento"].includes((ex.grupo_muscular ?? "").toLowerCase())) return false;
+  if (ex.impacto === "alto") return false;
+  const nivel = (alumna.nivel ?? "").toLowerCase();
+  if (nivel === "principiante" && Number(ex.nivel_dificultad) === 3) return false;
+  const tipo = (alumna.tipo ?? "").toLowerCase();
+  if (["gym", "gimnasio", "musculacion", "musculación"].includes(tipo)) return true;
+  const tiene = new Set(alumna.equipamiento ?? []);
+  const eq = ex.equipamiento_requerido ?? "sin_equipamiento";
+  if (eq !== "sin_equipamiento" && !tiene.has(eq)) return false;
+  if (ex.requiere_banco && !tiene.has("banco")) return false;
+  return true;
+}
+
+function promptsCorregir(alumna: PerfilCorr, dias: DiaCorr[], grupos: GrupoCorr[], porNombre: Map<string, BibCorr>) {
+  const system = `Sos una entrenadora personal experta en fitness femenino. Te paso una rutina ya planificada en la que algunos ejercicios no le sirven a la alumna: le falta el equipamiento o el banco, están repetidos en el mismo día, son de alto impacto para su nivel o no están en la biblioteca. Cada grupo es un ejercicio que sale, con los días en que aparece y la lista de candidatos que sí puede hacer. Para cada grupo elegí UN reemplazo de su lista.
+
+Cómo elegir:
+- Que dé el mismo estímulo: el mismo músculo principal y, si se puede, el mismo movimiento (un press de pecho por otro press de pecho, un hip thrust por un puente de glúteos).
+- Que sea seguro con sus lesiones y limitaciones. Si un candidato está desaconsejado para lo que tiene, descartalo. Si ninguno es seguro, devolvé el nombre vacío y explicá por qué.
+- Que no repita un ejercicio que ya está ese día. Si dos grupos caen el mismo día, elegí un ejercicio distinto para cada uno.
+- Si se puede, uno que no haga ya otro día de esa semana (están marcados), para que la rutina no se vuelva repetitiva.
+- Que respete su nivel. El mismo reemplazo va en todas las semanas del grupo: elegí uno que sirva para el ciclo entero.
+- Copiá el nombre exactamente como figura en la lista.
+
+Para cada grupo devolvé:
+- nombre: el candidato elegido, o "" si ninguno es seguro.
+- tip: un consejo técnico corto para la alumna sobre el ejercicio elegido, de hasta 80 caracteres, hablándole de vos. Vacío si no elegiste ninguno.
+- por_que: para la entrenadora, una oración de hasta 120 caracteres con el motivo de la elección.`;
+
+  const equipo = (alumna.equipamiento ?? []).length ? (alumna.equipamiento ?? []).join(", ") : "ninguno";
+  const describir = (n: string, enSemana: Set<string>) => {
+    const ex = porNombre.get(n);
+    if (!ex) return `- ${n}`;
+    const marcas = [ex.grupo_muscular, ex.patron_movimiento?.replace(/_/g, " "), ex.nivel_dificultad ? `N${ex.nivel_dificultad}` : "",
+      ex.posicion_ejercicio?.replace(/_/g, " "), ex.bilateral === false ? "unilateral" : "", ex.impacto ? `${ex.impacto} impacto` : "",
+      (ex.equipamiento_requerido ?? "sin_equipamiento").replace(/_/g, " ")].filter(Boolean).map((m) => `[${m}]`).join("");
+    const obs = ex.observaciones ? ` ⚠️ ${texto(ex.observaciones, 80)}` : "";
+    const yaEsta = enSemana.has(n) ? " (ya lo hace otro día de esa semana)" : "";
+    return `- ${n} ${marcas}${yaEsta} — ${texto(ex.descripcion, 110)}${obs}`;
+  };
+  // Lo que hace los otros días de las mismas semanas del grupo.
+  const otrosDiasDeLaSemana = (g: GrupoCorr) => {
+    const semanas = new Set(dias.filter((d) => g.dias.includes(d.id)).map((d) => d.semana));
+    return new Set(dias.filter((d) => semanas.has(d.semana) && !g.dias.includes(d.id)).flatMap((d) => d.ejercicios));
+  };
+  const diasUsados = new Set(grupos.flatMap((g) => g.dias));
+  const user = `ALUMNA
+- Modalidad: ${alumna.tipo || "no especificada"}
+- Nivel: ${alumna.nivel || "no especificado"}
+- Objetivo: ${alumna.objetivo || "no especificado"}
+- Equipamiento que tiene, además de su peso corporal: ${equipo}
+- Foco muscular: ${alumna.foco_muscular || "sin foco especial"}
+- Lesiones o limitaciones: ${(alumna.lesiones ?? "").trim() || "ninguna"}
+- Notas de la entrenadora: ${(alumna.notas ?? "").trim() || "ninguna"}
+
+LO QUE YA TIENE CADA DÍA
+${dias.filter((d) => diasUsados.has(d.id)).map((d) => `${d.id} (semana ${d.semana}, día ${d.dia}${d.enfoque ? `, ${d.enfoque}` : ""}): ${d.ejercicios.join(" | ")}`).join("\n")}
+
+GRUPOS
+${grupos.map((g) => {
+    const ref = porNombre.get(g.actual);
+    const datos = ref ? ` (${[ref.grupo_muscular, ref.patron_movimiento?.replace(/_/g, " ")].filter(Boolean).join(", ")})` : "";
+    const enSemana = otrosDiasDeLaSemana(g);
+    return `${g.id}: sale «${g.actual}»${datos} porque ${g.motivo}. Aparece en ${g.dias.join(", ")}.\nCandidatos:\n${g.candidatos.map((n) => describir(n, enSemana)).join("\n")}`;
+  }).join("\n\n")}`;
+  return { system, user };
+}
+
+// Un objeto por grupo, con el nombre limitado a sus candidatos: la respuesta no puede
+// traer un ejercicio que no esté en la lista (o "" si ninguno es seguro).
+function esquemaCorregir(grupos: GrupoCorr[]) {
+  return {
+    type: "object",
+    properties: Object.fromEntries(grupos.map((g) => [g.id, {
+      type: "object",
+      properties: {
+        nombre: { type: "string", enum: [...g.candidatos, ""] },
+        tip: { type: "string" },
+        por_que: { type: "string" },
+      },
+      required: ["nombre", "tip", "por_que"],
+      additionalProperties: false,
+    }])),
+    required: grupos.map((g) => g.id),
+    additionalProperties: false,
+  };
+}
+
+async function corregirRutina(alumnaId: number, entrada: unknown): Promise<Response> {
+  const { dias, grupos } = leerPedidoCorregir(entrada);
+  if (!grupos.length) return Response.json({ error: "No llegó ningún ejercicio para corregir" }, { status: 400, headers: CORS });
+
+  const [alumnas, biblioteca] = await Promise.all([
+    dbFetch(`alumnas?id=eq.${alumnaId}&select=nombre,tipo,nivel,objetivo,equipamiento,lesiones,notas,foco_muscular`),
+    dbFetch("ejercicios_biblioteca?select=nombre,grupo_muscular,descripcion,equipamiento_requerido,patron_movimiento,nivel_dificultad,observaciones,posicion_ejercicio,bilateral,impacto,requiere_banco"),
+  ]) as [PerfilCorr[], BibCorr[]];
+  if (!alumnas.length) return Response.json({ error: "Alumna no encontrada" }, { status: 404, headers: CORS });
+  const alumna = alumnas[0];
+  // Hay nombres repetidos en la biblioteca: vale la fila que tiene técnica.
+  const porNombre = new Map<string, BibCorr>();
+  for (const ex of biblioteca) {
+    const prev = porNombre.get(ex.nombre);
+    if (!prev || (!(prev.descripcion ?? "").trim() && (ex.descripcion ?? "").trim())) porNombre.set(ex.nombre, ex);
+  }
+
+  const reemplazos: Reemplazo[] = [];
+  const paraIA: GrupoCorr[] = [];
+  for (const g of grupos) {
+    const candidatos = g.candidatos.filter((n) => n !== g.actual && puedeHacerlo(porNombre.get(n), alumna));
+    if (candidatos.length) paraIA.push({ ...g, candidatos });
+    else reemplazos.push({ id: g.id, nombre: "", tip: "", por_que: SIN_CANDIDATOS });
+  }
+  if (!paraIA.length) return Response.json({ reemplazos }, { headers: CORS });
+
+  const { system, user } = promptsCorregir(alumna, dias, paraIA, porNombre);
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({
+      model: MODELO_CORREGIR,
+      max_tokens: 16000,
+      // Piensa siempre; medium alcanza para elegir entre pocos candidatos mirando las lesiones.
+      output_config: { effort: "medium", format: { type: "json_schema", schema: esquemaCorregir(paraIA) } },
+      system,
+      messages: [{ role: "user", content: user }],
+    }),
+  });
+  if (!r.ok) {
+    const detalle = await r.text();
+    console.log(`[generate-routine] corregir: Claude ${r.status} ${detalle.slice(0, 300)}`);
+    return Response.json({ error: `Claude API error ${r.status}`, detail: detalle.slice(0, 500) }, { status: 502, headers: CORS });
+  }
+  const data = await r.json() as {
+    content?: Array<{ type: string; text?: string }>; stop_reason?: string;
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+  console.log(`[generate-routine] corregir: grupos=${paraIA.length} in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} stop=${data.stop_reason}`);
+  if (data.stop_reason === "refusal") return Response.json({ error: "La IA no quiso responder este pedido" }, { status: 502, headers: CORS });
+  if (data.stop_reason === "max_tokens") return Response.json({ error: "La respuesta de la IA quedó cortada" }, { status: 502, headers: CORS });
+  let elegidos: Record<string, { nombre?: unknown; tip?: unknown; por_que?: unknown }> = {};
+  try {
+    elegidos = JSON.parse((data.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join(""));
+  } catch {
+    return Response.json({ error: "La IA no devolvió una respuesta legible" }, { status: 502, headers: CORS });
+  }
+  for (const g of paraIA) {
+    const e = elegidos?.[g.id] ?? {};
+    const nombre = nombreEj(e.nombre);
+    if (nombre && g.candidatos.includes(nombre)) {
+      reemplazos.push({ id: g.id, nombre, tip: texto(e.tip, 80), por_que: texto(e.por_que, 160) });
+    } else {
+      reemplazos.push({ id: g.id, nombre: "", tip: "", por_que: texto(e.por_que, 160) || "La IA no eligió ninguno de la lista." });
+    }
+  }
+  return Response.json({ reemplazos, usage: data.usage }, { headers: CORS });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
@@ -66,11 +285,19 @@ Deno.serve(async (req) => {
     return Response.json({ error: "ANTHROPIC_API_KEY no configurada en los secrets del proyecto" }, { status: 500, headers: CORS });
   }
 
-  let body: { alumna_id?: number; semanas?: number; instrucciones?: string };
+  let body: { alumna_id?: number; semanas?: number; instrucciones?: string; corregir?: unknown };
   try { body = await req.json(); } catch { return Response.json({ error: "JSON inválido" }, { status: 400, headers: CORS }); }
 
   const { alumna_id, semanas = 4, instrucciones } = body;
   if (!alumna_id) return Response.json({ error: "alumna_id requerido" }, { status: 400, headers: CORS });
+
+  // Corregir: solo los ejercicios que la revisión del panel marcó (ver corregirRutina).
+  if (body.corregir) {
+    const id = Number(alumna_id);
+    if (!Number.isInteger(id) || id <= 0) return Response.json({ error: "alumna_id inválido" }, { status: 400, headers: CORS });
+    try { return await corregirRutina(id, body.corregir); }
+    catch (e) { return Response.json({ error: String(e) }, { status: 500, headers: CORS }); }
+  }
 
   try {
     // ── 1. Recolectar contexto de la alumna ──────────────────────

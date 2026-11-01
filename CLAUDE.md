@@ -59,7 +59,7 @@ El proyecto es una **PWA monolítica sin framework**. No hay React, Vue, ni buil
 | Frontend | HTML + CSS + JS vanilla, sin framework |
 | Backend / DB | Supabase (Postgres + Auth + Storage + Realtime) |
 | Edge Functions | Deno TypeScript en Supabase |
-| IA | Claude Opus 4.7 (rutinas), Claude Haiku 4.5 (clasificación) |
+| IA | Claude Opus 4.7 (rutinas), Claude Opus 5.5 (corregir una rutina), Claude Haiku 4.5 (clasificación) |
 | Hosting | Vercel (deploy automático desde GitHub) |
 | Push notifications | Web Push API nativa (RFC 8291, VAPID) |
 | PWA | Service Worker con estrategias network-first/cache-first |
@@ -199,6 +199,17 @@ La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
 4. Extrae y repara JSON si la respuesta fue truncada.
 5. Valida que estén todas las semanas/días.
 6. Devuelve `{routine, usage, alumna}`.
+
+**Corregir (1/11/2026):** con `{alumna_id, corregir: {dias, grupos}}` no genera nada: cambia solo los ejercicios que marcó la revisión de la vista previa ("🚨 Hay que corregir").
+- Es el botón "🛠 Corregir con IA" de ese bloque. La rutina con IA de una alumna que entrena en casa con mancuernas salió con 13 errores en 4 ejercicios (banco, barra y step que no tiene), y la única salida era regenerar todo.
+- `verificarRutina` devuelve además `cambios`: lo que no está en la biblioteca, lo que pide equipamiento o banco que no tiene, lo repetido en el día y el alto impacto que pasa su tope. Faltar series o repeticiones no se corrige así.
+- `armarCorreccion` hace un grupo por ejercicio: el mismo en todas las semanas va junto y recibe el mismo reemplazo, para no romper la progresión.
+  - Cada grupo lleva hasta 15 candidatos: con técnica y patrón, sin calentamientos ni estiramientos, con su equipamiento y su banco, sin N3 para una principiante y nunca de alto impacto.
+  - Primero los del mismo músculo. El mismo movimiento con otro músculo entra solo si hay menos de 5, porque hay patrones mal cargados (el press inclinado figura como empuje vertical) y si no le ofrecía vuelos de hombro.
+- La función vuelve a filtrar los candidatos y lee las lesiones y las notas de la alumna (el panel no las manda).
+  - Claude Opus 5.5 elige uno por grupo con salida JSON con esquema: el nombre solo puede ser uno de sus candidatos, o vacío si ninguno es seguro para ella.
+  - Marca los que ya hace otro día de esa semana, para no repetir.
+- Lo cambiado queda en violeta, con el ejercicio que había y el motivo. El peso sugerido no pasa al reemplazo. Nada se guarda hasta que Amira toca Guardar.
 
 ### `send-push` (Web Push nativo)
 Implementa Web Push RFC 8291 (aes128gcm) con VAPID. No usa librerías externas.
