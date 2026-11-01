@@ -407,10 +407,14 @@ Deno.serve(async (req) => {
       posicion_ejercicio?: string | null; bilateral?: boolean | null; impacto?: string | null;
       requiere_banco?: boolean | null;
     };
+    // Cada etiqueta tiene que ser igual a la de EQUIP_TO_TAG (más abajo): la IA compara la
+    // del ejercicio con las PERMITIDAS y PROHIBIDAS. Hasta el 1/11/2026 la ruedita salía como
+    // [ruedita] y la prohibida era [ruedita abdominal].
     const equipLabels: Record<string, string> = {
       sin_equipamiento: "sin equipamiento", mancuernas: "mancuernas", barra: "barra",
       maquina: "máquina", banda_elastica: "banda elástica", kettlebell: "pesa rusa",
-      polea: "polea/cables", trx: "TRX", fitball: "esfera", step: "step/cajón"
+      polea: "polea/cables", trx: "TRX", fitball: "esfera", step: "step/cajón",
+      ruedita: "ruedita abdominal", tobillera: "tobillera", soga: "soga"
     };
     // Un ejercicio sin tecnica cargada no se le puede dar a nadie: la alumna
     // abriria la tarjeta y encontraria el boton "Ver tecnica" vacio. Amira carga
@@ -589,11 +593,11 @@ NOTA sobre superset_id: solo incluí este campo cuando el estilo_sesion sea "sup
     // ── 7. User prompt (contexto variable) ───────────────────────
     // Build explicit permitted/prohibited equipment tag lists for the prompt.
     // This avoids the AI assuming mancuernas/banda are "generally available".
-    const ALL_EQUIP_KEYS = ['mancuernas','banda_elastica','kettlebell','trx','fitball','step','banco','tobillera','ruedita','barra','polea','maquina'];
+    const ALL_EQUIP_KEYS = ['mancuernas','banda_elastica','kettlebell','trx','fitball','step','banco','tobillera','ruedita','soga','barra','polea','maquina'];
     const EQUIP_TO_TAG: Record<string, string> = {
       mancuernas: 'mancuernas', banda_elastica: 'banda elástica', kettlebell: 'pesa rusa',
       trx: 'TRX', fitball: 'esfera', step: 'step/cajón', banco: 'necesita banco', tobillera: 'tobillera',
-      ruedita: 'ruedita abdominal', barra: 'barra', polea: 'polea/cables', maquina: 'máquina'
+      ruedita: 'ruedita abdominal', soga: 'soga', barra: 'barra', polea: 'polea/cables', maquina: 'máquina'
     };
     const tipoStr = (alumna.tipo ?? '').toLowerCase();
     const isGym = ['gym','gimnasio','musculacion','musculación'].includes(tipoStr);

@@ -229,6 +229,12 @@ La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
 - No toca los días con superseries o circuito: ahí el orden va de a pares.
 - Algunos ejercicios tienen el patrón mal cargado (las aperturas figuran como multiarticulares). La corrección está en la planilla de errores de la biblioteca, esperando a Amira.
 
+**Equipamiento (1/11/2026):** los dos editores de ejercicios (agregar y editar) tienen ruedita abdominal, tobillera y soga, y el tilde "Necesita banco o cajón" (`requiere_banco`).
+- Hasta ese día la alumna podía marcar la ruedita y la tobillera como propias, pero un ejercicio no se podía cargar con ellas: la ruedita de la biblioteca figuraba como máquina. El banco solo se cambiaba desde la base.
+- Un equipamiento nuevo va en los dos editores, en el de la alumna (`ea-equip` y `na-equip`), en `EQUIP_NOMBRE` y los dos `EQUIP_LABEL` del panel, y en `equipLabels`, `ALL_EQUIP_KEYS` y `EQUIP_TO_TAG` de `generate-routine`.
+- La etiqueta de un ejercicio en la biblioteca que lee la IA (`equipLabels`) tiene que ser igual a la de las listas de permitidas y prohibidas (`EQUIP_TO_TAG`). Hasta ese día la ruedita figuraba [ruedita] en la biblioteca y [ruedita abdominal] en las prohibidas.
+- Si un ejercicio tiene un equipamiento que no está en la lista, el editor lo muestra con "(no está en la lista)" y lo guarda igual. Antes el desplegable quedaba vacío y al guardar se borraba.
+
 ### `send-push` (Web Push nativo)
 Implementa Web Push RFC 8291 (aes128gcm) con VAPID. No usa librerías externas.
 - `alumna_id` opcional: si se omite, envía a todas.
