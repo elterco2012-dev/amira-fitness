@@ -91,7 +91,8 @@ async function pedirAClaude(cuerpo: unknown, inicio: number, extra: Record<strin
 // step), y regenerar rehacía también los otros 120 lugares, con el riesgo de errores
 // nuevos. Ahora el panel manda solo esos ejercicios, cada uno con los reemplazos que
 // permite la biblioteca, y la IA elige uno por ejercicio mirando sus lesiones y lo que ya
-// tiene ese día. Lo demás queda igual.
+// tiene ese día. Lo demás queda igual. En un día sin jale (o sin empuje), el panel manda
+// uno del tren superior para cambiar, con candidatos de ese movimiento (también 1/11/2026).
 // La lista de candidatos la vuelve a filtrar esta función: la IA solo puede elegir uno con
 // técnica cargada, que la alumna pueda hacer con lo que tiene y de bajo o medio impacto.
 const MODELO_CORREGIR = "claude-opus-5-5";
@@ -158,10 +159,11 @@ function puedeHacerlo(ex: BibCorr | undefined, alumna: PerfilCorr): ex is BibCor
 }
 
 function promptsCorregir(alumna: PerfilCorr, dias: DiaCorr[], grupos: GrupoCorr[], porNombre: Map<string, BibCorr>) {
-  const system = `Sos una entrenadora personal experta en fitness femenino. Te paso una rutina ya planificada en la que algunos ejercicios no le sirven a la alumna: le falta el equipamiento o el banco, están repetidos en el mismo día, son de alto impacto para su nivel o no están en la biblioteca. Cada grupo es un ejercicio que sale, con los días en que aparece y la lista de candidatos que sí puede hacer. Para cada grupo elegí UN reemplazo de su lista.
+  const system = `Sos una entrenadora personal experta en fitness femenino. Te paso una rutina ya planificada en la que algunos ejercicios no le sirven a la alumna: le falta el equipamiento o el banco, están repetidos en el mismo día, son de alto impacto para su nivel o no están en la biblioteca. También puede faltarle a un día un jale (remo o jalón) o un empuje (press): entonces sale un ejercicio del tren superior de ese día para que entre uno de ese movimiento. Cada grupo es un ejercicio que sale, con los días en que aparece y la lista de candidatos que sí puede hacer. Para cada grupo elegí UN reemplazo de su lista.
 
 Cómo elegir:
 - Que dé el mismo estímulo: el mismo músculo principal y, si se puede, el mismo movimiento (un press de pecho por otro press de pecho, un hip thrust por un puente de glúteos).
+- Si el motivo dice que al día le falta un jale o un empuje, el reemplazo es de ese movimiento y no del músculo que sale: los candidatos ya lo son. Elegí el que mejor complete ese día.
 - Que sea seguro con sus lesiones y limitaciones. Si un candidato está desaconsejado para lo que tiene, descartalo. Si ninguno es seguro, devolvé el nombre vacío y explicá por qué.
 - Que no repita un ejercicio que ya está ese día. Si dos grupos caen el mismo día, elegí un ejercicio distinto para cada uno.
 - Si se puede, uno que no haga ya otro día de esa semana (están marcados), para que la rutina no se vuelva repetitiva.
