@@ -55,6 +55,33 @@ async function dbFetch(path: string): Promise<unknown> {
   throw new Error("No DB key available");
 }
 
+// ── Tiempo: Supabase corta la función a los 150 s (plan gratuito) ────────────
+// El 31/10/2026 una rutina de 3 días tardaba entre 122 y 133 s y una de 4 días 143 s.
+// La de una alumna de 4 días pasó el límite: Supabase la cortó a los 150 s, Claude
+// trabajó igual y el panel no recibió nada claro. Por eso la respuesta va en una sola
+// línea y sin repetir datos (ver FORMATO DE RESPUESTA), y la función corta antes y lo dice.
+const LIMITE_MS = 145_000;
+const TARDE = "La IA tardó más de 2 minutos y medio y el servidor la cortó antes de terminar: no se generó nada. Probá de nuevo en un rato; si vuelve a pasar, generá de a una semana.";
+async function pedirAClaude(cuerpo: unknown, inicio: number, extra: Record<string, string> = {}):
+  Promise<{ ok: boolean; status: number; texto: string } | null> {
+  const ctrl = new AbortController();
+  const reloj = setTimeout(() => ctrl.abort(), Math.max(1_000, LIMITE_MS - (Date.now() - inicio)));
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", ...extra },
+      body: JSON.stringify(cuerpo),
+      signal: ctrl.signal,
+    });
+    return { ok: r.ok, status: r.status, texto: await r.text() };
+  } catch (e) {
+    if (ctrl.signal.aborted) { console.log(`[generate-routine] cortada por tiempo a los ${Date.now() - inicio} ms`); return null; }
+    throw e;
+  } finally {
+    clearTimeout(reloj);
+  }
+}
+
 // ── Corregir solo los ejercicios que marcó la revisión (1/11/2026) ───────────
 // La revisión del panel marca los ejercicios que no le sirven a la alumna: le falta el
 // equipamiento o el banco, están repetidos en el día, son de alto impacto para su nivel
@@ -205,7 +232,7 @@ function esquemaCorregir(grupos: GrupoCorr[]) {
   };
 }
 
-async function corregirRutina(alumnaId: number, entrada: unknown): Promise<Response> {
+async function corregirRutina(alumnaId: number, entrada: unknown, inicio: number): Promise<Response> {
   const { dias, grupos } = leerPedidoCorregir(entrada);
   if (!grupos.length) return Response.json({ error: "No llegó ningún ejercicio para corregir" }, { status: 400, headers: CORS });
 
@@ -232,28 +259,24 @@ async function corregirRutina(alumnaId: number, entrada: unknown): Promise<Respo
   if (!paraIA.length) return Response.json({ reemplazos }, { headers: CORS });
 
   const { system, user } = promptsCorregir(alumna, dias, paraIA, porNombre);
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: MODELO_CORREGIR,
-      max_tokens: 16000,
-      // Piensa siempre; medium alcanza para elegir entre pocos candidatos mirando las lesiones.
-      output_config: { effort: "medium", format: { type: "json_schema", schema: esquemaCorregir(paraIA) } },
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
-  });
+  const r = await pedirAClaude({
+    model: MODELO_CORREGIR,
+    max_tokens: 16000,
+    // Piensa siempre; medium alcanza para elegir entre pocos candidatos mirando las lesiones.
+    output_config: { effort: "medium", format: { type: "json_schema", schema: esquemaCorregir(paraIA) } },
+    system,
+    messages: [{ role: "user", content: user }],
+  }, inicio);
+  if (!r) return Response.json({ error: TARDE }, { status: 504, headers: CORS });
   if (!r.ok) {
-    const detalle = await r.text();
-    console.log(`[generate-routine] corregir: Claude ${r.status} ${detalle.slice(0, 300)}`);
-    return Response.json({ error: `Claude API error ${r.status}`, detail: detalle.slice(0, 500) }, { status: 502, headers: CORS });
+    console.log(`[generate-routine] corregir: Claude ${r.status} ${r.texto.slice(0, 300)}`);
+    return Response.json({ error: `Claude API error ${r.status}`, detail: r.texto.slice(0, 500) }, { status: 502, headers: CORS });
   }
-  const data = await r.json() as {
+  const data = JSON.parse(r.texto) as {
     content?: Array<{ type: string; text?: string }>; stop_reason?: string;
     usage?: { input_tokens?: number; output_tokens?: number };
   };
-  console.log(`[generate-routine] corregir: grupos=${paraIA.length} in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} stop=${data.stop_reason}`);
+  console.log(`[generate-routine] corregir: grupos=${paraIA.length} in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} stop=${data.stop_reason} ms=${Date.now() - inicio}`);
   if (data.stop_reason === "refusal") return Response.json({ error: "La IA no quiso responder este pedido" }, { status: 502, headers: CORS });
   if (data.stop_reason === "max_tokens") return Response.json({ error: "La respuesta de la IA quedó cortada" }, { status: 502, headers: CORS });
   let elegidos: Record<string, { nombre?: unknown; tip?: unknown; por_que?: unknown }> = {};
@@ -275,6 +298,7 @@ async function corregirRutina(alumnaId: number, entrada: unknown): Promise<Respo
 }
 
 Deno.serve(async (req) => {
+  const inicio = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
@@ -295,7 +319,7 @@ Deno.serve(async (req) => {
   if (body.corregir) {
     const id = Number(alumna_id);
     if (!Number.isInteger(id) || id <= 0) return Response.json({ error: "alumna_id inválido" }, { status: 400, headers: CORS });
-    try { return await corregirRutina(id, body.corregir); }
+    try { return await corregirRutina(id, body.corregir, inicio); }
     catch (e) { return Response.json({ error: String(e) }, { status: 500, headers: CORS }); }
   }
 
@@ -425,9 +449,9 @@ REGLAS GENERALES:
 - Si hay lesiones activas, evitá CUALQUIER ejercicio que comprometa esa zona.
 - El objetivo es planificar entre 10 y 12 ejercicios por sesión. Ajustá dentro de ese rango según el tiempo disponible: 30min→8-9 ejercicios, 45min→9-10, 60min→10-11, 75min→11-12, 90min→12. Sin tiempo especificado → 10-11 por defecto.
 - En el historial de pesos: ↑ significa que el peso aumentó (está progresando bien), = significa estancamiento (considerar cambio de estímulo), ↓ significa regresión (revisar el motivo).
-- Para cada ejercicio incluí: nombre (exacto de biblioteca), series (solo número, ej: "3"), reps (ej: "10-12"), tip (consejo técnico breve y concreto, máx 80 caracteres), grupo muscular.
+- Para cada ejercicio incluí: nombre (exacto de biblioteca), series (solo número, ej: "3"), reps (ej: "10-12") y tip (consejo técnico breve y concreto, máx 80 caracteres), como dice el FORMATO DE RESPUESTA.
 - Variá los ejercicios entre semanas cuando tenga sentido (mismos grupos, distinto estímulo).
-- Para peso_sugerido: si el ejercicio aparece en el historial de pesos, calculá el peso de inicio recomendado para la semana 1 del nuevo ciclo. Lógica: RPE ≤7 o tendencia ↑ → último peso + pequeño incremento (0.5kg si <10kg, 1kg si 10-20kg, 2.5kg si >20kg). RPE 8-9 → mismo peso. RPE 10 o tendencia ↓ → mismo peso o −5%. Sin historial → null. Usá siempre el mismo peso_sugerido en las 4 semanas para el mismo ejercicio (la periodización va en series/reps, no en peso).
+- Para peso_sugerido: si el ejercicio aparece en el historial de pesos, calculá el peso de inicio recomendado para la semana 1 del nuevo ciclo. Lógica: RPE ≤7 o tendencia ↑ → último peso + pequeño incremento (0.5kg si <10kg, 1kg si 10-20kg, 2.5kg si >20kg). RPE 8-9 → mismo peso. RPE 10 o tendencia ↓ → mismo peso o −5%. Sin historial, no pongas el campo. Usá siempre el mismo peso_sugerido en las 4 semanas para el mismo ejercicio (la periodización va en series/reps, no en peso).
 
 REGLA DE EQUIPAMIENTO (CRÍTICO — MÁXIMA PRIORIDAD):
 - Cada ejercicio en la biblioteca tiene su equipamiento entre corchetes, ej: [mancuernas], [banda elástica], [barra], [polea/cables], [sin equipamiento].
@@ -548,34 +572,18 @@ BIBLIOTECA DE EJERCICIOS DISPONIBLES:
 (formato: - Nombre [equipamiento][patrón][nivel][posición][unilateral?][impacto])
 ${bibTexto}
 
-FORMATO DE RESPUESTA (JSON estricto, sin texto extra antes ni después):
-{
-  "razonamiento": "2-3 oraciones explicando la lógica central de esta rutina: por qué elegiste esta estructura, qué progresión aplicás y cómo se conecta con el objetivo, el nivel y el historial de la alumna.",
-  "ciclo_nombre": "string (ej: Junio 2026)",
-  "semanas": [
-    {
-      "semana": 1,
-      "descripcion": "string breve (ej: Semana base — adaptación)",
-      "dias": [
-        {
-          "dia": 1,
-          "enfoque": "string (ej: Tren superior - Empuje + Jale)",
-          "ejercicios": [
-            {
-              "nombre": "string (EXACTAMENTE como figura en la biblioteca, sin cambiar ni una letra)",
-              "series": "string numérico (ej: 3)",
-              "reps": "string (ej: 10-12)",
-              "tip": "string (consejo técnico breve, máx 80 caracteres)",
-              "grupo": "string",
-              "peso_sugerido": 12.5,
-              "superset_id": "A"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+FORMATO DE RESPUESTA:
+Respondé solo con el JSON, en UNA SOLA LÍNEA, sin sangrías ni saltos de línea y sin texto antes ni después. El servidor corta la respuesta a los 2 minutos y medio: no escribas nada que no haga falta.
+- razonamiento: 2-3 oraciones con la lógica central de esta rutina: por qué elegiste esta estructura, qué progresión aplicás y cómo se conecta con el objetivo, el nivel y el historial de la alumna.
+- ciclo_nombre: ej. "Junio 2026".
+- semanas: cada una con semana (número), descripcion (breve, ej. "Semana base — adaptación") y dias.
+- dias: cada uno con dia (número), enfoque (ej. "Tren superior - Empuje + Jale") y ejercicios.
+- ejercicios: cada uno con nombre (EXACTAMENTE como figura en la biblioteca, sin cambiar ni una letra), series (string numérico, ej. "3") y reps (ej. "10-12"), y además:
+  - tip (consejo técnico breve, máx 80 caracteres) solo la primera vez que el ejercicio aparece en el ciclo. Si ya apareció antes, no lo repitas: se copia solo.
+  - peso_sugerido (número, en kg) solo si hay historial de pesos de ese ejercicio. Si no hay, no pongas el campo.
+  - superset_id solo con superseries o circuito (ver la nota de abajo).
+Ejemplo de la forma (acortado):
+{"razonamiento":"…","ciclo_nombre":"Junio 2026","semanas":[{"semana":1,"descripcion":"Semana base — adaptación","dias":[{"dia":1,"enfoque":"Cuerpo completo","ejercicios":[{"nombre":"Sentadilla goblet","series":"3","reps":"10-12","tip":"Bajá con la espalda recta y empujá desde los talones","peso_sugerido":12.5},{"nombre":"Remo cerrado","series":"3","reps":"12","tip":"Llevá los codos atrás, pegados al cuerpo"}]}]},{"semana":2,"descripcion":"Progresión","dias":[{"dia":1,"enfoque":"Cuerpo completo","ejercicios":[{"nombre":"Sentadilla goblet","series":"4","reps":"10-12","peso_sugerido":12.5},{"nombre":"Remo cerrado","series":"4","reps":"12"}]}]}]}
 NOTA sobre superset_id: solo incluí este campo cuando el estilo_sesion sea "superseries" o "circuito". Para series rectas, omití el campo completamente (no lo pongas como null ni como ""). Dos ejercicios con el mismo superset_id se hacen back-to-back sin descanso entre ellos.`;
 
     // ── 7. User prompt (contexto variable) ───────────────────────
@@ -698,48 +706,39 @@ Generá ${semanas} semana${semanas === 1 ? "" : "s"} con ${alumna.dias ?? 3} dí
 El nombre del ciclo debe ser "${mesNombre} ${anoStr}". \
 ${semanas === 1 ? "Esta es una semana independiente: elegí la mejor combinación de ejercicios para el nivel actual de la alumna, no como base de una progresión futura. " : ""}\
 IMPORTANTE: los nombres de ejercicios deben coincidir EXACTAMENTE con los de la biblioteca. \
-Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin texto antes ni después.`;
+Respondé ÚNICAMENTE con el JSON en una sola línea (empezando con { y terminando con }), sin texto antes ni después.`;
 
     // ── 8. Llamada a Claude API con prompt caching ───────────────
     // ~1800 tokens por sesión: 10-12 ejercicios × ~130 tokens + metadata
     const numSesiones = (alumna.dias ?? 3) * semanas;
     const maxTokens = Math.min(32768, Math.max(8192, numSesiones * 1800));
 
-    const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31",
-      },
-      body: JSON.stringify({
-        model: "claude-opus-4-7",
-        max_tokens: maxTokens,
-        system: [
-          {
-            type: "text",
-            text: systemPrompt,
-            cache_control: { type: "ephemeral" },
-          }
-        ],
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
+    const claudeResp = await pedirAClaude({
+      model: "claude-opus-4-7",
+      max_tokens: maxTokens,
+      system: [
+        {
+          type: "text",
+          text: systemPrompt,
+          cache_control: { type: "ephemeral" },
+        }
+      ],
+      messages: [{ role: "user", content: userPrompt }],
+    }, inicio, { "anthropic-beta": "prompt-caching-2024-07-31" });
 
+    if (!claudeResp) return Response.json({ error: TARDE }, { status: 504, headers: CORS });
     if (!claudeResp.ok) {
-      const errBody = await claudeResp.text();
-      return Response.json({ error: `Claude API error ${claudeResp.status}`, detail: errBody }, { status: 502, headers: CORS });
+      return Response.json({ error: `Claude API error ${claudeResp.status}`, detail: claudeResp.texto }, { status: 502, headers: CORS });
     }
 
-    const claudeData = await claudeResp.json() as {
+    const claudeData = JSON.parse(claudeResp.texto) as {
       content: Array<{ type: string; text?: string }>;
       usage?: { input_tokens: number; output_tokens: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
     };
 
     const rawText = claudeData.content?.find(b => b.type === "text")?.text ?? "";
     const usage = claudeData.usage;
-    console.log(`[generate-routine] tokens: in=${usage?.input_tokens} out=${usage?.output_tokens} cache_read=${usage?.cache_read_input_tokens} max_tokens=${maxTokens}`);
+    console.log(`[generate-routine] tokens: in=${usage?.input_tokens} out=${usage?.output_tokens} cache_read=${usage?.cache_read_input_tokens} max_tokens=${maxTokens} ms=${Date.now() - inicio}`);
 
     // Extraer JSON (Claude a veces añade markdown ```json ... ```)
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -803,6 +802,19 @@ Respondé ÚNICAMENTE con el JSON (empezando con { y terminando con }), sin text
         faltantes,
         usage,
       }, { status: 502, headers: CORS });
+    }
+
+    // ── 10. El tip viene solo la primera vez que aparece cada ejercicio: se copia al resto
+    const ordenadas = [...(routineObj.semanas ?? [])].sort((a, b) => a.semana - b.semana);
+    const tipDe: Record<string, string> = {};
+    const ejerciciosEnOrden = ordenadas.flatMap(s => [...(s.dias ?? [])].sort((a, b) => a.dia - b.dia)
+      .flatMap(d => (d.ejercicios ?? []) as Array<{ nombre?: string; tip?: string }>));
+    for (const ex of ejerciciosEnOrden) {
+      const tip = typeof ex?.tip === "string" ? ex.tip.trim() : "";
+      if (ex?.nombre && tip && !tipDe[ex.nombre]) tipDe[ex.nombre] = tip;
+    }
+    for (const ex of ejerciciosEnOrden) {
+      if (ex?.nombre && !(typeof ex.tip === "string" && ex.tip.trim()) && tipDe[ex.nombre]) ex.tip = tipDe[ex.nombre];
     }
 
     return Response.json({
