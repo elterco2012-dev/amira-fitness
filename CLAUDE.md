@@ -86,10 +86,14 @@ Las claves secretas (VAPID, ANTHROPIC_API_KEY) viven en Supabase Secrets y solo 
 **Qué se publica:** Vercel publica en amirafitness.com.ar todo lo que está en el repo, salvo lo que figura en `.vercelignore`: notas técnicas, migraciones, funciones del servidor, `.claude/` y la carpeta del sistema de diseño (desde el 14/10/2026: tenía copias viejas del panel y de la app). Hasta el 13/10/2026 este archivo se podía leer desde el sitio. Un archivo nuevo que no sea para el sitio va en esa lista.
 
 **Permisos de Claude (`.claude/settings.json`, 13/10/2026):** las sesiones de este repo trabajan sin pedir permiso a cada paso, salvo para cambiar la base: el SQL que escribe o borra, `apply_migration` y `deploy_edge_function` pasan por `.claude/hooks/preguntar_si_cambia_la_base.py`, que le pregunta a Aaron y le explica el motivo en el cartel. No sacar ese control. Solo vale en sesiones con un único repositorio.
-- **1/11/2026:** Aaron pidió menos carteles. En una sesión larga, 83 de 351 consultas a la base preguntaron, y 38 de esas solo leían las tablas de `cron` y `net`.
-  - Ahora leerlas no pregunta. Llamar a sus funciones sí: `cron.schedule`/`cron.alter_job` programan tareas y `net.http_post` manda un pedido, por ejemplo una notificación a las alumnas.
-  - También se sumaron a la lista de permitidas las búsquedas y páginas de internet (`WebSearch`, `WebFetch`), mostrarle un archivo a Aaron (`SendUserFile`), el link temporal de una versión de prueba de Vercel y leer documentos.
-  - Una herramienta nueva que solo lee va en `permissions.allow`. Una que cambia algo (publicar, borrar, comentar en GitHub, dominios) sigue preguntando.
+- **De dónde salen los carteles (medido el 1/11/2026):** la transcripción de la sesión (`~/.claude/projects/…/<sesión>.jsonl`) guarda en cada resultado de herramienta el campo `permissionDecision`, que dice quién la aprobó y por qué.
+  - Las herramientas de los conectores de claude.ai (Supabase y Vercel) preguntan por la política del conector (`ruleSource: mcpServerPolicy`), aunque estén en `permissions.allow`.
+    - En una sesión de casi un mes, Supabase preguntó 389 veces (302 consultas) y Vercel 90. GitHub, 0. Las herramientas propias (Bash, editar, leer), casi nunca.
+    - Eso se cambia en claude.ai/customize/connectors, en los permisos de cada herramienta del conector. Desde el repositorio no se puede.
+  - En modo Auto las llamadas pasan sin preguntar (`reasonType: mode`), también las que escriben en la base: el 29/10 un `insert` de 12 ejercicios pasó sin cartel. En ese modo, el control de este repositorio no frena nada.
+  - El 1/11 se dio por hecho que la lista de permitidas funcionaba y se contaron solo los carteles del control (83 de 351 consultas). Era un error: casi todos venían del conector.
+- Leer las tablas de `cron` y `net` no pasa por el control (1/11/2026). Llamar a sus funciones sí: `cron.schedule`/`cron.alter_job` programan tareas y `net.http_post` manda un pedido, por ejemplo una notificación a las alumnas.
+- Una herramienta nueva que solo lee va en `permissions.allow`. Una que cambia algo (publicar, borrar, comentar en GitHub, dominios) sigue preguntando.
 
 ---
 
