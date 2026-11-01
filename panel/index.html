@@ -2132,6 +2132,22 @@ const ZONA_DE_GRUPO={pecho:'superior',espalda:'superior',hombros:'superior',bice
   cuadriceps:'inferior',gluteos:'inferior',isquiotibiales:'inferior',isquios:'inferior',aductores:'inferior',gemelos:'inferior',piernas:'inferior'};
 function zonaDe(m){return ZONA_DE_GRUPO[String(m?.grupo_muscular||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim()]||null;}
 
+// La división de la rutina: la que eligió Amira o, si no eligió, la que usa la IA por defecto
+// (generate-routine: 1 día cuerpo completo, 2 días A/B, 3 días cuerpo completo para una
+// principiante y empuje/jale/piernas para una intermedia o avanzada, 4 o más superior/inferior).
+// Las reglas de cuerpo completo (core, empuje, jale y sentadilla o bisagra en cada día) valen
+// solo ahí. Hasta el 1/11/2026 se aplicaban por tener 3 días o menos: en una rutina de
+// empuje/jale/piernas, el día de empuje avisaba "sin ningún jale", y "Corregir con IA" lo habría
+// cambiado.
+function divisionDe(a){
+  if(a.split)return a.split;
+  const dias=Number(a.dias)||3,nivel=String(a.nivel||'').toLowerCase();
+  if(dias<=1)return'full_body';
+  if(dias===2)return'full_body_ab';
+  if(dias===3)return['intermedio','avanzado'].includes(nivel)?'push_pull_legs':'full_body';
+  return'upper_lower';
+}
+
 // Además de los textos, devuelve en `cambios` cada ejercicio que hay que reemplazar
 // ({s,d,e} son los índices en la rutina), para "Corregir con IA", y en `ordenar` los días
 // con un multiarticular después de un aislamiento de su zona ({s,d,pares}), para "Ordenar".
@@ -2142,7 +2158,7 @@ function verificarRutina(routine,a){
   const porNombre={};for(const e of bib)porNombre[e.nombre]=e;
 
   const{enGym,tiene,nivel,topeAlto}=equipoDeAlumna(a);
-  const esFullBody=(a.dias||3)<=3;
+  const esFullBody=['full_body','full_body_ab'].includes(divisionDe(a));
 
   routine.semanas.forEach((sem,s)=>{
     (sem.dias||[]).forEach((dia,d)=>{
@@ -2152,9 +2168,10 @@ function verificarRutina(routine,a){
       let altos=0;const vistos=new Set();const aisZona={};let desordenado=false;
       const patrones=new Set();const idxAltos=[];
       const porCambiar={};
-      const cambiar=(i,motivo)=>{
+      const cambiar=(i,motivo,falta)=>{
         if(!porCambiar[i]){porCambiar[i]={s,d,e:i,nombre:ejs[i].nombre,motivos:[]};cambios.push(porCambiar[i]);}
         porCambiar[i].motivos.push(motivo);
+        if(falta)porCambiar[i].falta=falta;
       };
 
       ejs.forEach((ex,i)=>{
@@ -2205,8 +2222,14 @@ function verificarRutina(routine,a){
       if(desordenado)ordenar.push({s,d,pares:ejs.some(e=>e.superset_id)});
       if(esFullBody&&ejs.length){
         if(!patrones.has('core'))avisos.push(`${ref}: ningún ejercicio de core`);
-        if(!PATRON_EMPUJE.some(p=>patrones.has(p)))avisos.push(`${ref}: sin ningún empuje`);
-        if(!PATRON_JALE.some(p=>patrones.has(p)))avisos.push(`${ref}: sin ningún jale`);
+        // Sin empuje o sin jale: "Corregir con IA" cambia un ejercicio del tren superior de
+        // ese día por uno de ese movimiento (ver paraCompletar). Si no hay cuál, queda el aviso.
+        for(const[falta,familia]of[['empuje',PATRON_EMPUJE],['jale',PATRON_JALE]]){
+          if(familia.some(p=>patrones.has(p)))continue;
+          avisos.push(`${ref}: sin ningún ${falta}`);
+          const i=paraCompletar(metas,porCambiar,falta);
+          if(i>=0)cambiar(i,`el día no tiene ningún ${falta}`,falta);
+        }
         if(!patrones.has('sentadilla')&&!patrones.has('bisagra'))
           avisos.push(`${ref}: sin sentadilla ni bisagra`);
       }
@@ -2220,6 +2243,26 @@ function verificarRutina(routine,a){
     }
   });
   return{errores,avisos,cambios,ordenar};
+}
+
+// Día sin jale (o sin empuje), 1/11/2026: cuál ejercicio cambiar por uno de ese movimiento.
+// La rutina con IA de una alumna de 2 días tenía el día 2 sin ningún remo ni jalón, y no había
+// cómo arreglarlo sin regenerar. Va primero uno del tren superior que ya sale por otro motivo
+// (un curl con pesa rusa que no tiene: un remo también trabaja el bíceps), después un empuje
+// que sobra (si hay dos o más) y por último un aislamiento del tren superior. De cada tanda, el
+// último del día, que suele ser el accesorio. Nunca el único del movimiento contrario: el día
+// quedaría sin ese. Si no hay ninguno, no se cambia nada y queda el aviso.
+function paraCompletar(metas,porCambiar,falta){
+  const contraria=falta==='jale'?PATRON_EMPUJE:PATRON_JALE;
+  const nContraria=metas.filter(m=>contraria.includes(m?.patron_movimiento)).length;
+  const sirve=i=>{const m=metas[i];
+    if(!m||zonaDe(m)!=='superior'||porCambiar[i]?.falta)return false;
+    return!(contraria.includes(m.patron_movimiento)&&nContraria<2);};
+  const desdeElFinal=[...metas.keys()].reverse();
+  return desdeElFinal.find(i=>porCambiar[i]&&sirve(i))
+    ??desdeElFinal.find(i=>contraria.includes(metas[i]?.patron_movimiento)&&sirve(i))
+    ??desdeElFinal.find(i=>metas[i]?.patron_movimiento==='aislamiento'&&sirve(i))
+    ??-1;
 }
 
 // ── Ordenar los días marcados (1/11/2026) ──
@@ -2303,9 +2346,26 @@ function candidatosPara(ref,grupoRef,excluir,usables,enSemana=new Set()){
   return out;
 }
 
+// Para un día sin jale (o sin empuje): los de ese movimiento que puede hacer. Primero los que
+// no hace otro día de esa semana, y los de más nivel que el suyo al final (una intermedia hace
+// algún N3 como variante, no como base).
+const NIVEL_TOPE={principiante:1,intermedio:2,avanzado:3};
+function candidatosDeMovimiento(patrones,nivel,excluir,usables,enSemana=new Set()){
+  const tope=NIVEL_TOPE[nivel]||2;
+  const masDificil=e=>(Number(e.nivel_dificultad)||0)>tope;
+  const out=[];
+  for(const e of usables.filter(e=>!excluir.has(e.nombre)&&patrones.includes(e.patron_movimiento))
+    .sort((x,y)=>(enSemana.has(x.nombre)-enSemana.has(y.nombre))||masDificil(x)-masDificil(y)||x.nombre.localeCompare(y.nombre,'es'))){
+    if(!out.includes(e.nombre))out.push(e.nombre);
+    if(out.length>=MAX_CANDIDATOS_CORREGIR)break;
+  }
+  return out;
+}
+
 // Agrupa los cambios por ejercicio: el mismo en todas las semanas va en un solo grupo.
 // La segunda vez que un ejercicio aparece en el mismo día es otro grupo; si no, las dos
-// se cambiarían por el mismo y quedaría repetido de nuevo.
+// se cambiarían por el mismo y quedaría repetido de nuevo. El que sale para que entre un
+// jale (o un empuje) también va aparte: sus candidatos son de ese movimiento, no de su músculo.
 function armarCorreccion(routine,a,cambios){
   const porNombre={};for(const e of DB.biblioteca||[])if(!porNombre[e.nombre])porNombre[e.nombre]=e;
   const usables=bibParaAlumna(a);
@@ -2321,9 +2381,9 @@ function armarCorreccion(routine,a,cambios){
     if(!ex)continue;
     const diaId=`S${sem.semana}D${dia.dia}`;
     const vez=dia.ejercicios.slice(0,c.e).filter(x=>x.nombre===ex.nombre).length;
-    const clave=ex.nombre+'\u0001'+vez;
+    const clave=ex.nombre+'\u0001'+vez+'\u0001'+(c.falta||'');
     let g=grupos.get(clave);
-    if(!g){g={actual:ex.nombre,motivos:[],lugares:[],dias:[],grupoEj:ex.grupo||'',sugerido:ex._suggestedNombre||''};grupos.set(clave,g);}
+    if(!g){g={actual:ex.nombre,falta:c.falta||'',motivos:[],lugares:[],dias:[],grupoEj:ex.grupo||'',sugerido:ex._suggestedNombre||''};grupos.set(clave,g);}
     c.motivos.forEach(m=>{if(!g.motivos.includes(m))g.motivos.push(m);});
     g.lugares.push({s:c.s,d:c.d,e:c.e});
     if(!g.dias.includes(diaId))g.dias.push(diaId);
@@ -2335,11 +2395,13 @@ function armarCorreccion(routine,a,cambios){
     for(const id of g.dias)for(const n of dias[id].ejercicios)excluir.add(n);
     const semanas=new Set(g.dias.map(id=>dias[id].semana));
     const enSemana=new Set(Object.values(dias).filter(d=>semanas.has(d.semana)&&!g.dias.includes(d.id)).flatMap(d=>d.ejercicios));
-    let candidatos=candidatosPara(ref,ref?.grupo_muscular||g.grupoEj,excluir,usables,enSemana);
+    let candidatos=g.falta
+      ?candidatosDeMovimiento(g.falta==='jale'?PATRON_JALE:PATRON_EMPUJE,equipoDeAlumna(a).nivel,excluir,usables,enSemana)
+      :candidatosPara(ref,ref?.grupo_muscular||g.grupoEj,excluir,usables,enSemana);
     // Si no está en la biblioteca pero se parece a uno que sí, ese va primero.
-    if(!porNombre[g.actual]&&g.sugerido&&!excluir.has(g.sugerido)&&usables.some(e=>e.nombre===g.sugerido))
+    if(!g.falta&&!porNombre[g.actual]&&g.sugerido&&!excluir.has(g.sugerido)&&usables.some(e=>e.nombre===g.sugerido))
       candidatos=[g.sugerido,...candidatos.filter(n=>n!==g.sugerido)].slice(0,MAX_CANDIDATOS_CORREGIR);
-    lista.push({id:'g'+lista.length,actual:g.actual,motivo:g.motivos.join(' y '),dias:g.dias,candidatos,lugares:g.lugares});
+    lista.push({id:'g'+lista.length,actual:g.actual,falta:g.falta,motivo:g.motivos.join(' y '),dias:g.dias,candidatos,lugares:g.lugares});
   }
   return{dias:Object.values(dias),grupos:lista};
 }
@@ -2353,7 +2415,9 @@ async function corregirConIA(){
   const conCand=grupos.filter(g=>g.candidatos.length);
   const enviar=conCand.slice(0,MAX_GRUPOS_CORREGIR);
   const res={cambiados:0,lugares:0,quedan:conCand.length-enviar.length,error:'',
-    sinCambio:grupos.filter(g=>!g.candidatos.length).map(g=>({actual:g.actual,por_que:'No hay en la biblioteca otro ejercicio parecido que pueda hacer con lo que tiene.'}))};
+    sinCambio:grupos.filter(g=>!g.candidatos.length).map(g=>({actual:g.actual,por_que:g.falta
+      ?`El día no tiene ningún ${g.falta}, y en la biblioteca no hay uno que pueda hacer con lo que tiene.`
+      :'No hay en la biblioteca otro ejercicio parecido que pueda hacer con lo que tiene.'}))};
   if(enviar.length){
     _iaCorrigiendo=true;_iaCorreccion=null;refreshIAPreview();
     try{
@@ -2416,15 +2480,22 @@ function renderVerificacion(v){
       <div style="font-size:10px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;">${tit} (${items.length})</div>
       <ul style="margin:0;padding-left:1.1rem;font-size:12px;color:var(--t);line-height:1.6;">
         ${items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>${pie}</div>`;
-  const corregir=v.cambios?.length?`<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.65rem;">
+  // Qué va a hacer: los marcados en rojo y, en los días sin empuje o sin jale, uno del tren
+  // superior por uno de ese movimiento. Sin nada en rojo, el botón va en el bloque amarillo.
+  const cambios=v.cambios||[],faltas=new Set(cambios.map(c=>c.falta).filter(Boolean));
+  const queHace=[cambios.some(c=>!c.falta||c.motivos.length>1)?'Cambia solo los ejercicios marcados por otros de la biblioteca que pueda hacer y que trabajen lo mismo.':'',
+    faltas.has('empuje')?'En los días sin empuje, cambia un ejercicio del tren superior por un press que pueda hacer.':'',
+    faltas.has('jale')?'En los días sin jale, cambia un ejercicio del tren superior por un remo o jalón que pueda hacer.':'',
+    'El resto de la rutina queda igual.'].filter(Boolean).join(' ');
+  const corregir=cambios.length?`<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.65rem;">
       <button class="btn" id="ia-corregir-btn" onclick="corregirConIA()" ${_iaCorrigiendo?'disabled':''} style="background:linear-gradient(135deg,var(--vi),var(--vi2));border-color:var(--vi);color:#fff;white-space:nowrap;">${_iaCorrigiendo?'⏳ Corrigiendo…':'🛠 Corregir con IA'}</button>
-      <span style="flex:1;min-width:180px;font-size:11px;color:var(--tm);line-height:1.45;">${_iaCorrigiendo?'Claude está eligiendo los reemplazos. Tarda unos segundos.':'Cambia solo los ejercicios marcados por otros de la biblioteca que pueda hacer y que trabajen lo mismo. El resto de la rutina queda igual.'}</span></div>`:'';
+      <span style="flex:1;min-width:180px;font-size:11px;color:var(--tm);line-height:1.45;">${_iaCorrigiendo?'Claude está eligiendo los reemplazos. Tarda unos segundos.':queHace}</span></div>`:'';
   const ordenables=(v.ordenar||[]).filter(o=>!o.pares).length,conPares=(v.ordenar||[]).length-ordenables;
   const ordenar=ordenables||conPares?`<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.65rem;">
       ${ordenables?`<button class="btn" id="ia-ordenar-btn" onclick="ordenarDiasIA()" style="white-space:nowrap;">↕ Ordenar ${ordenables===1?'ese día':`esos ${ordenables} días`}</button>`:''}
       <span style="flex:1;min-width:180px;font-size:11px;color:var(--tm);line-height:1.45;">${ordenables?'En los días con un compuesto después de un aislamiento de su zona, pone primero los ejercicios de varios músculos, después los de uno solo, el core y el cardio. No cambia nada más.':''}${conPares?`${ordenables?' ':''}${conPares===1?'Un día tiene':`${conPares} días tienen`} superseries o circuito: esos se ordenan a mano, porque van de a pares.`:''}</span></div>`:'';
-  return bloque('🚨 Hay que corregir',v.errores,'#dc2626','rgba(220,38,38,.28)','rgba(220,38,38,.07)',corregir)
-       + bloque('⚠️ Revisá',v.avisos,'#b45309','rgba(180,83,9,.28)','rgba(180,83,9,.07)',ordenar);
+  return bloque('🚨 Hay que corregir',v.errores,'#dc2626','rgba(220,38,38,.28)','rgba(220,38,38,.07)',v.errores.length?corregir:'')
+       + bloque('⚠️ Revisá',v.avisos,'#b45309','rgba(180,83,9,.28)','rgba(180,83,9,.07)',(v.errores.length?'':corregir)+ordenar);
 }
 
 // ── Preview editable ──────────────────────────────────────────

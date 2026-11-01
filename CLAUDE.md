@@ -227,6 +227,19 @@ La más compleja. Recibe `{alumna_id, semanas=4, instrucciones=""}` y:
   - Marca los que ya hace otro día de esa semana, para no repetir.
 - Lo cambiado queda en violeta, con el ejercicio que había y el motivo. El peso sugerido no pasa al reemplazo. Nada se guarda hasta que Amira toca Guardar.
 
+**Día sin jale o sin empuje (1/11/2026):** "Corregir con IA" también arregla "sin ningún jale" y "sin ningún empuje". Hasta ese día no había forma de hacerlo sin regenerar: la rutina de una alumna de 2 días tenía el día 2 sin ningún remo ni jalón.
+- `paraCompletar` elige qué ejercicio del día cambiar, en este orden:
+  - uno del tren superior que ya salía por otro motivo (un curl con pesa rusa que no tiene: un remo también trabaja el bíceps);
+  - si no, un empuje que sobra (cuando hay dos o más);
+  - si no, un aislamiento del tren superior.
+- De cada tanda elige el último del día. Nunca el único del movimiento contrario. Si no hay ninguno, queda el aviso.
+- Sus candidatos son de ese movimiento (`candidatosDeMovimiento`), no de su músculo: primero los que no hace otro día de la semana, y al final los de más nivel que el de la alumna. Va en un grupo aparte del mismo ejercicio en otro día.
+- Si no hay nada en rojo, el botón aparece en el bloque amarillo.
+- Las reglas de cuerpo completo (core, empuje, jale y sentadilla o bisagra en cada día) valen según la división (`divisionDe`): la que eligió Amira o, si no eligió, la que usa la IA por defecto.
+  - Hasta ese día se aplicaban a toda rutina de 3 días o menos.
+  - En una rutina de empuje/jale/piernas (3 días, intermedia, sin división cargada), el día de empuje avisaba "sin ningún jale", y la corrección lo habría cambiado.
+- Con las rutinas de ese día había 3 días sin jale. En los tres cambiaría unos vuelos, que en la biblioteca figuran como empuje, por un remo o jalón.
+
 **Orden del día (1/11/2026):** la revisión avisa "(compuesto) va después de…" solo si el aislamiento de antes es de la misma zona (tren superior o inferior, `zonaDe`), y lo nombra.
 - Hasta ese día avisaba por cualquier aislamiento previo. La rutina de una alumna de 4 días salió con 17 avisos: los días empezaban por piernas y un aislamiento de piernas marcaba todo el tren superior.
 - "↕ Ordenar" (`ordenarDiasIA`) pone, en los días marcados, primero los multiarticulares, después los aislamientos, el core y el cardio, sin cambiar nada más. Es la misma regla que ya tiene la IA.
