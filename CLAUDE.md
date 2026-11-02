@@ -446,6 +446,12 @@ Estrategias:
   - Del 13/10 al 26/10 no se mostraron. No hubo cambios en la cuenta: estaban todos "Apto" y Google decía "No sabemos la razón". El 26/10 se habilitaron las palabras clave de quien busca una entrenadora ("entrenadora personal para mujeres", "plan de entrenamiento personalizado", etc.) y se sumó un anuncio nuevo.
   - En una compu con bloqueador de publicidad (o en la red de una empresa), la lista de anuncios y las vistas previas de Google Ads aparecen en blanco: mirarlas en incógnito o en el celular.
   - El 19/10 Aaron pasó las palabras clave a concordancia de frase, agregó negativas e importó `click_whatsapp` y `registro_completado` de Analytics como conversiones.
+  - **Semana del 26/10 al 2/11:** $6.580, 24 clics, 22 visitas y 2 toques a WhatsApp. Escribió una sola persona, de Capital, que buscaba entrenar en persona: ningún contacto útil y ninguna alumna nueva.
+    - Las búsquedas eran de gente que busca un entrenador cerca ("personal trainer almagro", "la plata", "rosario") o rutinas gratis e influencers.
+    - Del 29/10 al 2/11 nadie tocó WhatsApp (14 visitas de Ads). Se probó que la web nueva cuenta los toques.
+    - El 2/11 se armó una lista de 70 palabras clave negativas: presencial y lugares, influencers y contenido gratis, IA, ejercicios sueltos y otras disciplinas, cursos y empleo, hombres, y búsquedas genéricas de rutinas (en concordancia exacta).
+    - No bloquea "entrenamiento personalizado", "personal trainer online", "entrenadora online" ni "rutina personalizada".
+    - Si el 9/11 sigue sin contactos útiles, la propuesta es pausar la campaña.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".
