@@ -98,6 +98,14 @@
     .bg{background:var(--vl);color:var(--vd);}
     .bd{background:var(--p);color:var(--pd);}
     .ra{margin-left:auto;display:flex;gap:6px;}
+    /* Filas del Inicio con botones: el texto usa todo el ancho y, si los botones no entran al
+       lado, bajan abajo del texto. Hasta el 4/11/2026 los botones le dejaban al texto una
+       columna angosta en el celular: la revision semanal se leia de a una o dos palabras por
+       renglon, y en "subir de nivel" el texto se metia debajo del boton. */
+    .arow.con-acc{align-items:flex-start;}
+    .arow-cuerpo{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;}
+    .arow-txt{flex:1 1 13rem;min-width:0;}
+    .arow-acc{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
 
     /* Buttons */
     .btn{padding:7px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;border:1px solid var(--bm);background:var(--s);color:var(--t);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
@@ -1143,7 +1151,7 @@ function estadoCiclo(a){
     if(parseInt(p.semana)===maxSem) ultimaSemana=true;
   }
   const tieneSiguiente=(parseInt(a.ciclo_actual)||1)>c||_tieneEjercicios(DB.rutinas?.[a.id]?.[c+1]);
-  return {c,plan:plan.size,hechos:hechos.size,pct:plan.size?hechos.size/plan.size:0,ultimaSemana,tieneSiguiente};
+  return {c,plan:plan.size,hechos:hechos.size,pct:plan.size?hechos.size/plan.size:0,ultimaSemana,tieneSiguiente,semanas:maxSem};
 }
 function porRenovar(){
   return DB.alumnas.filter(alumnaActiva).map(a=>({a,e:estadoCiclo(a)}))
@@ -1194,12 +1202,17 @@ function constanciaMesP(a,ym,_dias){
   return {ym,mes:_MESES_P[m-1],hechos,plan,meta,llego:hechos>=meta};
 }
 // La semana que se revisa: de lunes a domingo, la ultima que termino.
+// Su mes es el del jueves, donde cae la mayor parte de la semana: la del 26/10 al 1/11
+// es de octubre. Hasta el 4/11/2026 era el del domingo, y esa revision contaba como iba
+// noviembre, que recien empezaba ("En noviembre llevás 0 de 17 días").
 function semanaARevisar(){
   const h=new Date(), dow=(h.getDay()+6)%7;
   const lunes=new Date(h.getFullYear(),h.getMonth(),h.getDate()-dow);
   const desde=new Date(lunes.getFullYear(),lunes.getMonth(),lunes.getDate()-7);
   const hasta=new Date(lunes.getFullYear(),lunes.getMonth(),lunes.getDate()-1);
-  return {desde:_diaLocalDe(desde.toISOString()),hasta:_diaLocalDe(hasta.toISOString()),lunes};
+  const jueves=new Date(desde.getFullYear(),desde.getMonth(),desde.getDate()+3);
+  return {desde:_diaLocalDe(desde.toISOString()),hasta:_diaLocalDe(hasta.toISOString()),lunes,
+    mes:_diaLocalDe(jueves.toISOString()).slice(0,7)};
 }
 const _MOLESTIAS=['dolor_normal','dolor_articular','dolor_preocupante','dia_me_dolio','ejercicio_problema'];
 function resumenSemana(a,sem){
@@ -1224,7 +1237,9 @@ function resumenSemana(a,sem){
     subio:Object.entries(enLaSemana).filter(([n,kg])=>antes[n]>0&&kg>antes[n]).map(([nom,kg])=>({nom,kg})).sort((x,y)=>y.kg-x.kg),
     notas:(DB.notasSesion||[]).filter(n=>n.alumna_id===a.id&&enSem(_diaLocalDe(n.created_at))).length,
     molestias:fbs.filter(f=>_MOLESTIAS.includes(f.tipo)).length,
-    mes:constanciaMesP(a,sem.hasta.slice(0,7),dias),
+    mes:constanciaMesP(a,sem.mes,dias),
+    // Si ese mes ya termino, el mensaje lo cuenta en pasado ("En octubre entrenaste...")
+    mesCerrado:sem.mes<_hoyLocal().slice(0,7),
   };
 }
 const _kgP=v=>String(+(+v).toFixed(1)).replace('.',',');
@@ -1236,7 +1251,7 @@ const _diasMesP=m=>m.hechos>m.plan?_sP(m.hechos,'día'):`${m.hechos} de ${_sP(m.
 function lineaSemana(r){
   const p=[r.entreno?`Entrenó ${r.entreno} de ${_sP(r.plan,'día')}`:`No entrenó (tenía ${_sP(r.plan,'día')})`];
   if(r.pausas) p.push(r.pausas===1?'1 pausa activa':`${r.pausas} pausas activas`);
-  if(r.subio.length) p.push('subió '+_yP(r.subio.slice(0,2).map(x=>`${esc(x.nom)} a ${_kgP(x.kg)} kg`)));
+  if(r.subio.length) p.push('subió '+_yP(r.subio.slice(0,2).map(x=>`${esc(x.nom)} a ${_kgP(x.kg)}&nbsp;kg`)));
   if(r.notas) p.push(_sP(r.notas,'nota'));
   if(r.molestias) p.push(`⚠️ ${_sP(r.molestias,'molestia')}`);
   if(r.mes) p.push(`${r.mes.mes}: ${r.mes.hechos>r.mes.plan?r.mes.hechos:`${r.mes.hechos} de ${r.mes.plan}`}${r.mes.llego?' ✓':''}`);
@@ -1250,8 +1265,8 @@ function textoSemana(r){
   if(r.subio.length) p.push('subiste '+_yP(r.subio.slice(0,2).map(x=>`${x.nom} a ${_kgP(x.kg)} kg`)));
   let t=_yP(p);
   t=t.charAt(0).toUpperCase()+t.slice(1)+'.';
-  if(r.mes) t+=r.mes.llego?` En ${r.mes.mes} ya llegaste a tu meta: ${_diasMesP(r.mes)} 🎯`
-    :` En ${r.mes.mes} llevás ${_diasMesP(r.mes)}.`;
+  if(r.mes) t+=r.mes.llego?` En ${r.mes.mes} ${r.mesCerrado?'llegaste':'ya llegaste'} a tu meta: ${_diasMesP(r.mes)} 🎯`
+    :` En ${r.mes.mes} ${r.mesCerrado?'entrenaste':'llevás'} ${_diasMesP(r.mes)}.`;
   return t;
 }
 async function enviarRevision(aId){
@@ -4297,15 +4312,19 @@ function rInicio(){
         const ph=(a.tel||'').replace(/\D/g,'');
         const mn=encodeURIComponent(interpTpl(msg,{nombre:fn(a.nombre)}));
         const yaEscribio=textoContacto(a.id);
-        return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
+        return`<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--b);flex-wrap:wrap;">
           <div class="av av-${a.color}" style="width:30px;height:30px;font-size:12px;flex-shrink:0;">${avH(a)}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;color:var(--t);">${esc(nombreCorto(a))} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
-            <div style="font-size:10px;color:var(--th);">${esc(sub)}${yaEscribio?' · '+yaEscribio:''}</div>
+          <div class="arow-cuerpo">
+            <div class="arow-txt">
+              <div style="font-size:13px;font-weight:500;color:var(--t);">${esc(nombreCorto(a))} <span style="font-weight:400;color:var(--tm);">— ${tag}</span></div>
+              <div style="font-size:10px;color:var(--th);">${esc(sub)}${yaEscribio?' · '+yaEscribio:''}</div>
+            </div>
+            <div class="arow-acc">
+              ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'),${a.id},'${kind==='pain'?'dolor':'inactividad'}')" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
+              ${kind==='pain'&&fb&&S._atendOpen!==fb.id?htmlAtendido(fb):''}
+              <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();openDrawer(${a.id})">Ver →</button>
+            </div>
           </div>
-          ${ph?`<button onclick="waOpen('${ph}',decodeURIComponent('${mn}'),${a.id},'${kind==='pain'?'dolor':'inactividad'}')" class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;">💬 WA</button>`:''}
-          ${kind==='pain'&&fb&&S._atendOpen!==fb.id?htmlAtendido(fb):''}
-          <button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();openDrawer(${a.id})">Ver →</button>
           ${kind==='pain'&&fb&&S._atendOpen===fb.id?htmlAtendido(fb):''}
         </div>`;
       }).join('')}
@@ -4370,15 +4389,19 @@ function rInicio(){
         // "Arranco el dia 3" se podia leer como el 3 del mes: se dice que es el dia
         // de sus dos semanas y la fecha.
         const sub=p.entreno?`Primer entrenamiento el día ${p.arrancoDia} de sus dos semanas (${p.primeroDM}) · lleva ${_sP(p.sesiones,'entrenamiento')}`:'Todavía no entrenó';
-        return`<div class="arow" style="flex-wrap:wrap;align-items:flex-start;">
+        return`<div class="arow con-acc">
           <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-          <div style="flex:1;min-width:12rem;">
-            <div style="font-size:13px;font-weight:500;">${esc(a.nombre)} <span style="font-weight:400;color:var(--tm);">· día ${p.dia} de ${DIAS_ARRANQUE}</span></div>
-            <div style="font-size:11px;color:var(--tm);margin:1px 0 4px;">${sub}</div>
-            <div>${p.pasos.map(chip).join('')}</div>
+          <div class="arow-cuerpo">
+            <div class="arow-txt">
+              <div style="font-size:13px;font-weight:500;">${esc(a.nombre)} <span style="font-weight:400;color:var(--tm);">· día ${p.dia} de ${DIAS_ARRANQUE}</span></div>
+              <div style="font-size:11px;color:var(--tm);margin:1px 0 4px;">${sub}</div>
+              <div>${p.pasos.map(chip).join('')}</div>
+            </div>
+            <div class="arow-acc">
+              ${sig&&ph?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;" onclick="mandarArranque(${a.id},'${sig.tpl}')">${sig.l}</button>`:''}
+              <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
+            </div>
           </div>
-          ${sig&&ph?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;" onclick="mandarArranque(${a.id},'${sig.tpl}')">${sig.l}</button>`:''}
-          <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
         </div>`;
       }).join('')}
     </div>`;
@@ -4449,15 +4472,19 @@ function rInicio(){
       ${abierta?pend.map(a=>{
         const r=resumenSemana(a,sem);
         const ph=(a.tel||'').replace(/\D/g,'');
-        return`<div class="arow" style="flex-wrap:wrap;">
+        return`<div class="arow con-acc">
           <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
-            <div style="font-size:11px;color:var(--tm);">${lineaSemana(r)}</div>
+          <div class="arow-cuerpo">
+            <div class="arow-txt">
+              <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
+              <div style="font-size:11px;color:var(--tm);">${lineaSemana(r)}</div>
+            </div>
+            <div class="arow-acc">
+              ${ph?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;" onclick="enviarRevision(${a.id})">💬 Devolución</button>`:''}
+              <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
+              <button class="btn btn-s" style="font-size:11px;background:none;color:var(--th);" title="Saltear esta semana" onclick="saltearRevision(${a.id})">✕</button>
+            </div>
           </div>
-          ${ph?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;font-size:11px;white-space:nowrap;" onclick="enviarRevision(${a.id})">💬 Devolución</button>`:''}
-          <button class="btn btn-s" style="font-size:11px;" onclick="openDrawer(${a.id})">Ver →</button>
-          <button class="btn btn-s" style="font-size:11px;background:none;color:var(--th);" title="Saltear esta semana" onclick="saltearRevision(${a.id})">✕</button>
         </div>`;
       }).join('')+`<button class="btn btn-s" style="margin-top:8px;font-size:11px;width:100%;" onclick="${plegar}">Plegar ▲</button>`
       :`<button class="btn btn-s" style="font-size:11px;width:100%;" onclick="verLista('_revOpen',true)">Te faltan ${pend.length} · Ver ▼</button>`}
@@ -4465,19 +4492,26 @@ function rInicio(){
   })();
 
   const bCiclos=(()=>{
+    // Un ciclo con menos de 4 semanas cargadas se avisa: el 4/11/2026 el de noviembre de una
+    // alumna tenia solo la semana 1, y aca figuraba como si estuviera terminando el ciclo.
     const lista=porRenovar();
     if(!lista.length)return'';
     const {items,boton}=_corta(lista,'_cicOpen','ini-ciclos');
     return`<div class="card" id="ini-ciclos" style="margin-bottom:1rem;border-left:3px solid var(--vd);">
       <div class="ctitle" style="margin-bottom:.3rem;">🗓 Ciclos por renovar</div>
       <div style="font-size:11px;color:var(--th);margin-bottom:.6rem;">Están en la última semana o hicieron el 75% del ciclo, y todavía no tienen el siguiente.</div>
-      ${items.map(({a,e})=>`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" onclick="irARenovar(${a.id},false)">
+      ${items.map(({a,e})=>`<div class="arow con-acc" style="cursor:pointer;" onclick="irARenovar(${a.id},false)">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
-          <div style="font-size:11px;color:var(--tm);">${esc((a.ciclos_nombres||{})[e.c]||'Ciclo '+e.c)} · ${e.hechos} de ${e.plan} días${e.pct>=1?' · lo terminó':''}</div>
+        <div class="arow-cuerpo">
+          <div class="arow-txt">
+            <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
+            <div style="font-size:11px;color:var(--tm);">${esc((a.ciclos_nombres||{})[e.c]||'Ciclo '+e.c)} · ${e.hechos} de ${e.plan} días${e.pct>=1?' · lo terminó':''}</div>
+            ${e.semanas<4?`<div style="font-size:11px;color:var(--ad);">⚠️ Solo tiene ${e.semanas===1?'la semana 1 cargada':`${e.semanas} semanas cargadas`}: puede faltar completarlo</div>`:''}
+          </div>
+          <div class="arow-acc">
+            <button class="btn btn-s" style="font-size:11px;white-space:nowrap;background:linear-gradient(135deg,var(--vi),var(--vi2));color:#fff;border-color:var(--vi);" onclick="event.stopPropagation();irARenovar(${a.id},true)">✨ Generar con IA</button>
+          </div>
         </div>
-        <button class="btn btn-s" style="font-size:11px;white-space:nowrap;background:linear-gradient(135deg,var(--vi),var(--vi2));color:#fff;border-color:var(--vi);" onclick="event.stopPropagation();irARenovar(${a.id},true)">✨ Generar con IA</button>
       </div>`).join('')}
       ${boton}
     </div>`;
@@ -4491,16 +4525,20 @@ function rInicio(){
       <div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">
         Mientras sigan en el nivel viejo, la IA les planifica los mismos ejercicios.
         Si querés que alguna siga como está, decímelo y no vuelvo a preguntar por un tiempo.</div>
-      ${subir.map(({a,s})=>`<div class="arow">
+      ${subir.map(({a,s})=>`<div class="arow con-acc">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
-          <div style="font-size:11px;color:var(--tm);">${s.sesiones} sesiones entrenadas · ${s.de} → ${s.a}</div>
+        <div class="arow-cuerpo">
+          <div class="arow-txt">
+            <div style="font-size:13px;font-weight:500;">${esc(a.nombre)}</div>
+            <div style="font-size:11px;color:var(--tm);">${s.sesiones} sesiones entrenadas · ${s.de} → ${s.a}</div>
+          </div>
+          <div class="arow-acc">
+            <button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;"
+              onclick="aplicarNivel(${a.id},'${s.a}')">Subir a ${s.a}</button>
+            <button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;background:none;color:var(--tm);"
+              onclick="posponerNivel(${a.id})">Dejarla así</button>
+          </div>
         </div>
-        <button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;"
-          onclick="aplicarNivel(${a.id},'${s.a}')">Subir a ${s.a}</button>
-        <button class="btn btn-s" style="font-size:11px;padding:3px 10px;white-space:nowrap;background:none;color:var(--tm);"
-          onclick="posponerNivel(${a.id})">Dejarla así</button>
       </div>`).join('')}
     </div>`;
   })();
@@ -4517,18 +4555,22 @@ function rInicio(){
     const cobrado=DB.pagos.filter(p=>p.mes===periodo&&p.alumna_id!==CUENTA_DE_AMIRA)
       .reduce((s,p)=>s+(+p.monto||+(getA(p.alumna_id)?.precio)||0),0);
     if(!deben.length&&!cobrado) return'';
+    // Lo que falta cobrar se suma solo si todas las que deben tienen el precio cargado: el
+    // 4/11/2026 decia "faltan 9 ($20.000)" porque 8 de esas 9 no lo tenian.
+    const sinPrecio=deben.filter(a=>!(+a.precio>0)).length;
     const falta=deben.reduce((s,a)=>s+(+a.precio||0),0);
     const pesos=n=>'$'+Math.round(n).toLocaleString('es-AR');
-    const cuenta=[cobrado?`cobrado ${pesos(cobrado)}`:'',deben.length?`faltan ${deben.length}${falta?` (${pesos(falta)})`:''}`:'todas pagaron'].filter(Boolean).join(' · ');
+    const cuenta=[cobrado?`cobrado ${pesos(cobrado)}`:'',deben.length?`faltan ${deben.length}${falta&&!sinPrecio?` (${pesos(falta)})`:''}`:'todas pagaron'].filter(Boolean).join(' · ');
     const {items,boton}=_corta(deben,'_cobOpen','ini-cobros');
     return`<div class="card" id="ini-cobros" style="margin-bottom:1rem;${deben.length?'border-left:3px solid var(--rd);':''}">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;${deben.length?'margin-bottom:.6rem;':''}">
         <div class="ctitle" style="margin-bottom:0;">💰 Cobros de ${nomMes}</div>
         <span style="font-size:12px;color:var(--tm);">${cuenta}</span>
       </div>
+      ${sinPrecio?`<div style="font-size:11px;color:var(--th);margin:-.3rem 0 .6rem;">${sinPrecio===1?'Una no tiene':`${sinPrecio} no tienen`} el precio cargado, así que no se sabe cuánto falta cobrar. Tocá "Cargar precio".</div>`:''}
       ${items.map(a=>`<div class="arow">
         <div class="av av-${a.color}" style="width:32px;height:32px;font-size:13px;">${avH(a)}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div>${a.precio?`<div style="font-size:11px;color:var(--tm);">$${a.precio}/mes</div>`:''}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${esc(nombreCorto(a))}</div><div style="font-size:11px;color:var(--tm);">${+a.precio>0?`${pesos(+a.precio)}/mes`:`Sin precio · <a href="#" onclick="event.preventDefault();openEditA(${a.id})" style="color:var(--tm);">Cargar precio</a>`}</div></div>
         <button class="btn btn-s" style="font-size:11px;white-space:nowrap;" onclick="marcarPago(${a.id})">Marcar pagado</button>
       </div>`).join('')}
       ${boton}
@@ -4605,17 +4647,21 @@ function rInicio(){
         ?`<button class="btn btn-s" style="color:#25D366;border-color:#25D366;white-space:nowrap;font-size:11px;" onclick="event.stopPropagation();waOpen('${_ph}',decodeURIComponent('${_msgInact}'),${a.id},'inactividad')">💬 WA</button>`
         :`<button class="btn btn-s" style="font-size:11px;" onclick="event.stopPropagation();S.selA=${a.id};S.selCiclo=${a.ciclo_actual||1};S.selSem=1;S.selDia=1;go('rutinas')">Rutina</button>`;
       const _noteOpen=S._quickNoteA===a.id;
-      return`<div class="arow" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="openDrawer('+a.id+')"'}>
-        <span style="font-size:16px;flex-shrink:0;">${icon}</span>
+      return`<div class="arow con-acc" style="cursor:pointer;flex-wrap:wrap;" ${_noteOpen?'':'onclick="openDrawer('+a.id+')"'}>
+        <span style="font-size:16px;line-height:40px;flex-shrink:0;">${icon}</span>
         <div class="av av-${a.color}">${avH(a)}</div>
-        <div style="flex:1;min-width:0;">
-          <div class="aname">${a.nombre}</div>
-          <div class="asub">${sub}${textoContacto(a.id)?' · '+textoContacto(a.id):''}</div>
+        <div class="arow-cuerpo">
+          <div class="arow-txt">
+            <div class="aname">${esc(a.nombre)}</div>
+            <div class="asub">${sub}${textoContacto(a.id)?' · '+textoContacto(a.id):''}</div>
+          </div>
+          <div class="arow-acc">
+            ${_actionBtn}
+            <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
+          </div>
         </div>
-        ${_actionBtn}
-        <button class="btn btn-s" style="font-size:11px;padding:4px 8px;${_noteOpen?'background:var(--s2);':''}" onclick="event.stopPropagation();S._quickNoteA=${_noteOpen?'null':a.id};render()" title="${_noteOpen?'Cerrar':'Nota rápida'}">📝</button>
         ${_noteOpen?`<div style="width:100%;padding:.4rem 0 .25rem;" onclick="event.stopPropagation()">
-          <textarea id="qn-${a.id}" placeholder="Nota sobre ${fn(a.nombre)}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
+          <textarea id="qn-${a.id}" placeholder="Nota sobre ${esc(fn(a.nombre))}... (solo visible en el panel)" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--bm);border-radius:var(--rs);background:var(--s2);color:var(--t);font-family:'DM Sans',sans-serif;resize:vertical;height:56px;box-sizing:border-box;" autofocus></textarea>
           <div style="display:flex;gap:6px;margin-top:4px;">
             <button class="btn btn-p btn-s" style="font-size:11px;" onclick="saveQuickNote(${a.id})">Guardar nota</button>
             <button class="btn btn-s" style="font-size:11px;" onclick="S._quickNoteA=null;render()">Cancelar</button>

@@ -366,8 +366,12 @@ Estrategias:
 
 **Revisión semanal (lunes, decidido con Amira):** en Inicio aparece la lista de alumnas activas con lo que hizo cada una la semana anterior. No entran la cuenta de Amira ni las que todavía no eran alumnas cuando empezó la semana que se revisa (13/10/2026): en su primera semana tienen los mensajes del día 3 y del día 7, y la revisión empieza el lunes siguiente.
 - "💬 Devolución" copia la plantilla `a_rev` (o `a_rev0` si no entrenó). `[semana]` trae los días, las pausas activas, los pesos que subió y cómo va el mes.
+- **El mes es el de la semana revisada** (4/11/2026): el del jueves, donde cae la mayor parte de la semana (`semanaARevisar().mes`).
+  - Hasta ese día era el del domingo. El lunes 2/11, la revisión de la semana del 26/10 al 1/11 le decía "En noviembre llevás 0 de 9 días" a una alumna que había llegado a su meta de octubre.
+  - Si ese mes ya terminó, el mensaje va en pasado: "En octubre entrenaste…", "En octubre llegaste a tu meta…" (`mesCerrado`).
 - La alumna queda revisada en `contactos` con motivo `revision`. Saltearla se guarda solo en el teléfono.
 - Si la revisión no se termina el lunes, la lista sigue plegada el resto de la semana.
+- **Uso (medido el 4/11/2026):** en `contactos` hay 2 devoluciones, las dos del 13/10. Ninguna los lunes 19/10, 26/10 y 2/11. Hasta ese día, en el celular la lista se leía de a una o dos palabras por renglón (ver "En el celular", en Inicio).
 
 **Listas del panel (revisión con datos reales, 13/10/2026):**
 - Con nombres repetidos (hay dos Paulas y dos Julietas) las listas y los selectores usan `nombreCorto`: el nombre de pila con la inicial del apellido ("Paula D."). Los selectores que aplican algo a una alumna (plantillas, avisos) muestran el nombre completo y no incluyen bajas. Los mensajes a la alumna siguen con `fn()`.
@@ -386,6 +390,13 @@ Estrategias:
 - "Resto de tus alumnas" va plegado, con las de 4 a 6 días sin entrenar a la vista.
 - Feedbacks: los de los últimos 7 días. Los "Bien" sin comentario van en una línea, y los reportes repetidos del mismo ejercicio en 10 minutos, en una fila ("3 veces").
 - Cobros: "Marcar pagado" (hasta ese día decía "✓ Ya pagó" en verde, y la lista de las que no pagaron parecía la de las que sí), con lo cobrado del período y cuánto falta. Ya no compara con el mes anterior: comparaba medio mes con uno entero y marcaba baja todos los meses. Amira anota todos los pagos, aunque a veces se olvida.
+  - Lo que falta se suma solo si todas las que deben tienen precio (4/11/2026). Si no, dice cuántas no lo tienen, y cada una tiene "Cargar precio", que abre Editar alumna.
+  - Ese día 8 de las 14 activas no tenían precio, y decía "faltan 9 ($20.000)": era el precio de la única que lo tenía.
+- Ciclos por renovar avisa si el ciclo tiene menos de 4 semanas cargadas (4/11/2026). Ese día, el ciclo de noviembre de una alumna tenía solo la semana 1, y figuraba como si estuviera terminando el ciclo.
+- **En el celular (4/11/2026):** en las filas con botones, el texto usa todo el ancho y los botones bajan abajo del texto cuando no entran al lado (`arow-cuerpo`, `arow-txt` y `arow-acc`). Lo usan atender, primeras dos semanas, la revisión, ciclos por renovar, subir de nivel y el resto de las alumnas.
+  - Hasta ese día, en un celular de 390 px el texto de la revisión quedaba en 55 px de ancho: hasta 14 renglones por alumna.
+  - En "subir de nivel" el texto se metía debajo del botón, y la página se salía 16 px del ancho de la pantalla.
+  - En la compu los botones siguen al lado del texto.
 
 ### Mediciones
 - **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa; para métricas de alumnas, excluirla. Desde el 21/10/2026 el Inicio y el resumen del domingo no la cuentan (`CUENTA_DE_AMIRA` en el panel y en `weekly-summary`): solo aparece en Ciclos por renovar y en Listas para subir de nivel, porque entrena con ella.
