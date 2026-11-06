@@ -5926,6 +5926,12 @@ function rHistorial(){
   `}`;
 }
 
+// Desde Análisis, las alumnas nuevas sin "¿Cómo llegó?": abre Editar alumna con ese campo a
+// la vista (6/11/2026).
+function anotarOrigen(id){
+  openEditA(id);
+  setTimeout(()=>{const s=document.getElementById('ea-origen');if(s){s.scrollIntoView({block:'center'});s.focus();}},60);
+}
 async function loadPageViews(){
   const since=new Date(Date.now()-30*86400000).toISOString();
   try{
@@ -5937,10 +5943,14 @@ async function loadPageViews(){
 
 function rAnalisis(){
   const all=DB.alumnas;
-  const now=new Date();
+  // La cuenta con la que entrena Amira no cuenta en nada de esto (6/11/2026): hasta ese dia
+  // Analisis decia "de 15 activas" y el Inicio, 14.
+  const esAmira=a=>!!a&&a.id===CUENTA_DE_AMIRA;
   // ── 1. Ejercicios con más reportes de molestia ──────────────
+  const TIPOS_REPORTE=['ejercicio_problema','dolor_articular','dolor_preocupante'];
+  const reportesDe=nom=>(DB.feedbacks||[]).filter(f=>TIPOS_REPORTE.includes(f.tipo)&&f.ejercicio_nombre&&f.alumna_id!==CUENTA_DE_AMIRA&&(!nom||f.ejercicio_nombre===nom));
   const repMap={};
-  (DB.feedbacks||[]).filter(f=>['ejercicio_problema','dolor_articular','dolor_preocupante'].includes(f.tipo)&&f.ejercicio_nombre).forEach(f=>{
+  reportesDe().forEach(f=>{
     if(!repMap[f.ejercicio_nombre])repMap[f.ejercicio_nombre]={n:0,grave:0};
     repMap[f.ejercicio_nombre].n++;
     if(f.tipo==='dolor_preocupante')repMap[f.ejercicio_nombre].grave++;
@@ -5948,94 +5958,86 @@ function rAnalisis(){
   const topRep=Object.entries(repMap).sort((a,b)=>b[1].n-a[1].n).slice(0,8);
 
   // ── 2. Días de la semana con más ausentismo ─────────────────
+  // Con pocos "No pude entrenar" el grafico no dice nada (el 6/11/2026 habia uno): se muestra desde 5.
+  const noPude=(DB.feedbacks||[]).filter(f=>f.tipo==='no_pude'&&f.created_at&&f.alumna_id!==CUENTA_DE_AMIRA);
   const npMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-  (DB.feedbacks||[]).filter(f=>f.tipo==='no_pude'&&f.created_at).forEach(f=>{
-    const d=new Date(f.created_at).getDay();npMap[d]=(npMap[d]||0)+1;
-  });
+  noPude.forEach(f=>{const d=new Date(f.created_at).getDay();npMap[d]=(npMap[d]||0)+1;});
+  const verAusentismo=noPude.length>=5;
   const diasNom=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const maxNP=Math.max(...Object.values(npMap),1);
 
-  // ── 3. Ejercicios estancados en múltiples alumnas ───────────
-  // Usa progresoHechos (cargado al inicio) + rutinas para resolver nombres
-  const estMap={};
-  all.forEach(a=>{
-    const rows=(DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id&&r.peso_kg);
+  // ── 3 y 4. Peso estancado y listas para subir peso ──────────
+  // Solo alumnas activas y lo que hicieron en los ultimos 30 dias, en el orden en que lo
+  // hicieron. Hasta el 6/11/2026 contaba tambien a las bajas y los ejercicios de ciclos
+  // viejos: "Vuelos laterales, 9 alumnas" sumaba alumnas que ya no entrenan.
+  const act=all.filter(a=>alumnaActiva(a)&&!esAmira(a));
+  const hace30=Date.now()-30*86400000;
+  const recientesPorEj=a=>{
     const porEj={};
-    rows.forEach(r=>{
+    for(const r of (DB.progresoHechos||[])){
+      if(r.alumna_id!==a.id||!r.peso_kg) continue;
+      const t=Date.parse(r.fecha_registro||''); if(isNaN(t)||t<hace30) continue;
       const nom=getEx(a.id,r.ciclo,r.semana,r.dia)[parseInt(r.ejercicio_idx)]?.nombre;
-      if(!nom)return;
-      if(!porEj[nom])porEj[nom]=[];
-      porEj[nom].push({c:parseInt(r.ciclo)||1,s:parseInt(r.semana),kg:parseFloat(r.peso_kg)});
-    });
-    Object.entries(porEj).forEach(([nom,recs])=>{
-      const sorted=[...recs].sort((a,b)=>a.c-b.c||a.s-b.s);
-      if(sorted.length<3)return;
-      const ult=sorted.slice(-3);
-      if(ult.every(r=>r.kg===ult[0].kg)){
-        if(!estMap[nom])estMap[nom]={n:0,alumnas:[]};
-        estMap[nom].n++;
-        let streak=0;for(let i=sorted.length-1;i>=0;i--){if(sorted[i].kg===ult[0].kg)streak++;else break;}
-        estMap[nom].alumnas.push({nombre:a.nombre,kg:ult[0].kg,streak});
+      if(!nom) continue;
+      (porEj[nom]=porEj[nom]||[]).push({t,kg:parseFloat(r.peso_kg),rpe:r.rpe});
+    }
+    for(const k in porEj) porEj[k].sort((x,y)=>x.t-y.t);
+    return porEj;
+  };
+  const estMap={},progrMap={};
+  act.forEach(a=>{
+    Object.entries(recientesPorEj(a)).forEach(([nom,recs])=>{
+      // El mismo peso en las ultimas 3 sesiones
+      if(recs.length>=3){
+        const ult=recs.slice(-3);
+        if(ult.every(r=>r.kg===ult[0].kg)){
+          let streak=0;for(let i=recs.length-1;i>=0&&recs[i].kg===ult[0].kg;i--)streak++;
+          (estMap[nom]=estMap[nom]||{n:0,alumnas:[]}).n++;
+          estMap[nom].alumnas.push({nombre:a.nombre,kg:ult[0].kg,streak});
+        }
+      }
+      // Le resulto liviano (RPE 7 o menos) en las ultimas 2 sesiones
+      const conRpe=recs.filter(r=>r.rpe);
+      if(conRpe.length>=2&&conRpe.slice(-2).every(r=>r.rpe<=7)){
+        (progrMap[nom]=progrMap[nom]||{n:0,alumnas:[]}).n++;
+        progrMap[nom].alumnas.push({nombre:a.nombre,kg:conRpe[conRpe.length-1].kg});
       }
     });
   });
-  const topEst=Object.entries(estMap).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
-
-  // ── 4. Listas para progresar (RPE ≤7 en ≥2 sesiones recientes) ──
-  const progrMap={};
-  all.forEach(a=>{
-    const rows=(DB.progresoHechos||[]).filter(r=>r.alumna_id===a.id&&r.rpe&&r.peso_kg);
-    const porEj={};
-    rows.forEach(r=>{
-      const nom=getEx(a.id,r.ciclo,r.semana,r.dia)[parseInt(r.ejercicio_idx)]?.nombre;
-      if(!nom)return;
-      if(!porEj[nom])porEj[nom]=[];
-      porEj[nom].push({c:parseInt(r.ciclo)||1,s:parseInt(r.semana),rpe:r.rpe,kg:parseFloat(r.peso_kg)});
-    });
-    Object.entries(porEj).forEach(([nom,recs])=>{
-      const sorted=[...recs].sort((a,b)=>a.c-b.c||a.s-b.s);
-      if(sorted.length<2)return;
-      const ult=sorted.slice(-2);
-      if(ult.every(r=>r.rpe<=7)){
-        if(!progrMap[nom])progrMap[nom]={n:0,alumnas:[]};
-        progrMap[nom].n++;
-        progrMap[nom].alumnas.push({nombre:a.nombre,kg:ult[ult.length-1].kg});
-      }
-    });
-  });
+  // Estancado en una sola alumna se ve en su progreso: aca van los que se repiten.
+  const topEst=Object.entries(estMap).filter(([,v])=>v.n>=2).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
   const topProgr=Object.entries(progrMap).sort((a,b)=>b[1].n-a[1].n).slice(0,5);
 
   // ── 5. Retención por cohort ─────────────────────────────────
   // Solo las alumnas activas: una baja que entreno hace 20 dias no es una activa.
-  const _act=all.filter(alumnaActiva);
-  const actHoy=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
+  const actHoy=act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)===0).length;
   // Hoy y los 6 dias anteriores, como la retencion del Inicio y el resumen del domingo
   // (con <=7 contaba 8 dias y daba una alumna mas que el Inicio).
-  const act7=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<7).length;
-  const act30=_act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<30).length;
+  const act7=act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<7).length;
+  const act30=act.filter(a=>a.last_active_at&&localDayDiff(a.last_active_at)<30).length;
 
   // ── Widget visitas al sitio ─────────────────────────────────
   const pvWidget=(()=>{
     if(DB.pageViews===null)return`<div class="card" style="margin-bottom:1rem;"><div style="display:flex;align-items:center;justify-content:space-between;"><div class="ctitle" style="margin:0;">🌐 Visitas al sitio</div><button class="btn btn-s" onclick="loadPageViews()">Cargar</button></div><div style="font-size:12px;color:var(--th);margin-top:.4rem;">Requiere ejecutar migrations/create_page_views.sql en Supabase primero</div></div>`;
     const rows=DB.pageViews;
     if(!rows.length)return`<div class="card" style="margin-bottom:1rem;"><div class="ctitle">🌐 Visitas al sitio</div><div style="font-size:12px;color:var(--th);">Sin datos aún — ejecutá la migración SQL o esperá que entre alguien al sitio.</div></div>`;
-    const cnt={};rows.forEach(r=>{cnt[r.page]=(cnt[r.page]||0)+1;});
-    const ago7=Date.now()-7*86400000;
-    const ago30=Date.now()-30*86400000;
-    const en7=r=>new Date(r.created_at).getTime()>ago7;
-    // Clics a WhatsApp desde la web: la página principal y la del formulario (se anotan
-    // desde el 19/10/2026; antes solo los veía Analytics). Los de la bio van en su bloque.
-    // Lo que importa es cuántas escribieron: los botones de la web llevan a WhatsApp, no al
-    // formulario, y desde agosto nadie se anotó por ahí.
-    // Las notas (26/10/2026) anotan su clic a WhatsApp como /notas/wa.
+    // Rehecha el 6/11/2026. Mezclaba tres periodos (7, 30 y 90 dias) en cuatro filas de
+    // etiquetas, y los "30 dias" sumaban lo de antes del 19/10, cuando todavia contaban los
+    // robots, Amira y las alumnas: decia 182 personas, y desde el 19/10 eran 77. Ahora todo
+    // es de un periodo que se elige (7 o 30 dias), que empieza como mucho el 19/10, y una
+    // tabla dice de donde vinieron y cuantas tocaron WhatsApp.
+    const dias=S._webDias===7?7:30;
+    const LIMPIO=new Date(2026,9,19).getTime();   // desde el 19/10/2026 se cuenta bien
+    const inicio=Math.max(Date.now()-dias*86400000,LIMPIO);
+    const cuando=inicio===LIMPIO?'Desde el 19/10':`En los últimos ${dias} días`;
+    const per=rows.filter(r=>new Date(r.created_at).getTime()>=inicio);
+    // Clics a WhatsApp desde la web: la página principal, la del formulario y las notas
+    // (/notas/wa, desde el 26/10). Los de la bio van en su linea. Lo que importa es cuantas
+    // escribieron: los botones de la web llevan a WhatsApp, no al formulario.
     const esWa=p=>p==='/wa'||p==='/registro/wa'||p==='/notas/wa';
-    const siteRows=rows.filter(r=>!r.page.startsWith('/bio/')&&!esWa(r.page));
-    const waRows=rows.filter(r=>esWa(r.page));
-    const vis30=siteRows.length, vis7=siteRows.filter(en7).length;
-    const wa30=waRows.length, wa7=waRows.filter(en7).length;
-    const convPct=vis7>0?(wa7/vis7*100):0;
-    const convTxt=vis7>0?(convPct>=1?Math.round(convPct):convPct.toFixed(1)):'—';
-    const waDesde=Date.now()<new Date('2026-11-18').getTime()?' (se cuenta desde el 19/10)':'';
+    const siteRows=per.filter(r=>!r.page.startsWith('/bio/')&&!esWa(r.page));
+    const waRows=per.filter(r=>esWa(r.page));
+    const V=siteRows.length, W=waRows.length;
     // De dónde viene cada una. Las visitas anotadas antes del 12/10/2026 no traen origen:
     // se saca del sitio del que venían (sin la etiqueta utm, Instagram cuenta como directo).
     const origenDe=r=>{
@@ -6050,15 +6052,29 @@ function rAnalisis(){
       return'Otro';
     };
     const srcEmoji={'Google Ads':'🟢','Instagram':'📸','Facebook':'🔵','TikTok':'🎵','Google':'🔍','Directo':'🔗','Otro':'🌐'};
-    const chips=(lista,emoji,origen)=>{
-      const c={};lista.forEach(x=>{const o=origen(x);c[o]=(c[o]||0)+1;});
-      return Object.entries(c).sort((a,b)=>b[1]-a[1])
-        .map(([s2,n2])=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${emoji[s2]||'🌐'} ${esc(s2)}: <strong>${n2}</strong></span>`).join('');
-    };
-    const titulo=t=>`<div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">${t}</div>`;
-    const fila=html=>`<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--t);">${html}</div>`;
-    const visChips=chips(siteRows,srcEmoji,origenDe);
-    const waChips=chips(waRows,srcEmoji,origenDe);
+    const chip=html=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${html}</span>`;
+    // Una fila por origen: cuantas entraron y cuantas tocaron WhatsApp. Antes eran dos filas
+    // de etiquetas separadas, y habia que cruzarlas a ojo.
+    const porOrigen={};
+    siteRows.forEach(r=>{const o=origenDe(r);(porOrigen[o]=porOrigen[o]||{v:0,w:0}).v++;});
+    waRows.forEach(r=>{const o=origenDe(r);(porOrigen[o]=porOrigen[o]||{v:0,w:0}).w++;});
+    const filas=Object.entries(porOrigen).sort((a,b)=>b[1].v-a[1].v||b[1].w-a[1].w);
+    // El formulario ya casi no se usa: se nombra solo si alguien se anotó.
+    const reg=(DB.registros||[]).filter(r=>(r.tipo||'registro')==='registro'&&new Date(r.created_at).getTime()>=inicio).length;
+    const frase=V
+      ?`${cuando} entraron <strong>${V}</strong> ${V===1?'persona':'personas'} a tu web y ${W?`<strong>${W}</strong> ${W===1?'tocó':'tocaron'} WhatsApp: 1 de cada ${Math.max(1,Math.round(V/W))}`:'nadie tocó WhatsApp'}.${reg?` ${reg===1?'Una se anotó':`${reg} se anotaron`} con el formulario.`:''}`
+      :`${cuando} no entró nadie a tu web.`;
+    const celda='padding:.4rem 0;border-top:1px solid var(--b);';
+    const tabla=filas.length?`<table style="width:100%;max-width:560px;border-collapse:collapse;font-size:13px;color:var(--t);margin-bottom:.35rem;">
+      <tr style="font-size:10px;color:var(--th);text-transform:uppercase;letter-spacing:.05em;">
+        <th style="text-align:left;font-weight:600;padding-bottom:.3rem;">De dónde vinieron</th>
+        <th style="text-align:right;font-weight:600;padding-bottom:.3rem;">Entraron</th>
+        <th style="text-align:right;font-weight:600;padding:0 0 .3rem .9rem;">WhatsApp</th></tr>
+      ${filas.map(([o,c])=>`<tr><td style="${celda}">${srcEmoji[o]||'🌐'} ${esc(o)}</td>
+        <td style="${celda}text-align:right;font-weight:600;">${c.v}</td>
+        <td style="${celda}text-align:right;${c.w?'font-weight:600;color:var(--vd);':'color:var(--th);'}">${c.w}</td></tr>`).join('')}
+    </table>`:'';
+    const notaDirecto=porOrigen['Directo']?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">Directo: no se sabe de dónde venían. Escribieron la dirección o entraron por un link sin etiqueta (Instagram no avisa de dónde viene la persona).</div>`:'';
     // Las notas (26/10/2026) son para que la encuentren en Google: cuántas personas entraron
     // por cada una y cuántas escribieron desde ahí. Cada persona cuenta una vez por día, en la
     // página por la que entró.
@@ -6066,66 +6082,62 @@ function rAnalisis(){
       '/notas/ejercicios-en-casa-con-mancuernas':'En casa con mancuernas','/notas/cuantos-dias-por-semana-entrenar':'Cuántos días entrenar'};
     const notaRows=siteRows.filter(r=>r.page.startsWith('/notas/'));
     const waNotas=waRows.filter(r=>r.page==='/notas/wa').length;
-    const notaChips=chips(notaRows,{},r=>notaNombre[r.page]||r.page.replace('/notas/','')).replace(/🌐 /g,'📝 ')
-      +(waNotas?`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">💬 Tocaron WhatsApp: <strong>${waNotas}</strong></span>`:'');
-    // De dónde vienen las alumnas: lo que Amira anota en "¿Cómo llegó?" (19/10/2026).
-    // Es el dato que dice dónde conviene poner plata: en agosto-octubre casi todas
-    // llegaron por Instagram, ninguna por los anuncios de Google.
+    const porNota={};notaRows.forEach(r=>{const n=notaNombre[r.page]||r.page.replace('/notas/','');porNota[n]=(porNota[n]||0)+1;});
+    const lineaNotas=notaRows.length?`<div style="font-size:12px;color:var(--tm);margin-bottom:.35rem;">📝 Por las notas entraron <strong>${notaRows.length}</strong> (${Object.entries(porNota).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`${esc(n)} ${c}`).join(' · ')}) y ${waNotas?`<strong>${waNotas}</strong> ${waNotas===1?'tocó':'tocaron'} WhatsApp`:'nadie tocó WhatsApp'}.</div>`:'';
+    // La bio es el link del perfil de Instagram. El 6/11/2026 no se abria desde el 3/10.
+    const bioAbren=per.filter(r=>r.page==='/bio/view').length;
+    const bioWa=per.filter(r=>r.page==='/bio/wa').length;
+    const lineaBio=`<div style="font-size:12px;color:var(--tm);margin-bottom:.35rem;">📲 ${bioAbren
+      ?`El link en bio de Instagram lo abrieron <strong>${bioAbren}</strong> y ${bioWa?`<strong>${bioWa}</strong> ${bioWa===1?'tocó':'tocaron'} WhatsApp desde ahí`:'nadie tocó WhatsApp desde ahí'}.`
+      :'Nadie abrió el link en bio de Instagram.'}</div>`;
+    // De dónde vienen las alumnas: lo que Amira anota en "¿Cómo llegó?" (19/10/2026). Es el
+    // dato que dice dónde conviene poner plata. Va con 90 dias porque entran 4 o 5 por mes, y
+    // las que no lo tienen se anotan desde aca (el 6/11/2026 eran 11 de 12).
     const hace90=Date.now()-90*86400000;
     const nuevas=DB.alumnas.filter(a=>a.id!==CUENTA_DE_AMIRA&&a.created_at&&new Date(a.created_at).getTime()>hace90);
-    const alEmoji={'Instagram':'📸','WhatsApp':'💬','Recomendación':'🤝','Google':'🔍','Web':'🌐','Otro':'✳️','Sin anotar':'❔'};
-    const alChips=chips(nuevas,alEmoji,a=>a.origen||'Sin anotar');
-    const sinAnotar=nuevas.filter(a=>!a.origen).length;
-    // El formulario ya casi no se usa: se nombra solo si alguien se anotó.
-    const reg30=(DB.registros||[]).filter(r=>(r.tipo||'registro')==='registro'&&new Date(r.created_at).getTime()>ago30).length;
-
-    // Bio: vistas vs clics
-    const bioViews=cnt['/bio/view']||0;
-    const bioClicks=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').reduce((a,[,n])=>a+n,0);
-    const bioLabelMap={wa:'💬 WA',registro:'📝 Registro',sitio:'🌐 Sitio',instagram:'📸 Instagram'};
-    const bioDetailRows=Object.entries(cnt).filter(([p])=>p.startsWith('/bio/')&&p!=='/bio/view').map(([p,n])=>{const k=p.replace('/bio/','');return`<span style="background:var(--s2);border-radius:6px;padding:2px 7px;">${bioLabelMap[k]||esc(k)}: <strong>${n}</strong></span>`;}).join('');
+    const alEmoji={'Instagram':'📸','WhatsApp':'💬','Recomendación':'🤝','Google':'🔍','Web':'🌐','Otro':'✳️'};
+    const porCanal={};nuevas.filter(a=>a.origen).forEach(a=>{porCanal[a.origen]=(porCanal[a.origen]||0)+1;});
+    const canales=Object.entries(porCanal).sort((a,b)=>b[1]-a[1]);
+    const sinAnotar=nuevas.filter(a=>!a.origen);
+    const bloqueAlumnas=`<div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--b);">
+      <div style="font-size:13px;color:var(--t);margin-bottom:.5rem;">🎯 ${nuevas.length
+        ?`<strong>${nuevas.length}</strong> ${nuevas.length===1?'alumna nueva':'alumnas nuevas'} en los últimos 90 días.`
+        :'No entró ninguna alumna nueva en los últimos 90 días.'}</div>
+      ${canales.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--t);margin-bottom:.5rem;">${canales.map(([o,n])=>chip(`${alEmoji[o]||'✳️'} ${esc(o)}: <strong>${n}</strong>`)).join('')}</div>`:''}
+      ${sinAnotar.length?`<div style="font-size:12px;color:var(--tm);margin-bottom:.4rem;">${sinAnotar.length===1?'A una le falta':`A ${sinAnotar.length} les falta`} anotar cómo llegó. Tocá su nombre para anotarlo:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${sinAnotar.map(a=>`<button class="btn btn-s" style="font-size:11px;" onclick="anotarOrigen(${a.id})">${esc(nombreCorto(a))}</button>`).join('')}</div>`:''}
+    </div>`;
     return`<div class="card" style="margin-bottom:1rem;">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;"><div class="ctitle" style="margin:0;">📊 Cómo viene tu web</div><button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button></div>
-<div style="font-size:13px;color:var(--t);line-height:1.65;margin-bottom:.85rem;">En los <strong>últimos 7 días</strong> entraron <strong>${vis7}</strong> personas a tu web y <strong>${wa7}</strong> ${wa7===1?'tocó':'tocaron'} WhatsApp para escribirte.</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.6rem;">
-<div class="metric"><div class="mlabel">👀 Entraron</div><div class="mval">${vis7}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">personas a tu web</div></div>
-<div class="metric"><div class="mlabel">💬 Tocaron WhatsApp</div><div class="mval g">${wa7}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">para escribirte${waDesde}</div></div>
-<div class="metric"><div class="mlabel">📈 Escriben</div><div class="mval">${convTxt}${vis7>0?'%':''}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de cada 100 que entran</div></div>
-</div>
-<div style="font-size:11px;color:var(--tm);margin-bottom:.7rem;">En 30 días entraron <strong>${vis30}</strong> personas y <strong>${wa30}</strong> tocaron WhatsApp${reg30?` · <strong>${reg30}</strong> se ${reg30===1?'anotó':'anotaron'} con el formulario`:''}. Desde el 19/10 no cuentan los robots, ni Amira, ni las alumnas, y cada persona cuenta una vez por día.</div>
-${visChips?`<div style="margin-bottom:.7rem;">${titulo('📍 De dónde vienen las visitas (30 días)')}${fila(visChips)}</div>`:''}
-${notaChips?`<div style="margin-bottom:.7rem;">${titulo('📝 Entraron por las notas (30 días)')}${fila(notaChips)}</div>`:''}
-<div style="margin-bottom:.2rem;">${titulo('💬 De dónde vienen las que tocaron WhatsApp (30 días)')}${waChips?fila(waChips):`<div style="font-size:12px;color:var(--th);">Todavía nadie tocó WhatsApp desde que se cuenta (19/10).</div>`}</div>
-<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
-${titulo('🎯 De dónde vienen tus alumnas (últimos 90 días)')}
-${nuevas.length?fila(alChips):`<div style="font-size:12px;color:var(--th);">No hay alumnas nuevas en los últimos 90 días.</div>`}
-${sinAnotar?`<div style="font-size:11px;color:var(--tm);margin-top:.4rem;">${sinAnotar===1?'A 1 le falta':`A ${sinAnotar} les falta`} anotar cómo llegó: ✏️ en su ficha → "¿Cómo llegó?".</div>`:''}
-</div>
-<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--b);">
-<div style="font-size:11px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem;">📲 Link en bio de Instagram</div>
-<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--tm);">
-<span>Aperturas: <strong>${bioViews}</strong></span><span style="color:var(--b);">|</span><span>Clics: <strong>${bioClicks}</strong></span>
-</div>
-${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4rem;font-size:11px;color:var(--tm);">${bioDetailRows}</div>`:''}
-</div>
-</div>`;
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:.7rem;">
+        <div class="ctitle" style="margin:0;">📊 Cómo viene tu web</div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          ${[7,30].map(d=>`<button class="stab${dias===d?' active':''}" onclick="S._webDias=${d};render()">${d} días</button>`).join('')}
+          <button class="btn btn-s" onclick="loadPageViews()" title="Actualizar">↻</button>
+        </div>
+      </div>
+      <div style="font-size:15px;color:var(--t);line-height:1.5;margin-bottom:.9rem;">${frase}</div>
+      ${tabla}${notaDirecto}${lineaNotas}${lineaBio}
+      ${bloqueAlumnas}
+      <div style="font-size:10px;color:var(--th);margin-top:.9rem;">Cada persona cuenta una vez por día. No cuentan los robots, ni vos, ni las alumnas.</div>
+    </div>`;
   })();
 
+  // Dos partes, como el Inicio (6/11/2026): la web y las alumnas.
+  const metrica=(label,val,g)=>`<div class="metric" style="padding:.85rem 1rem;"><div class="mlabel">${label}</div><div class="mval${g?' g':''}">${val}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${act.length} activas</div></div>`;
   return`<div class="ptitle">Análisis</div>
+  <div class="isec">Tu web</div>
   ${pvWidget}
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.5rem;">
-    <div class="metric"><div class="mlabel">Entrenaron hoy</div><div class="mval g">${actHoy}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${_act.length} activas</div></div>
-    <div class="metric"><div class="mlabel">Entrenaron (7d)</div><div class="mval">${act7}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${_act.length} activas</div></div>
-    <div class="metric"><div class="mlabel">Entrenaron (30d)</div><div class="mval">${act30}</div><div style="font-size:10px;color:var(--th);margin-top:2px;">de ${_act.length} activas</div></div>
+  <div class="isec">Tus alumnas</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;">
+    ${metrica('Entrenaron hoy',actHoy,true)}${metrica('En 7 días',act7)}${metrica('En 30 días',act30)}
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem;margin-bottom:1rem;">
     <div class="card" style="margin-bottom:0;">
-      <div class="ctitle" style="margin-bottom:.75rem;">⚠️ Ejercicios con más molestias</div>
+      <div class="ctitle" style="margin-bottom:.75rem;">⚠️ Ejercicios con molestias o reportes</div>
       ${topRep.length===0?`<div class="empty" style="font-size:12px;">Sin reportes todavía</div>`:''}
       ${topRep.map(([nom,v],idx)=>{
         const open=S['rep_open_'+idx];
-        const details=(DB.feedbacks||[]).filter(f=>f.ejercicio_nombre===nom&&['ejercicio_problema','dolor_articular','dolor_preocupante'].includes(f.tipo));
-        const detailHtml=details.map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);flex-wrap:wrap;"><span style="font-weight:500;color:var(--t);min-width:70px;">'+(al?fn(al.nombre):'?')+'</span><span style="color:var(--tm);">'+(FB_LABELS[f.tipo]||esc(f.tipo))+'</span><span style="color:var(--th);margin-left:auto;">'+fmtWhen(f.created_at)+'</span>'+(f.nota?'<span style="width:100%;color:var(--tm);padding-left:78px;">"'+esc(f.nota)+'"</span>':'')+'</div>';}).join('');
+        const detailHtml=reportesDe(nom).map(f=>{const al=DB.alumnas.find(a=>a.id===f.alumna_id);return'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);flex-wrap:wrap;"><span style="font-weight:500;color:var(--t);min-width:70px;">'+(al?esc(fn(al.nombre)):'?')+'</span><span style="color:var(--tm);">'+(FB_LABELS[f.tipo]||esc(f.tipo))+'</span><span style="color:var(--th);margin-left:auto;">'+fmtWhen(f.created_at)+'</span>'+(f.nota?'<span style="width:100%;color:var(--tm);padding-left:78px;">"'+esc(f.nota)+'"</span>':'')+'</div>';}).join('');
         return'<div style="border-bottom:1px solid var(--b);">'
           +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'rep_open_'+idx+'\']=!S[\'rep_open_'+idx+'\'];render()">'
           +'<div style="flex:1;color:var(--t);font-size:12px;">'+esc(nom)+'</div>'
@@ -6136,7 +6148,7 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
           +'</div>';
       }).join('')}
     </div>
-    <div class="card" style="margin-bottom:0;">
+    ${verAusentismo?`<div class="card" style="margin-bottom:0;">
       <div class="ctitle" style="margin-bottom:.75rem;">📅 Ausentismo por día</div>
       ${[0,1,2,3,4,5,6].map(d=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">
         <span style="font-size:11px;color:var(--tm);width:30px;">${diasNom[d]}</span>
@@ -6145,14 +6157,15 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
         </div>
         <span style="font-size:11px;color:var(--tm);width:20px;text-align:right;">${npMap[d]||0}</span>
       </div>`).join('')}
-    </div>
+    </div>`:''}
   </div>
   <div class="card">
-    <div class="ctitle" style="margin-bottom:.75rem;">📊 Ejercicios con peso estancado (≥3 semanas, en múltiples alumnas)</div>
-    ${topEst.length===0?`<div class="empty" style="font-size:12px;">Sin datos suficientes todavía</div>`:''}
+    <div class="ctitle" style="margin-bottom:.3rem;">📊 Ejercicios con el peso estancado</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">El mismo peso en las últimas 3 sesiones, en 2 o más alumnas activas (últimos 30 días).</div>
+    ${topEst.length===0?`<div class="empty" style="font-size:12px;">Ningún ejercicio con el mismo peso en 2 o más alumnas.</div>`:''}
     ${topEst.map(([nom,v],idx)=>{
       const open=S['est_open_'+idx];
-      const detailHtml=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+fn(al.nombre)+'</span><span style="color:var(--tm);">'+al.kg+' kg</span><span style="color:var(--th);margin-left:auto;">'+al.streak+' sem iguales</span></div>').join('');
+      const detailHtml=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+esc(fn(al.nombre))+'</span><span style="color:var(--tm);">'+al.kg+' kg</span><span style="color:var(--th);margin-left:auto;">'+al.streak+' sesiones iguales</span></div>').join('');
       return'<div style="border-bottom:1px solid var(--b);">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'est_open_'+idx+'\']=!S[\'est_open_'+idx+'\'];render()">'
         +'<div style="flex:1;color:var(--t);font-size:12px;">'+esc(nom)+'</div>'
@@ -6164,10 +6177,11 @@ ${bioDetailRows?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:.4re
     }).join('')}
   </div>
   ${topProgr.length>0?`<div class="card">
-    <div class="ctitle" style="margin-bottom:.75rem;">📈 Listas para subir peso (RPE 😌 en ≥2 sesiones)</div>
+    <div class="ctitle" style="margin-bottom:.3rem;">📈 Listas para subir peso</div>
+    <div style="font-size:11px;color:var(--th);margin-bottom:.75rem;">Les resultó liviano (RPE 7 o menos) en las últimas 2 sesiones (alumnas activas, últimos 30 días).</div>
     ${topProgr.map(([nom,v],idx)=>{
       const open2=S['prog_open_'+idx];
-      const dh=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+fn(al.nombre)+'</span><span style="color:var(--tm);">actualmente '+al.kg+' kg</span><span style="color:var(--vd);margin-left:auto;">→ subir peso</span></div>').join('');
+      const dh=v.alumnas.map(al=>'<div style="display:flex;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--b);align-items:center;"><span style="font-weight:500;color:var(--t);min-width:80px;">'+esc(fn(al.nombre))+'</span><span style="color:var(--tm);">actualmente '+al.kg+' kg</span><span style="color:var(--vd);margin-left:auto;">→ subir peso</span></div>').join('');
       return'<div style="border-bottom:1px solid var(--b);">'
         +'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;" onclick="S[\'prog_open_'+idx+'\']=!S[\'prog_open_'+idx+'\'];render()">'
         +'<div style="flex:1;color:var(--t);font-size:12px;">'+esc(nom)+'</div>'

@@ -399,7 +399,7 @@ Estrategias:
   - En la compu los botones siguen al lado del texto.
 
 ### Mediciones
-- **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa; para métricas de alumnas, excluirla. Desde el 21/10/2026 el Inicio y el resumen del domingo no la cuentan (`CUENTA_DE_AMIRA` en el panel y en `weekly-summary`): solo aparece en Ciclos por renovar y en Listas para subir de nivel, porque entrena con ella.
+- **La alumna `id = 3` es la cuenta con la que entrena Amira.** Figura como activa; para métricas de alumnas, excluirla. Desde el 21/10/2026 el Inicio y el resumen del domingo no la cuentan, y desde el 6/11 tampoco Análisis (`CUENTA_DE_AMIRA` en el panel y en `weekly-summary`): solo aparece en Ciclos por renovar y en Listas para subir de nivel, porque entrena con ella.
 - **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
 - **Arranque** (punto de partida, 13/10/2026): de 35 alumnas, 6 nunca marcaron un ejercicio (1 sigue activa). De las 29 que arrancaron, la mitad marcó el primero antes de los 2 días del alta, 18 dentro de los 3 días y 7 después de una semana. Entran 4 o 5 alumnas por mes. Se mide con `alumnas.created_at` y la primera fila de `progreso` con `hecho`.
 - **Constancia** (punto de partida, 13/10/2026): con la cuenta de "Constancia" hecha en SQL sobre `progreso`, `rutinas` y las sesiones cortas de `feedbacks`, en septiembre habrían llegado a la meta 9 de las 16 alumnas activas que ya entrenaban.
@@ -417,6 +417,16 @@ Estrategias:
   - Amira lo anota en el alta o en la ficha. Al aprobar una inscripción se precarga con lo que anotó la web.
   - Análisis muestra de dónde vinieron las alumnas de los últimos 90 días.
   - De agosto a octubre llegaron por Instagram y una por WhatsApp; ninguna por Google Ads.
+- **Análisis → "Cómo viene tu web" (rehecha el 6/11/2026):** todo es de un período que se elige (7 o 30 días) y que empieza como mucho el 19/10, desde cuando se cuenta bien.
+  - Arriba, una frase: cuántas entraron, cuántas tocaron WhatsApp y "1 de cada N".
+  - Una tabla por origen dice cuántas entraron y cuántas tocaron WhatsApp. Las notas y la bio van en una línea cada una.
+  - Debajo, las alumnas nuevas de los últimos 90 días. Las que no tienen "¿Cómo llegó?" son botones que abren Editar alumna en ese campo (`anotarOrigen`).
+  - Hasta ese día mezclaba 7, 30 y 90 días en cuatro filas de etiquetas. Los 30 días sumaban lo de antes del 19/10, cuando contaban los robots: decía 182 personas, y desde el 19/10 eran 77 (40 Directo y 28 de Google Ads).
+  - "Directo" es una visita sin etiqueta y sin sitio de origen. Instagram no avisa de dónde viene la persona, así que un link de Instagram sin `?utm_source=instagram` cuenta como Directo.
+  - La bio (`/bio`) no se abre desde el 3/10 (medido el 6/11).
+- **Análisis → "Tus alumnas" (6/11/2026):** no cuenta la cuenta de Amira (decía "de 15 activas" y el Inicio, 14).
+  - "Peso estancado" (el mismo peso en las últimas 3 sesiones, en 2 o más alumnas) y "Listas para subir peso" miran solo a las activas y lo de los últimos 30 días. Hasta ese día sumaban bajas y ciclos viejos.
+  - "Ausentismo por día" aparece desde 5 "No pude entrenar". Ese día había uno.
 - **Resultados comunes de Google (SEO, 26/10/2026):** la búsqueda a la que apunta la landing es "entrenadora personal online para mujeres".
   - Está en el título, la descripción y el `h1`. La línea verde de arriba del título grande es parte del `h1` (`.hero-badge`).
   - El precio sigue en el título, porque es lo que hace elegir un resultado entre otros.
