@@ -472,7 +472,7 @@ Estrategias:
     - Del 29/10 al 2/11 nadie tocó WhatsApp (14 visitas de Ads). Se probó que la web nueva cuenta los toques.
     - El 2/11 se armó una lista de 70 palabras clave negativas: presencial y lugares, influencers y contenido gratis, IA, ejercicios sueltos y otras disciplinas, cursos y empleo, hombres, y búsquedas genéricas de rutinas (en concordancia exacta).
     - No bloquea "entrenamiento personalizado", "personal trainer online", "entrenadora online" ni "rutina personalizada".
-    - Si el 9/11 sigue sin contactos útiles, la propuesta es pausar la campaña.
+    - La revisión va el martes 10/11, porque el lunes 9 es feriado. Si sigue sin contactos útiles, la propuesta es pausar la campaña.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".
