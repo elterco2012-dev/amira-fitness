@@ -403,6 +403,15 @@ Estrategias:
 - **Días planificados sin empezar** (punto de partida de la sesión corta, 13/10/2026): en las semanas que la alumna ya dejó atrás (marcó algo en una semana posterior) y que se cerraron en los últimos 28 días, 62 de 154 días (40%) no tenían ningún ejercicio marcado; 15 a medias y 77 completos. En todo el historial, 38%. Se mide con las tablas `rutinas` y `progreso`: cada día de rutina con ejercicios de una semana cerrada cuenta como planificado, y "cerrada" es la fecha de la primera marca en una semana posterior. Repetir a las 4 semanas del cambio con el mismo criterio.
 - **Arranque** (punto de partida, 13/10/2026): de 35 alumnas, 6 nunca marcaron un ejercicio (1 sigue activa). De las 29 que arrancaron, la mitad marcó el primero antes de los 2 días del alta, 18 dentro de los 3 días y 7 después de una semana. Entran 4 o 5 alumnas por mes. Se mide con `alumnas.created_at` y la primera fila de `progreso` con `hecho`.
 - **Constancia** (punto de partida, 13/10/2026): con la cuenta de "Constancia" hecha en SQL sobre `progreso`, `rutinas` y las sesiones cortas de `feedbacks`, en septiembre habrían llegado a la meta 9 de las 16 alumnas activas que ya entrenaban.
+- **A las 4 semanas (10/11/2026):**
+  - Criterio de esta medición: sin la semana 0; "completo" es el 80% de los ejercicios o una sesión corta; la fecha de una marca es `fecha_registro` (o `updated_at`). La consulta del 13/10 no quedó guardada.
+  - Días sin empezar (semanas cerradas del 13/10 al 10/11): 31 de 111 (28%), 11 a medias y 69 completos (8 con sesión corta).
+    - La misma cuenta, rehecha el 10/11 para los 28 días antes del 13/10, da 42 de 141 (30%), no el 40% de arriba: después se marcaron días viejos y la consulta no es la misma. Comparar contra el 30%: prácticamente igual.
+  - Sesiones cortas desde el 13/10: 11, de 6 alumnas.
+  - Constancia de octubre: llegaron 5 de las 14 activas que ya entrenaban. Septiembre, rehecho el 10/11: 8 de 12 (cambió quiénes siguen activas). Tres alumnas entrenaron 0 o 1 día en octubre.
+  - Revisión semanal: 2 registradas en total, las dos del 13/10.
+  - Arranque: 2 altas desde el 13/10. Una marcó su primer ejercicio a los 5 días; la otra, ninguno todavía. Mensajes del arranque anotados: 2 del día 7 (ninguno de bienvenida ni del día 3).
+  - Con 12 a 15 alumnas, ninguna de estas diferencias es significativa.
 
 ### Visitas a la web y de dónde vienen las alumnas (19/10/2026)
 - **WhatsApp, no el formulario.** Los botones de la web llevan a WhatsApp, no al formulario: desde agosto nadie se anotó por ahí.
@@ -473,6 +482,13 @@ Estrategias:
     - El 2/11 se armó una lista de 70 palabras clave negativas: presencial y lugares, influencers y contenido gratis, IA, ejercicios sueltos y otras disciplinas, cursos y empleo, hombres, y búsquedas genéricas de rutinas (en concordancia exacta).
     - No bloquea "entrenamiento personalizado", "personal trainer online", "entrenadora online" ni "rutina personalizada".
     - La revisión va el martes 10/11, porque el lunes 9 es feriado. Si sigue sin contactos útiles, la propuesta es pausar la campaña.
+  - **Revisión del 10/11 (semana del 3 al 9/11):** $3.700, 646 impresiones, 17 clics, 14 visitas a la web y ningún toque a WhatsApp. Nadie le escribió a Amira. Desde el 29/10, ningún toque desde los anuncios.
+    - El 84% del gasto fue a tres palabras de rutinas: "plan entrenamiento gimnasio" ($1.106, 5 clics), "plan de entrenamiento en…" ($1.054, 5) y "rutinas de ejercicio en casa" ($931, 4).
+    - Las búsquedas eran de rutinas gratis y ejercicios sueltos ("abdominales de pie en casa", "stretching en casa", "tai chi caminata en casa", "rutinas para ganar masa muscular en casa mujer"), una influencer ("laura zado") y un entrenador en otra provincia ("personal trainer mendoza").
+    - Las palabras de quien busca entrenadora casi no tuvieron clics: "entrenamiento personalizado online" y "personal trainer mujeres", 1 cada una; "entrenadora online" y "asesoramiento deportivo online", ninguno.
+    - El 94% de los clics llegó desde el celular, y el grupo con más clics fue el de mujeres de 35 a 44 (7 de 17).
+    - Decisión de Aaron (10/11): seguir solo con las búsquedas de quien busca entrenadora. Se pausan las palabras de rutinas y planes, y se suman negativas: abdominales, stretching, tai chi, caminata, masa muscular, tonificar, "laura zado" y mendoza. Lo hace Aaron en Google Ads.
+    - Próxima revisión: martes 24/11. Si en esas dos semanas no hay ningún contacto útil, pausar la campaña.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".
