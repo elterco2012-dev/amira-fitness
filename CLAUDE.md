@@ -421,7 +421,7 @@ Estrategias:
   - una visita cuenta después de 3 segundos a la vista, y una vez por día por navegador;
   - no cuentan los robots (`navigator.webdriver`, o "bot", "headless", etc. en el navegador), ni un navegador con la sesión de Amira o de una alumna.
   - En Analytics, más de la mitad de las visitas de septiembre y octubre venían de centros de datos.
-  - **Ráfagas (14/11/2026):** el panel no cuenta 4 o más visitas con el mismo origen, el mismo sitio de origen y la misma página, cada una a menos de 10 segundos de la anterior (`sinRafagas`). Debajo de la tabla dice cuántas se descontaron.
+  - **Ráfagas (14/11/2026):** el panel no cuenta 4 o más visitas con el mismo origen, el mismo sitio de origen y la misma página, cada una a menos de 10 segundos de la anterior (`sinRafagas`). No dice cuántas descontó: para Amira es un detalle técnico (decidido con Aaron, 14/11).
     - El jueves 12/11 entraron 5 "Directo" en un segundo (22:27) y 17 "de Instagram" en 11 segundos (23:03), desde facebook.com y con la etiqueta de Instagram. Parece Meta revisando el link.
     - El 14/11, en 7 días, el panel decía 48 personas y 22 de Instagram: eran 26 y 5.
     - Desde el 19/10 no hubo otras. Antes, cuando contaban los robots, había ráfagas de 6 en un segundo casi todos los días.
@@ -436,8 +436,12 @@ Estrategias:
   - Análisis muestra de dónde vinieron las alumnas de los últimos 90 días.
   - De agosto a octubre llegaron por Instagram y una por WhatsApp; ninguna por Google Ads.
 - **Análisis → "Cómo viene tu web" (rehecha el 6/11/2026):** todo es de un período que se elige (7 o 30 días) y que empieza como mucho el 19/10, desde cuando se cuenta bien.
+  - Muestra solo lo que le sirve a Amira (decidido con Aaron, 14/11/2026): cuántas entraron, de dónde, cuántas tocaron WhatsApp y cuándo. Los detalles técnicos no van.
   - Arriba, una frase: cuántas entraron, cuántas tocaron WhatsApp y "1 de cada N".
   - Una tabla por origen dice cuántas entraron y cuántas tocaron WhatsApp. Las notas van en una línea, y la página de links (`/bio`) también, solo si alguien la abrió.
+  - **Cuándo tocaron WhatsApp (14/11/2026):** día, hora y de dónde venían, las 6 más recientes y "y N más".
+    - La web no sabe quién es cada persona. Con la hora, Amira busca en su WhatsApp quién le escribió, y sabe de dónde venía.
+    - Si a esa hora no le escribió nadie, la persona tocó el botón pero no llegó a mandar el mensaje.
   - Debajo, las alumnas nuevas de los últimos 90 días. Las que no tienen "¿Cómo llegó?" son botones que abren Editar alumna en ese campo (`anotarOrigen`).
   - Hasta ese día mezclaba 7, 30 y 90 días en cuatro filas de etiquetas. Los 30 días sumaban lo de antes del 19/10, cuando contaban los robots: decía 182 personas, y desde el 19/10 eran 77 (40 Directo y 28 de Google Ads).
   - "Directo" es una visita sin etiqueta y sin sitio de origen. Instagram no siempre avisa de dónde viene la persona, así que un link de Instagram sin `?utm_source=instagram` puede contar como Directo.

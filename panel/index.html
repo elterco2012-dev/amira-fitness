@@ -5945,6 +5945,7 @@ async function loadPageViews(){
 // milisegundo): no eran personas, parece Meta revisando el link. Con 5 a 10 visitas por día,
 // 4 o más con el mismo origen, el mismo sitio de origen y la misma página, cada una a menos de
 // 10 segundos de la anterior, no son personas: no se cuentan. Desde el 19/10 no hubo otras.
+// No se muestra cuántas se descontaron: para Amira es un detalle técnico (decidido con Aaron).
 function sinRafagas(rows){
   const grupos={};
   rows.forEach(r=>{const k=r.page+'|'+(r.origen||'')+'|'+(r.referrer||'');(grupos[k]=grupos[k]||[]).push(r);});
@@ -6051,7 +6052,6 @@ function rAnalisis(){
     const cuando=inicio===LIMPIO?'Desde el 19/10':`En los últimos ${dias} días`;
     const enPeriodo=r=>new Date(r.created_at).getTime()>=inicio;
     const per=sinRafagas(rows).filter(enPeriodo);
-    const rafagas=rows.filter(enPeriodo).length-per.length;
     // Clics a WhatsApp desde la web: la página principal, la del formulario y las notas
     // (/notas/wa, desde el 26/10). Los de la bio van en su linea. Lo que importa es cuantas
     // escribieron: los botones de la web llevan a WhatsApp, no al formulario.
@@ -6102,8 +6102,18 @@ function rAnalisis(){
         <td style="padding:0 0 .4rem;text-align:right;">${perfil.v}</td>
         <td style="padding:0 0 .4rem .9rem;text-align:right;">${perfil.w}</td></tr>`:''}`).join('')}
     </table>`:'';
-    const notaDirecto=porOrigen['Directo']?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">Directo: no se sabe de dónde venían. Escribieron la dirección o entraron por un link sin etiqueta (Instagram no siempre avisa de dónde viene la persona).</div>`:'';
-    const notaRafagas=rafagas?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">🤖 No se cuentan ${rafagas} visitas que llegaron todas juntas, en segundos: no eran personas.</div>`:'';
+    const notaDirecto=porOrigen['Directo']?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">Directo: no se sabe de dónde venían (escribieron la dirección o alguien les pasó el link).</div>`:'';
+    // Cuándo tocaron WhatsApp (14/11/2026). La web no sabe quién es cada persona, pero con el
+    // día y la hora Amira encuentra en su WhatsApp quién le escribió, y acá ve de dónde venía.
+    const DIA=['dom','lun','mar','mié','jue','vie','sáb'],dos=n=>String(n).padStart(2,'0');
+    const cuandoWa=r=>{const d=new Date(r.created_at);return`${DIA[d.getDay()]} ${d.getDate()}/${d.getMonth()+1} · ${dos(d.getHours())}:${dos(d.getMinutes())}`;};
+    const waOrden=[...waRows].sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+    const lineaWa=waOrden.length?`<div style="font-size:12px;color:var(--tm);margin-bottom:.7rem;">
+      <div style="margin-bottom:.2rem;">💬 Cuándo tocaron WhatsApp:</div>
+      ${waOrden.slice(0,6).map(r=>{const o=origenDe(r),b=o===PERFIL?'Instagram':o;return`<div style="padding-left:1.4rem;">${cuandoWa(r)} · ${srcEmoji[b]||'🌐'} ${esc(o===PERFIL?'Instagram (link del perfil)':o)}</div>`;}).join('')}
+      ${waOrden.length>6?`<div style="padding-left:1.4rem;">y ${waOrden.length-6} más</div>`:''}
+      <div style="font-size:11px;color:var(--th);margin-top:.25rem;">Con la hora podés ver en tu WhatsApp quién te escribió.</div>
+    </div>`:'';
     // Las notas (26/10/2026) son para que la encuentren en Google: cuántas personas entraron
     // por cada una y cuántas escribieron desde ahí. Cada persona cuenta una vez por día, en la
     // página por la que entró.
@@ -6146,7 +6156,7 @@ function rAnalisis(){
         </div>
       </div>
       <div style="font-size:15px;color:var(--t);line-height:1.5;margin-bottom:.9rem;">${frase}</div>
-      ${tabla}${notaDirecto}${notaRafagas}${lineaNotas}${lineaBio}
+      ${tabla}${notaDirecto}${lineaWa}${lineaNotas}${lineaBio}
       ${bloqueAlumnas}
       <div style="font-size:10px;color:var(--th);margin-top:.9rem;">Cada persona cuenta una vez por día. No cuentan los robots, ni vos, ni las alumnas.</div>
     </div>`;
