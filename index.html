@@ -1556,16 +1556,20 @@ try{$('#yr').textContent=new Date().getFullYear();}catch(_){}
 </script>
 
 <script>
-// De donde viene la persona. Instagram borra el referente cuando abre el link
-// en su navegador interno, asi que el utm_source es lo unico que permite
-// atribuirle la visita.
+// De donde viene la persona. Instagram a veces borra el referente cuando abre el
+// link en su navegador interno (otras veces manda l.instagram.com), asi que el
+// utm_source es lo unico seguro para atribuirle la visita.
+// Todos los links de Instagram (perfil, historias, mensajes) pasan por l.instagram.com:
+// el del perfil se distingue solo si lleva utm_content=perfil (14/11/2026). Se acepta
+// tambien link_in_bio, que algunas herramientas usan para lo mismo.
 function afOrigen(){
   try{
     var qs=new URLSearchParams(location.search);
     var utm=(qs.get('utm_source')||'').toLowerCase();
+    var cont=(qs.get('utm_content')||'').toLowerCase();
     var ref=(document.referrer||'').toLowerCase();
     if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads')return'Google Ads';
-    if(utm.indexOf('instagram')>-1||utm==='ig')return'Instagram';
+    if(utm.indexOf('instagram')>-1||utm==='ig')return(cont==='perfil'||cont==='link_in_bio')?'Instagram perfil':'Instagram';
     if(utm.indexOf('facebook')>-1||utm==='fb')return'Facebook';
     if(ref.indexOf('instagram')>-1)return'Instagram';
     if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1)return'Facebook';
