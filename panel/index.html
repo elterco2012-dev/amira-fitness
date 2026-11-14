@@ -3674,7 +3674,7 @@ async function aprobar(id){
   const elTel=document.getElementById('na-tel');if(elTel)elTel.value=reg.tel||'';
   // Cómo llegó: lo que la web anotó al recibir la inscripción (Google Ads, Instagram...).
   const elOrigen=document.getElementById('na-origen');
-  if(elOrigen)elOrigen.value=reg.origen==='Instagram'?'Instagram':/^Google/.test(reg.origen||'')?'Google':'Web';
+  if(elOrigen)elOrigen.value=/^Instagram/.test(reg.origen||'')?'Instagram':/^Google/.test(reg.origen||'')?'Google':'Web';
   const elEmail=document.getElementById('na-email');if(elEmail)elEmail.value=reg.mail||'';
   const elNac=document.getElementById('na-nacimiento');
   if(elNac&&reg.nacimiento&&reg.nacimiento!=='—')elNac.value=reg.nacimiento;
@@ -5940,6 +5940,25 @@ async function loadPageViews(){
   }catch(e){DB.pageViews=[];}
   render();
 }
+// Ráfagas (14/11/2026). El jueves 12/11 entraron 5 visitas "Directo" en un segundo, a las
+// 22:27, y 17 "de Instagram" en 11 segundos, a las 23:03, desde facebook.com (dos en el mismo
+// milisegundo): no eran personas, parece Meta revisando el link. Con 5 a 10 visitas por día,
+// 4 o más con el mismo origen, el mismo sitio de origen y la misma página, cada una a menos de
+// 10 segundos de la anterior, no son personas: no se cuentan. Desde el 19/10 no hubo otras.
+function sinRafagas(rows){
+  const grupos={};
+  rows.forEach(r=>{const k=r.page+'|'+(r.origen||'')+'|'+(r.referrer||'');(grupos[k]=grupos[k]||[]).push(r);});
+  const fuera=new Set();
+  Object.values(grupos).forEach(g=>{
+    g.sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at));
+    for(let ini=0,i=1;i<=g.length;i++){
+      if(i<g.length&&Date.parse(g[i].created_at)-Date.parse(g[i-1].created_at)<=10000)continue;
+      if(i-ini>=4)g.slice(ini,i).forEach(r=>fuera.add(r));
+      ini=i;
+    }
+  });
+  return rows.filter(r=>!fuera.has(r));
+}
 
 function rAnalisis(){
   const all=DB.alumnas;
@@ -6030,7 +6049,9 @@ function rAnalisis(){
     const LIMPIO=new Date(2026,9,19).getTime();   // desde el 19/10/2026 se cuenta bien
     const inicio=Math.max(Date.now()-dias*86400000,LIMPIO);
     const cuando=inicio===LIMPIO?'Desde el 19/10':`En los últimos ${dias} días`;
-    const per=rows.filter(r=>new Date(r.created_at).getTime()>=inicio);
+    const enPeriodo=r=>new Date(r.created_at).getTime()>=inicio;
+    const per=sinRafagas(rows).filter(enPeriodo);
+    const rafagas=rows.filter(enPeriodo).length-per.length;
     // Clics a WhatsApp desde la web: la página principal, la del formulario y las notas
     // (/notas/wa, desde el 26/10). Los de la bio van en su linea. Lo que importa es cuantas
     // escribieron: los botones de la web llevan a WhatsApp, no al formulario.
@@ -6055,9 +6076,13 @@ function rAnalisis(){
     const chip=html=>`<span style="background:var(--s2);border-radius:6px;padding:3px 9px;">${html}</span>`;
     // Una fila por origen: cuantas entraron y cuantas tocaron WhatsApp. Antes eran dos filas
     // de etiquetas separadas, y habia que cruzarlas a ojo.
-    const porOrigen={};
-    siteRows.forEach(r=>{const o=origenDe(r);(porOrigen[o]=porOrigen[o]||{v:0,w:0}).v++;});
-    waRows.forEach(r=>{const o=origenDe(r);(porOrigen[o]=porOrigen[o]||{v:0,w:0}).w++;});
+    // Las que entraron por el link del perfil de Instagram (utm_content=perfil, desde el
+    // 14/11/2026) suman en Instagram y van además en su fila, debajo.
+    const PERFIL='Instagram perfil';
+    const porOrigen={},perfil={v:0,w:0};
+    const sumar=(r,c)=>{const o=origenDe(r),b=o===PERFIL?'Instagram':o;if(o===PERFIL)perfil[c]++;(porOrigen[b]=porOrigen[b]||{v:0,w:0})[c]++;};
+    siteRows.forEach(r=>sumar(r,'v'));
+    waRows.forEach(r=>sumar(r,'w'));
     const filas=Object.entries(porOrigen).sort((a,b)=>b[1].v-a[1].v||b[1].w-a[1].w);
     // El formulario ya casi no se usa: se nombra solo si alguien se anotó.
     const reg=(DB.registros||[]).filter(r=>(r.tipo||'registro')==='registro'&&new Date(r.created_at).getTime()>=inicio).length;
@@ -6072,9 +6097,13 @@ function rAnalisis(){
         <th style="text-align:right;font-weight:600;padding:0 0 .3rem .9rem;">WhatsApp</th></tr>
       ${filas.map(([o,c])=>`<tr><td style="${celda}">${srcEmoji[o]||'🌐'} ${esc(o)}</td>
         <td style="${celda}text-align:right;font-weight:600;">${c.v}</td>
-        <td style="${celda}text-align:right;${c.w?'font-weight:600;color:var(--vd);':'color:var(--th);'}">${c.w}</td></tr>`).join('')}
+        <td style="${celda}text-align:right;${c.w?'font-weight:600;color:var(--vd);':'color:var(--th);'}">${c.w}</td></tr>${o==='Instagram'&&(perfil.v||perfil.w)?`
+      <tr style="font-size:12px;color:var(--tm);"><td style="padding:0 0 .4rem 1.3rem;">↳ por el link del perfil</td>
+        <td style="padding:0 0 .4rem;text-align:right;">${perfil.v}</td>
+        <td style="padding:0 0 .4rem .9rem;text-align:right;">${perfil.w}</td></tr>`:''}`).join('')}
     </table>`:'';
-    const notaDirecto=porOrigen['Directo']?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">Directo: no se sabe de dónde venían. Escribieron la dirección o entraron por un link sin etiqueta (Instagram no avisa de dónde viene la persona).</div>`:'';
+    const notaDirecto=porOrigen['Directo']?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">Directo: no se sabe de dónde venían. Escribieron la dirección o entraron por un link sin etiqueta (Instagram no siempre avisa de dónde viene la persona).</div>`:'';
+    const notaRafagas=rafagas?`<div style="font-size:11px;color:var(--th);margin-bottom:.7rem;">🤖 No se cuentan ${rafagas} visitas que llegaron todas juntas, en segundos: no eran personas.</div>`:'';
     // Las notas (26/10/2026) son para que la encuentren en Google: cuántas personas entraron
     // por cada una y cuántas escribieron desde ahí. Cada persona cuenta una vez por día, en la
     // página por la que entró.
@@ -6084,12 +6113,13 @@ function rAnalisis(){
     const waNotas=waRows.filter(r=>r.page==='/notas/wa').length;
     const porNota={};notaRows.forEach(r=>{const n=notaNombre[r.page]||r.page.replace('/notas/','');porNota[n]=(porNota[n]||0)+1;});
     const lineaNotas=notaRows.length?`<div style="font-size:12px;color:var(--tm);margin-bottom:.35rem;">📝 Por las notas entraron <strong>${notaRows.length}</strong> (${Object.entries(porNota).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`${esc(n)} ${c}`).join(' · ')}) y ${waNotas?`<strong>${waNotas}</strong> ${waNotas===1?'tocó':'tocaron'} WhatsApp`:'nadie tocó WhatsApp'}.</div>`:'';
-    // La bio es el link del perfil de Instagram. El 6/11/2026 no se abria desde el 3/10.
+    // La página de links (/bio), que fue el link del perfil de Instagram hasta el 3/10. Hasta el
+    // 14/11/2026 decía "Nadie abrió el link en bio de Instagram" aunque la tabla mostrara visitas
+    // de Instagram: el perfil lleva a la página principal, que se cuenta arriba. Ahora aparece
+    // solo si alguien la abrió.
     const bioAbren=per.filter(r=>r.page==='/bio/view').length;
     const bioWa=per.filter(r=>r.page==='/bio/wa').length;
-    const lineaBio=`<div style="font-size:12px;color:var(--tm);margin-bottom:.35rem;">📲 ${bioAbren
-      ?`El link en bio de Instagram lo abrieron <strong>${bioAbren}</strong> y ${bioWa?`<strong>${bioWa}</strong> ${bioWa===1?'tocó':'tocaron'} WhatsApp desde ahí`:'nadie tocó WhatsApp desde ahí'}.`
-      :'Nadie abrió el link en bio de Instagram.'}</div>`;
+    const lineaBio=bioAbren||bioWa?`<div style="font-size:12px;color:var(--tm);margin-bottom:.35rem;">📲 La página de links (amirafitness.com.ar/bio) la ${bioAbren===1?'abrió una persona':`abrieron <strong>${bioAbren}</strong>`} y ${bioWa?`<strong>${bioWa}</strong> ${bioWa===1?'tocó':'tocaron'} WhatsApp desde ahí`:'nadie tocó WhatsApp desde ahí'}.</div>`:'';
     // De dónde vienen las alumnas: lo que Amira anota en "¿Cómo llegó?" (19/10/2026). Es el
     // dato que dice dónde conviene poner plata. Va con 90 dias porque entran 4 o 5 por mes, y
     // las que no lo tienen se anotan desde aca (el 6/11/2026 eran 11 de 12).
@@ -6116,7 +6146,7 @@ function rAnalisis(){
         </div>
       </div>
       <div style="font-size:15px;color:var(--t);line-height:1.5;margin-bottom:.9rem;">${frase}</div>
-      ${tabla}${notaDirecto}${lineaNotas}${lineaBio}
+      ${tabla}${notaDirecto}${notaRafagas}${lineaNotas}${lineaBio}
       ${bloqueAlumnas}
       <div style="font-size:10px;color:var(--th);margin-top:.9rem;">Cada persona cuenta una vez por día. No cuentan los robots, ni vos, ni las alumnas.</div>
     </div>`;
@@ -6252,8 +6282,9 @@ function rComentarios(){
 // Etiqueta de origen del registro (de dónde vino la persona)
 function oBadge(o){
   if(!o)return'';
-  const e={'Google Ads':'🟢','Instagram':'📸','Facebook':'🔵','TikTok':'🎵','Google':'🔍','Directo':'🔗','Otro':'🌐'}[o]||'🌐';
-  return `<span class="badge" style="background:var(--s2);color:var(--tm);font-weight:500;">${e} ${o}</span>`;
+  const perfil=o==='Instagram perfil';   // entró por el link del perfil de Instagram (14/11/2026)
+  const e={'Google Ads':'🟢','Instagram':'📸','Facebook':'🔵','TikTok':'🎵','Google':'🔍','Directo':'🔗','Otro':'🌐'}[perfil?'Instagram':o]||'🌐';
+  return `<span class="badge" style="background:var(--s2);color:var(--tm);font-weight:500;">${e} ${perfil?'Instagram (link del perfil)':o}</span>`;
 }
 
 function rRegistros(){

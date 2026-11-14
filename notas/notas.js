@@ -24,13 +24,15 @@
   }catch(e){}
 })();
 
+// Igual que en la página principal: el link del perfil de Instagram lleva utm_content=perfil.
 function afOrigen(){
   try{
     var qs=new URLSearchParams(location.search);
     var utm=(qs.get('utm_source')||'').toLowerCase();
+    var cont=(qs.get('utm_content')||'').toLowerCase();
     var ref=(document.referrer||'').toLowerCase();
     if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads')return'Google Ads';
-    if(utm.indexOf('instagram')>-1||utm==='ig')return'Instagram';
+    if(utm.indexOf('instagram')>-1||utm==='ig')return(cont==='perfil'||cont==='link_in_bio')?'Instagram perfil':'Instagram';
     if(utm.indexOf('facebook')>-1||utm==='fb')return'Facebook';
     if(ref.indexOf('instagram')>-1)return'Instagram';
     if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1)return'Facebook';

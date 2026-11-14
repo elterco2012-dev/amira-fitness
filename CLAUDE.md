@@ -285,7 +285,7 @@ Cron job (Make.com o pg_cron). Computa: alumnas activas, las que entrenaron esta
 
 ## Service Worker
 
-Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v80` al 28/10/2026). Incrementarla con cada deploy que cambie assets cacheados.
+Versión actual: la de la primera línea de `sw.js` (`const CACHE = 'amira-vN'`; `amira-v81` al 14/11/2026). Incrementarla con cada deploy que cambie assets cacheados.
 
 Estrategias:
 - **Videos:** no pasan por el service worker (28/10/2026). Se piden de a pedazos y el caché no guarda respuestas parciales: cada pedazo daba error, y en el iPhone un video servido por el service worker puede no arrancar.
@@ -421,18 +421,29 @@ Estrategias:
   - una visita cuenta después de 3 segundos a la vista, y una vez por día por navegador;
   - no cuentan los robots (`navigator.webdriver`, o "bot", "headless", etc. en el navegador), ni un navegador con la sesión de Amira o de una alumna.
   - En Analytics, más de la mitad de las visitas de septiembre y octubre venían de centros de datos.
+  - **Ráfagas (14/11/2026):** el panel no cuenta 4 o más visitas con el mismo origen, el mismo sitio de origen y la misma página, cada una a menos de 10 segundos de la anterior (`sinRafagas`). Debajo de la tabla dice cuántas se descontaron.
+    - El jueves 12/11 entraron 5 "Directo" en un segundo (22:27) y 17 "de Instagram" en 11 segundos (23:03), desde facebook.com y con la etiqueta de Instagram. Parece Meta revisando el link.
+    - El 14/11, en 7 días, el panel decía 48 personas y 22 de Instagram: eran 26 y 5.
+    - Desde el 19/10 no hubo otras. Antes, cuando contaban los robots, había ráfagas de 6 en un segundo casi todos los días.
 - **Visitas viejas sin origen:** las anotadas antes del 12/10 no lo traen, y el panel lo saca del sitio del que venían (`referrer`).
+- **Instagram (14/11/2026):** todos sus links (el del perfil, las historias, los mensajes) pasan por `l.instagram.com`. A veces llega como sitio de origen y a veces no, y nunca dice de cuál de ellos vino.
+  - El del perfil se distingue solo con una etiqueta: tiene que ser `https://amirafitness.com.ar/?utm_source=instagram&utm_content=perfil`. No se pudo confirmar que Instagram le agregue una propia: hay que ponerla a mano en el perfil.
+  - La principal, las notas y el formulario lo anotan con origen `Instagram perfil` (también aceptan `utm_content=link_in_bio`).
+  - El panel lo suma a Instagram y lo muestra en una fila debajo ("↳ por el link del perfil"). Al aprobar una inscripción, "¿Cómo llegó?" queda en Instagram.
+  - Hasta que el perfil no tenga ese link, esa fila no aparece.
 - **"¿Cómo llegó?"** (`alumnas.origen`): Instagram, WhatsApp, Recomendación, Google, Web u Otro.
   - Amira lo anota en el alta o en la ficha. Al aprobar una inscripción se precarga con lo que anotó la web.
   - Análisis muestra de dónde vinieron las alumnas de los últimos 90 días.
   - De agosto a octubre llegaron por Instagram y una por WhatsApp; ninguna por Google Ads.
 - **Análisis → "Cómo viene tu web" (rehecha el 6/11/2026):** todo es de un período que se elige (7 o 30 días) y que empieza como mucho el 19/10, desde cuando se cuenta bien.
   - Arriba, una frase: cuántas entraron, cuántas tocaron WhatsApp y "1 de cada N".
-  - Una tabla por origen dice cuántas entraron y cuántas tocaron WhatsApp. Las notas y la bio van en una línea cada una.
+  - Una tabla por origen dice cuántas entraron y cuántas tocaron WhatsApp. Las notas van en una línea, y la página de links (`/bio`) también, solo si alguien la abrió.
   - Debajo, las alumnas nuevas de los últimos 90 días. Las que no tienen "¿Cómo llegó?" son botones que abren Editar alumna en ese campo (`anotarOrigen`).
   - Hasta ese día mezclaba 7, 30 y 90 días en cuatro filas de etiquetas. Los 30 días sumaban lo de antes del 19/10, cuando contaban los robots: decía 182 personas, y desde el 19/10 eran 77 (40 Directo y 28 de Google Ads).
-  - "Directo" es una visita sin etiqueta y sin sitio de origen. Instagram no avisa de dónde viene la persona, así que un link de Instagram sin `?utm_source=instagram` cuenta como Directo.
+  - "Directo" es una visita sin etiqueta y sin sitio de origen. Instagram no siempre avisa de dónde viene la persona, así que un link de Instagram sin `?utm_source=instagram` puede contar como Directo.
   - La bio (`/bio`) no se abre desde el 3/10 (medido el 6/11).
+    - Hasta el 14/11 el panel decía "Nadie abrió el link en bio de Instagram" mientras la tabla mostraba visitas de Instagram: el link del perfil ya no lleva a `/bio`.
+    - Ahora esa línea habla de la página de links y aparece solo si alguien la abrió.
 - **Análisis → "Tus alumnas" (6/11/2026):** no cuenta la cuenta de Amira (decía "de 15 activas" y el Inicio, 14).
   - "Peso estancado" (el mismo peso en las últimas 3 sesiones, en 2 o más alumnas) y "Listas para subir peso" miran solo a las activas y lo de los últimos 30 días. Hasta ese día sumaban bajas y ciclos viejos.
   - "Ausentismo por día" aparece desde 5 "No pude entrenar". Ese día había uno.

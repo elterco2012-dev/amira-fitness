@@ -280,10 +280,12 @@ document.getElementById('wa-directo').href=
 <script>(function(){try{
   var qs=new URLSearchParams(location.search);
   var utm=(qs.get('utm_source')||'').toLowerCase();
+  var cont=(qs.get('utm_content')||'').toLowerCase();
   var ref=(document.referrer||'').toLowerCase();
   var src;
   if(qs.get('gclid')||utm==='google'||utm==='cpc'||utm==='googleads'||utm==='google-ads'){src='Google Ads';}
-  else if(utm.indexOf('instagram')>-1||utm==='ig'){src='Instagram';}
+  // El link del perfil de Instagram lleva utm_content=perfil (14/11/2026), como en la página principal.
+  else if(utm.indexOf('instagram')>-1||utm==='ig'){src=(cont==='perfil'||cont==='link_in_bio')?'Instagram perfil':'Instagram';}
   else if(utm.indexOf('facebook')>-1||utm==='fb'){src='Facebook';}
   else if(ref.indexOf('instagram')>-1){src='Instagram';}
   else if(ref.indexOf('facebook')>-1||ref.indexOf('fb.')>-1){src='Facebook';}
