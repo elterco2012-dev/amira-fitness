@@ -504,6 +504,19 @@ Estrategias:
     - El 94% de los clics llegó desde el celular, y el grupo con más clics fue el de mujeres de 35 a 44 (7 de 17).
     - Decisión de Aaron (10/11): seguir solo con las búsquedas de quien busca entrenadora. Se pausan las palabras de rutinas y planes, y se suman negativas: abdominales, stretching, tai chi, caminata, masa muscular, tonificar, "laura zado" y mendoza. Lo hace Aaron en Google Ads.
     - Próxima revisión: martes 24/11. Si en esas dos semanas no hay ningún contacto útil, pausar la campaña.
+    - Desde el 10/11 a la tarde quedaron activas 11 palabras, todas en concordancia de frase, y detenidas "plan entrenamiento gimnasio", "plan de entrenamiento en casa" y "rutinas de ejercicio en casa".
+  - **Revisión del 24/11 (del 11 al 24/11):** $6.627, 736 impresiones, 24 clics a $276 y 1 conversión: el toque a WhatsApp del jueves 12/11 a las 22:53, desde "entrenadora personal para mujeres".
+    - En la web, del 11 al 23/11: 19 visitas desde los anuncios y ese toque. Del 3 al 9/11 habían sido 14 visitas y ninguno.
+    - "plan de entrenamiento personalizado" se llevó $3.181, la mitad del gasto, y 12 de los 24 clics, sin ningún toque. Lo mismo que las otras palabras con "plan" del 3 al 9/11: 10 clics y ningún contacto.
+    - En "entrenamiento personalizado online" y "entrenadora online", Google califica la página de destino "por debajo de la media" (nivel de calidad 5 de 10).
+    - Muchas búsquedas eran de quien busca entrenadora ("entrenamiento personalizado", "entrenador personal online"). Otras, nombres de otros entrenadores e influencers, otra ciudad y clases en persona.
+    - Una alumna nueva del 12/11 le escribió a Amira por WhatsApp, sin pasar por los anuncios: la dio de alta a las 20:46, dos horas antes del toque. En 4 semanas, ningún contacto útil confirmado desde los anuncios.
+    - Decisión de Aaron (24/11): seguir dos semanas más.
+      - Pausó "plan de entrenamiento personalizado".
+      - Agregó como negativas couceiro, guimarey, mulvihill, lispio, palma, antopalmafitness, turbofausto, "squat fit", "santa fe" y clases.
+      - El presupuesto sigue en $500 por día. No aplicar "Maximizar conversiones": con una conversión no tiene de dónde aprender, y busca gastar todo el presupuesto.
+    - Quedan activas "entrenamiento personalizado online", "personal trainer mujeres", "entrenadora online", "entrenamiento funcional para mujeres", "plan de entrenamiento personalizado online", "asesoramiento deportivo online", "entrenadora personal para mujeres", "rutina de gimnasio personalizada", "personal trainer online mujeres" (volumen bajo) y "entrenamiento online mujeres".
+    - Próxima revisión: martes 8/12. Si del 25/11 al 7/12 no llega ningún contacto útil desde los anuncios, pausar la campaña.
 
 ### Amira crea un nuevo ciclo
 1. En panel → Rutinas → selecciona alumna → "Nuevo ciclo".
